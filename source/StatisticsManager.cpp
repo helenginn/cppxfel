@@ -1,0 +1,912 @@
+#include <string>
+#include <iostream>
+#include <cmath>
+#include "misc.h"
+#include "StatisticsManager.h"
+#include <new>
+#include <fstream>
+#include "FileParser.h"
+
+void StatisticsManager::setMtzs(vector<MtzPtr> newMtzs)
+{
+	mtzs = newMtzs;
+    mtz_num = (int)newMtzs.size();
+}
+
+void StatisticsManager::loadTwoFilesInverted(char **filenames, int filenum,
+		int inv)
+{
+	cout << "Loading " << filenum << " files..." << endl;
+
+	for (int i = 0; i < 2; i++)
+	{
+		cout << "Loading file " << filenames[i] << endl;
+		string filename_string = filenames[i];
+
+		MtzPtr mtz = MtzPtr(new MtzManager());
+		mtzs.push_back(mtz);
+
+		if (i == 0)
+			mtzs[i]->setInverse(inv);
+		mtzs[i]->setFilename(filename_string);
+		mtzs[i]->loadReflections(1);
+	}
+
+	mtz_num = filenum;
+
+	cout << "Loaded " << filenum << " files." << endl;
+}
+
+void StatisticsManager::loadFiles(char **filenames, int filenum, int partiality)
+{
+	cout << "Loading " << filenum << " files..." << endl;
+
+	for (int i = 0; i < filenum; i++)
+	{
+		cout << "Loading file " << filenames[i] << endl;
+		string filename_string = filenames[i];
+
+		MtzPtr mtz = MtzPtr(new MtzManager());
+		mtzs.push_back(mtz);
+
+		mtzs[i]->setFilename(filename_string);
+		mtzs[i]->loadReflections(partiality);
+	}
+
+	mtz_num = filenum;
+
+	cout << "Loaded " << filenum << " files." << endl;
+}
+
+void StatisticsManager::write_refls(int num)
+{
+	MtzManager *shot = &*(mtzs[num]);
+
+	for (int i = 0; i < (int) (*shot).holderCount(); i++)
+	{
+		if (shot->holder(i)->millerCount() < 10)
+			continue;
+
+		double mean_intensity = shot->holder(i)->meanIntensity();
+		for (int j = 0; j < shot->holder(i)->millerCount(); j++)
+		{
+			double percentage = shot->holder(i)->miller(j)->intensity()
+					/ mean_intensity * 100;
+			cout << percentage << endl;
+		}
+
+		cout << endl;
+	}
+}
+
+double StatisticsManager::midPointBetweenResolutions(double minD, double maxD)
+{
+	vector<double> bins;
+	generateResolutionBins(minD, maxD, 2, &bins);
+
+	return bins[1];
+}
+
+void StatisticsManager::generateResolutionBins(double minD, double maxD,
+		int binCount, vector<double> *bins)
+{
+	double minRadius = (minD == 0) ? 0 : 1 / minD;
+	double maxRadius = 1 / maxD;
+
+	if (maxD <= 0)
+	{
+		std::cout << "Warning: maximum resolution set to 0. Exiting program.";
+		exit(1);
+	}
+
+	double maxVolume = pow(maxRadius, 3);
+	double minVolume = pow(minRadius, 3);
+	double totalVolume = maxVolume - minVolume;
+
+	double eachVolume = totalVolume / binCount;
+
+	double r1 = minRadius;
+	double r2 = 0;
+
+	bins->push_back(1 / r1);
+
+	for (int i = 0; i < binCount; i++)
+	{
+		double r2_cubed = pow(r1, 3) + eachVolume;
+		r2 = cbrt(r2_cubed);
+
+		bins->push_back(1 / r2);
+
+		r1 = r2;
+	}
+}
+
+double StatisticsManager::cc_pearson(int num1, int num2, int silent,
+		int inverted, int *hits, double *multiplicity, double lowResolution,
+		double highResolution, bool shouldLog)
+{
+	MtzManager *shot1 = &*(mtzs[num1]);
+	MtzManager *shot2 = &*(mtzs[num2]);
+
+	return cc_pearson(shot1, shot2, silent, inverted, hits, multiplicity,
+			lowResolution, highResolution, shouldLog);
+}
+
+void StatisticsManager::convertResolutions(double lowAngstroms,
+		double highAngstroms, double *lowReciprocal, double *highReciprocal)
+{
+	*lowReciprocal = (lowAngstroms == 0) ? 0 : 1 / lowAngstroms;
+	*highReciprocal = (highAngstroms == 0) ? FLT_MAX : 1 / highAngstroms;
+}
+
+double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
+		int silent, int inverted, int *hits, double *multiplicity,
+		double lowResolution, double highResolution, bool shouldLog)
+{
+	vector<Holder *> holders1;
+	vector<Holder *> holders2;
+	int num = 0;
+
+	shot1->findCommonReflections(shot2, holders1, holders2, &num,
+			inverted);
+
+    if (holders1.size() <= 2)
+	{
+		return -1;
+	}
+
+	double invHigh = 1 / highResolution;
+	double invLow = 1 / lowResolution;
+
+	if (highResolution == 0)
+		invHigh = FLT_MAX;
+
+	if (lowResolution == 0)
+		invLow = 0;
+
+	if (!silent)
+	{
+		for (int i = 0; i < num; i++)
+		{
+			double int1 = holders1[i]->meanIntensity();
+			string filename = shot1->getFilename();
+			double int2 = holders2[i]->meanIntensityWithExclusion(&filename);
+
+			if (int1 != int1 || int2 != int2)
+				continue;
+
+			if (holders1[i]->getResolution())
+
+			if (!(holders1[i]->getResolution() > invLow
+					&& holders1[i]->getResolution() < invHigh))
+				continue;
+
+			cout << int1 << "\t" << int2 << endl;
+		}
+	}
+
+	double sum_x = 0;
+	double sum_y = 0;
+	double weight_counted = 0;
+	int num_counted = 0;
+
+	bool useSigmaOne = true;
+	bool useSigmaTwo = false;
+
+	for (int i = 0; i < num; i++)
+	{
+		if (holders1[i]->miller(0)->getPartiality() < 1)
+		{
+			useSigmaOne = false;
+		}
+		if (holders2[i]->miller(0)->getPartiality() < 1)
+		{
+			useSigmaTwo = false;
+			break;
+		}
+	}
+
+	for (int i = 0; i < num; i++)
+	{
+		if (!(holders1[i]->getResolution() > invLow
+				&& holders1[i]->getResolution() < invHigh))
+			continue;
+
+        double weight =
+        useSigmaOne ?
+        1 / holders1[i]->meanSigma() :
+        holders1[i]->meanPartiality();
+        
+        weight *=
+        useSigmaTwo ?
+        1 / holders2[i]->meanSigma() :
+        holders2[i]->meanPartiality();
+
+		double mean1 =
+				shouldLog ?
+						log(holders1[i]->meanIntensity()) :
+						holders1[i]->meanIntensity();
+		string filename = shot1->getFilename();
+		double mean2 =
+				shouldLog ?
+						log(
+								holders2[i]->meanIntensityWithExclusion(
+										&filename)) :
+						holders2[i]->meanIntensityWithExclusion(&filename);
+
+		if (mean1 != mean1 || mean2 != mean2 || weight != weight)
+			continue;
+
+		num_counted++;
+		sum_x += mean1 * weight;
+		sum_y += mean2 * weight;
+
+		weight_counted += weight;
+	}
+
+	double mean_x = sum_x / weight_counted;
+	double mean_y = sum_y / weight_counted;
+
+	double sum_x_y_minus_mean_x_y = 0;
+	double sum_x_minus_mean_x_sq = 0;
+	double sum_y_minus_mean_y_sq = 0;
+
+	for (int i = 0; i < num; i++)
+	{
+		if (!(holders1[i]->getResolution() > invLow
+				&& holders1[i]->getResolution() < invHigh))
+			continue;
+
+		double amp_x =
+				shouldLog ?
+						log(holders1[i]->meanIntensity()) :
+						holders1[i]->meanIntensity();
+		string filename = shot1->getFilename();
+		double amp_y =
+				shouldLog ?
+						log(
+								holders2[i]->meanIntensityWithExclusion(
+										&filename)) :
+						holders2[i]->meanIntensityWithExclusion(&filename);
+
+		double weight =
+				useSigmaOne ?
+						1 / holders1[i]->meanSigma() :
+						holders1[i]->meanPartiality();
+		weight *=
+				useSigmaTwo ?
+						1 / holders2[i]->meanSigma() :
+						holders2[i]->meanPartiality();
+
+		if (amp_x != amp_x || amp_y != amp_y)
+			continue;
+
+		if (weight != weight)
+			continue;
+
+		sum_x_y_minus_mean_x_y += weight * (amp_x - mean_x) * (amp_y - mean_y);
+		sum_x_minus_mean_x_sq += weight * pow(amp_x - mean_x, 2);
+		sum_y_minus_mean_y_sq += weight * pow(amp_y - mean_y, 2);
+	}
+
+	sum_x_y_minus_mean_x_y /= weight_counted;
+	sum_x_minus_mean_x_sq /= weight_counted;
+	sum_y_minus_mean_y_sq /= weight_counted;
+
+	if (hits != NULL)
+		*hits = num_counted;
+
+	double r = sum_x_y_minus_mean_x_y
+			/ (sqrt(sum_x_minus_mean_x_sq) * sqrt(sum_y_minus_mean_y_sq));
+
+	if (r < 0)
+		r = 0;
+	if (r != r)
+		r = -1;
+
+	return r;
+}
+
+double StatisticsManager::r_factor(RFactorType rFactor, MtzManager *shot1, int *hits,
+		double *multiplicity, double lowResolution, double highResolution)
+{
+	double rmerge_numerator = 0;
+	double rmerge_denominator = 0;
+
+	int all_holders_used = 0;
+	int all_millers_used = 0;
+    double sumMultiplicity = 0;
+    double multiplicityDivide = 0;
+	double mult = 0;
+
+	double dMin = 0;
+	double dMax = 0;
+
+	convertResolutions(lowResolution, highResolution, &dMin, &dMax);
+
+	for (int i = 0; i < shot1->holderCount(); i++)
+	{
+		Holder *holder = shot1->holder(i);
+
+        if (!holder->anyAccepted())
+            continue;
+        
+		MillerPtr firstMiller = holder->miller(0);
+
+		double res = holder->getResolution();
+
+		if (res < dMin || res > dMax)
+			continue;
+
+		double sum_numerator = 0;
+		double sum_denominator = 0;
+		double n = holder->millerCount();
+
+        sumMultiplicity += holder->acceptedCount();
+        multiplicityDivide++;
+        
+		if (holder->acceptedCount() == 1)
+        {
+            continue;
+        }
+        
+        all_holders_used++;
+
+   //     std::cout << holder->miller(0)->h << "\t" << holder->miller(0)->k << "\t" << holder->miller(0)->l << std::endl;
+
+		for (int j = 0; j < n; j++)
+		{
+			if (!holder->miller(j)->accepted())
+				continue;
+
+			double mean_i = holder->meanIntensity();
+			double weight = holder->meanPartiality() / holder->meanSigma();
+
+            weight = 1;
+            
+			if (weight != weight || mean_i != mean_i)
+				continue;
+
+			all_millers_used++;
+
+			double one_i = holder->miller(j)->intensity();
+            
+			sum_numerator += abs(mean_i - one_i) * weight;
+			sum_denominator += abs(one_i) * weight;
+		}
+
+		double one_multiple = (double) all_millers_used
+				/ (double) all_holders_used;
+		mult += one_multiple;
+
+		double scalingTerm = 1;
+
+		if (rFactor == RFactorTypePim)
+		{
+			scalingTerm = sqrt(1 / (n - 1));
+		}
+		else if (rFactor == RFactorTypeMeas)
+		{
+			scalingTerm = sqrt(n / (n - 1));
+		}
+
+		rmerge_numerator += scalingTerm * sum_numerator;
+		rmerge_denominator += sum_denominator;
+	}
+
+	mult /= all_holders_used;
+
+	if (multiplicity != NULL)
+		*multiplicity = mult;
+    
+    *multiplicity = sumMultiplicity / multiplicityDivide;
+
+	if (hits != NULL)
+		*hits = all_holders_used;
+
+	double r_merge = rmerge_numerator / rmerge_denominator;
+
+	return r_merge;
+}
+
+double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
+		int silent, int inverted, int *hits, double *multiplicity,
+		double lowResolution, double highResolution, bool shouldLog)
+{
+	double sum_numerator = 0;
+	double sum_denominator = 0;
+	double mult = 0;
+	int count = 0;
+
+	double dMin = 0;
+	double dMax = 0;
+
+	convertResolutions(lowResolution, highResolution, &dMin, &dMax);
+    std::string filename = shot1->getFilename();
+
+	int inverse = (shot1->isInverse());
+
+	for (int i = 0; i < shot1->holderCount(); i++)
+	{
+		Holder *holder = shot1->holder(i);
+		int reflid = inverse ? holder->getInvReflId() : holder->getReflId();
+
+		Holder *holder2 = NULL;
+		shot2->findHolderWithId(reflid, &holder2);
+
+		if (holder2 == NULL)
+			continue;
+        
+		double int1 =
+				shouldLog ?
+						log(holder->meanIntensity()) : holder->meanIntensity();
+		double int2 =
+				shouldLog ?
+						log(holder2->meanIntensity()) :
+						holder2->meanIntensity();
+
+		if (int1 != int1 || int2 != int2)
+			continue;
+
+		double res = holder->getResolution();
+
+		if (res < dMin || res > dMax)
+			continue;
+
+		count++;
+		sum_numerator += fabs(int1 - int2);
+		sum_denominator += fabs((int1 + int2) / 2);
+
+		mult += holder->acceptedCount() + holder2->acceptedCount();
+	}
+
+	mult /= count;
+
+	if (hits != NULL)
+		*hits = count;
+
+	if (multiplicity != NULL)
+		*multiplicity = mult;
+
+	double r_split = sum_numerator / (sum_denominator * sqrt(2));
+
+	return r_split;
+}
+
+double StatisticsManager::cc_through_origin(int num1, int num2, int silent,
+		int inverted, int *hits)
+{
+	return cc_through_origin(num1, num2, silent, inverted, hits, 0, 0, 0);
+}
+
+double StatisticsManager::cc_through_origin(int num1, int num2, int silent,
+		int inverted, int *hits, double lowResolution, double highResolution,
+		bool shouldLog)
+{
+	MtzManager *shot1 = &*(mtzs[num1]);
+	MtzManager *shot2 = &*(mtzs[num2]);
+
+	vector<Holder *> holders1;
+	vector<Holder *> holders2;
+	int num = 0;
+
+	double highRes = 1 / highResolution;
+	double lowRes = 1 / lowResolution;
+
+	if (highResolution == 0)
+		highRes = FLT_MAX;
+
+	if (lowResolution == 0)
+		lowRes = 0;
+
+	shot1->findCommonReflections(shot2, holders1, holders2, &num, inverted, true);
+	(*hits) = num;
+
+	if (num <= 1)
+		return -1;
+
+	if (!silent)
+	{
+		for (int i = 0; i < num; i++)
+		{
+			if (holders1[i]->getResolution() < lowRes
+					|| holders1[i]->getResolution() > highRes)
+			{
+				std::cout << "Out of resolution range" << std::endl;
+				continue;
+			}
+
+			double int1 = holders1[i]->meanIntensity();
+			double int2 = holders2[i]->meanIntensity();
+
+			if (int1 != int1 || int2 != int2)
+				continue;
+
+			cout << int1 << "\t" << int2 << endl;
+		}
+	}
+
+	double x_squared = 0;
+	double x_y = 0;
+	double sum_y = 0;
+
+	double residuals_squared = 0;
+	double denominator = 0;
+
+	for (int i = 0; i < num; i++)
+	{
+		if (holders1[i]->getResolution() < lowRes
+				|| holders1[i]->getResolution() > highRes)
+		{
+			continue;
+		}
+
+		double mean1 = holders1[i]->meanIntensity();
+		double mean2 = holders2[i]->meanIntensity();
+
+		if (mean1 != mean1 || mean2 != mean2)
+			continue;
+
+		x_squared += pow(mean1, 2);
+		x_y += mean1 * mean2;
+		sum_y += mean2;
+	}
+
+	double mean_y = sum_y / num;
+	double grad = x_y / x_squared;
+
+	for (int i = 0; i < num; i++)
+	{
+		if (holders1[i]->getResolution() < lowRes
+				|| holders1[i]->getResolution() > highRes)
+		{
+			continue;
+		}
+
+		double mean1 = holders1[i]->meanIntensity();
+		double mean2 = holders2[i]->meanIntensity();
+
+		if (mean1 != mean1 || mean2 != mean2)
+			continue;
+
+		residuals_squared += pow(mean2 - grad * mean1, 2);
+		denominator += pow(mean2 - mean_y, 2);
+	}
+
+	double R_squared = 1 - residuals_squared / denominator;
+	if (R_squared < 0)
+		R_squared = 0;
+	double R = sqrt(R_squared);
+	if (grad < 0)
+		R = 0;
+	if (R != R)
+		R = -1;
+
+	return R;
+}
+
+
+void StatisticsManager::ccGridThreadedWrapper(StatisticsManager *object, int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc)
+{
+    object->ccGridThreaded(offset, calculationsPerThread, histogram, histogramCount, slice, num_cc, num_inv_cc);
+}
+
+void StatisticsManager::ccGridThreaded(int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc)
+{
+    ostringstream logged;
+    
+    int calculations_done = 0;
+    double next_percentage = 0.0;
+    
+    int maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = offset; i < mtz_num; i += maxThreads)
+    {
+        for (int j = i; j < mtz_num; j++)
+        {
+            if ((double) calculations_done / (double) calculationsPerThread
+                > next_percentage && offset == 0)
+            {
+                logged << next_percentage * 100 << "% complete" << std::endl;
+                
+                Logger::mainLogger->addStream(&logged);
+                logged.str("");
+                
+                next_percentage += 0.02;
+            }
+            
+            double cc = 0;
+            double inv_cc = 0;
+            int hitc = 0;
+            int inv_hitc = 0;
+            
+            if (j == i)
+            {
+                cc = 1;
+                inv_cc = 0;
+            }
+            else
+            {
+                inv_cc = cc_through_origin(i, j, 1, 1, &inv_hitc, 0, 0, false);
+                cc = cc_through_origin(i, j, 1, 0, &hitc, 0, 0, false);
+            }
+            
+            if (cc != -1)
+                (*num_cc)++;
+            if (inv_cc != -1)
+                (*num_inv_cc)++;
+            
+            double appropriateSlice = (cc - fmod(cc, slice));
+            appropriateSlice *= histogramCount;
+            
+            (*histogram)[appropriateSlice]++;
+            
+            cc_array[i][j] = cc;
+            inv_cc_array[i][j] = inv_cc;
+            hits[i][j] = hitc;
+            inv_hits[i][j] = inv_hitc;
+            
+            calculations_done++;
+        }
+    }
+}
+
+void StatisticsManager::generate_cc_grid()
+{
+    ostringstream logged;
+    logged << "Generating CC grid for " << mtz_num << " images" << endl;
+    
+    cc_array = (double **) malloc(sizeof(double *) * mtz_num);
+    inv_cc_array = (double **) malloc(sizeof(double *) * mtz_num);
+    hits = (int **) malloc(sizeof(int *) * mtz_num);
+    inv_hits = (int **) malloc(sizeof(int *) * mtz_num);
+    
+    for (int i = 0; i < mtz_num; i++)
+    {
+        cc_array[i] = (double *) malloc(sizeof(double) * mtz_num);
+        if (cc_array[i] == NULL)
+            cout << "Warning!!" << endl;
+        memset(cc_array[i], '\0', sizeof(double) * mtz_num);
+        
+        inv_cc_array[i] = (double *) malloc(sizeof(double) * mtz_num);
+        if (inv_cc_array[i] == NULL)
+            cout << "Warning!!" << endl;
+        memset(inv_cc_array[i], '\0', sizeof(double) * mtz_num);
+        
+        hits[i] = (int *) malloc(sizeof(int *) * mtz_num);
+        if (hits[i] == NULL)
+            cout << "Warning!!" << endl;
+        memset(hits[i], '\0', sizeof(int) * mtz_num);
+        
+        inv_hits[i] = (int *) malloc(sizeof(int *) * mtz_num);
+        if (inv_hits[i] == NULL)
+            cout << "Warning!!" << endl;
+        memset(inv_hits[i], '\0', sizeof(int) * mtz_num);
+    }
+    
+    int total_calculations = mtz_num * (mtz_num + 1) / 2;
+    
+    logged << "Total calculations to do: " << total_calculations << std::endl;
+    
+    int maxThreads = FileParser::getMaxThreads();
+    
+    double calculationsPerThread = total_calculations / maxThreads;
+    
+    int num_cc = 0;
+    int num_inv_cc = 0;
+    
+    std::map<int, int> histogram = std::map<int, int>();
+    double slice = 0.05;
+    int histogramCount = 1 / slice;
+    
+    for (int i = 0; i < histogramCount; i++)
+    {
+        histogram[i] = 0;
+    }
+    
+    boost::thread_group threads;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(ccGridThreadedWrapper, this, i, calculationsPerThread, &histogram, histogramCount, slice, &num_cc, &num_inv_cc);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+    
+    logged << endl;
+    
+    double pctCC = (double) num_cc / total_calculations * 100;
+    double pctInvCC = (double) num_inv_cc / total_calculations * 100;
+    
+    logged << "Percentage of CCs above 0: " << pctCC << "%" << std::endl;
+    logged << "Percentage of inverse CCs above 0: " << pctInvCC << "%"
+    << std::endl;
+    logged << "Histogram:" << std::endl;
+    
+    for (map<int, int>::iterator it = histogram.begin(); it != histogram.end();
+         ++it)
+    {
+        logged << " Min CC" << (double) it->first / histogramCount << "\t"
+        << histogram[it->first] << std::endl;
+    }
+    
+    Logger::mainLogger->addStream(&logged);
+    logged.str("");
+    
+    for (int i = 0; i < mtz_num; i++)
+        for (int j = i; j < mtz_num; j++)
+        {
+            cc_array[j][i] = cc_array[i][j];
+            inv_cc_array[j][i] = inv_cc_array[i][j];
+        }
+}
+
+void StatisticsManager::printGradientsAgainstRef(MtzManager *ref)
+{
+	MtzManager &reference = *ref;
+
+	for (int i = 0; i < mtz_num; i++)
+	{
+		MtzPtr mtz = mtzs[i];
+		double grad = mtz->gradientAgainstManager(reference);
+		std::cout << mtz->getFilename() << " " << 1 / grad << std::endl;
+	}
+}
+
+StatisticsManager::StatisticsManager(void)
+{
+	hits = NULL;
+	inv_cc_array = NULL;
+	inv_hits = NULL;
+	cc_array = NULL;
+	mtz_num = 0;
+	mtzs.clear();
+}
+
+StatisticsManager::~StatisticsManager(void)
+{
+	if (cc_array != NULL)
+	{
+		for (int i = 0; i < mtz_num; i++)
+			free(cc_array[i]);
+	}
+
+	if (inv_cc_array != NULL)
+	{
+		for (int i = 0; i < mtz_num; i++)
+			free(inv_cc_array[i]);
+	}
+
+	if (hits != NULL)
+	{
+		for (int i = 0; i < mtz_num; i++)
+			free(hits[i]);
+	}
+
+	if (inv_hits != NULL)
+	{
+		for (int i = 0; i < mtz_num; i++)
+			free(inv_hits[i]);
+	}
+
+	free(inv_cc_array);
+	free(hits);
+	free(inv_hits);
+	free(cc_array);
+}
+
+void StatisticsManager::partialityStats(int num, double threshold)
+{
+	MtzManager *image = &*(mtzs[num]);
+
+	for (int i = 0; i < image->holderCount(); i++)
+	{
+		if (image->holder(i)->millerCount() < 10)
+			continue;
+        
+        if (!image->holder(i)->anyAccepted())
+            continue;
+        
+        if (image->holder(i)->meanIntensity() < threshold)
+            continue;
+        
+        if (!image->holder(i)->betweenResolutions(0, 2.5))
+            continue;
+
+		double max_intensity = 0;
+/*
+		for (int j = 0; j < image->holder(i)->millerCount(); j++)
+		{
+			if (image->holder(i)->miller(j)->getRawIntensity() > max_intensity)
+				max_intensity = image->holder(i)->miller(j)->getRawIntensity();
+		}*/
+        
+        max_intensity = image->holder(i)->meanIntensity();
+
+		for (int j = 0; j < image->holder(i)->millerCount(); j++)
+		{
+			double partiality = image->holder(i)->miller(j)->getPartiality();
+
+	//		if (partiality < PARTIAL_CUTOFF || partiality > 1)
+	//			continue;
+
+			double percentage = image->holder(i)->miller(j)->getRawIntensity()
+					/ max_intensity;
+			if (percentage < 0)
+				percentage = 0;
+            
+            if (rand() % 20 == 0)
+                cout << partiality << "\t"
+                << percentage << "\t" << max_intensity << std::endl;
+		}
+	}
+}
+
+void StatisticsManager::twoImagePartialityStats(int num)
+{
+	MtzManager *image = &*(mtzs[0]);
+	MtzManager *test_image = &*(mtzs[num]);
+
+	twoImagePartialityStatsWritten(NULL, &image, &test_image);
+}
+
+void StatisticsManager::twoImagePartialityStatsWritten(
+		vector<Partial> *partials, MtzManager **image, MtzManager **test_image)
+{
+	int num = 0;
+
+	double scale = (*test_image)->gradientAgainstManager(**image, false);
+	(*test_image)->applyScaleFactor(scale);
+
+	vector<Holder *>refHolders, imageHolders;
+
+	(*image)->findCommonReflections(*test_image, refHolders, imageHolders, NULL, (*test_image)->isInverse());
+
+	for (int i = 0; i < refHolders.size(); i++)
+	{
+		Holder *refHolder = refHolders[i];
+		Holder *imageHolder = imageHolders[i];
+
+		double max_intensity = refHolder->meanIntensity();
+
+		for (int j = 0; j < imageHolder->millerCount(); j++)
+		{
+			double partiality =
+					imageHolder->miller(j)->getPartiality();
+
+			double rawIntensity =
+					imageHolder->miller(j)->getRawIntensity();
+
+			double percentage = rawIntensity / max_intensity * 100;
+			if (percentage < 0)
+				percentage = 0;
+
+			double wavelength =
+					imageHolder->miller(j)->getWavelength();
+
+			if (partials == NULL)
+			{
+				cout << imageHolder->miller(0)->h << "\t"
+						<< imageHolder->miller(0)->k << "\t"
+						<< imageHolder->miller(0)->l << "\t";
+				cout << wavelength << "\t" << partiality << "\t" << percentage
+						<< "\t" << imageHolder->getResolution()
+						<< "\t" << endl;
+			}
+			else
+			{
+				(*partials).resize(num + 1);
+
+				(*partials)[num].partiality = partiality;
+				(*partials)[num].percentage = percentage;
+				(*partials)[num].resolution =
+						imageHolder->getResolution();
+				(*partials)[num].wavelength = wavelength;
+			}
+
+			num++;
+		}
+	}
+}
+
