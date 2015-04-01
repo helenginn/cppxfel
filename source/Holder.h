@@ -13,9 +13,19 @@
 #include "Miller.h"
 #include "MtzGrouper.h"
 #include "parameters.h"
+#include "headers/csymlib.h"
+#include <cctbx/sgtbx/space_group.h>
+#include <cctbx/sgtbx/symbols.h>
+#include <cctbx/sgtbx/reciprocal_space_asu.h>
+#include <cctbx/sgtbx/space_group_type.h>
+#include <cctbx/uctbx.h>
 
 class Miller;
 
+using cctbx::sgtbx::space_group;
+using cctbx::sgtbx::space_group_symbols;
+using cctbx::sgtbx::space_group_type;
+using cctbx::sgtbx::reciprocal_space::asu;
 
 class Holder
 {
@@ -26,10 +36,16 @@ private:
 	double refIntensity;
 	double refSigma;
 	double resolution;
-    bool inverse;
-    
+    space_group spaceGroup;
+    int spgNum;
+    space_group_type spgType;
+    asu asymmetricUnit;
+    int activeAmbiguity;
+    std::vector<int> reflectionIds;
+    cctbx::uctbx::unit_cell unitCell;
 public:
-	Holder();
+    Holder(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
+    void setUnitCell(float *unitCell);
 	virtual ~Holder();
 
 	MillerPtr miller(int i);
@@ -38,10 +54,7 @@ public:
 	int millerCount();
 	Holder *copy(bool copyMillers);
 	Holder *copy();
-	void flip();
-	void flip(MtzManager *mtz);
-	void flipMiller(MillerPtr miller, int spg_num);
-
+    
 	static int indexForReflection(int h, int k, int l, CSym::CCP4SPG *lowspgroup, bool inverted);
 
     int checkOverlaps();
@@ -67,16 +80,35 @@ public:
 	double standardDeviation(WeightType weighting);
     
     double observedPartiality(MtzManager *reference, Miller *miller);
-    
-	int getInvReflId() const
-	{
-		return inv_refl_id;
-	}
 
-	void setInvReflId(int invReflId)
-	{
-		inv_refl_id = invReflId;
-	}
+    int reflectionIdForMiller(cctbx::miller::index<> cctbxMiller);
+    void generateReflectionIds();
+    
+    asu *getAsymmetricUnit()
+    {
+        return &asymmetricUnit;
+    }
+    
+    void incrementAmbiguity();
+    int ambiguityCount();
+    MatrixPtr matrixForAmbiguity(int i);
+
+    void setSpaceGroup(int spaceGroupNum);
+    void setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_type newSpgType, asu newAsymmetricUnit);
+    
+    void resetFlip();
+    void setFlip(int i);
+    void setFlipAsActiveAmbiguity();
+    
+    int getActiveAmbiguity()
+    {
+        return activeAmbiguity;
+    }
+    
+    void setActiveAmbiguity(int newAmbiguity)
+    {
+        activeAmbiguity = newAmbiguity;
+    }
 
 	const std::vector<MillerPtr>& getMillers() const
 	{
@@ -97,27 +129,12 @@ public:
 	{
 		this->refIntensity = refIntensity;
 	}
-    
-    void setInverse(bool newInverse)
+
+    int getReflId()
     {
-        inverse = newInverse;
+        return reflectionIds[activeAmbiguity];
     }
     
-    bool isInverse()
-    {
-        return inverse;
-    }
-
-	int getReflId() const
-	{
-        return refl_id;
-	}
-
-	void setReflId(int reflId)
-	{
-		refl_id = reflId;
-	}
-
 	double getRefSigma() const
 	{
 		return refSigma;

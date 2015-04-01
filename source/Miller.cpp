@@ -15,8 +15,12 @@
 #include <cmath>
 #include "Shoebox.h"
 #include <memory>
-
+#include <cctbx/miller/asu.h>
+#include <cctbx/miller.h>
 #include "FileParser.h"
+
+using cctbx::sgtbx::reciprocal_space::asu;
+
 
 double integrate_sphere(double p, double q, double radius)
 {
@@ -180,6 +184,40 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     mtzParent = parent;
     parentHolder = NULL;
     matrix = MatrixPtr();
+    flipMatrix = MatrixPtr(new Matrix());
+}
+
+vec Miller::hklVector(bool shouldFlip)
+{
+    vec newVec = new_vector(h, k, l);
+    
+    if (shouldFlip)
+    {
+        flipMatrix->multiplyVector(&newVec);
+    }
+    
+    return newVec;
+}
+
+int Miller::getH()
+{
+    return hklVector().h;
+}
+
+int Miller::getK()
+{
+    return hklVector().k;
+
+}
+
+int Miller::getL()
+{
+    return hklVector().l;
+}
+
+void Miller::setFlipMatrix(MatrixPtr flipMat)
+{
+    flipMatrix = flipMat;
 }
 
 void Miller::setParent(Holder *holder)
@@ -600,7 +638,7 @@ double Miller::twoTheta(bool horizontal)
     double beamMagnitude = sqrt(
                                pow(beamCoordinates[0], 2) + pow(beamCoordinates[1], 2));
     
-    double cosTwoTheta = dotProduct / (rlpMagnitude * beamMagnitude);
+  //  double cosTwoTheta = dotProduct / (rlpMagnitude * beamMagnitude);
     
     double hOrK = (horizontal ? hkl.h : hkl.k);
     double effectiveResolution = 1 / sqrt(hOrK * hOrK + hkl.l * hkl.l);
@@ -714,6 +752,15 @@ void Miller::applyPolarisation(double wavelength)
 
 bool Miller::positiveFriedel()
 {
+    int h = getH();
+    int k = getK();
+    int l = getL();
+    
+    cctbx::miller::index<> newMiller = cctbx::miller::index<>(h, k, l);
+    asu *asymmetricUnit = parentHolder->getAsymmetricUnit();
+    
+    return (asymmetricUnit->which(newMiller) == 1);
+    
     bool fake = FileParser::getKey("FAKE_ANOMALOUS", false);
     
     if (fake && fakeFriedel == -1)

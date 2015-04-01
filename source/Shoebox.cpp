@@ -354,7 +354,7 @@ void Shoebox::complexShoebox(double wavelength, double bandwidth, double radius)
     MatrixPtr mat;
     mat = tempMiller->getMatrix();
     
-    vec hkl = new_vector(tempMiller->h, tempMiller->k, tempMiller->l);
+    vec hkl = new_vector(tempMiller->getH(), tempMiller->getK(), tempMiller->getL());
     mat->multiplyVector(&hkl);
     
     double hk = sqrt(hkl.h * hkl.h + hkl.k * hkl.k);

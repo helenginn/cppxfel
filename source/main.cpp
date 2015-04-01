@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 		mtz2->loadReflections(1);
 
 		if (inverted)
-			mtz1->setInverse(true);
+            mtz1->setActiveAmbiguity(1);
 
 		if (rsplit)
 		{
@@ -219,12 +219,13 @@ int main(int argc, char *argv[])
 			cout << "arguments: -inv <file>." << endl;
 			exit(1);
 		}
+        
+        std::cout << "This is broken" << std::endl;
 
 		MtzManager *mtz = new MtzManager();
 		mtz->setFilename(string(argv[2]));
 		mtz->loadReflections(1);
 
-		mtz->flip();
 		mtz->writeToFile(string("inv-") + argv[2]);
 	}
 
@@ -278,6 +279,8 @@ int main(int argc, char *argv[])
             std::cout << argv[i] << std::endl;
 			mtz->loadReflections(PartialityModelNone);
 
+            vector<Holder *>refHolders, imageHolders;
+            
 			GraphDrawer graph = GraphDrawer(mtz);
 
 			graph.partialityPlot("partiality", GraphMap());

@@ -423,14 +423,11 @@ Holder *ReflectionManager::mergedHolder(vector<Scale_factor> *Gs, bool half, boo
 {
     Holder *newHolder = reflections[0].holder->copy(false);
     
-    if (newHolder->isInverse())
-    {
-        newHolder->flip();
-    }
+    newHolder->setFlipAsActiveAmbiguity();
     
-    int _h = newHolder->miller(0)->h;
-    int _k = newHolder->miller(0)->k;
-    int _l = newHolder->miller(0)->l;
+    int _h = newHolder->miller(0)->getH();
+    int _k = newHolder->miller(0)->getK();
+    int _l = newHolder->miller(0)->getL();
 
     int h, k, l;
     

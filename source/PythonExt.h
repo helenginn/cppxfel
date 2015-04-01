@@ -9,8 +9,10 @@
 #ifndef __cppxfel__PythonExt__
 #define __cppxfel__PythonExt__
 
-#include <stdio.h>
+#include <string>
+#include <vector>
 
 void runScriptFromPython(std::string scriptName);
+void runCommandLineArgs(int argc, std::vector<std::string> argv[]);
 
 #endif /* defined(__cppxfel__PythonExt__) */

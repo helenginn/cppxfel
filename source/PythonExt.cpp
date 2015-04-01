@@ -10,6 +10,8 @@
 #include "InputFileParser.h"
 #include "Logger.h"
 
+int main(int argc, char *argv[]);
+
 void setupCppxfel()
 {
     time_t startcputime;
@@ -29,4 +31,16 @@ void runScriptFromPython(std::string scriptName)
     parser->parse();
     
     delete parser;
+}
+
+void runCommandLineArgs(int argc, std::vector<std::string> stringArgv)
+{
+    std::vector<char *> charVector;
+    
+    for (int i = 0; i < stringArgv.size(); i++)
+    {
+        charVector.push_back((char *)stringArgv[i].c_str());
+    }
+    
+    main(argc, &(*(charVector.begin())));
 }

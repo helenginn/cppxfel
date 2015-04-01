@@ -117,7 +117,7 @@ double MtzManager::correlation(bool silent, double lowResolution,
 		highResolution = maxResolutionAll;
 
 	double correlation = StatisticsManager::cc_pearson(this,
-			MtzManager::referenceManager, true, isInverse(), NULL,
+			MtzManager::referenceManager, true, NULL,
 			NULL, lowResolution, highResolution, false);
 
 	return correlation;
@@ -184,7 +184,9 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 		if (holder(i)->getResolution() > maxResolution
 				&& holder(i)->getResolution() < 1 / 1.4)
 		{
-			maxResolution = holder(i)->getResolution();
+            Holder *bestHolder = holder(i);
+            
+			maxResolution = bestHolder->getResolution();
 		}
 	}
 
@@ -192,13 +194,12 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 		highRes = 1 / maxResolution;
 
 	int hits = 0;
-	bool inverse = this->isInverse();
 	double multiplicity = 0;
 
 	double statistic = 0;
 
 	if (rFactor == RFactorNone)
-		statistic = function(this, otherManager, !printHits, inverse, &hits,
+		statistic = function(this, otherManager, !printHits, &hits,
 				&multiplicity, lowRes, highRes, shouldLog);
 	else
 		statistic = rFactorFunction(rFactor, this, &hits, &multiplicity, lowRes,
@@ -214,7 +215,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 			double statistic = 0;
 
 			if (rFactor == RFactorNone)
-				statistic = function(this, otherManager, 1, inverse, &hits,
+				statistic = function(this, otherManager, 1, &hits,
 						&multiplicity, shells[i], shells[i + 1], shouldLog);
 			else
 				statistic = rFactorFunction(rFactor, this, &hits, &multiplicity,
@@ -241,7 +242,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 		double statistic = 0;
 
 		if (rFactor == RFactorNone)
-			statistic = function(this, otherManager, 1, inverse, &hits,
+			statistic = function(this, otherManager, 1,  &hits,
 					&multiplicity, lowRes, highRes, shouldLog);
 		else
 			statistic = rFactorFunction(rFactor, this, &hits, &multiplicity,

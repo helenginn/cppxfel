@@ -31,6 +31,9 @@ typedef enum
 class Miller
 {
 private:
+    double h;
+    double k;
+    double l;
     int fakeFriedel;
 	bool normalised;
     bool correctingPolarisation;
@@ -71,11 +74,14 @@ private:
     Indexer *indexer;
     ShoeboxPtr shoebox;
     std::weak_ptr<Miller> selfPtr;
+    MatrixPtr flipMatrix;
 public:
-	double h;
-	double k;
-	double l;
-
+    int getH();
+    int getK();
+    int getL();
+    
+    vec hklVector(bool shouldFlip = true);
+    void setFlipMatrix(MatrixPtr flipMat);
 	MatrixPtr matrix;
 	Holder *parentHolder;
     MtzManager *mtzParent;

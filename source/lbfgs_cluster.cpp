@@ -439,14 +439,14 @@ void Lbfgs_Cluster::run(MtzManager **mergedMtz)
 	{
 		if (x[i + 1] > x[i] * leftGradient)
 		{
-			statsManager->mtzs[i / 2]->setInverse(true);
+            statsManager->mtzs[i / 2]->setActiveAmbiguity(1);
 			idx++;
 			MtzPtr ptr = MtzPtr();
 			all.push_back(statsManager->mtzs[i / 2]);
 		}
 		else if (x[i + 1] < x[i] * rightGradient)
 		{
-			statsManager->mtzs[i / 2]->setInverse(false);
+			statsManager->mtzs[i / 2]->setActiveAmbiguity(0);
 			inv++;
 			all.push_back(statsManager->mtzs[i / 2]);
 		}

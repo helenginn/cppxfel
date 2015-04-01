@@ -12,6 +12,7 @@
 #include <iostream>
 #include "Vector.h"
 #include "parameters.h"
+#include <cctbx/miller.h>
 
 class Matrix
 {
@@ -43,6 +44,7 @@ public:
     Matrix inverse3DMatrix();
     Matrix transpose();
     Matrix operator=(Matrix &b);
+    cctbx::miller::index<> multiplyIndex(cctbx::miller::index<> *index);
 
     void translate(double x, double y, double z);
     void rotateHK(double hRot, double kRot);

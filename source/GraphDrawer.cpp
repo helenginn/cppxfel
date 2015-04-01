@@ -292,8 +292,7 @@ void GraphDrawer::correlationPlot(string filename, double xMax, double yMax)
 	vector<Holder *> holders2;
 	int num = 0;
 
-	shot1->findCommonReflections(shot2, holders1, holders2, &num,
-			shot1->isInverse());
+	shot1->findCommonReflections(shot2, holders1, holders2, &num);
 
 	for (int i = 0; i < num; i++)
 	{
@@ -373,7 +372,7 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 		vector<Holder *> refHolders, imgHolders;
 
 		mtz->findCommonReflections(referenceManager, imgHolders, refHolders,
-		NULL, mtz->isInverse());
+		NULL);
 
 		for (int j = 0; j < refHolders.size(); j++)
 		{
@@ -504,7 +503,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
 			vector<Holder *> refHolders, imgHolders;
 
 			mtz->findCommonReflections(referenceManager, imgHolders, refHolders,
-			NULL, mtz->isInverse());
+			NULL);
 
 			double weights = 0;
 			double refMean = 0;
@@ -698,7 +697,7 @@ void GraphDrawer::plotPolarisation(std::vector<MtzPtr> mtzs)
                 if (miller->getRawIntensity() < 0)
                     continue;
                 
-                vec hkl = new_vector(miller->h, miller->k, miller->l);
+                vec hkl = new_vector(miller->getH(), miller->getK(), miller->getL());
                 mtzs[i]->getMatrix()->multiplyVector(&hkl);
                 
                 double angle = cartesian_to_angle(hkl.h, hkl.k);
@@ -749,11 +748,11 @@ void GraphDrawer::plotPolarisation(std::vector<MtzPtr> mtzs)
 void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 {
     double correl = mtz->correlation();
-    mtz->invert();
+    mtz->setActiveAmbiguity(1);
     double invCorrel = mtz->correlation();
     
     if (correl > invCorrel)
-        mtz->invert();
+        mtz->setActiveAmbiguity(0);
     
     std::cout << "Correlations: " << correl << ", " << invCorrel << std::endl;
     
@@ -763,13 +762,11 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 1.6, 4, &resolutions);
+	StatisticsManager::generateResolutionBins(0, 3.5, 4, &resolutions);
 
 	double scatterRes = 1 / 5.0;
 
 	std::vector<string> files;
-
-//	mtz->excludePartialityOutliers();
 
 	vector<Partial> partials;
 	StatisticsManager::twoImagePartialityStatsWritten(&partials,
@@ -785,18 +782,18 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 	if (maxPercentage < 250 || !isfinite(maxPercentage))
 		maxPercentage = 250;
 
-	maxPercentage = 300;
+	maxPercentage = 200;
 
 	std::sort(partials.begin(), partials.end(), sortByWavelength);
 
 	double minX = partials[50].wavelength;
 	double maxX = partials[partials.size() - 50].wavelength;
 
-	if (maxX - minX > 0.06)
+	if (maxX - minX > 0.2)
 	{
 		double ave = (maxX + minX) / 2;
-		maxX = ave + 0.03;
-		minX = ave - 0.03;
+		maxX = ave + 0.1;
+		minX = ave - 0.1;
 	}
 
 	int resCount = resolutions.size();
@@ -833,7 +830,7 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
                 
 				xs.push_back(partials[i].wavelength);
 				ys.push_back(partials[i].percentage);
-				ys2.push_back(partials[i].partiality);
+                ys2.push_back(partials[i].partiality);
 
 				scatterX.push_back(partials[i].partiality);
 				scatterY.push_back(partials[i].percentage);

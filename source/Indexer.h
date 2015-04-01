@@ -106,7 +106,6 @@ public:
     double medianIntensity();
 	int identicalSpotsAndMillers();
 	double getTotalIntegratedSignal();
-	double rSplit();
 
 	void dropMillers();
 

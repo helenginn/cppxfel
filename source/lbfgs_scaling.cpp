@@ -90,7 +90,7 @@ void Lbfgs_Scaling::run(void)
 	cout << "R meas after gradient scaling: " << fx << endl;
 
 	lbfgs_parameter_init(&param);
-	param.max_iterations = 25;
+	param.max_iterations = 50;
 
 	ret = lbfgs(n, x, &fx, evaluate, progress, NULL, &param);
 

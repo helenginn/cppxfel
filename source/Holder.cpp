@@ -10,12 +10,225 @@
 #include <vector>
 #include <cmath>
 #include "headers/csymlib.h"
+#include <cctbx/miller/sym_equiv.h>
+#include <cctbx/miller/asu.h>
+#include <cctbx/miller.h>
 
 #include "FileParser.h"
 #include "StatisticsManager.h"
 
-Holder::Holder()
+using cctbx::sgtbx::space_group_type;
+using cctbx::miller::sym_equiv_indices;
+using cctbx::miller::asym_index;
+using cctbx::sgtbx::reciprocal_space::asu;
+
+MatrixPtr Holder::matrixForAmbiguity(int i)
 {
+    if (i >= ambiguityCount())
+        std::cout << "Ambiguity issue!" << std::endl;
+    
+    if (i == 0)
+    {
+        MatrixPtr identity = MatrixPtr(new Matrix());
+        
+        return identity;
+    }
+    
+    if (i == 1)
+    {
+        if (ambiguityCount() == 2 || ambiguityCount() == 4)
+        {
+            MatrixPtr khMinusL = MatrixPtr(new Matrix());
+            (*khMinusL)[0] = 0;
+            (*khMinusL)[4] = 1;
+            (*khMinusL)[1] = 1;
+            (*khMinusL)[5] = 0;
+            (*khMinusL)[10] = -1;
+            
+            return khMinusL;
+        }
+        
+        if (ambiguityCount() == 3)
+        {
+            // return -h -k -l
+            MatrixPtr minusHminusKL = MatrixPtr(new Matrix());
+            (*minusHminusKL)[0] = -1;
+            (*minusHminusKL)[5] = -1;
+            (*minusHminusKL)[10] = 1;
+            
+            return minusHminusKL;
+        }
+    }
+    
+    if (i == 2)
+    {
+        if (ambiguityCount() == 3)
+        {
+            if (spgNum == 149 || spgNum == 151 || spgNum == 153)
+            {
+                // return k h -l
+                MatrixPtr khMinusL = MatrixPtr(new Matrix());
+                (*khMinusL)[0] = 0;
+                (*khMinusL)[4] = 1;
+                (*khMinusL)[1] = 1;
+                (*khMinusL)[5] = 0;
+                (*khMinusL)[10] = -1;
+                
+                return khMinusL;
+            }
+            
+            if (spgNum == 152 || spgNum == 152 || spgNum == 154)
+            {
+                // return -k -h -l
+                MatrixPtr minusAllHKL = MatrixPtr(new Matrix());
+                (*minusAllHKL)[0] = -1;
+                (*minusAllHKL)[5] = -1;
+                (*minusAllHKL)[10] = -1;
+                
+                return minusAllHKL;
+            }
+        }
+
+        if (ambiguityCount() == 4)
+        {
+            // return k h -l
+            MatrixPtr khMinusL = MatrixPtr(new Matrix());
+            (*khMinusL)[0] = 0;
+            (*khMinusL)[4] = 1;
+            (*khMinusL)[1] = 1;
+            (*khMinusL)[5] = 0;
+            (*khMinusL)[10] = -1;
+            
+            return khMinusL;
+        }
+    }
+    
+    if (i == 3)
+    {
+        if (ambiguityCount() == 4)
+        {
+            // return -k -h -l
+            MatrixPtr minusAllHKL = MatrixPtr(new Matrix());
+            (*minusAllHKL)[0] = -1;
+            (*minusAllHKL)[5] = -1;
+            (*minusAllHKL)[10] = -1;
+            
+            return minusAllHKL;
+        }
+
+    }
+    
+    return MatrixPtr(new Matrix());
+}
+
+int Holder::ambiguityCount()
+{
+    if (spgNum >= 195 && spgNum <= 199)
+        return 2;
+    
+    if (spgNum >= 168 && spgNum <= 173)
+        return 2;
+    
+    if (spgNum == 146)
+        return 2;
+    
+    if (spgNum >= 149 && spgNum <= 154)
+        return 3;
+    
+    if (spgNum >= 143 && spgNum <= 145)
+        return 4;
+    
+    return 1;
+}
+
+void Holder::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_type newSpgType, asu newAsymmetricUnit)
+{
+    if (ccp4spg == NULL)
+        return;
+    
+    char *hallSymbol = ccp4spg_symbol_Hall(ccp4spg);
+    spgNum = ccp4spg->spg_num;
+    
+    spaceGroup = space_group(hallSymbol);
+    spgType = newSpgType;
+    asymmetricUnit = newAsymmetricUnit;
+}
+
+
+void Holder::setSpaceGroup(int spaceGroupNum)
+{
+    spgNum = spaceGroupNum;
+    space_group_symbols spaceGroupSymbol = space_group_symbols(spaceGroupNum);
+    std::string hallSymbol = spaceGroupSymbol.hall();
+    
+    spaceGroup = space_group(hallSymbol);
+    spgType = cctbx::sgtbx::space_group_type(spaceGroup);
+    asymmetricUnit = asu(spgType);
+}
+
+int Holder::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
+{
+    int h = cctbxMiller[0];
+    int k = cctbxMiller[1];
+    int l = cctbxMiller[2];
+    
+    int index = (h + OFFSET) * pow((double) MULTIPLIER, (int) 2)
+    + (k + OFFSET) * MULTIPLIER + (l + OFFSET);
+    
+    return index;
+}
+
+void Holder::generateReflectionIds()
+{
+    if (millerCount() == 0)
+    {
+        std::cout << "Warning! Miller count is 0" << std::endl;
+    }
+    
+    int h = miller(0)->getH();
+    int k = miller(0)->getK();
+    int l = miller(0)->getL();
+    
+    cctbx::miller::index<> cctbxMiller = cctbx::miller::index<>(h, k, l);
+        for (int i = 0; i < ambiguityCount(); i++)
+    {
+        MatrixPtr ambiguityMat = matrixForAmbiguity(i);
+        cctbx::miller::index<> cctbxTwinnedMiller = ambiguityMat->multiplyIndex(&cctbxMiller);
+        
+        asym_index asymmetricMiller = asym_index(spaceGroup, asymmetricUnit, cctbxTwinnedMiller);
+        
+    //    sym_equiv_indices equivMaker = sym_equiv_indices(spaceGroup, cctbxTwinnedMiller);
+    //    cctbx::miller::index<> asymmetricMiller = equivMaker(0).h();
+       
+        int newId = reflectionIdForMiller(asymmetricMiller.h());
+        
+        reflectionIds.push_back(newId);
+    }
+}
+
+void Holder::setUnitCell(float *unitCell)
+{
+    scitbx::af::double6 params;
+    params[0] = unitCell[0];
+    params[1] = unitCell[1];
+    params[2] = unitCell[2];
+    params[3] = unitCell[3];
+    params[4] = unitCell[4];
+    params[5] = unitCell[5];
+    
+    this->unitCell = cctbx::uctbx::unit_cell(params);
+}
+
+Holder::Holder(float *unitCell, CSym::CCP4SPG *spg)
+{
+    if (spg != NULL)
+        setSpaceGroup(spg->spg_num);
+
+    if (unitCell != NULL)
+    {
+        setUnitCell(unitCell);
+    }
+    
     // TODO Auto-generated constructor stub
     
     refIntensity = 0;
@@ -23,6 +236,7 @@ Holder::Holder()
     refl_id = 0;
     inv_refl_id = 0;
     resolution = 0;
+    activeAmbiguity = 0;
 }
 
 MillerPtr Holder::miller(int i)
@@ -34,6 +248,11 @@ void Holder::addMiller(MillerPtr miller)
 {
     miller->setResolution(resolution);
     millers.push_back(miller);
+    
+    if (reflectionIds.size() == 0)
+    {
+        generateReflectionIds();
+    }
 }
 
 bool Holder::betweenResolutions(double lowAngstroms, double highAngstroms)
@@ -67,6 +286,19 @@ Holder *Holder::copy(bool copyMillers)
 {
     Holder *newHolder = new Holder();
     
+    newHolder->unitCell = unitCell;
+    newHolder->spaceGroup = spaceGroup;
+    newHolder->spgNum = spgNum;
+    newHolder->activeAmbiguity = activeAmbiguity;
+    newHolder->reflectionIds = reflectionIds;
+    newHolder->refIntensity = refIntensity;
+    newHolder->refSigma = refSigma;
+    newHolder->refl_id = refl_id;
+    newHolder->inv_refl_id = inv_refl_id;
+    newHolder->resolution = resolution;
+    newHolder->spgType = spgType;
+    newHolder->asymmetricUnit = asymmetricUnit;
+    
     for (int i = 0; i < millerCount(); i++)
     {
         MillerPtr newMiller;
@@ -82,14 +314,7 @@ Holder *Holder::copy(bool copyMillers)
         
         newHolder->addMiller(newMiller);
     }
-    
-    newHolder->inverse = inverse;
-    newHolder->refIntensity = refIntensity;
-    newHolder->refSigma = refSigma;
-    newHolder->refl_id = refl_id;
-    newHolder->inv_refl_id = inv_refl_id;
-    newHolder->resolution = resolution;
-    
+
     return newHolder;
 }
 
@@ -255,21 +480,28 @@ double Holder::meanSigma()
 
 void Holder::calculateResolution(MtzManager *mtz)
 {
-    double a, b, c, alpha, beta, gamma;
+  /*  double a, b, c, alpha, beta, gamma;
     
     mtz->getUnitCell(&a, &b, &c, &alpha, &beta, &gamma);
     
-    Matrix mat = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
+    Matrix mat = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);*/
     
-    int h = millers[0]->h;
-    int k = millers[0]->k;
-    int l = millers[0]->l;
+    int h = millers[0]->getH();
+    int k = millers[0]->getK();
+    int l = millers[0]->getL();
     
-    vec hkl = new_vector(h, k, l);
+    cctbx::miller::index<> anyMiller = cctbx::miller::index<>(h, k, l);
+    
+    resolution = unitCell.two_stol(anyMiller);
+    
+ /*   asym_index asymmetricMiller = asym_index(spaceGroup, asymmetricUnit, anyMiller);
+    cctbx::miller::index<> asymmetricIndex = asymmetricMiller.h();
+    
+    vec hkl = new_vector(asymmetricIndex.as_tiny()[0], asymmetricIndex.as_tiny()[1], asymmetricIndex.as_tiny()[2]);
     
     mat.multiplyVector(&hkl);
     
-    resolution = length_of_vector(hkl);
+    resolution = length_of_vector(hkl);*/
     
     for (int i = 0; i < millerCount(); i++)
     {
@@ -277,54 +509,37 @@ void Holder::calculateResolution(MtzManager *mtz)
     }
 }
 
-void Holder::flipMiller(MillerPtr miller, int spg_num)
+
+void Holder::incrementAmbiguity()
 {
-    if (spg_num == 197)
-    {
-        int tmp2 = miller->h;
-        miller->h = miller->k;
-        miller->k = tmp2;
-        miller->l = - miller->l;
-    }
-    else if (spg_num == 146)
-    {
-        int tmp2 = miller->k;
-        miller->k = miller->h;
-        miller->h = tmp2;
-        miller->l = 0 - miller->l;
-    }
-    else if (spg_num == 4 || spg_num == 21)
-    {
-        int tmp2 = miller->h;
-        miller->h = miller->l;
-        miller->l = tmp2;
-    }
-    else
-    {
-//        std::cout << "Warning! Unable to flip miller" << std::endl;
-    }
+    int count = ambiguityCount();
+    int newActive = activeAmbiguity + 1;
+    activeAmbiguity = (newActive % count);
 }
 
-void Holder::flip()
+void Holder::setFlipAsActiveAmbiguity()
 {
-    flip(MtzManager::getReferenceManager());
-    
-    inverse = !inverse;
+    setFlip(activeAmbiguity);
 }
 
-void Holder::flip(MtzManager *mtz)
+void Holder::resetFlip()
 {
-    CCP4SPG *spaceGroup = mtz->getLowGroup();
-    
-    int tmp = getInvReflId();
-    setInvReflId(refl_id);
-    setReflId(tmp);
-    
     for (int j = 0; j < millerCount(); j++)
     {
-        flipMiller(miller(j), spaceGroup->spg_num);
+        miller(j)->setFlipMatrix(MatrixPtr(new Matrix()));
     }
 }
+
+void Holder::setFlip(int i)
+{
+    for (int j = 0; j < millerCount(); j++)
+    {
+        MatrixPtr ambiguityMat = matrixForAmbiguity(i);
+        
+        miller(j)->setFlipMatrix(ambiguityMat);
+    }
+}
+
 
 void Holder::holderDescription()
 {
@@ -335,7 +550,7 @@ void Holder::holderDescription()
     for (int i = 0; i < millerCount(); i++)
     {
         MillerPtr miller = this->miller(i);
-        logged << miller->h << "\t" << miller->k << "\t" << miller->l << "\t"
+        logged << miller->getH() << "\t" << miller->getK() << "\t" << miller->getL() << "\t"
         << miller->getRawIntensity() << "\t" << miller->getPartiality()
         << "\t" << miller->getSigma() << "\t" << miller->getFilename()
         << std::endl;

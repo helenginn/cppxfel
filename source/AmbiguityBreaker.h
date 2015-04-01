@@ -22,7 +22,7 @@ private:
     int ambiguityCount;
     StatisticsManager *statsManager;
     double gridCorrelation(int imageNumI, int imageNumJ);
-    double evaluationBreakingAmbiguity();
+    double evaluation();
     double gradientForImage(int imageNum, int axis);
     
     double distance(int vectorNum, int centreNum);

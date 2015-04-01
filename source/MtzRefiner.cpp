@@ -14,6 +14,7 @@
 #include "GraphDrawer.h"
 #include "Image.h"
 #include <fstream>
+#include "AmbiguityBreaker.h"
 
 #include "FileParser.h"
 #include "Index.h"
@@ -176,11 +177,17 @@ void MtzRefiner::refine()
     if (!loadInitialMtz())
     {
         //	initializePartiality(*managers);
-        
+      /*
         Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
         lbfgs->initialise_cluster_lbfgs(mtzManagers, &originalMerge);
         reference = originalMerge;
         delete lbfgs;
+       */
+        
+        AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
+        breaker.run();
+        originalMerge = breaker.getMergedMtz();
+        reference = originalMerge;
     }
     else
     {
@@ -194,10 +201,7 @@ void MtzRefiner::refine()
     MtzManager::currentManager = originalMerge;
     MtzManager::setReference(reference);
     double correl = originalMerge->correlation(true);
-    originalMerge->setInverse(true);
-    double invCorrel = originalMerge->correlation(true);
-    std::cout << "Merged correlation = " << correl << " vs " << invCorrel
-    << std::endl;
+    std::cout << "Merged correlation = " << correl << std::endl;
     
     MtzManager::setLowRes(0);
     MtzManager::setHighRes(0);
@@ -258,11 +262,7 @@ void MtzRefiner::refineCycle(bool once)
         if (!once)
         {
             double correl = mergedMtz->correlation(true);
-            mergedMtz->setInverse(true);
-            double invCorrel = mergedMtz->correlation(true);
-            std::cout << "N: Merged correlation = " << correl << " vs " << invCorrel
-            << std::endl;
-            mergedMtz->setInverse(false);
+            std::cout << "N: Merged correlation = " << correl << std::endl;
         }
         mergedMtz->description();
         
@@ -302,8 +302,6 @@ void MtzRefiner::refineCycle(bool once)
 
 void MtzRefiner::refineSymmetry()
 {
-    MtzManager *originalMerge = NULL;
-    
     readMatricesAndMtzs();
     
     std::cout << "N: Total images loaded: " << mtzManagers.size() << std::endl;
@@ -901,16 +899,21 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
         MtzManager::setReference(reference);
     }
     
+    
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         double correl = mtzManagers[i]->correlation(true);
-        mtzManagers[i]->invert();
-        double invCorrel = mtzManagers[i]->correlation(true);
-        mtzManagers[i]->invert();
+        double invCorrel = correl;
         
-        if (invCorrel > correl && shouldFlip)
-            mtzManagers[i]->invert();
-        
+        if (MtzManager::getReferenceManager()->ambiguityCount() == 1)
+        {
+            mtzManagers[i]->setActiveAmbiguity(1);
+            double invCorrel = mtzManagers[i]->correlation(true);
+            mtzManagers[i]->setActiveAmbiguity(0);
+            
+            if (invCorrel > correl && shouldFlip)
+                mtzManagers[i]->setActiveAmbiguity(1);
+        }
         double newCorrel = mtzManagers[i]->correlation(true);
         mtzManagers[i]->setRefCorrelation(newCorrel);
         
@@ -943,15 +946,19 @@ void MtzRefiner::merge()
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
-        if (!mtzManagers[i]->isInverse())
+        if ((mtzManagers[i]->getActiveAmbiguity() == 0))
             idxOnly.push_back(mtzManagers[i]);
         
     }
     
     bool mergeAnomalous = FileParser::getKey("MERGE_ANOMALOUS", false);
+    int scalingInt = FileParser::getKey("SCALING_STRATEGY",
+                                        (int) SCALING_STRATEGY);
+    ScalingType scaling = (ScalingType) scalingInt;
+    
     
     MtzGrouper *grouper = new MtzGrouper();
-    grouper->setScalingType(ScalingTypeReference);
+    grouper->setScalingType(scaling);
     grouper->setWeighting(WeightTypePartialitySigma);
     grouper->setMtzManagers(mtzManagers);
     
@@ -1319,7 +1326,7 @@ void MtzRefiner::displayIndexingHands()
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
-        ostringstream &which = mtzManagers[i]->isInverse() ? idxLogged : invLogged;
+        ostringstream &which = mtzManagers[i]->getActiveAmbiguity() == 0 ? idxLogged : invLogged;
         
         which << mtzManagers[i]->getFilename() << std::endl;
     }

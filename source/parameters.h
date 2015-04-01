@@ -8,7 +8,7 @@
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 
-#define PARTIAL_CUTOFF 0.1
+#define PARTIAL_CUTOFF 0.35
 #define MULTIPLIER 512
 #define OFFSET 256
 
@@ -84,6 +84,7 @@
 #define SHOEBOX_BACKGROUND_RADIUS 3
 #define MAX_INTEGRATED_RESOLUTION 1.4
 #define WINDOW_SIZE 4
+#define SIGMA_RESOLUTION_CUTOFF 2.0
 
 #define PIXEL_LEAK 2.5
 #define SHOEBOX_BANDWIDTH_MULTIPLIER 0.33
@@ -134,7 +135,7 @@ typedef std::map<std::string, ParameterVariant> ParametersMap;
 typedef void (*ParserFunction)(ParametersMap *, std::string, std::string);
 typedef std::map<std::string, ParserFunction> ParserMap;
 
-typedef double (StatisticsFunction)(MtzManager *, MtzManager *, int, int, int *,
+typedef double (StatisticsFunction)(MtzManager *, MtzManager *, int, int *,
 		double *, double, double, bool);
 typedef double (RFactorFunction)(RFactorType, MtzManager *, int *, double *,
 		double, double);

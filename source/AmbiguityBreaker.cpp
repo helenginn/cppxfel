@@ -10,8 +10,6 @@
 #include <scitbx/lbfgsb.h>
 #include "StatisticsManager.h"
 
-// MARK: Calculations for breaking ambiguity
-
 double AmbiguityBreaker::dotProduct(int imageNumI, int imageNumJ)
 {
     int arrayStartI = imageNumI * ambiguityCount;
@@ -32,7 +30,7 @@ double AmbiguityBreaker::dotProduct(int imageNumI, int imageNumJ)
     return fx;
 }
 
-double AmbiguityBreaker::evaluationBreakingAmbiguity()
+double AmbiguityBreaker::evaluation()
 {
     double fx = 0;
     
@@ -87,345 +85,12 @@ double AmbiguityBreaker::gridCorrelation(int imageNumI, int imageNumJ)
     return statsManager->gridCorrelation(imageNumI, imageNumJ);
 }
 
-
-void AmbiguityBreaker::breakAmbiguity()
-{
-    int n = ambiguityCount * (int)mtzs.size();
-    
-    ostringstream logged;
-    
-    scitbx::af::shared<int> nbd(n);
-    scitbx::af::shared<double> lowerLims(n);
-    scitbx::af::shared<double> upperLims(n);
-    
-    x = scitbx::af::shared<double>(n);
-    
-    logged << "Number of variables: " << x.size() << std::endl;
-    
-    for (int i = 0; i < n; i++)
-        nbd[i] = 0;
-    
-    double factr = 1.e+7;
-    double pgtol = 0;
-    int iprint = 0;
-    
-    scitbx::lbfgsb::minimizer<double> *minimizer =
-    new scitbx::lbfgsb::minimizer<double>(n, 5, lowerLims, upperLims,
-                                          nbd, false, factr, pgtol, iprint);
-    
-    scitbx::lbfgs::traditional_convergence_test<double, int> is_converged(n);
-    
-    scitbx::af::ref<double> xb(x.begin(), n);
-    
-    srand((unsigned int)time(NULL));
-    
-    for (int i = 0; i < x.size(); i++)
-    {
-        double random = (double)rand() / RAND_MAX;
-        x[i] = random;
-    }
-    
-    Logger::mainLogger->addStream(&logged);
-    
-    scitbx::af::shared<double> g(n);
-    scitbx::af::ref<double> gb(g.begin(), n);
-    
-    for (int i = 0; i < n; i++)
-        g[i] = 0;
-    
-    try
-    {
-        for (int num = 0;; num++)
-        {
-            float fx = evaluationBreakingAmbiguity(); // calculate fx
-            
-            // gradient values (set to 0 initially, then populate arrays)
-            
-            for (int i = 0; i < n; i++)
-            {
-                g[i] = 0;
-            }
-            
-            for (int i = 0; i < mtzs.size(); i++)
-            {
-                for (int j = 0; j < ambiguityCount; j++)
-                {
-                    g[i * ambiguityCount + j] = gradientForImage(i, j);
-                }
-            }
-            
-            minimizer->process(xb, fx, gb);
-            
-            if (minimizer->is_terminated())
-                break;
-            
-            if (minimizer->n_iteration() > 50)
-                break;
-        }
-    } catch (scitbx::lbfgs::error &e)
-    {
-        std::cout << e.what() << std::endl;
-    } catch (void *e)
-    {
-        std::cout << "Unknown error!" << std::endl;
-    }
-    
-    
-}
-
-// MARK: Cloud cluster calculations
-
-double AmbiguityBreaker::distance(int imageNum, int centreNum)
-{
-    double fx = 0;
-    
-    for (int i = 0; i < ambiguityCount; i++)
-    {
-        double a = x[imageNum * ambiguityCount + i];
-        double b = clouds[centreNum * ambiguityCount + i];
-        
-        fx += pow(a - b, 2);
-    }
-    
-    return sqrt(fx);
-}
-
-double AmbiguityBreaker::toggleValue(int slowCloud, int fastCloud)
-{
-    int same = (slowCloud == fastCloud);
-    
-    return same ? 1 : -1;
-}
-
-double AmbiguityBreaker::gradientCloudCluster(int centre, int axis)
-{
- /*   double g = 0;
-    
-    for (int i = 0; i < mtzs.size(); i++)
-    {
-        for (int j = 0; j < ambiguityCount; j++)
-        {
-            double toggle = toggleValue(centre, j);
-            
-            double vectorAxisValue = x[i * ambiguityCount + axis];
-            double cloudAxisValue = clouds[j * ambiguityCount + axis];
-            
-            double addition = (2) * toggle * (vectorAxisValue - cloudAxisValue);
-            
-            g += addition;
-        }
-    }*/
-    
-    double fxLeft = evaluationCloudCluster();
-    
-    double position = centre * ambiguityCount + axis;
-    double value = clouds[position];
-    double interval = 0.01;
-    
-    double trialValue = value + interval;
-    
-    clouds[position] = trialValue;
-    
-    double fxRight = evaluationCloudCluster();
-    
-    double gradient = (fxRight - fxLeft) / interval;
-    
-    return gradient;
-}
-
-double AmbiguityBreaker::evaluationCloudCluster()
-{
-    double fx = 0;
-    
-    for (int p = 0; p < ambiguityCount; p++)
-    {
-        for (int i = 0; i < mtzs.size(); i++)
-        {
-            vector<double> distances;
-            double lowestDistance = FLT_MAX;
-            int lowestNum = -1;
-            
-            for (int j = 0; j < ambiguityCount; j++)
-            {
-                double dist = distance(i, j);
-                distances.push_back(dist);
-                
-                if (dist < lowestDistance)
-                {
-                    lowestDistance = dist;
-                    lowestNum = j;
-                }
-            }
-            
-            fx += pow(lowestDistance, 2);
-            
-        }
-    }
-    
-    return fx;
-}
-
-void AmbiguityBreaker::split()
-{
-    
-    
-    if (ambiguityCount == 2)
-    {
-        for (int i = 0; i < mtzs.size(); i++)
-        {
-            int startI = i * ambiguityCount;
-            
-            if (x[startI] > x[startI + 1])
-            {
-                mtzs[i]->setActiveAmbiguity(1);
-            }
-            else
-            {
-                mtzs[i]->setActiveAmbiguity(0);
-            }
-        }
-        
-        return;
-    }
-    
-    int n = ambiguityCount * ambiguityCount;
-    
-    scitbx::af::shared<int> nbd(n);
-    scitbx::af::shared<double> lowerLims(n);
-    scitbx::af::shared<double> upperLims(n);
-    
-    clouds = scitbx::af::shared<double>(n);
-    
-    for (int i = 0; i < n; i++)
-        nbd[i] = 0;
-    
-    double factr = 1.e+7;
-    double pgtol = 0;
-    int iprint = 0;
-    
-    scitbx::lbfgsb::minimizer<double> *minimizer =
-    new scitbx::lbfgsb::minimizer<double>(n, 5, lowerLims, upperLims,
-                                          nbd, false, factr, pgtol, iprint);
-    
-    scitbx::lbfgs::traditional_convergence_test<double, int> is_converged(n);
-    
-    scitbx::af::ref<double> xb(clouds.begin(), n);
-    
-    for (int i = 0; i < clouds.size(); i++)
-    {
-        double random = (double)rand() / RAND_MAX / 10 - 0.05;
-        clouds[i] = 0.5;
-    }
-    
-    scitbx::af::shared<double> g(n);
-    scitbx::af::ref<double> gb(g.begin(), n);
-    
-    for (int i = 0; i < n; i++)
-        g[i] = 0;
-    
-    ostringstream logged;
-    
-    try
-    {
-        for (int num = 0;; num++)
-        {
-            float fx = evaluationCloudCluster(); // calculate fx
-            
-            // gradient values (set to 0 initially, then populate arrays)
-            
-            for (int i = 0; i < ambiguityCount; i++)
-            {
-                for (int j = 0; j < ambiguityCount; j++)
-                {
-                    g[i * ambiguityCount + j] = gradientCloudCluster(i, j);
-                }
-            }
-            
-            logged << "fx: " << fx << std::endl;
-            
-            for (int i = 0; i < ambiguityCount; i++)
-            {
-                logged << "--\t";
-                
-                for (int j = 0; j < ambiguityCount; j++)
-                {
-                    logged << clouds[i * ambiguityCount + j] << "\t";
-                }
-                
-                logged << std::endl;
-            }
-            
-            
-            minimizer->process(xb, fx, gb);
-            
-            if (minimizer->is_terminated())
-                break;
-            
-            if (minimizer->n_iteration() > 50)
-                break;
-        }
-    } catch (scitbx::lbfgs::error &e)
-    {
-        std::cout << e.what() << std::endl;
-    } catch (void *e)
-    {
-        std::cout << "Unknown error!" << std::endl;
-    }
-    
-    logged << "*** CLOUD CLUSTER CENTRES ***" << std::endl;
-
-    for (int i = 0; i < ambiguityCount; i++)
-    {
-        int start = i * ambiguityCount;
-        
-        logged << "centre_" << i << "\t";
-        
-        for (int j = 0; j < ambiguityCount; j++)
-        {
-            logged << clouds[start + j] << "\t";
-        }
-        
-        logged << std::endl;
-    }
-    
-    sleep(1);
-    
-    Logger::mainLogger->addStream(&logged);
-    
-    for (int i = 0; i < mtzs.size(); i++)
-    {
-        int favouredCloud = -1;
-        int bestDistance = FLT_MAX;
-        
-        for (int j = 0; j < ambiguityCount; j++)
-        {
-            double distanceToCloud = distance(i, j);
-            
-            if (distanceToCloud < bestDistance)
-            {
-                favouredCloud = j;
-                bestDistance = distanceToCloud;
-            }
-        }
-        
-        mtzs[i]->setActiveAmbiguity(favouredCloud);
-    }
-}
-
-// MARK: Setting up, class and calling functions
-
 void AmbiguityBreaker::makeCorrelationGrid()
 {
     statsManager = new StatisticsManager();
     statsManager->setMtzs(mtzs);
     
-    assignPartialities();
     statsManager->generate_cc_grid();
-}
-
-void AmbiguityBreaker::overrideAmbiguity(int newAmbiguity)
-{
-    ambiguityCount = newAmbiguity;
 }
 
 // Call constructor and then run()
@@ -444,29 +109,54 @@ void AmbiguityBreaker::setMtzs(std::vector<MtzPtr> newMtzs)
         ambiguityCount = mtzs[0]->ambiguityCount();
     }
     
-    makeCorrelationGrid();
+    for (int i = 0; i < mtzs.size(); i++)
+    {
+  //      mtzs[i]->applyUnrefinedPartiality();
+    }
+    
+    if (ambiguityCount > 1)
+        makeCorrelationGrid();
 }
 
-void AmbiguityBreaker::assignPartialities()
+
+void AmbiguityBreaker::run()
+{
+    if (ambiguityCount > 1)
+    {
+        breakAmbiguity();
+        printResults();
+        split();
+    }
+    merge();
+}
+
+void AmbiguityBreaker::split()
+{
+    if (ambiguityCount == 2)
+    {
+        for (int i = 0; i < mtzs.size(); i++)
+        {
+            int startI = i * ambiguityCount;
+            
+            if (x[startI] > x[startI + 1])
+            {
+                mtzs[i]->setActiveAmbiguity(1);
+            }
+            else
+            {
+                mtzs[i]->setActiveAmbiguity(0);
+            }
+        }
+    }
+}
+
+void AmbiguityBreaker::merge()
 {
     for (int i = 0; i < mtzs.size(); i++)
     {
         mtzs[i]->applyUnrefinedPartiality();
     }
-}
-
-void AmbiguityBreaker::run()
-{
-    breakAmbiguity();
-    sleep(0.5);
-    printResults();
-    sleep(0.5);
-    split();
-    merge();
-}
-
-void AmbiguityBreaker::merge()
-{
+    
     MtzGrouper *idxGrouper = new MtzGrouper();
     idxGrouper->setWeighting(WeightTypeAverage);
     idxGrouper->setMtzManagers(mtzs);
@@ -494,4 +184,92 @@ void AmbiguityBreaker::printResults()
     }
     
     Logger::mainLogger->addStream(&logged);
+}
+
+void AmbiguityBreaker::breakAmbiguity()
+{
+    int n = ambiguityCount * (int)mtzs.size();
+
+    ostringstream logged;
+    
+    scitbx::af::shared<int> nbd(n);
+    scitbx::af::shared<double> lowerLims(n);
+    scitbx::af::shared<double> upperLims(n);
+    
+    x = scitbx::af::shared<double>(n);
+    
+    logged << "Number of variables: " << x.size() << std::endl;
+    
+    for (int i = 0; i < n; i++)
+        nbd[i] = 0;
+    
+    double factr = 1.e+7;
+    double pgtol = 0;
+    int iprint = 0;
+    
+    scitbx::lbfgsb::minimizer<double> *minimizer =
+    new scitbx::lbfgsb::minimizer<double>(n, 5, lowerLims, upperLims,
+                                          nbd, false, factr, pgtol, iprint);
+    
+    scitbx::lbfgs::traditional_convergence_test<double, int> is_converged(n);
+    
+    scitbx::af::ref<double> xb(x.begin(), n);
+    
+    for (int i = 0; i < n; i++)
+        x[i] = 1;
+    
+    for (int i = 0; i < x.size(); i++)
+    {
+        double random = (double)rand() / RAND_MAX;
+        x[i] = random;
+    }
+    
+    Logger::mainLogger->addStream(&logged);
+    
+    scitbx::af::shared<double> g(n);
+    scitbx::af::ref<double> gb(g.begin(), n);
+    
+    for (int i = 0; i < n; i++)
+        g[i] = 0;
+    
+    try
+    {
+        for (int num = 0;; num++)
+        {
+            float fx = evaluation(); // calculate fx
+            
+            // gradient values (set to 0 initially, then populate arrays)
+            
+            for (int i = 0; i < n; i++)
+            {
+                g[i] = 0;
+            }
+            
+            for (int i = 0; i < mtzs.size(); i++)
+            {
+                for (int j = 0; j < ambiguityCount; j++)
+                {
+                    g[i * ambiguityCount + j] = gradientForImage(i, j);
+                }
+            }
+            
+            std::cout << "fx: " << fx << std::endl;
+            
+            minimizer->process(xb, fx, gb);
+            
+            if (minimizer->is_terminated())
+                break;
+            
+            if (minimizer->n_iteration() > 50)
+                break;
+        }
+    } catch (scitbx::lbfgs::error &e)
+    {
+        std::cout << e.what() << std::endl;
+    } catch (void *e)
+    {
+        std::cout << "Unknown error!" << std::endl;
+    }
+
+    
 }

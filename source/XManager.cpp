@@ -120,8 +120,6 @@ void XManager::loadReflections(PartialityModel model)
             if (currentHolder == NULL)
             {
                 currentHolder = new Holder();
-                currentHolder->setReflId(reflid);
-                currentHolder->setInvReflId(invreflid);
                 
                 MillerPtr miller = MillerPtr(new Miller(this, h, k, l));
                 miller->setData(0, 0, 0, 0);

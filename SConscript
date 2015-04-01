@@ -67,7 +67,8 @@ source = [
 	'source/lbfgs_cluster.cpp',
 	'source/lbfgs_scaling.cpp',
 	'source/main.cpp',
-	'source/misc.cpp']
+	'source/misc.cpp',
+    'source/AmbiguityBreaker.cpp']
 
 env.SharedLibrary(
     target='#/lib/cppxfel_ext', 

@@ -62,7 +62,7 @@ protected:
 	vector<Holder *> refHolders;
 	vector<Holder *> matchHolders;
     MtzManager *previousReference;
-    bool previousInverse;
+    int previousAmbiguity;
     bool allowTrust;
     
 	double hRot;
@@ -76,7 +76,8 @@ protected:
 	double scale;
 	double cellDim[3];
 	double cellAngles[3];
-
+    int activeAmbiguity;
+    
 	bool usingFixedWavelength;
 
 	bool optimisingWavelength;
@@ -137,9 +138,6 @@ public:
 	MtzManager *copy();
 	void loadParametersMap();
 
-	int inverted;
-	void invert();
-
     void addHolders(vector<Holder *>holders);
 	void clearHolders();
 	void addHolder(Holder *holder);
@@ -159,6 +157,9 @@ public:
 	void insertionSortHolders(void);
 	void sortLastHolder(void);
     void applyUnrefinedPartiality();
+    void incrementActiveAmbiguity();
+    void cutToResolutionWithSigma(double acceptableSigma);
+    double maxResolution();
 
     std::string filenameRoot();
 	void setSpaceGroup(int spgnum);
@@ -168,7 +169,7 @@ public:
 	int findHolderWithId(int refl_id, Holder **holder, bool insertionPoint = false);
 	void findCommonReflections(MtzManager *other,
 			vector<Holder *> &holderVector1, vector<Holder *> &holderVector2,
-			int *num = NULL, int inverted = 0, bool excludeSymmetrical = false);
+			int *num = NULL, bool force = false);
 	double meanCorrectedIntensity(Holder *holder);
 	double gradientAgainstManager(MtzManager &otherManager, bool leastSquares = false, double lowRes = 0, double highRes = 0);
 	double minimizeGradient(MtzManager *otherManager, bool leastSquares);
@@ -180,7 +181,6 @@ public:
 	void clearScaleFactor();
 	void makeScalesPermanent();
 	double averageIntensity(void);
-	void flip(void);
 	void setSigmaToUnity();
 	void setPartialityToUnity();
 	double partialityRatio(Holder *imgHolder, Holder *refHolder);
@@ -265,7 +265,7 @@ public:
 			void *object);
 	static void gridSearchWrapper(MtzManager *image, bool spotSize);
 	double leastSquaresPartiality(ScoreType typeOfScore);
-	double minimize(bool minimizeSpotSize, bool suppressOutput);
+	double minimize(bool minimizeSpotSize = true, bool suppressOutput = true);
 	double minimize(bool minimizeSpotSize, bool suppress,
 			double (*score)(void *object, double lowRes, double highRes),
 			void *object);
@@ -276,7 +276,17 @@ public:
 
     void makeSuperGaussianLookupTable(double exponent);
     
-// refinement parameters
+    int ambiguityCount();
+    
+    void flipToActiveAmbiguity();
+    void resetFlip();
+    
+    int getActiveAmbiguity()
+    {
+        return activeAmbiguity;
+    }
+    
+    void setActiveAmbiguity(int newAmbiguity);
 
     virtual int holderCount()
     {
@@ -378,16 +388,6 @@ public:
 		this->refCorrelation = refCorrelation;
 	}
 
-	bool isInverse() const
-	{
-		return inverse;
-	}
-
-	void setInverse(bool inverse)
-	{
-		this->inverse = inverse;
-	}
-
 	double getExponent() const
 	{
 		return exponent;
@@ -471,14 +471,6 @@ public:
 	bool isFlipped() const
 	{
 		return flipped;
-	}
-
-	void setFlipped(bool flipped)
-	{
-		if (flipped != this->flipped)
-		{
-			this->flip();
-		}
 	}
 
 	MatrixPtr getMatrix()

@@ -1,7 +1,6 @@
 #ifndef statistics
 #define statistics
 
-#define UNIT_CELL 106.1
 
 #include <string>
 #include <iostream>
@@ -27,11 +26,10 @@ public:
 
 	vector<MtzPtr> mtzs;
 	void loadFiles(char **filenames, int filenum, int partiality);
-	void loadTwoFilesInverted(char **filenames, int filenum, int inv);
     void generate_cc_grid();
     void ccGridThreaded(int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc);
     static void ccGridThreadedWrapper(StatisticsManager *object, int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc);
-
+    double gridCorrelation(int imageNumI, int imageNumJ);
 
 	void printGradientsAgainstRef(MtzManager *reference);
 
@@ -55,9 +53,9 @@ public:
 			int *hits, double lowResolution, double highResolution, bool log);
 
 	static double cc_pearson(MtzManager *shot1, MtzManager *shot2, int silent,
-			int inverted, int *hits, double *multiplicity, double lowResolution,
+            int *hits, double *multiplicity, double lowResolution,
 			double highResolution, bool log);
-	double cc_pearson(int num1, int num2, int silent, int inverted, int *hits,
+	double cc_pearson(int num1, int num2, int silent, int *hits,
 			double *multiplicity, double lowResolution = 0, double highResolution =
 					0, bool log = false);
 
@@ -65,7 +63,7 @@ public:
 			double *multiplicity, double lowResolution, double highResolution);
 
 	static double r_split(MtzManager *shot1, MtzManager *shot2, int silent,
-			int inverted, int *hits, double *multiplicity, double lowResolution,
+			int *hits, double *multiplicity, double lowResolution,
 			double highResolution, bool log);
 
 	double **cc_array;

@@ -21,7 +21,7 @@
 #define BIG_BANDWIDTH 0.015
 #define DISTANCE_TOLERANCE 0.02
 #define WAVELENGTH_TOLERANCE 0.0005
-#define UNIT_CELL 106.1
+
 #define HROT_TOLERANCE 0.001
 #define KROT_TOLERANCE 0.001
 #define ANGLE_TOLERANCE 0.0002
@@ -87,7 +87,7 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
     wavelengths.clear();
     frequencies.clear();
     
-    double interval = 0.003;
+    double interval = testBandwidth / 8;
     
     double wavelength = image->getWavelength();
     vector<double> totals;
@@ -146,8 +146,10 @@ void Indexer::calculateNearbyMillers(bool rough)
     double minBandwidth = wavelength * (1 - testBandwidth * 2);
     double maxBandwidth = wavelength * (1 + testBandwidth * 2);
     
-    double minSphere = 1 / wavelength * 0.99;
-    double maxSphere = 1 / wavelength * 1.01;
+    double sphereThickness = FileParser::getKey("SPHERE_THICKNESS", 0.01);
+    
+    double minSphere = 1 / wavelength * (1 - sphereThickness);
+    double maxSphere = 1 / wavelength * (1 + sphereThickness);
     
     nearbyMillers.clear();
     
@@ -280,7 +282,7 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
     {
         MillerPtr miller = nearbyMillers[i];
         
-        vec hkl = new_vector(miller->h, miller->k, miller->l);
+        vec hkl = new_vector(miller->getH(), miller->getK(), miller->getL());
         matrix->multiplyVector(&hkl);
         
         double d = length_of_vector(hkl);
@@ -653,23 +655,6 @@ void Indexer::writeDatFromSpots(std::string filename)
     dat.close();
 }
 
-double Indexer::rSplit()
-{
-    MtzPtr manager = this->newMtz(0);
-    manager->setReference(reference);
-    double bestWavelength = manager->bestWavelength();
-    //	manager->gridSearch(true);
-    manager->refreshPartialities(0, 0, 0, 0.0001, bestWavelength, 0.0013, 1.5);
-    
-    double split1 = manager->rSplit(0, 0);
-    manager->invert();
-    double split2 = manager->rSplit(0, 0);
-    manager->invert();
-    
-    double trueSplit = (split1 < split2) ? split1 : split2;
-    
-    return trueSplit;
-}
 
 int Indexer::identicalSpotsAndMillers()
 {
@@ -1160,8 +1145,6 @@ MtzPtr Indexer::newMtz(int index)
     
     newMat->rotate(hRad, kRad, 0);
     
-    double version = FileParser::getKey("MATRIX_LIST_VERSION", 1.0);
-    
     MtzPtr mtz = MtzPtr(new MtzManager());
     mtz->setWavelength(mean);
     mtz->setFilename(image->filenameRoot() + "_" + i_to_str(index) + ".mtz");
@@ -1170,13 +1153,19 @@ MtzPtr Indexer::newMtz(int index)
     
     mtz->setMatrix(newMat);
     
+    char *hallSymbol = ccp4spg_symbol_Hall(spaceGroup);
+    
+    space_group _spaceGroup = space_group(hallSymbol);
+    space_group_type spgType = space_group_type(_spaceGroup);
+    asu asymmetricUnit = asu(spgType);
+    
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
         miller->incrementOverlapMask();
         miller->setMtzParent(&*mtz);
         
-        int index = Holder::indexForReflection(miller->h, miller->k, miller->l,
+        int index = Holder::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
                                                mtz->getLowGroup(), false);
         
         Holder *found = NULL;
@@ -1192,11 +1181,8 @@ MtzPtr Indexer::newMtz(int index)
         else
         {
             Holder *holder = new Holder();
+            holder->setSpaceGroup(spaceGroup, spgType, asymmetricUnit);
             holder->addMiller(miller);
-            holder->setReflId(index);
-            int inverse = Holder::indexForReflection(miller->h, miller->l,
-                                                     miller->k, mtz->getLowGroup(), false);
-            holder->setInvReflId(inverse);
             holder->calculateResolution(&*mtz);
             miller->setParent(holder);
             mtz->addHolder(holder);
@@ -1206,10 +1192,10 @@ MtzPtr Indexer::newMtz(int index)
     
     this->sendLog(LogLevelDetailed);
     
-    if (!mtz)
-    {
-        std::cout << "Warning! No MTZ" << std::endl;
-    }
+    double cutoff = FileParser::getKey("SIGMA_RESOLUTION_CUTOFF", SIGMA_RESOLUTION_CUTOFF);
+    
+    if (cutoff != 0)
+        mtz->cutToResolutionWithSigma(cutoff);
     
     string imgFilename = "img-" + image->filenameRoot() + "_" + i_to_str(index) + ".mtz";
     mtz->writeToFile(imgFilename, false, true);

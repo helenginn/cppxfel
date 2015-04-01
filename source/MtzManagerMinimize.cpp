@@ -27,9 +27,6 @@ double MtzManager::weightedBestWavelength(double lowRes, double highRes)
         Holder *refHolder = NULL;
         int reflid = imageHolder->getReflId();
         
-        if (isInverse())
-            reflid = imageHolder->getInvReflId();
-        
         referenceManager->findHolderWithId(reflid, &refHolder);
         
         if (refHolder != NULL)
@@ -68,7 +65,7 @@ double MtzManager::bFactorScoreWrapper(void *object)
     
     for (int i = 0; i < bins.size() - 1; i++)
     {
-        score += exclusionScoreWrapper(object, bins[i], bins[i - 1]);
+        score += exclusionScoreWrapper(object, bins[i], bins[i + 1]);
         
     }
     
@@ -127,8 +124,7 @@ double MtzManager::rSplit(double low, double high, bool square)
     vector<Holder *> holders1;
     vector<Holder *> holders2;
     
-    this->findCommonReflections(referenceManager, holders1, holders2, NULL,
-                                this->isInverse());
+    this->findCommonReflections(referenceManager, holders1, holders2, NULL);
     
     for (int i = 0; i < holders1.size(); i++)
     {
@@ -219,9 +215,6 @@ double MtzManager::leastSquaresPartiality(double low, double high,
         Holder *refHolder = NULL;
         int reflid = imageHolder->getReflId();
         
-        if (isInverse())
-            reflid = imageHolder->getInvReflId();
-        
         referenceManager->findHolderWithId(reflid, &refHolder);
         
         if (refHolder != NULL)
@@ -237,7 +230,9 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     }
     
     std::sort(partials.begin(), partials.end(), percentage);
-    double maxPercentage = partials[partials.size() - 5].percentage;
+    int position = (int)partials.size() - 5;
+    if (position <= 0) return 0;
+    double maxPercentage = partials[position].percentage;
     
     for (int i = 0; i < partials.size(); i++)
     {
@@ -486,13 +481,15 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     
     if (refineB && bFactor == 0)
     {
-        double bStep = 5;
+        double bStep = 10;
         double optimisedB = false;
         int count = 0;
         
         while (!optimisedB && count < 30)
         {
-            minimizeParam(bStep, bFactor, bFactorScoreWrapper, this);
+            double score = minimizeParam(bStep, bFactor, bFactorScoreWrapper, this);
+            
+        //    std::cout << bFactor << "\t" << score << std::endl;
             
             if (bStep < 0.01)
                 optimisedB = true;
@@ -541,12 +538,7 @@ void MtzManager::gridSearch(
 
 void MtzManager::gridSearch(bool minimizeSpotSize)
 {
-    freePass = false;
     scoreType = defaultScoreType;
-    minimizeSpotSize = true;
-    
-    bool isRLog = (scoreType == ScoreTypeMinimizeRSplitLog);
-    
     string scoreDescription = this->describeScoreType();
     
     double scale = this->gradientAgainstManager(*referenceManager);
@@ -554,15 +546,68 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
     
     this->reallowPartialityOutliers();
     
-    double *bestParams = new double[PARAM_NUM];
+    std::map<int, std::pair<std::vector<double>, double> > ambiguityResults;
+    
     double *firstParams = new double[PARAM_NUM];
     getParams(&firstParams);
     
     if (trust == TrustLevelGood)
-    {
         minimize(minimizeSpotSize, true);
-    }
     
+    if (trust != TrustLevelGood)
+    {
+        for (int i = 0; i < ambiguityCount(); i++)
+        {
+            vector<double> bestParams;
+            bestParams.resize(PARAM_NUM + 5);
+            setParams(firstParams);
+            
+            int ambiguity = getActiveAmbiguity();
+            double correl = minimize();
+            double *params = &(*(bestParams.begin()));
+            getParams(&params);
+            
+            int hits = 0;
+            double realCorrel = StatisticsManager::cc_pearson(this, getReferenceManager(), true, &hits, NULL, 0, 0, false);
+            
+            std::pair<std::vector<double>, double> result = std::make_pair(bestParams, correl);
+            
+            ambiguityResults[ambiguity] = result;
+            incrementActiveAmbiguity();
+        }
+        
+        double bestScore = -1;
+        int bestAmbiguity = 0;
+        
+        logged << "Ambiguity results: ";
+        
+        for (int i = 0; i < ambiguityCount(); i++)
+        {
+            std::pair<std::vector<double>, double> result = ambiguityResults[i];
+            
+            logged << result.second << " ";
+            
+            if (result.second > bestScore)
+            {
+                bestScore = result.second;
+                bestAmbiguity = i;
+            }
+        }
+        
+        logged << std::endl;
+        sendLog(LogLevelDetailed);
+        
+        setActiveAmbiguity(bestAmbiguity);
+        setParams(&(*(ambiguityResults[bestAmbiguity].first).begin()));
+        
+        double threshold = 0.9;
+        
+        if (bestScore > threshold)
+        {
+            trust = TrustLevelGood;
+        }
+    }
+    /*
     if (trust != TrustLevelGood)
     {
         if (isRLog)
@@ -601,7 +646,7 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
     }
     
     getParams(&bestParams);
-    
+    */
     double newCorrel = (scoreType == ScoreTypeSymmetry) ? 0 : correlation(true);
     this->setFinalised(true);
     
@@ -641,10 +686,6 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
     this->sendLog(LogLevelNormal);
     
     delete[] firstParams;
-    delete[] bestParams;
-    
-    if (newCorrel > 0.9 && isRLog)
-        scoreType = ScoreTypeMinimizeRSplitLog;
     
     writeToFile(string("ref-") + filename);
 }
@@ -671,7 +712,7 @@ void MtzManager::excludeFromLogCorrelation()
             || holder->getResolution() > highCut)
             continue;
         
-        int refl = isInverse() ? holder->getInvReflId() : holder->getReflId();
+        int refl = holder->getReflId();
         
         image2.findHolderWithId(refl, &holder2);
         
@@ -768,7 +809,7 @@ void MtzManager::excludePartialityOutliers()
     applyScaleFactor(this->gradientAgainstManager(*referenceManager));
     
     this->findCommonReflections(referenceManager, imgHolders, refHolders,
-                                NULL, isInverse());
+                                NULL);
     
     vector<double> ratios;
     

@@ -13,29 +13,6 @@ void StatisticsManager::setMtzs(vector<MtzPtr> newMtzs)
     mtz_num = (int)newMtzs.size();
 }
 
-void StatisticsManager::loadTwoFilesInverted(char **filenames, int filenum,
-		int inv)
-{
-	cout << "Loading " << filenum << " files..." << endl;
-
-	for (int i = 0; i < 2; i++)
-	{
-		cout << "Loading file " << filenames[i] << endl;
-		string filename_string = filenames[i];
-
-		MtzPtr mtz = MtzPtr(new MtzManager());
-		mtzs.push_back(mtz);
-
-		if (i == 0)
-			mtzs[i]->setInverse(inv);
-		mtzs[i]->setFilename(filename_string);
-		mtzs[i]->loadReflections(1);
-	}
-
-	mtz_num = filenum;
-
-	cout << "Loaded " << filenum << " files." << endl;
-}
 
 void StatisticsManager::loadFiles(char **filenames, int filenum, int partiality)
 {
@@ -122,13 +99,13 @@ void StatisticsManager::generateResolutionBins(double minD, double maxD,
 }
 
 double StatisticsManager::cc_pearson(int num1, int num2, int silent,
-		int inverted, int *hits, double *multiplicity, double lowResolution,
+		int *hits, double *multiplicity, double lowResolution,
 		double highResolution, bool shouldLog)
 {
 	MtzManager *shot1 = &*(mtzs[num1]);
 	MtzManager *shot2 = &*(mtzs[num2]);
 
-	return cc_pearson(shot1, shot2, silent, inverted, hits, multiplicity,
+	return cc_pearson(shot1, shot2, silent, hits, multiplicity,
 			lowResolution, highResolution, shouldLog);
 }
 
@@ -140,15 +117,14 @@ void StatisticsManager::convertResolutions(double lowAngstroms,
 }
 
 double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
-		int silent, int inverted, int *hits, double *multiplicity,
+		int silent, int *hits, double *multiplicity,
 		double lowResolution, double highResolution, bool shouldLog)
 {
 	vector<Holder *> holders1;
 	vector<Holder *> holders2;
 	int num = 0;
 
-	shot1->findCommonReflections(shot2, holders1, holders2, &num,
-			inverted);
+	shot1->findCommonReflections(shot2, holders1, holders2, &num);
 
     if (holders1.size() <= 2)
 	{
@@ -174,8 +150,6 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 
 			if (int1 != int1 || int2 != int2)
 				continue;
-
-			if (holders1[i]->getResolution())
 
 			if (!(holders1[i]->getResolution() > invLow
 					&& holders1[i]->getResolution() < invHigh))
@@ -410,7 +384,7 @@ double StatisticsManager::r_factor(RFactorType rFactor, MtzManager *shot1, int *
 }
 
 double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
-		int silent, int inverted, int *hits, double *multiplicity,
+		int silent, int *hits, double *multiplicity,
 		double lowResolution, double highResolution, bool shouldLog)
 {
 	double sum_numerator = 0;
@@ -424,12 +398,10 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 	convertResolutions(lowResolution, highResolution, &dMin, &dMax);
     std::string filename = shot1->getFilename();
 
-	int inverse = (shot1->isInverse());
-
 	for (int i = 0; i < shot1->holderCount(); i++)
 	{
 		Holder *holder = shot1->holder(i);
-		int reflid = inverse ? holder->getInvReflId() : holder->getReflId();
+        int reflid = holder->getReflId();
 
 		Holder *holder2 = NULL;
 		shot2->findHolderWithId(reflid, &holder2);
@@ -499,7 +471,7 @@ double StatisticsManager::cc_through_origin(int num1, int num2, int silent,
 	if (lowResolution == 0)
 		lowRes = 0;
 
-	shot1->findCommonReflections(shot2, holders1, holders2, &num, inverted, true);
+	shot1->findCommonReflections(shot2, holders1, holders2, &num);
 	(*hits) = num;
 
 	if (num <= 1)
@@ -616,35 +588,35 @@ void StatisticsManager::ccGridThreaded(int offset, int calculationsPerThread, st
             }
             
             double cc = 0;
-            double inv_cc = 0;
+      //      double inv_cc = 0;
             int hitc = 0;
-            int inv_hitc = 0;
+      //      int inv_hitc = 0;
             
             if (j == i)
             {
                 cc = 1;
-                inv_cc = 0;
+         //       inv_cc = 0;
             }
             else
             {
-                inv_cc = cc_through_origin(i, j, 1, 1, &inv_hitc, 0, 0, false);
+         //       inv_cc = cc_through_origin(i, j, 1, 1, &inv_hitc, 0, 0, false);
                 cc = cc_through_origin(i, j, 1, 0, &hitc, 0, 0, false);
             }
             
             if (cc != -1)
                 (*num_cc)++;
-            if (inv_cc != -1)
+        /*    if (inv_cc != -1)
                 (*num_inv_cc)++;
-            
+          */
             double appropriateSlice = (cc - fmod(cc, slice));
             appropriateSlice *= histogramCount;
             
             (*histogram)[appropriateSlice]++;
             
             cc_array[i][j] = cc;
-            inv_cc_array[i][j] = inv_cc;
+       //     inv_cc_array[i][j] = inv_cc;
             hits[i][j] = hitc;
-            inv_hits[i][j] = inv_hitc;
+        //    inv_hits[i][j] = inv_hitc;
             
             calculations_done++;
         }
@@ -738,8 +710,13 @@ void StatisticsManager::generate_cc_grid()
         for (int j = i; j < mtz_num; j++)
         {
             cc_array[j][i] = cc_array[i][j];
-            inv_cc_array[j][i] = inv_cc_array[i][j];
+      //      inv_cc_array[j][i] = inv_cc_array[i][j];
         }
+}
+
+double StatisticsManager::gridCorrelation(int imageNumI, int imageNumJ)
+{
+    return cc_array[imageNumI][imageNumJ];
 }
 
 void StatisticsManager::printGradientsAgainstRef(MtzManager *ref)
@@ -856,13 +833,15 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 {
 	int num = 0;
 
-	double scale = (*test_image)->gradientAgainstManager(**image, false);
+    double scale = (*test_image)->gradientAgainstManager(**image, false);
 	(*test_image)->applyScaleFactor(scale);
 
 	vector<Holder *>refHolders, imageHolders;
 
-	(*image)->findCommonReflections(*test_image, refHolders, imageHolders, NULL, (*test_image)->isInverse());
+	(*test_image)->findCommonReflections(*image, imageHolders, refHolders, NULL, true);
 
+    std::cout << refHolders.size() << " common reflections." << std::endl;
+    
 	for (int i = 0; i < refHolders.size(); i++)
 	{
 		Holder *refHolder = refHolders[i];
@@ -887,9 +866,9 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 
 			if (partials == NULL)
 			{
-				cout << imageHolder->miller(0)->h << "\t"
-						<< imageHolder->miller(0)->k << "\t"
-						<< imageHolder->miller(0)->l << "\t";
+				cout << imageHolder->miller(0)->getH() << "\t"
+						<< imageHolder->miller(0)->getK() << "\t"
+						<< imageHolder->miller(0)->getL() << "\t";
 				cout << wavelength << "\t" << partiality << "\t" << percentage
 						<< "\t" << imageHolder->getResolution()
 						<< "\t" << endl;

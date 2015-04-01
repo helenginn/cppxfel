@@ -141,7 +141,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 				<< mtzManagers[i]->getWavelength() << "\t"
 				<< mtzManagers[i]->getBandwidth() << "\t" << hRot << "\t"
 				<< kRot << "\t" << mtzManagers[i]->getSpotSize() << "\t"
-				<< mtzManagers[i]->getExponent() << "\t" << rSplit << "\t" << a << std::endl;
+				<< mtzManagers[i]->getExponent() << "\t" << rSplit << "\t" << mtzManagers[i]->getActiveAmbiguity() << std::endl;
 	}
 
 	averageCorrelation /= mtzManagers.size();
@@ -385,19 +385,23 @@ void MtzGrouper::mergeAnomalous(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		int start, int end)
 {
-	int flipCount = 0;
 	int mtzCount = 0;
 
+    std::map<int, int> flipCounts;
+    
+    for (int i = 0; i < mtzManagers[0]->ambiguityCount(); i++)
+    {
+        flipCounts[i] = 0;
+    }
+    
 	for (int i = start; i < end; i++)
 	{
 		if (!isMtzAccepted(mtzManagers[i]))
             continue;
         
-		if (mtzManagers[i]->isInverse())
-		{
-			mtzManagers[i]->setFlipped(true);
-			flipCount++;
-		}
+        mtzManagers[i]->flipToActiveAmbiguity();
+        int ambiguity = mtzManagers[i]->getActiveAmbiguity();
+        flipCounts[ambiguity]++;
 
 		mtzCount++;
 
@@ -456,7 +460,15 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	}
 
 	std::cout << "N: MTZs used in merge: " << mtzCount << std::endl;
-	std::cout << "N: Total flipped: " << flipCount << std::endl;
+	std::cout << "N: Flip ratios: ";
+    
+    for (std::map<int, int>::iterator it = flipCounts.begin(); it != flipCounts.end(); it++)
+    {
+        std::cout << flipCounts[it->first] << " ";
+    }
+    
+    std::cout << std::endl;
+    
 	std::cout << "N: Holders used: " << (*mergeMtz)->holderCount() << std::endl;
 
 	return mtzCount;
@@ -479,11 +491,7 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 		if (refCorrelation < 0 || refCorrelation == 1)
 			continue;
 
-		if (mtzManagers[i]->isInverse())
-		{
-			mtzManagers[i]->setFlipped(true);
-			flipCount++;
-		}
+        mtzManagers[i]->flipToActiveAmbiguity();
 
 		mtzCount++;
 
@@ -591,8 +599,8 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 
 		int h, k, l = 0;
 		MillerPtr firstMiller = (*mergeMtz)->holder(i)->miller(0);
-		ccp4spg_put_in_asu((*mergeMtz)->getLowGroup(), firstMiller->h,
-				firstMiller->k, firstMiller->l, &h, &k, &l);
+		ccp4spg_put_in_asu((*mergeMtz)->getLowGroup(), firstMiller->getH(),
+				firstMiller->getK(), firstMiller->getL(), &h, &k, &l);
 
 		MillerPtr newMiller = MillerPtr(new Miller((*mergeMtz), h, k, l));
 
@@ -677,8 +685,7 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 	vector<Holder *> posHolders;
 	vector<Holder *> negHolders;
 
-	(*positive)->findCommonReflections(*negative, posHolders, negHolders, &hits,
-			0);
+	(*positive)->findCommonReflections(*negative, posHolders, negHolders, &hits);
 
 	for (int i = 0; i < posHolders.size(); i++)
 	{
@@ -698,9 +705,9 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 
 		num++;
 
-		int h = negHolders[i]->miller(0)->h;
-		int k = negHolders[i]->miller(0)->k;
-		int l = negHolders[i]->miller(0)->l;
+		int h = negHolders[i]->miller(0)->getH();
+		int k = negHolders[i]->miller(0)->getK();
+		int l = negHolders[i]->miller(0)->getL();
 		int _h, _k, _l;
 		ccp4spg_put_in_asu(mtzspg, h, k, l, &_h, &_k, &_l);
 
@@ -729,8 +736,7 @@ void MtzGrouper::differenceBetweenMtzs(MtzManager **mergeMtz,
 	vector<Holder *> posHolders;
 	vector<Holder *> negHolders;
 
-	(*positive)->findCommonReflections(*negative, posHolders, negHolders, &hits,
-			0);
+	(*positive)->findCommonReflections(*negative, posHolders, negHolders, &hits);
 
 	for (int i = 0; i < posHolders.size(); i++)
 	{
@@ -755,7 +761,7 @@ void MtzGrouper::unflipMtzs()
 {
 	for (int i = 0; i < mtzManagers.size(); i++)
 	{
-		mtzManagers[i]->setFlipped(false);
+        mtzManagers[i]->resetFlip();
 	}
 }
 

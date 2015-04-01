@@ -31,6 +31,16 @@ MtzManager *MtzManager::referenceManager;
 double MtzManager::highRes = 3.5;
 double MtzManager::lowRes = 0;
 
+#include <cctbx/sgtbx/space_group.h>
+#include <cctbx/sgtbx/symbols.h>
+#include <cctbx/sgtbx/reciprocal_space_asu.h>
+#include <cctbx/sgtbx/space_group_type.h>
+using cctbx::sgtbx::space_group;
+using cctbx::sgtbx::space_group_symbols;
+using cctbx::sgtbx::space_group_type;
+using cctbx::sgtbx::reciprocal_space::asu;
+
+
 string MtzManager::describeScoreType()
 {
     switch (scoreType)
@@ -279,7 +289,6 @@ MtzManager::MtzManager(void)
 {
     lastReference = NULL;
     filename = "";
-    inverted = 0;
     holders.resize(0);
     low_group = NULL;
     bandwidth = INITIAL_BANDWIDTH;
@@ -304,7 +313,8 @@ MtzManager::MtzManager(void)
     scale = 1;
     lastExponent = 0;
     previousReference = NULL;
-    previousInverse = false;
+    previousAmbiguity = -1;
+    activeAmbiguity = 0;
     bFactor = 0;
     
     optimisingWavelength = !OPTIMISED_WAVELENGTH;
@@ -337,8 +347,6 @@ MtzManager *MtzManager::copy()
 {
     MtzManager *newManager = new MtzManager();
     newManager->filename = filename;
-    newManager->inverted = inverted;
-    newManager->inverse = isInverse();
     double lowNum = low_group->spg_num;
     newManager->setSpaceGroup(lowNum);
     newManager->bandwidth = bandwidth;
@@ -494,6 +502,9 @@ void MtzManager::copySymmetryInformationFromManager(MtzPtr toCopy)
     double a, b, c, alpha, beta, gamma;
     toCopy->getUnitCell(&a, &b, &c, &alpha, &beta, &gamma);
     this->setUnitCell(a, b, c, alpha, beta, gamma);
+    
+    std::cout << "Setting unit cell to " << a << ", " << b << ", " << c << ", " << alpha << ", " << beta << ", " << gamma <<std::endl;
+    
     int spgnum = toCopy->getLowGroup()->spg_ccp4_num;
     CCP4SPG *spg = ccp4spg_load_by_ccp4_num(spgnum);
     this->setLowGroup(spg);
@@ -523,6 +534,12 @@ void MtzManager::loadReflections(PartialityModel model)
     
     low_group = ccp4spg_load_by_ccp4_num(spgnum);
     
+    char *hallSymbol = ccp4spg_symbol_Hall(low_group);
+    
+    space_group spaceGroup = space_group(hallSymbol);
+    space_group_type spgType = space_group_type(spaceGroup);
+    asu asymmetricUnit = asu(spgType);
+
     if (mtz == NULL)
         return;
     
@@ -576,6 +593,8 @@ void MtzManager::loadReflections(PartialityModel model)
     MtzHklcoeffs(cell, coefhkl);
     
     setUnitCell(cell[0], cell[1], cell[2], cell[3], cell[4], cell[5]);
+    
+    
     
     int num = 0;
     
@@ -640,13 +659,12 @@ void MtzManager::loadReflections(PartialityModel model)
         {
             Holder *newHolder = new Holder();
             holders.push_back(newHolder);
+            newHolder->setUnitCell(cell);
+            newHolder->setSpaceGroup(low_group, spgType, asymmetricUnit);
             
             holders[num]->addMiller(miller);
             miller->setParent(holders[num]);
             holders[num]->calculateResolution(this);
-            
-            holders[num]->setReflId(reflection_holder_index);
-            holders[num]->setInvReflId(inv_holder_index);
             
             this->sortLastHolder();
             
@@ -680,8 +698,6 @@ void MtzManager::getRefHolders(vector<Holder *> *refPointer,
         for (int i = 0; i < holderCount(); i++)
         {
             int reflId = holder(i)->getReflId();
-            if (isInverse())
-                reflId = holder(i)->getInvReflId();
             
             Holder *refHolder = NULL;
             referenceManager->findHolderWithId(reflId, &refHolder);
@@ -808,9 +824,9 @@ int MtzManager::findHolderWithId(int refl_id, Holder **holder, bool insertionPoi
 
 void MtzManager::findCommonReflections(MtzManager *other,
                                        vector<Holder *> &holderVector1, vector<Holder *> &holderVector2,
-                                       int *num, int inverted, bool excludeSymmetrical)
+                                       int *num, bool force)
 {
-    if (other == previousReference && previousInverse == inverted)
+    if (other == previousReference && previousAmbiguity == activeAmbiguity && !force)
     {
         holderVector1.reserve(matchHolders.size());
         holderVector2.reserve(refHolders.size());
@@ -828,18 +844,11 @@ void MtzManager::findCommonReflections(MtzManager *other,
     refHolders.clear();
     
     previousReference = other;
-    previousInverse = inverted;
+    previousAmbiguity = activeAmbiguity;
     
     for (int i = 0; i < holderCount(); i++)
-    {
-        if (excludeSymmetrical
-            && holder(i)->getReflId() == holder(i)->getInvReflId())
-            continue;
-        
+    {        
         int refl_id = holder(i)->getReflId();
-        
-        if (inverted)
-            refl_id = holder(i)->getInvReflId();
         
         Holder *otherHolder = NULL;
         
@@ -873,7 +882,7 @@ void MtzManager::applyScaleFactorsForBins()
         vector<Holder *> refHolders, imgHolders;
         
         this->findCommonReflections(referenceManager, imgHolders, refHolders,
-                                    NULL, isInverse());
+                                    NULL);
         
         double weights = 0;
         double refMean = 0;
@@ -918,8 +927,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
     this->applyScaleFactor(grad);
     
     vector<Holder *> refHolders, imageHolders;
-    this->findCommonReflections(reference, imageHolders, refHolders, NULL,
-                                isInverse());
+    this->findCommonReflections(reference, imageHolders, refHolders, NULL);
     
     vector<double> smoothBins;
     StatisticsManager::generateResolutionBins(50, 1.8, 24, &smoothBins);
@@ -939,8 +947,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
         
         vector<Holder *> refHolders, imgHolders;
         
-        this->findCommonReflections(referenceManager, imgHolders, refHolders,
-                                    NULL, isInverse());
+        this->findCommonReflections(referenceManager, imgHolders, refHolders);
         
         double weights = 0;
         double refMean = 0;
@@ -1041,8 +1048,7 @@ double MtzManager::minimizeGradient(MtzManager *otherManager, bool leastSquares)
     vector<double> weights;
     int num = 0;
     
-    MtzManager::findCommonReflections(otherManager, holders1, holders2, &num,
-                                      isInverse());
+    MtzManager::findCommonReflections(otherManager, holders1, holders2, &num);
     
     for (int i = 0; i < num; i++)
     {
@@ -1113,8 +1119,7 @@ double MtzManager::gradientAgainstManager(MtzManager &otherManager,
     double maxD = 0;
     StatisticsManager::convertResolutions(lowRes, highRes, &minD, &maxD);
     
-    MtzManager::findCommonReflections(&otherManager, holders1, holders2, &num,
-                                      isInverse());
+    MtzManager::findCommonReflections(&otherManager, holders1, holders2, &num);
     
     if (num <= 1)
         return 1;
@@ -1257,14 +1262,6 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts)
     float cell[6], wavelength;
     float *fdata = new float[columns];
     
-    bool flipped = false;
-    
-    if (isInverse())
-    {
-        //	flip();
-        //	flipped = true;
-    }
-    
     /* variables for symmetry */
     CCP4SPG *mtzspg = low_group;
     float rsm[192][4][4];
@@ -1340,9 +1337,9 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts)
             
             num++;
             
-            int h = holders[i]->miller(j)->h;
-            int k = holders[i]->miller(j)->k;
-            int l = holders[i]->miller(j)->l;
+            int h = holders[i]->miller(j)->getH();
+            int k = holders[i]->miller(j)->getK();
+            int l = holders[i]->miller(j)->getL();
             int _h, _k, _l;
             ccp4spg_put_in_asu(low_group, h, k, l, &_h, &_k, &_l);
             
@@ -1365,9 +1362,6 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts)
         }
     }
     
-    if (flipped)
-        flip();
-    
     MtzPut(mtzout, " ");
     MtzFree(mtzout);
     
@@ -1380,17 +1374,6 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts)
     delete [] fdata;
 }
 
-void MtzManager::flip(void)
-{
-    for (int i = 0; i < holders.size(); i++)
-    {
-        holders[i]->flip(this);
-    }
-    
-    flipped = !flipped;
-    
-    this->insertionSortHolders();
-}
 
 MtzManager::~MtzManager(void)
 {
@@ -1459,15 +1442,6 @@ int MtzManager::accepted(void)
     return acceptedCount;
 }
 
-void MtzManager::invert()
-{
-    inverse = !inverse;
-    
-    for (int i = 0; i < holderCount(); i++)
-    {
-        holder(i)->setInverse(inverse);
-    }
-}
 
 void MtzManager::writeToDat()
 {
@@ -1495,7 +1469,7 @@ void MtzManager::writeToDat()
             double combinedX = shiftX + lastX;
             double combinedY = shiftY + lastY;
             
-            datOutput << miller->h << "\t" << miller->k << "\t" << miller->l;
+            datOutput << miller->getH() << "\t" << miller->getK() << "\t" << miller->getL();
             
             datOutput << "\t" << miller->getWavelength();
             datOutput << "\t" << miller->getRawIntensity();
@@ -1526,5 +1500,125 @@ int MtzManager::rejectOverlaps()
     }
     
     return count;
+}
+
+int MtzManager::ambiguityCount()
+{
+    int count = holder(0)->ambiguityCount();
+    
+    return count;
+}
+
+void MtzManager::incrementActiveAmbiguity()
+{
+    int count = ambiguityCount();
+    
+    activeAmbiguity++;
+    activeAmbiguity = (activeAmbiguity % count);
+    
+    for (int i = 0; i < holderCount(); i++)
+    {
+        holder(i)->setActiveAmbiguity(activeAmbiguity);
+    }
+}
+
+void MtzManager::flipToActiveAmbiguity()
+{
+    for (int i = 0; i < holderCount(); i++)
+    {
+        holder(i)->setFlip(activeAmbiguity);
+    }
+    
+    this->insertionSortHolders();
+}
+
+
+void MtzManager::resetFlip()
+{
+    for (int i = 0; i < holderCount(); i++)
+    {
+        holder(i)->resetFlip();
+    }
+    
+    this->insertionSortHolders();
+}
+
+void MtzManager::setActiveAmbiguity(int newAmbiguity)
+{
+    activeAmbiguity = newAmbiguity;
+    
+    for (int i = 0; i < holderCount(); i++)
+    {
+        holder(i)->setActiveAmbiguity(newAmbiguity);
+    }
+}
+
+double MtzManager::maxResolution()
+{
+    double maxResolution = 0;
+    
+    for (int i = 0; i < holderCount(); i++)
+    {
+        if (holder(i)->getResolution() > maxResolution)
+        {
+            maxResolution = holder(i)->getResolution();
+        }
+    }
+    
+    return maxResolution;
+}
+
+void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
+{
+    double maxRes = maxResolution();
+    vector<double> resolutions;
+    StatisticsManager::generateResolutionBins(0, maxRes, 10, &resolutions);
+
+    double cutoffResolution = maxResolution();
+    
+    for (int i = (int)resolutions.size() - 1; i > 0 && cutoffResolution == 0; i--)
+    {
+        double isigiSum = 0;
+        double weights = 0;
+        
+        for (int i = 0; i < holderCount(); i++)
+        {
+            double highRes = resolutions[i];
+            double lowRes = resolutions[i - 1];
+            
+            if (!holder(i)->betweenResolutions(lowRes, highRes))
+                continue;
+
+            for (int j = 0; j < holder(i)->millerCount(); j++)
+            {
+                MillerPtr miller = holder(i)->miller(j);
+                
+                double weight = 1;
+                double isigi = miller->getRawIntensity() / miller->getCountingSigma();
+                
+                isigiSum += isigi;
+                weights += weight;
+            }
+        }
+        
+        double isigi = isigiSum / weights;
+        
+        if (isigi > acceptableSigma)
+        {
+            cutoffResolution = highRes;
+        }
+    }
+    
+    for (int i = 0; i < holderCount(); i++)
+    {
+        if (holder(i)->getResolution() > cutoffResolution)
+        {
+            this->removeHolder(i);
+            i--;
+        }
+    }
+    
+    logged << filename << ": rejected reflections over " << 1 / cutoffResolution << " Å." << std::endl;
+    sendLog();
 }
 

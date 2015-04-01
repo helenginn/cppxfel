@@ -212,8 +212,6 @@ void ScalingManager::processReflections(void)
                 continue;
             
             int refl_id = mtzs[i]->holder(j)->getReflId();
-            if (mtzs[i]->isInverse())
-                refl_id = mtzs[i]->holder(j)->getInvReflId();
             
             if (mtzs[i]->holder(j)->getResolution() > 1 / 2.5)
             		continue;
@@ -285,6 +283,9 @@ ScalingManager::ScalingManager(vector<MtzPtr> mtzs)
         Gs[i].params.resize(PARAM_NUM);
         Gs[i].multipliers.resize(PARAM_NUM);
     }
+    
+    if (mtzs.size() == 0)
+        return;
     
     group = mtzs[0]->getLowGroup();
     
@@ -368,8 +369,6 @@ double ScalingManager::residualsForImage(MtzManager *reference,
     for (int j = 0; j < image->holderCount(); j++)
     {
         int refl_id = image->holder(j)->getReflId();
-        if (image->isInverse())
-            refl_id = image->holder(j)->getInvReflId();
         
         Holder *mainImage;
         reference->findHolderWithId(refl_id, &mainImage);

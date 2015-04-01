@@ -15,6 +15,8 @@
 #include <sstream>
 #include <iomanip>
 #include "parameters.h"
+#include <cctbx/miller.h>
+#include <cctbx/uctbx.h>
 
 /*+(void) populate: (GLdouble*) aGLMatrix
  fromFrustumLeft: (GLdouble) left
@@ -75,7 +77,44 @@ void Matrix::printDescription()
 
 Matrix Matrix::matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
 {
-	vec aVec = new_vector(1, 0, 0);
+    std::cout << "USING A BAD FUNCTION" << std::endl;
+    
+    return Matrix();
+    
+    double rad_alpha = (alpha) * M_PI / 180;
+    double rad_beta = (beta) * M_PI / 180;
+    double rad_gamma = (gamma) * M_PI / 180;
+    
+    scitbx::af::double6 params;
+    params[0] = a;
+    params[1] = b;
+    params[2] = c;
+    params[3] = rad_alpha;
+    params[4] = rad_beta;
+    params[5] = rad_gamma;
+
+    cctbx::uctbx::unit_cell unitCell = cctbx::uctbx::unit_cell(params);
+    
+    scitbx::sym_mat3<double> mat = unitCell.reciprocal_metrical_matrix();
+    
+    Matrix matrix = Matrix();
+    matrix[0] = mat(0, 0);
+    matrix[1] = mat(1, 0);
+    matrix[2] = mat(2, 0);
+    
+    matrix[4] = mat(0, 1);
+    matrix[5] = mat(1, 1);
+    matrix[6] = mat(2, 1);
+    
+    matrix[8] = mat(0, 2);
+    matrix[9] = mat(1, 2);
+    matrix[10] = mat(2, 2);
+    
+    matrix.printDescription();
+    
+    return matrix;
+    
+/*	vec aVec = new_vector(1, 0, 0);
 	vec bVec = new_vector(1, 0, 0);
 	vec cVec = new_vector(1, 0, 0);
 
@@ -113,7 +152,7 @@ Matrix Matrix::matrixFromUnitCell(double a, double b, double c, double alpha, do
 	matrix[9] = cStar.k;
 	matrix[10] = cStar.l;
 
-	return matrix;
+	return matrix;*/
 }
 
 void Matrix::orientationMatrixUnitCell(double *a, double *b, double *c)
@@ -527,4 +566,19 @@ void Matrix::translation(double **vector)
 {
 	memcpy(*vector, &components[12], sizeof(double) * 3);
 
+}
+
+cctbx::miller::index<> Matrix::multiplyIndex(cctbx::miller::index<> *index)
+{
+    int h = index->as_tiny()[0];
+    int k = index->as_tiny()[1];
+    int l = index->as_tiny()[2];
+    
+    vec hkl = new_vector(h, k, l);
+    
+    this->multiplyVector(&hkl);
+    
+    cctbx::miller::index<> newIndex = cctbx::miller::index<>(hkl.h, hkl.k, hkl.l);
+    
+    return newIndex;
 }
