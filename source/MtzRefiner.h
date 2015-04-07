@@ -25,10 +25,12 @@ private:
     static void singleLoadImages(string *filename, std::vector<Image *> *newImages, int offset);
     static void readSingleImageV2(string *filename, std::vector<Image *> *newImages, int offset);
     void applyParametersToImages();
+    static int cycleNum;
 public:
 	MtzRefiner();
 	virtual ~MtzRefiner();
 
+    void index();
 	bool loadInitialMtz(bool force = false);
 
 	void cycle();
@@ -43,6 +45,9 @@ public:
     void refineMetrology();
     void loadMillersIntoPanels();
     void plotDetectorGains();
+    void initialMerge();
+    void orientationPlot();
+    void applyUnrefinedPartiality();
 
     void loadPanels();
 	void integrate(bool orientation);
@@ -57,8 +62,10 @@ public:
 	void merge();
     void correlationAndInverse(bool shouldFlip = false);
     
+    void refineDistances();
     void polarisationGraph();
     void displayIndexingHands();
+    void findSteps();
     
     void removeSigmaValues();
     void readXFiles(string filename);

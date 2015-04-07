@@ -73,6 +73,7 @@ public:
 	bool coveredBySpot(int x, int y);
 	static void applyMaskToImages(std::vector<Image *> images, int startX,
 			int startY, int endX, int endY);
+    void refineDistances();
     
 	const std::string& getFilename() const
 	{

@@ -36,13 +36,15 @@ private:
 	double refIntensity;
 	double refSigma;
 	double resolution;
-    space_group spaceGroup;
+    static space_group spaceGroup;
     int spgNum;
-    space_group_type spgType;
-    asu asymmetricUnit;
+    static space_group_type spgType;
+    static asu asymmetricUnit;
+    static bool hasSetup;
+    static bool setupUnitCell;
     int activeAmbiguity;
     std::vector<int> reflectionIds;
-    cctbx::uctbx::unit_cell unitCell;
+    static cctbx::uctbx::unit_cell unitCell;
 public:
     Holder(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
     void setUnitCell(float *unitCell);
@@ -70,6 +72,7 @@ public:
 	double meanPartiality();
 	double mergedIntensity(WeightType weighting);
     double meanWeight();
+    double rMergeContribution(double *numerator, double *denominator);
 
 	bool betweenResolutions(double lowAngstroms, double highAngstroms);
 	bool anyAccepted();
@@ -81,12 +84,19 @@ public:
     
     double observedPartiality(MtzManager *reference, Miller *miller);
 
+    double mergeSigma();
+    
     int reflectionIdForMiller(cctbx::miller::index<> cctbxMiller);
     void generateReflectionIds();
     
     asu *getAsymmetricUnit()
     {
         return &asymmetricUnit;
+    }
+    
+    space_group *getSpaceGroup()
+    {
+        return &spaceGroup;
     }
     
     void incrementAmbiguity();
@@ -132,6 +142,11 @@ public:
 
     int getReflId()
     {
+        if (activeAmbiguity > ambiguityCount())
+        {
+            std::cout << "Active ambiguity error" << std::endl;
+        }
+        
         return reflectionIds[activeAmbiguity];
     }
     

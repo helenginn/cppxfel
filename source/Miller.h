@@ -34,7 +34,7 @@ private:
     double h;
     double k;
     double l;
-    int fakeFriedel;
+    short int fakeFriedel;
 	bool normalised;
     bool correctingPolarisation;
 	double polarisationCorrection;
@@ -96,7 +96,7 @@ public:
 			double _wavelength);
 	void setParent(Holder *holder);
 	void setFree(bool newFree);
-	bool positiveFriedel();
+	bool positiveFriedel(bool *positive);
 	bool activeWithAngle(double degrees);
 	void setRejected(std::string reason, bool rejection);
 	bool isRejected(std::string reason);
@@ -156,26 +156,6 @@ public:
         mtzParent = mtz;
     }
     
-	double getImageCorrelation() const
-	{
-		return imageCorrelation;
-	}
-
-	void setImageCorrelation(double imageCorrelation)
-	{
-		this->imageCorrelation = imageCorrelation;
-	}
-
-	CalculationType getCalculationType() const
-	{
-		return calculationType;
-	}
-
-	void setCalculationType(CalculationType calculationType)
-	{
-		this->calculationType = calculationType;
-	}
-
 	void setPartiality(double partiality)
 	{
 		this->partiality = partiality;
@@ -381,9 +361,6 @@ protected:
 	double countingSigma;
 	double partiality;
 	double wavelength;
-	double isFree;
-	double imageCorrelation;
-	CalculationType calculationType;
 	std::string filename;
 
 	void rotateMatrix(double hRot, double kRot, MatrixPtr *newMatrix);

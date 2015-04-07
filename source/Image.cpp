@@ -533,6 +533,20 @@ void Image::refineOrientations()
     }
 }
 
+void Image::refineDistances()
+{
+    if (indexers.size() == 0)
+    {
+        std::cout << "No orientation matrices, cannot refine distance." << std::endl;
+        return;
+    }
+    
+    for (int i = 0; i < indexers.size(); i++)
+    {
+        indexers[i]->refineDetectorAndWavelength();
+    }
+}
+
 std::vector<MtzPtr> Image::currentMtzs()
 {
     std::vector<MtzPtr> mtzs;

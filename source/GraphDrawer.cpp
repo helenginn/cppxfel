@@ -19,6 +19,11 @@
 #include <sstream>
 #include <tuple>
 #include "Panel.h"
+#include <cctbx/miller/sym_equiv.h>
+#include <cctbx/miller/asu.h>
+#include <cctbx/miller.h>
+#include <cctbx/sgtbx/space_group.h>
+
 
 GraphDrawer::GraphDrawer(MtzManager *mtz)
 {
@@ -217,7 +222,7 @@ std::string GraphDrawer::plot(string filename, GraphMap properties,
 
 		if (usedPlotType == "fill")
 		{
-			plscol0(3, 230, 230, 230);
+            plscol0(3, 230, 230, 240);
 			plcol0(3);
 			plfill(nsize, allX, allY);
 			plcol0(1);
@@ -762,7 +767,7 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 3.5, 4, &resolutions);
+	StatisticsManager::generateResolutionBins(0, 2.1, 4, &resolutions);
 
 	double scatterRes = 1 / 5.0;
 
@@ -938,6 +943,33 @@ void GraphDrawer::plotPartialityStats()
     }
     
     plot("partialityStats", map, xs, ys);
+}
+
+void GraphDrawer::plotOrientationStats(std::vector<MtzPtr> mtzs)
+{
+    cctbx::miller::index<> genericIndex = cctbx::miller::index<>(0, 0, 1);
+    cctbx::sgtbx::space_group *spaceGroup = mtzs[0]->holder(0)->getSpaceGroup();
+    
+    std::vector<double> xs, ys, zs;
+    
+    for (int i = 0; i < mtzs.size(); i++)
+    {
+        MatrixPtr matrix = mtzs[i]->getMatrix();
+        
+        cctbx::miller::sym_equiv_indices indices = cctbx::miller::sym_equiv_indices(*spaceGroup, genericIndex);
+        
+        for (int i = 0; i < indices.indices().size(); i++)
+        {
+            cctbx::miller::index<> asymIndex = indices.indices()[i].h();
+            cctbx::miller::index<double> position = matrix->multiplyIndex(&asymIndex);
+            
+            xs.push_back(position[0]);
+            ys.push_back(position[1]);
+            zs.push_back(position[2]);
+            
+            std::cout << position[0] << "\t" << position[1] << "\t" << position[2] << std::endl;
+        }
+    }
 }
 
 #endif

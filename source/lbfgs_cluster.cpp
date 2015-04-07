@@ -462,13 +462,15 @@ void Lbfgs_Cluster::run(MtzManager **mergedMtz)
 	logged << "N: idx count: " << idx << std::endl;
 	logged << "N: inv count: " << inv << std::endl;
 
+    logged << "Applying partiality model..." << std::endl;
+    
     Logger::mainLogger->addStream(&logged);
     logged.str("");
     
 	for (int i=0; i < mtz_num; i++)
 	{
         statsManager->mtzs[i]->applyUnrefinedPartiality();
-//		statsManager->mtzs[i]->setPartialityToUnity();
+//	statsManager->mtzs[i]->setSigmaToUnity();
 	}
 
 	if (mergedMtz != NULL)
@@ -477,7 +479,7 @@ void Lbfgs_Cluster::run(MtzManager **mergedMtz)
 
 		MtzGrouper *idxGrouper = new MtzGrouper();
 	//	idxGrouper->setExpectedResolution(20);
-		idxGrouper->setWeighting(WeightTypeAverage);
+        idxGrouper->setWeighting(WeightTypeAverage);
 		idxGrouper->setMtzManagers(all);
 		idxGrouper->merge(mergedMtz);
 		delete idxGrouper;

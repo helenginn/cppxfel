@@ -27,6 +27,7 @@
 
 bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
+int MtzRefiner::cycleNum;
 
 MtzRefiner::MtzRefiner()
 {
@@ -111,6 +112,8 @@ void MtzRefiner::cycleThread(int offset)
     int img_num = (int)mtzManagers.size();
     int j = 0;
     
+    bool initialGridSearch = FileParser::getKey("INITIAL_GRID_SEARCH", true);
+    
     int maxThreads = FileParser::getMaxThreads();
     
     for (int i = offset; i < img_num; i += maxThreads)
@@ -119,16 +122,14 @@ void MtzRefiner::cycleThread(int offset)
         
         ostringstream logged;
         
-        if (j % 10 == 0)
-        {
-        }
-        
         MtzPtr image = mtzManagers[i];
         
         if (!image->isRejected())
         {
             logged << "Refining image " << i << " " << image->getFilename() << std::endl;
             Logger::mainLogger->addStream(&logged);
+            if (initialGridSearch && cycleNum == 0)
+                image->findSteps();
             image->gridSearch(true);
             
             image->writeToDat();
@@ -168,6 +169,23 @@ void MtzRefiner::cycle()
     << finalSeconds << " seconds." << std::endl;
 }
 
+void MtzRefiner::initialMerge()
+{
+    MtzManager *originalMerge = NULL;
+    
+    Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
+    lbfgs->initialise_cluster_lbfgs(mtzManagers, &originalMerge);
+    reference = originalMerge;
+    delete lbfgs;
+    
+    reference->writeToFile("initialMerge.mtz");
+    /*
+     AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
+     breaker.run();
+     originalMerge = breaker.getMergedMtz();
+     reference = originalMerge;*/
+}
+
 void MtzRefiner::refine()
 {
     MtzManager *originalMerge = NULL;
@@ -176,23 +194,10 @@ void MtzRefiner::refine()
     
     if (!loadInitialMtz())
     {
-        //	initializePartiality(*managers);
-      /*
-        Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
-        lbfgs->initialise_cluster_lbfgs(mtzManagers, &originalMerge);
-        reference = originalMerge;
-        delete lbfgs;
-       */
-        
-        AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
-        breaker.run();
-        originalMerge = breaker.getMergedMtz();
-        reference = originalMerge;
+        initialMerge();
     }
-    else
-    {
-        originalMerge = reference;
-    }
+    
+    originalMerge = reference;
     
     std::cout << "N: Total images loaded: " << mtzManagers.size() << std::endl;
     
@@ -233,6 +238,7 @@ void MtzRefiner::refineCycle(bool once)
     
     while (!finished)
     {
+        cycleNum = i;
         cycle();
         
         std::cout << "Grouping final MTZs" << std::endl;
@@ -473,7 +479,7 @@ void MtzRefiner::applyParametersToImages()
         
         if (fixUnitCell)
             for (int j = 0; j < newImage->indexerCount(); j++)
-                newImage->getIndexer(j)->getMatrix()->changeOrientationMatrixDimensions(unitCell[0]);
+                newImage->getIndexer(j)->getMatrix()->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
         
         newImage->setInitialStep(orientationStep);
       
@@ -723,16 +729,16 @@ void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newIma
         std::cout << "Loading image " << i << " (" << imgName << ")"
         << std::endl;
         
-        if (components.size() > 10)
+        if (components.size() > 11)
         {
-            wavelength = atof(components[11].c_str());
-            detectorDistance = atof(components[12].c_str());
+            wavelength = atof(components[10].c_str());
+            detectorDistance = atof(components[11].c_str());
         }
         
         MatrixPtr newMat = MatrixPtr(new Matrix(matrix));
         
         if (fixUnitCell)
-            newMat->changeOrientationMatrixDimensions(unitCell[0]);
+            newMat->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
         Image *newImage = new Image(imgName, wavelength,
                                     detectorDistance);
         newImage->setUpIndexer(newMat);
@@ -905,7 +911,7 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
         double correl = mtzManagers[i]->correlation(true);
         double invCorrel = correl;
         
-        if (MtzManager::getReferenceManager()->ambiguityCount() == 1)
+        if (MtzManager::getReferenceManager()->ambiguityCount() > 1)
         {
             mtzManagers[i]->setActiveAmbiguity(1);
             double invCorrel = mtzManagers[i]->correlation(true);
@@ -989,12 +995,17 @@ void MtzRefiner::integrateImages(std::vector<MtzPtr> *&mtzSubset,
 {
     int maxThreads = FileParser::getMaxThreads();
     
+    bool refineDistances = FileParser::getKey("REFINE_DISTANCES", false);
+    
     for (int i = offset; i < images.size(); i += maxThreads)
     {
         ostringstream logged;
         logged << "Integrating image " << i << std::endl;
         Logger::mainLogger->addStream(&logged);
         
+        if (refineDistances)
+            images[i]->refineDistances();
+
         if (orientation)
             images[i]->refineOrientations();
         
@@ -1084,6 +1095,8 @@ void MtzRefiner::integrate(bool orientation)
         
         string description = matrix->description();
         newMats << description;
+        newMats << mtzManagers[i]->bestWavelength();
+        newMats << " " << mtzManagers[i]->getDetectorDistance() << std::endl;
     }
     
     Logger::mainLogger->addString("Written to new_orientations.dat");
@@ -1131,6 +1144,13 @@ void MtzRefiner::loadPanels()
     }
 }
 
+void MtzRefiner::findSteps()
+{
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        mtzManagers[i]->findSteps();
+    }
+}
 
 void MtzRefiner::refineDetectorGeometry()
 {
@@ -1199,6 +1219,13 @@ void MtzRefiner::loadMillersIntoPanels()
     }
     
     Panel::finaliseMillerArrays();
+}
+
+// MARK: indexing
+
+void MtzRefiner::index()
+{
+    
 }
 
 // MARK: Miscellaneous
@@ -1336,4 +1363,31 @@ void MtzRefiner::displayIndexingHands()
     Logger::mainLogger->addString("- Second indexing hand");
     Logger::mainLogger->addStream(&invLogged);
     
+}
+
+void MtzRefiner::applyUnrefinedPartiality()
+{
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        mtzManagers[i]->applyUnrefinedPartiality();
+    }
+}
+
+void MtzRefiner::refineDistances()
+{
+    for (int i = 0; i < images.size(); i++)
+    {
+        for (int j = 0; j < images[i]->indexerCount(); j++)
+        {
+            images[i]->getIndexer(j)->refineDetectorAndWavelength(reference);
+        }
+    }
+}
+
+void MtzRefiner::orientationPlot()
+{
+#ifdef MAC
+    GraphDrawer drawer = GraphDrawer(reference);
+    drawer.plotOrientationStats(mtzManagers);
+#endif
 }

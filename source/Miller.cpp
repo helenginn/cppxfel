@@ -153,9 +153,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     wavelength = 0;
     partiality = -1;
     model = PartialityModelNone;
-    calculationType = CalculationTypeIntegrate; //CalculationTypeOriginal;
-    isFree = false;
-    imageCorrelation = 1;
     filename = "";
     countingSigma = 0;
     latestHRot = 0;
@@ -239,19 +236,9 @@ void Miller::setData(double _intensity, double _sigma, double _partiality,
     wavelength = _wavelength;
 }
 
-void Miller::setFree(bool newFree)
-{
-    isFree = newFree;
-}
-
 void Miller::printHkl(void)
 {
     std::cout << "h k l " << h << " " << k << " " << l << std::endl;
-}
-
-bool Miller::free(void)
-{
-    return isFree;
 }
 
 bool Miller::accepted(void)
@@ -424,12 +411,6 @@ double Miller::getWeight(WeightType weighting)
     {
         double sigma = this->getSigma();
         weight /= sigma;
-    }
-    
-    if (weighting == WeightTypePartialityCorrelation)
-    {
-        double correlation = this->getImageCorrelation();
-        weight *= pow(correlation, 2);
     }
     
     if (weighting == WeightTypeISigI)
@@ -704,8 +685,6 @@ MillerPtr Miller::copy(void)
     newMiller->sigma = sigma;
     newMiller->partiality = partiality;
     newMiller->wavelength = wavelength;
-    newMiller->isFree = isFree;
-    newMiller->imageCorrelation = imageCorrelation;
     newMiller->matrix = matrix;
     newMiller->filename = string(filename);
     newMiller->countingSigma = countingSigma;
@@ -750,16 +729,25 @@ void Miller::applyPolarisation(double wavelength)
         rawIntensity *= l + 1;
 }
 
-bool Miller::positiveFriedel()
+bool Miller::positiveFriedel(bool *positive)
 {
     int h = getH();
     int k = getK();
     int l = getL();
     
     cctbx::miller::index<> newMiller = cctbx::miller::index<>(h, k, l);
+    space_group *spaceGroup = parentHolder->getSpaceGroup();
     asu *asymmetricUnit = parentHolder->getAsymmetricUnit();
     
-    return (asymmetricUnit->which(newMiller) == 1);
+    cctbx::miller::asym_index asymmetricMiller = cctbx::miller::asym_index(*spaceGroup, *asymmetricUnit, newMiller);
+    
+    int isym = asymmetricMiller.isym();
+    
+  //  std::cout << isym << std::endl;
+    
+    *positive = ((isym > 0) == 1);
+    
+    return isym != 0;
     
     bool fake = FileParser::getKey("FAKE_ANOMALOUS", false);
     
@@ -968,6 +956,12 @@ bool Miller::isOverlapped()
 void Miller::setRejected(std::string reason, bool rejection)
 {
     rejectedReasons[reason] = rejection;
+    
+    if (!rejection)
+    {
+        rejectedReasons.erase(reason);
+    }
+    
     calculatedRejected = false;
 }
 

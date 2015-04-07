@@ -107,6 +107,11 @@ double MtzManager::bestWavelength(double lowRes, double highRes)
 		}
 	}
 
+    if (count == 0)
+    {
+        this->setRejected(true);
+    }
+    
 	return totalWavelength / count;
 }
 

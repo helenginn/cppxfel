@@ -25,7 +25,7 @@ MtzGrouper::MtzGrouper()
 {
 	correlationThreshold = 0;
 	excludeWorst = true;
-	weighting = WeightTypeAverage;
+	weighting = WeightTypePartialitySigma;
 	scalingType = ScalingTypeAverage;
 	acceptableResolution = 1;
 	cutResolution = false;
@@ -434,9 +434,7 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 				{
                     MillerPtr newMiller = mtzManagers[i]->holder(j)->miller(k);
 					holder->addMiller(newMiller);
-					newMiller->setImageCorrelation(
-							mtzManagers[i]->getRefCorrelation());
-				}
+                }
 			}
 		}
 	}
@@ -506,8 +504,13 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 		{
 			for (int k = 0; k < mtzManagers[i]->holder(j)->millerCount(); k++)
 			{
-				bool friedel =
-						mtzManagers[i]->holder(j)->miller(k)->positiveFriedel();
+                bool friedel = false;
+				bool shouldUse =
+						mtzManagers[i]->holder(j)->miller(k)->positiveFriedel(&friedel);
+                
+                if (!shouldUse)
+                    continue;
+                
 				MtzManager *friedelMtz = (friedel ? *positive : *negative);
 
 				if (mtzManagers[i]->holder(j)->getResolution() > cutoffRes)
@@ -535,8 +538,6 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 						MillerPtr newMiller = mtzManagers[i]->holder(j)->miller(
 								k);
 						holder->addMiller(newMiller);
-						newMiller->setImageCorrelation(
-								mtzManagers[i]->getRefCorrelation());
 					}
 				}
 			}
@@ -588,9 +589,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
         
         if (recalculateSigma)
         {
-            int n = holder->acceptedCount();
-            
-            totalSigma = totalStdev / sqrt(n);
+            totalSigma = holder->mergeSigma();
         }
 
 		millerCount += holder->acceptedCount();

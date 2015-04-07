@@ -20,7 +20,7 @@
 
 #define BIG_BANDWIDTH 0.015
 #define DISTANCE_TOLERANCE 0.02
-#define WAVELENGTH_TOLERANCE 0.0005
+#define WAVELENGTH_TOLERANCE 0.0001
 
 #define HROT_TOLERANCE 0.001
 #define KROT_TOLERANCE 0.001
@@ -357,7 +357,7 @@ void Indexer::minimizeParameter(double *meanStep, double *param)
     for (double i = bestParam - *meanStep; j < 3; i += *meanStep)
     {
         *param = i;
-        this->checkAllMillers(0, BIG_BANDWIDTH);
+        this->checkAllMillers(maxResolution, testBandwidth);
         param_scores[j] = score();
         logged << param_scores[j] << ", ";
         param_trials[j] = i;
@@ -374,6 +374,7 @@ void Indexer::minimizeParameter(double *meanStep, double *param)
         }
     
     *param = param_trials[param_min_num];
+    this->checkAllMillers(maxResolution, testBandwidth);
     
     logged << "chosen no. " << param_min_num << std::endl;
     
@@ -708,7 +709,7 @@ double Indexer::medianIntensity()
 double Indexer::score()
 {
     if (refinement == RefinementTypeDetectorWavelength)
-        return 0 - getTotalReflectionsWithinBandwidth();
+        return 0 - getTotalReflections();
     
     if (refinement == RefinementTypeOrientationMatrixEarly)
     {
@@ -725,7 +726,7 @@ double Indexer::score()
         //	double totalIntensity = getTotalIntegratedSignal();
         
         double totalWeight = 19;
-        double stdevWeight = 9;
+        double stdevWeight = 15;
         
         double totalChange = total / lastTotal - 1;
         double totalStdev = stdev / lastStdev - 1;
@@ -806,47 +807,70 @@ double Indexer::score()
 
 void Indexer::refineDetectorAndWavelength(MtzManager *reference)
 {
-    setSearch(5);
+    int oldSearch = getSearchSize();
+    setSearchSize(0);
     this->reference = reference;
-    checkAllMillers(0, 0.035);
+    this->calculateNearbyMillers(true);
+    checkAllMillers(maxResolution, testBandwidth);
     refinement = RefinementTypeDetectorWavelength;
     
     testDistance = image->getDetectorDistance();
     testWavelength = image->getWavelength();
+    double oldDistance = testDistance;
+    double oldWavelength = testWavelength;
     
     int count = 0;
-    double distStep = 0.25;
-    double waveStep = 0.005;
+    double distStep = 0.2;
+    double waveStep = 0.01;
     
     bool refinedDist = true;
-    bool refinedWave = true;
+    bool refinedWave = false;
     
     vector<double> wavelengths;
     vector<int> frequencies;
     
-    getWavelengthHistogram(wavelengths, frequencies);
-    
     double mean = 0;
     double stdev = 0;
-    
+    getWavelengthHistogram(wavelengths, frequencies);
     histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
     
-    image->setWavelength(mean);
+    double oldScore = score();
+    double newScore = 0;
     
     while (!(refinedDist && refinedWave) && count < 50)
     {
-        this->minimizeParameter(&distStep, &testDistance);
+        if (!refinedDist)
+            this->minimizeParameter(&distStep, &testDistance);
         
-        checkAllMillers(maxResolution, testBandwidth);
-        std::cout << testDistance << "\t" << testWavelength << "\t" << score()
-        << std::endl;
+        if (!refinedWave)
+            this->minimizeParameter(&waveStep, &testWavelength);
         
+     //   this->minimizeTwoParameters(&distStep, &waveStep, &testDistance, &testWavelength);
+        
+        newScore = score();
+        
+        sendLog(LogLevelNormal);
+
         if (distStep < DISTANCE_TOLERANCE)
             refinedDist = true;
         
         if (waveStep < WAVELENGTH_TOLERANCE)
             refinedWave = true;
     }
+    
+    getWavelengthHistogram(wavelengths, frequencies);
+    histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
+    
+ //   testWavelength = mean;
+ //   this->image->setWavelength(mean);
+    
+    logged << "Distance refined for " << image->getFilename() << ":\t" << oldDistance << "\t" << oldWavelength << "\t" << testDistance << "\t" << testWavelength << "\t" << oldScore << "\t" << newScore << std::endl;
+    
+    sendLog(LogLevelNormal);
+    
+    image->setDetectorDistance(testDistance);
+    
+    setSearchSize(oldSearch);
 }
 
 // in degrees, returns degree rotation
@@ -1132,8 +1156,6 @@ MtzPtr Indexer::newMtz(int index)
     gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
                  &theScore, true);
     
-//    image->setWavelength(mean);
-    
     bool complexShoebox = FileParser::getKey("COMPLEX_SHOEBOX", false);
     
     checkAllMillers(maxResolution, testBandwidth, complexShoebox);
@@ -1152,6 +1174,8 @@ MtzPtr Indexer::newMtz(int index)
     mtz->setUnitCell(unitCell);
     
     mtz->setMatrix(newMat);
+    double distance = image->getDetectorDistance();
+    mtz->setDetectorDistance(distance);
     
     char *hallSymbol = ccp4spg_symbol_Hall(spaceGroup);
     

@@ -6,8 +6,10 @@
 #include "FileParser.h"
 #include "MtzManager.h"
 #include "parameters.h"
+#include "GraphDrawer.h"
 
 #define DEFAULT_RESOLUTION 3.4
+typedef boost::tuple<double, double, double, double> ResultTuple;
 
 double MtzManager::weightedBestWavelength(double lowRes, double highRes)
 {
@@ -387,6 +389,9 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     {
         wavelength = bestWavelength();
         
+        if (this->isRejected())
+            return 0;
+        
         if (finalised)
             wavelength = this->getWavelength();
     }
@@ -489,7 +494,7 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
         {
             double score = minimizeParam(bStep, bFactor, bFactorScoreWrapper, this);
             
-        //    std::cout << bFactor << "\t" << score << std::endl;
+            //    std::cout << bFactor << "\t" << score << std::endl;
             
             if (bStep < 0.01)
                 optimisedB = true;
@@ -608,45 +613,45 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
         }
     }
     /*
-    if (trust != TrustLevelGood)
-    {
-        if (isRLog)
-            scoreType = ScoreTypeCorrelation;
-        double correl = minimize(minimizeSpotSize, true);
-        getParams(&bestParams);
-        setParams(firstParams);
-        
-        setInverse(!inverse);
-        double invCorrel = minimize(minimizeSpotSize, true);
-        
-        if (correl > invCorrel)
-        {
-            setInverse(!inverse);
-            setParams(bestParams);
-            refreshPartialities(bestParams);
-            finalised = true;
-            logged << "Not flipping image" << std::endl;
-        }
-        else
-        {
-            logged << "Flipping image" << std::endl;
-        }
-        
-        if (scoreType != ScoreTypeSymmetry)
-        {
-            double startCorrel = correlation(true);
-            double threshold = 0.9;
-            
-            if (startCorrel > threshold && allowTrust)
-            {
-                logged << "Correlation > " << threshold << ", trust level = good" << std::endl;
-                trust = TrustLevelGood;
-            }
-        }
-    }
-    
-    getParams(&bestParams);
-    */
+     if (trust != TrustLevelGood)
+     {
+     if (isRLog)
+     scoreType = ScoreTypeCorrelation;
+     double correl = minimize(minimizeSpotSize, true);
+     getParams(&bestParams);
+     setParams(firstParams);
+     
+     setInverse(!inverse);
+     double invCorrel = minimize(minimizeSpotSize, true);
+     
+     if (correl > invCorrel)
+     {
+     setInverse(!inverse);
+     setParams(bestParams);
+     refreshPartialities(bestParams);
+     finalised = true;
+     logged << "Not flipping image" << std::endl;
+     }
+     else
+     {
+     logged << "Flipping image" << std::endl;
+     }
+     
+     if (scoreType != ScoreTypeSymmetry)
+     {
+     double startCorrel = correlation(true);
+     double threshold = 0.9;
+     
+     if (startCorrel > threshold && allowTrust)
+     {
+     logged << "Correlation > " << threshold << ", trust level = good" << std::endl;
+     trust = TrustLevelGood;
+     }
+     }
+     }
+     
+     getParams(&bestParams);
+     */
     double newCorrel = (scoreType == ScoreTypeSymmetry) ? 0 : correlation(true);
     this->setFinalised(true);
     
@@ -859,4 +864,82 @@ void MtzManager::excludePartialityOutliers()
     
     logged << "Rejected " << rejectedCount << " outside partiality range "
     << lowerBound * 100 << "% to " << upperBound * 100 << "%." << std::endl;
+}
+
+bool compareResult(ResultTuple one, ResultTuple two)
+{
+    return boost::get<3>(two) > boost::get<3>(one);
+}
+
+void MtzManager::findSteps()
+{
+    params = new double[PARAM_NUM];
+    
+    wavelength = bestWavelength();
+    
+    params[PARAM_HROT] = this->getHRot();
+    params[PARAM_KROT] = this->getKRot();
+    params[PARAM_MOS] = this->getMosaicity();
+    params[PARAM_SPOT_SIZE] = this->getSpotSize();
+    params[PARAM_WAVELENGTH] = wavelength;
+    params[PARAM_BANDWIDTH] = bandwidth;
+    params[PARAM_EXPONENT] = this->getExponent();
+    
+    refreshPartialities(params);
+    
+    double iMinParam = -0.04;
+    double iMaxParam = 0.04;
+    double iStep = (iMaxParam - iMinParam) / 10;
+    
+    double jMinParam = -0.04;
+    double jMaxParam = 0.04;
+    double jStep = (jMaxParam - jMinParam) / 10;
+    
+    double kMinParam = wavelength - 0.005;
+    double kMaxParam = wavelength + 0.005;
+    double kStep = (kMaxParam - kMinParam) / 20;
+    
+    std::vector<ResultTuple> results;
+    
+    for (double iParam = iMinParam; iParam < iMaxParam; iParam += iStep)
+    {
+        for (double jParam = jMinParam; jParam < jMaxParam; jParam += jStep)
+        {
+            for (double kParam = kMinParam; kParam < kMaxParam; kParam += kStep)
+            {
+                params[PARAM_HROT] = iParam;
+                params[PARAM_KROT] = jParam;
+                params[PARAM_WAVELENGTH] = kParam;
+                this->refreshPartialities(params);
+                double score = rSplit(0, 0);
+                
+                ResultTuple result = boost::make_tuple<>(iParam, jParam, kParam, score);
+                results.push_back(result);
+            }
+        }
+    }
+    
+    std::sort(results.begin(), results.end(), compareResult);
+    
+    double newHRot = (boost::get<0>(results[0]));
+    double newKRot = (boost::get<1>(results[0]));
+    double newWavelength = (boost::get<2>(results[0]));
+    
+    params[PARAM_HROT] = newHRot;
+    params[PARAM_KROT] = newKRot;
+    params[PARAM_WAVELENGTH] = newWavelength;
+    
+    setHRot(newHRot);
+    setKRot(newKRot);
+    setWavelength(newWavelength);
+    
+    double rSplit = boost::get<3>(results[0]);
+    
+    std::cout << getFilename() << "\t" << hRot << "\t" << kRot << "\t" << wavelength << "\t" << rSplit << std::endl;
+
+    this->refreshPartialities(params);
+    
+    this->setRefCorrelation(correlation());
+
+    this->writeToFile("ref-" + getFilename());
 }

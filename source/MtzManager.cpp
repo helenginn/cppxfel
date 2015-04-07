@@ -1207,17 +1207,27 @@ void MtzManager::applyBFactor(double bFactor)
 }
 
 void MtzManager::applyScaleFactor(double scaleFactor,
-                                  double lowRes, double highRes)
+                                  double lowRes, double highRes, bool absolute)
 {
     if (scaleFactor == scaleFactor)
-        scale *= scaleFactor;
+    {
+        if (absolute)
+            scale = scaleFactor;
+        else
+            scale *= scaleFactor;
+    }
     
     for (int i = 0; i < holders.size(); i++)
     {
         for (int j = 0; j < holders[i]->millerCount(); j++)
         {
             if (holder(i)->betweenResolutions(lowRes, highRes))
-                holder(i)->miller(j)->applyScaleFactor(scaleFactor);
+            {
+                if (absolute)
+                    holder(i)->miller(j)->setScale(scale);
+                else
+                    holder(i)->miller(j)->applyScaleFactor(scaleFactor);
+            }
         }
     }
 }
@@ -1253,9 +1263,11 @@ void MtzManager::applyPolarisation(void)
     }
 }
 
-void MtzManager::writeToFile(string newFilename, bool announce, bool shifts)
+void MtzManager::writeToFile(string newFilename, bool announce, bool shifts, bool includeAmbiguity)
 {
     int columns = 7;
+    if (includeAmbiguity)
+        flipToActiveAmbiguity();
     
     if (shifts) columns += 2;
     
@@ -1370,6 +1382,9 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts)
     ostringstream logged;
     logged << "Written to file " << newFilename << std::endl;
     Logger::mainLogger->addStream(&logged, shouldAnnounce);
+    
+    if (includeAmbiguity)
+        resetFlip();
     
     delete [] fdata;
 }

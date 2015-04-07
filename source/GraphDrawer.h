@@ -47,6 +47,7 @@ public:
 	void resolutionStatsPlot(vector<MtzManager *>& managers, string filename = "resolution_stats",
 			GraphMap properties = GraphMap(), bool intensityBins = false, bool image = false);
 
+    void plotOrientationStats(std::vector<MtzPtr> mtzs);
     void plotPartialityStats();
     void plotPolarisation(std::vector<MtzPtr> mtzs);
 	void correlationPlot(string filename, double xMax = 0, double yMax = 0);

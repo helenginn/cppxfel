@@ -8,7 +8,7 @@
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 
-#define PARTIAL_CUTOFF 0.35
+#define PARTIAL_CUTOFF 0.30
 #define MULTIPLIER 512
 #define OFFSET 256
 

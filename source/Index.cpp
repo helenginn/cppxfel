@@ -150,8 +150,6 @@ void index(char **argv, int argc)
     logged << "Image count: " << images.size() << std::endl;
     Logger::mainLogger->addStream(&logged);
 
-//	Indexer::duplicateSpots(images);
-
 	for (int i = 0; i < images.size(); i++)
 	{
 		std::string name = images[i]->getFilename();

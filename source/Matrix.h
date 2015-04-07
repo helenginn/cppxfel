@@ -13,6 +13,7 @@
 #include "Vector.h"
 #include "parameters.h"
 #include <cctbx/miller.h>
+#include <scitbx/mat3.h>
 
 class Matrix
 {
@@ -44,7 +45,7 @@ public:
     Matrix inverse3DMatrix();
     Matrix transpose();
     Matrix operator=(Matrix &b);
-    cctbx::miller::index<> multiplyIndex(cctbx::miller::index<> *index);
+    cctbx::miller::index<double> multiplyIndex(cctbx::miller::index<> *index);
 
     void translate(double x, double y, double z);
     void rotateHK(double hRot, double kRot);
@@ -60,7 +61,7 @@ public:
     void newMultiplyVector(double *vector[]);
     static Matrix matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
     void orientationMatrixUnitCell(double *a, double *b, double *c);
-    void changeOrientationMatrixDimensions(double newA);
+    void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
     
     void rotate2D(double angle);
     void translation(double **vector);
@@ -68,6 +69,10 @@ public:
     double getEwaldSphere(vec *vector);
     double getEwaldSphereNoMatrix(vec index);
     
+    void unitCellLengths(double **lengths);
+    scitbx::mat3<long double> cctbxMatrix();
+    void threeDimComponents(double **componentArray);
+    void assignFromCctbxMatrix(scitbx::mat3<long double> newMat);
     double *array();
     void print(void);
     

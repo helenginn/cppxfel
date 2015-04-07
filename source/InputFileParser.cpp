@@ -164,6 +164,29 @@ void InputFileParser::parse()
                 refiner.refineSymmetry();
             }
             
+            if (line == "INITIAL_MERGE")
+            {
+                understood = true;
+                refiner.initialMerge();
+            }
+            
+            if (line == "ORIENTATION_PLOT")
+            {
+                understood = true;
+                refiner.orientationPlot();
+            }
+            
+            if (line == "APPLY_PARTIALITY")
+            {
+                understood = true;
+                refiner.applyUnrefinedPartiality();
+            }
+            
+            if (line == "LOAD_IMAGES")
+            {
+                understood = true;
+            }
+            
             if (!understood)
             {
                 log << "Skipping line " << line << std::endl;

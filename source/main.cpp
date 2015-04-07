@@ -220,13 +220,12 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
         
-        std::cout << "This is broken" << std::endl;
-
-		MtzManager *mtz = new MtzManager();
+        MtzManager *mtz = new MtzManager();
 		mtz->setFilename(string(argv[2]));
 		mtz->loadReflections(1);
+        mtz->setActiveAmbiguity(1);
 
-		mtz->writeToFile(string("inv-") + argv[2]);
+		mtz->writeToFile(string("inv-") + argv[2], false, false, true);
 	}
 
 	if (strcmp(argv[1], "-stats") == 0)
@@ -259,7 +258,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifdef MAC
-	if (strcmp(argv[1], "-partimg") == 0)
+    if (strcmp(argv[1], "-partimg") == 0)
 	{
 		if (argc <= 3)
 		{

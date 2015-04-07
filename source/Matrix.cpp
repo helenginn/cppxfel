@@ -17,6 +17,9 @@
 #include "parameters.h"
 #include <cctbx/miller.h>
 #include <cctbx/uctbx.h>
+#include <scitbx/vec3.h>
+#include <cctbx/crystal_orientation.h>
+#include "Logger.h"
 
 /*+(void) populate: (GLdouble*) aGLMatrix
  fromFrustumLeft: (GLdouble) left
@@ -55,8 +58,6 @@ std::string Matrix::description()
 	description << components[2] << " ";
 	description << components[6] << " ";
 	description << components[10] << " ";
-
-	description << std::endl;
 
 	return description.str();
 }
@@ -170,19 +171,100 @@ void Matrix::orientationMatrixUnitCell(double *a, double *b, double *c)
     *c = sqrt(cSquared);
 }
 
-void Matrix::changeOrientationMatrixDimensions(double newA)
+void Matrix::threeDimComponents(double **componentArray)
 {
-    double oldA; double oldB; double oldC;
-    orientationMatrixUnitCell(&oldA, &oldB, &oldC);
+    (*componentArray)[0] = components[0];
+    (*componentArray)[1] = components[4];
+    (*componentArray)[2] = components[8];
     
-    double scale = oldA / newA;
+    (*componentArray)[3] = components[1];
+    (*componentArray)[4] = components[5];
+    (*componentArray)[5] = components[9];
     
-    Matrix scaleMat = Matrix();
-    scaleMat.scale(scale);
-    this->preMultiply(scaleMat);
+    (*componentArray)[6] = components[2];
+    (*componentArray)[7] = components[6];
+    (*componentArray)[8] = components[10];
+}
+
+scitbx::mat3<long double> Matrix::cctbxMatrix()
+{
+    scitbx::mat3<long double> cctbxMat = scitbx::mat3<long double>();
     
-//    double newerA; double newB; double newC;
-//    orientationMatrixUnitCell(this, &newerA, &newB, &newC);
+    cctbxMat(0, 0) = components[0];
+    cctbxMat(1, 0) = components[4];
+    cctbxMat(2, 0) = components[8];
+    
+    cctbxMat(0, 1) = components[1];
+    cctbxMat(1, 1) = components[5];
+    cctbxMat(2, 1) = components[9];
+    
+    cctbxMat(0, 2) = components[2];
+    cctbxMat(1, 2) = components[6];
+    cctbxMat(2, 2) = components[10];
+    
+    return cctbxMat;
+}
+
+void Matrix::unitCellLengths(double **lengths)
+{
+    scitbx::mat3<long double> cctbxMat = cctbxMatrix();
+    scitbx::mat3<long double> inverseMat = cctbxMat.error_minimizing_inverse(10);
+    
+    for (int i = 0; i < 3; i++)
+    {
+        scitbx::vec3<long double> axis = scitbx::vec3<long double>(i == 0, i == 1, i == 2);
+        scitbx::vec3<long double> bigAxis = inverseMat * axis;
+        (*lengths)[i] = bigAxis.length();
+    }
+    
+
+}
+
+void Matrix::assignFromCctbxMatrix(scitbx::mat3<long double> newMat)
+{
+    components[0] = newMat(0, 0);
+    components[4] = newMat(1, 0);
+    components[8] = newMat(2, 0);
+
+    components[1] = newMat(0, 1);
+    components[5] = newMat(1, 1);
+    components[9] = newMat(2, 1);
+
+    components[2] = newMat(0, 2);
+    components[6] = newMat(1, 2);
+    components[10] = newMat(2, 2);
+}
+
+void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma)
+{
+    ostringstream logged;
+    
+    scitbx::mat3<long double> cctbxMat = cctbxMatrix();
+    
+    double *lengths = new double[3];
+    unitCellLengths(&lengths);
+    
+    logged << "Original cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2];
+    
+    scitbx::af::double6 params = scitbx::af::double6(lengths[0], lengths[1], lengths[2], alpha, beta, gamma);
+    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
+    
+    scitbx::mat3<double> ortho = uc.orthogonalization_matrix();
+    
+    scitbx::mat3<long double> rotation = cctbxMat * ortho;
+    
+    scitbx::af::double6 newParams = scitbx::af::double6(newA, newB, newC, alpha, beta, gamma);
+    cctbx::uctbx::unit_cell newUnitCell = cctbx::uctbx::unit_cell(newParams);
+    scitbx::mat3<double> newOrtho = newUnitCell.orthogonalization_matrix().error_minimizing_inverse(10);
+    scitbx::mat3<long double> newMat = rotation * newOrtho;
+    
+    assignFromCctbxMatrix(newMat);
+    unitCellLengths(&lengths);
+    logged << "; new cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2] << std::endl;
+    
+    delete [] lengths;
+    
+    Logger::mainLogger->addStream(&logged);
 }
 
 
@@ -568,7 +650,7 @@ void Matrix::translation(double **vector)
 
 }
 
-cctbx::miller::index<> Matrix::multiplyIndex(cctbx::miller::index<> *index)
+cctbx::miller::index<double> Matrix::multiplyIndex(cctbx::miller::index<> *index)
 {
     int h = index->as_tiny()[0];
     int k = index->as_tiny()[1];
@@ -578,7 +660,7 @@ cctbx::miller::index<> Matrix::multiplyIndex(cctbx::miller::index<> *index)
     
     this->multiplyVector(&hkl);
     
-    cctbx::miller::index<> newIndex = cctbx::miller::index<>(hkl.h, hkl.k, hkl.l);
+    cctbx::miller::index<double> newIndex = cctbx::miller::index<double>(hkl.h, hkl.k, hkl.l);
     
     return newIndex;
 }

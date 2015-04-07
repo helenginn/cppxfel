@@ -110,7 +110,8 @@ protected:
     double superGaussianScale;
     double lastExponent;
     double *params;
-
+    double detectorDistance;
+    
 	bool finalised;
 	bool inverse;
 	bool flipped;
@@ -176,7 +177,7 @@ public:
 	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<pair<double, double> > *dataPoints = NULL);
 	double minimizeRFactor(MtzManager *otherManager);
     void applyBFactor(double bFactor);
-	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0);
+	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0, bool absolute = false);
 	void applyScaleFactorsForBins();
 	void clearScaleFactor();
 	void makeScalesPermanent();
@@ -196,7 +197,7 @@ public:
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 
-	void writeToFile(string newFilename, bool announce = false, bool shifts = false);
+	void writeToFile(string newFilename, bool announce = false, bool shifts = false, bool includeAmbiguity = false);
 	void writeToDat();
     void sendLog(LogLevel priority = LogLevelNormal);
 
@@ -260,6 +261,7 @@ public:
 
 // more grid search
 
+    void findSteps();
 	void gridSearch(bool spotSize);
 	void gridSearch(double (*score)(void *object, double lowRes, double highRes),
 			void *object);
@@ -280,6 +282,16 @@ public:
     
     void flipToActiveAmbiguity();
     void resetFlip();
+    
+    double getDetectorDistance()
+    {
+        return detectorDistance;
+    }
+    
+    void setDetectorDistance(double distance)
+    {
+        detectorDistance = distance;
+    }
     
     int getActiveAmbiguity()
     {

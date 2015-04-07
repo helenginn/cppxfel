@@ -22,6 +22,13 @@ using cctbx::miller::sym_equiv_indices;
 using cctbx::miller::asym_index;
 using cctbx::sgtbx::reciprocal_space::asu;
 
+asu Holder::asymmetricUnit = asu();
+bool Holder::hasSetup = false;
+bool Holder::setupUnitCell = false;
+space_group_type Holder::spgType = cctbx::sgtbx::space_group_type();
+cctbx::sgtbx::space_group Holder::spaceGroup = cctbx::sgtbx::space_group();
+cctbx::uctbx::unit_cell Holder::unitCell;
+
 MatrixPtr Holder::matrixForAmbiguity(int i)
 {
     if (i >= ambiguityCount())
@@ -149,14 +156,21 @@ void Holder::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_typ
     char *hallSymbol = ccp4spg_symbol_Hall(ccp4spg);
     spgNum = ccp4spg->spg_num;
     
+    if (hasSetup)
+        return;
+    
     spaceGroup = space_group(hallSymbol);
     spgType = newSpgType;
     asymmetricUnit = newAsymmetricUnit;
+    
+    hasSetup = true;
 }
-
 
 void Holder::setSpaceGroup(int spaceGroupNum)
 {
+    if (hasSetup)
+        return;
+    
     spgNum = spaceGroupNum;
     space_group_symbols spaceGroupSymbol = space_group_symbols(spaceGroupNum);
     std::string hallSymbol = spaceGroupSymbol.hall();
@@ -164,6 +178,8 @@ void Holder::setSpaceGroup(int spaceGroupNum)
     spaceGroup = space_group(hallSymbol);
     spgType = cctbx::sgtbx::space_group_type(spaceGroup);
     asymmetricUnit = asu(spgType);
+    
+    hasSetup = true;
 }
 
 int Holder::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
@@ -197,6 +213,7 @@ void Holder::generateReflectionIds()
         
         asym_index asymmetricMiller = asym_index(spaceGroup, asymmetricUnit, cctbxTwinnedMiller);
         
+        
     //    sym_equiv_indices equivMaker = sym_equiv_indices(spaceGroup, cctbxTwinnedMiller);
     //    cctbx::miller::index<> asymmetricMiller = equivMaker(0).h();
        
@@ -206,21 +223,25 @@ void Holder::generateReflectionIds()
     }
 }
 
-void Holder::setUnitCell(float *unitCell)
+void Holder::setUnitCell(float *theUnitCell)
 {
     scitbx::af::double6 params;
-    params[0] = unitCell[0];
-    params[1] = unitCell[1];
-    params[2] = unitCell[2];
-    params[3] = unitCell[3];
-    params[4] = unitCell[4];
-    params[5] = unitCell[5];
+    params[0] = theUnitCell[0];
+    params[1] = theUnitCell[1];
+    params[2] = theUnitCell[2];
+    params[3] = theUnitCell[3];
+    params[4] = theUnitCell[4];
+    params[5] = theUnitCell[5];
     
-    this->unitCell = cctbx::uctbx::unit_cell(params);
+    unitCell = cctbx::uctbx::unit_cell(params);
+    
+    setupUnitCell = true;
 }
 
 Holder::Holder(float *unitCell, CSym::CCP4SPG *spg)
 {
+    spgNum = 0;
+    
     if (spg != NULL)
         setSpaceGroup(spg->spg_num);
 
@@ -286,8 +307,6 @@ Holder *Holder::copy(bool copyMillers)
 {
     Holder *newHolder = new Holder();
     
-    newHolder->unitCell = unitCell;
-    newHolder->spaceGroup = spaceGroup;
     newHolder->spgNum = spgNum;
     newHolder->activeAmbiguity = activeAmbiguity;
     newHolder->reflectionIds = reflectionIds;
@@ -296,8 +315,6 @@ Holder *Holder::copy(bool copyMillers)
     newHolder->refl_id = refl_id;
     newHolder->inv_refl_id = inv_refl_id;
     newHolder->resolution = resolution;
-    newHolder->spgType = spgType;
-    newHolder->asymmetricUnit = asymmetricUnit;
     
     for (int i = 0; i < millerCount(); i++)
     {
@@ -404,6 +421,38 @@ double Holder::meanIntensityWithExclusion(string *filename)
     return total_intensity;
 }
 
+double Holder::mergeSigma()
+{
+    double mean = mergedIntensity(WeightTypePartialitySigma);
+    
+    double weights = 0;
+    double sumSquares = 0;
+    double count = 0;
+    
+    for (int i = 0; i < millers.size(); i++)
+    {
+        if (!millers[i]->accepted())
+            continue;
+        
+        double weight = millers[i]->getWeight();
+        count++;
+        
+        sumSquares += pow(millers[i]->intensity() - mean, 2) * weight;
+        weights += weight;
+    /*    if (mean > 2000)
+        {
+            std::cout << millers[i]->intensity() << "/" << millers[i]->getWeight() << ", ";
+        }*/
+    }
+    
+    double stdev = sqrt(sumSquares) / sqrt(weights) / sqrt(count);
+    /*
+    if (mean > 2000)
+        std::cout << "- " << sumSquares << ", " << weights << ", " << stdev << std::endl;
+    */
+    return stdev;
+}
+
 double Holder::meanSigma(bool friedel)
 {
     int num = (int)millers.size();
@@ -417,7 +466,10 @@ double Holder::meanSigma(bool friedel)
         
         if (miller->accepted())
         {
-            if (miller->positiveFriedel() != friedel)
+            bool theFriedel = false;
+            bool shouldUse = miller->positiveFriedel(&theFriedel);
+            
+            if (!shouldUse || theFriedel != friedel)
                 continue;
             
             total_sigi += miller->getSigma();
@@ -636,11 +688,6 @@ double Holder::mergedIntensity(WeightType weighting)
 
 double Holder::standardDeviation(WeightType weighting)
 {
-    /*	if (acceptedCount() < MIN_MILLER_COUNT)
-     {
-     return meanSigma() / meanPartiality();
-     }
-     */
     double mean_intensity = mergedIntensity(weighting);
     
     // we do not weight standard deviation
@@ -662,6 +709,31 @@ double Holder::standardDeviation(WeightType weighting)
         return 100;
     
     return stdev;
+}
+
+double Holder::rMergeContribution(double *numerator, double *denominator)
+{
+    double mean_intensity = mergedIntensity(WeightTypePartialitySigma);
+    
+    double littleNum = 0;
+    double littleDenom = 0;
+    
+    if (millerCount() < 2)
+        return 0;
+    
+    for (int i = 0; i < millerCount(); i++)
+    {
+        if (!miller(i)->accepted())
+            continue;
+        
+        littleNum += abs(miller(i)->intensity() - mean_intensity);
+        littleDenom += abs(miller(i)->intensity());
+    }
+    
+    *numerator += littleNum;
+    *denominator += littleDenom;
+    
+    return littleNum / littleDenom;
 }
 
 void Holder::merge(WeightType weighting, double *intensity, double *sigma,
