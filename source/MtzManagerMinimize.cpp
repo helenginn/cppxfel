@@ -564,7 +564,7 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
         for (int i = 0; i < ambiguityCount(); i++)
         {
             vector<double> bestParams;
-            bestParams.resize(PARAM_NUM + 5);
+            bestParams.resize(PARAM_NUM);
             setParams(firstParams);
             
             int ambiguity = getActiveAmbiguity();
@@ -612,46 +612,7 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
             trust = TrustLevelGood;
         }
     }
-    /*
-     if (trust != TrustLevelGood)
-     {
-     if (isRLog)
-     scoreType = ScoreTypeCorrelation;
-     double correl = minimize(minimizeSpotSize, true);
-     getParams(&bestParams);
-     setParams(firstParams);
-     
-     setInverse(!inverse);
-     double invCorrel = minimize(minimizeSpotSize, true);
-     
-     if (correl > invCorrel)
-     {
-     setInverse(!inverse);
-     setParams(bestParams);
-     refreshPartialities(bestParams);
-     finalised = true;
-     logged << "Not flipping image" << std::endl;
-     }
-     else
-     {
-     logged << "Flipping image" << std::endl;
-     }
-     
-     if (scoreType != ScoreTypeSymmetry)
-     {
-     double startCorrel = correlation(true);
-     double threshold = 0.9;
-     
-     if (startCorrel > threshold && allowTrust)
-     {
-     logged << "Correlation > " << threshold << ", trust level = good" << std::endl;
-     trust = TrustLevelGood;
-     }
-     }
-     }
-     
-     getParams(&bestParams);
-     */
+    
     double newCorrel = (scoreType == ScoreTypeSymmetry) ? 0 : correlation(true);
     this->setFinalised(true);
     

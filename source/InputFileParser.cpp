@@ -182,9 +182,10 @@ void InputFileParser::parse()
                 refiner.applyUnrefinedPartiality();
             }
             
-            if (line == "LOAD_IMAGES")
+            if (line == "INDEX")
             {
                 understood = true;
+                refiner.index();
             }
             
             if (!understood)

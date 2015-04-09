@@ -856,10 +856,15 @@ void Miller::positionOnDetector(double hRot, double kRot, int *x,
     int intLastX = (int)x_coord;
     int intLastY = (int)y_coord;
     
+    bool focusOnAverageMax = true; // FIX ME
+    
     if (!Panel::shouldUsePanelInfo())
     {
         int search = indexer->getSearchSize();
-        image->focusOnMaximum(&intLastX, &intLastY, search);
+        if (focusOnAverageMax)
+            image->focusOnAverageMax(&intLastX, &intLastY, search, 1);
+        else
+            image->focusOnMaximum(&intLastX, &intLastY, search);
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
         
@@ -879,7 +884,11 @@ void Miller::positionOnDetector(double hRot, double kRot, int *x,
             int xInt = shiftedX;
             int yInt = shiftedY;
             
-            image->focusOnMaximum(&xInt, &yInt, search);
+            if (focusOnAverageMax)
+                image->focusOnAverageMax(&xInt, &yInt, search, 1);
+            else
+                image->focusOnMaximum(&xInt, &yInt, search);
+            
             shift = std::make_pair(xInt + 0.5 - x_coord, yInt + 0.5 - y_coord);
             
             *x = xInt;
@@ -888,7 +897,11 @@ void Miller::positionOnDetector(double hRot, double kRot, int *x,
         else
         {
             int search = indexer->getSearchSize();
-            image->focusOnMaximum(&intLastX, &intLastY, search);
+            
+            if (focusOnAverageMax)
+                image->focusOnAverageMax(&intLastX, &intLastY, search, 1);
+            else
+                image->focusOnMaximum(&intLastX, &intLastY, search);
             
             *x = intLastX;
             *y = intLastY;

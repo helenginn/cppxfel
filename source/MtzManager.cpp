@@ -482,8 +482,8 @@ void MtzManager::setDefaultMatrix()
     double beta = cellAngles[1];
     double gamma = cellAngles[2];
     
-    Matrix mat = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
-    matrix = mat.copy();
+    MatrixPtr mat = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
+    matrix = mat->copy();
 }
 
 void MtzManager::getUnitCell(double *a, double *b, double *c, double *alpha,
@@ -1216,7 +1216,7 @@ void MtzManager::applyScaleFactor(double scaleFactor,
         else
             scale *= scaleFactor;
     }
-    
+        
     for (int i = 0; i < holders.size(); i++)
     {
         for (int j = 0; j < holders[i]->millerCount(); j++)
@@ -1494,6 +1494,7 @@ void MtzManager::writeToDat()
         }
     }
     
+    logged << "Wrote " << datName << " file" << std::endl;
     
     datOutput.close();
 }

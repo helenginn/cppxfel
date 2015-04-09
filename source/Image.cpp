@@ -433,7 +433,7 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 	double backgroundInForeground = aveBackground * (double) foreNum;
 
 	double totalPhotons = foreground + background;
-	*error = sqrt(totalPhotons);
+	*error = 1 / sqrt(totalPhotons);
 
     
     ostringstream logged;

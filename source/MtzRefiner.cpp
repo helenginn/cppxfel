@@ -112,7 +112,7 @@ void MtzRefiner::cycleThread(int offset)
     int img_num = (int)mtzManagers.size();
     int j = 0;
     
-    bool initialGridSearch = FileParser::getKey("INITIAL_GRID_SEARCH", true);
+    bool initialGridSearch = FileParser::getKey("INITIAL_GRID_SEARCH", false);
     
     int maxThreads = FileParser::getMaxThreads();
     
@@ -585,6 +585,18 @@ void MtzRefiner::readMatricesAndImages(string *filename)
 {
     if (images.size() > 0)
         return;
+    
+    if (filename == NULL)
+    {
+        std::string aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", string(""));
+        filename = &aFilename;
+        
+        if (filename->length() == 0)
+        {
+            std::cout << "No orientation matrix list provided. Exiting now." << std::endl;
+            exit(1);
+        }
+    }
 
     double version = FileParser::getKey("MATRIX_LIST_VERSION", 1.0);
     
@@ -713,13 +725,6 @@ void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newIma
     {
         std::vector<std::string> components = FileReader::split(lines[i], ' ');
         
-        if (components.size() < 10)
-            continue;
-        
-        double matrix[9];
-        
-        readMatrix(matrix, lines[i]);
-        
         string imgName = components[0] + ".img";
         if (!FileReader::exists(imgName))
         {
@@ -735,12 +740,25 @@ void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newIma
             detectorDistance = atof(components[11].c_str());
         }
         
-        MatrixPtr newMat = MatrixPtr(new Matrix(matrix));
         
-        if (fixUnitCell)
-            newMat->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
         Image *newImage = new Image(imgName, wavelength,
                                     detectorDistance);
+        
+        MatrixPtr newMat = MatrixPtr();
+        
+        if (components.size() >= 10)
+        {
+            double matrix[9];
+            readMatrix(matrix, lines[i]);
+            newMat = MatrixPtr(new Matrix());
+            if (fixUnitCell)
+                newMat->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+        }
+        else
+        {
+            newMat = Matrix::matrixFromUnitCell(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+        }
+        
         newImage->setUpIndexer(newMat);
         newImage->setPinPoint(true);
         
@@ -914,7 +932,7 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
         if (MtzManager::getReferenceManager()->ambiguityCount() > 1)
         {
             mtzManagers[i]->setActiveAmbiguity(1);
-            double invCorrel = mtzManagers[i]->correlation(true);
+            invCorrel = mtzManagers[i]->correlation(true);
             mtzManagers[i]->setActiveAmbiguity(0);
             
             if (invCorrel > correl && shouldFlip)
@@ -1080,26 +1098,7 @@ void MtzRefiner::integrate(bool orientation)
         lastPos += managerSubsets[i].size();
     }
     
-    ofstream newMats;
-    newMats.open("new_orientations.dat");
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        MtzPtr manager = mtzManagers[i];
-        
-        // write out matrices etc.
-        string imgFilename = manager->filenameRoot();
-        newMats << "img-" << imgFilename << " ";
-        
-        MatrixPtr matrix = manager->getMatrix();
-        
-        string description = matrix->description();
-        newMats << description;
-        newMats << mtzManagers[i]->bestWavelength();
-        newMats << " " << mtzManagers[i]->getDetectorDistance() << std::endl;
-    }
-    
-    Logger::mainLogger->addString("Written to new_orientations.dat");
+    writeNewOrientations();
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -1116,8 +1115,6 @@ void MtzRefiner::integrate(bool orientation)
                       << bestHRot << "\t" << bestKRot << std::endl;
         }
     }
-    
-    newMats.close();
 }
 
 
@@ -1223,9 +1220,97 @@ void MtzRefiner::loadMillersIntoPanels()
 
 // MARK: indexing
 
+void MtzRefiner::writeNewOrientations()
+{
+    ofstream newMats;
+    newMats.open("new_orientations.dat");
+    
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        MtzPtr manager = mtzManagers[i];
+        
+        // write out matrices etc.
+        string imgFilename = manager->filenameRoot();
+        newMats << imgFilename << " ";
+        
+        MatrixPtr matrix = manager->getMatrix();
+        
+        string description = matrix->description();
+        newMats << description << std::endl;
+    }
+    
+    Logger::mainLogger->addString("Written to new_orientations.dat");
+    
+    newMats.close();
+}
+
+void MtzRefiner::indexImage(int offset, vector<MtzPtr> *mtzSubset)
+{
+    for (int i = offset; i < images.size(); i+= MAX_THREADS)
+    {
+        Image *newImage = images[i];
+        IndexerPtr indexer = newImage->getIndexer(0);
+        
+        newImage->addMask(0, 840, 1765, 920);
+        newImage->addMask(446, 1046, 1324, 1765);
+        newImage->addMask(820, 450, 839, 473);
+        newImage->addMask(1472, 789, 1655, 829);
+        
+        indexer->findSpots();
+        
+        indexer->matchMatrixToSpots();
+        
+        indexer->refineRoundBeamAxis();
+        std::vector<MtzPtr> managers = newImage->currentMtzs();
+        MtzPtr manager = managers[0];
+        
+        manager->description();
+        manager->writeToFile(manager->getFilename());
+        manager->writeToDat();
+        
+        mtzSubset->push_back(manager);
+        
+        newImage->dropImage();
+    }
+}
+
+void MtzRefiner::indexImageWrapper(MtzRefiner *object, int offset, vector<MtzPtr> *mtzSubset)
+{
+    object->indexImage(offset, mtzSubset);
+}
+
 void MtzRefiner::index()
 {
+    this->readMatricesAndImages();
+    loadPanels();
+    std::vector<std::vector<MtzPtr>> mtzSubsets;
+    mtzSubsets.resize(MAX_THREADS);
     
+    boost::thread_group threads;
+    
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        boost::thread *thr = new boost::thread(indexImageWrapper, this, i, &mtzSubsets[i]);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+    
+    std::cout << "Images size: " << images.size() << std::endl;
+    
+    mtzManagers.reserve(images.size());
+    
+    unsigned int position = 0;
+    
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        mtzManagers.insert(mtzManagers.begin() + position, mtzSubsets[i].begin(), mtzSubsets[i].end());
+        position += mtzSubsets[i].size();
+    }
+    
+    std::cout << "Mtzs: " << mtzManagers.size() << std::endl;
+    
+    writeNewOrientations();
 }
 
 // MARK: Miscellaneous

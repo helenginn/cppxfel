@@ -30,6 +30,7 @@ typedef enum
     RefinementTypeOrientationMatrixVeryEarly = 2,
     RefinementTypeOrientationMatrixLate,
 	RefinementTypeOrientationMatrixSpots,
+    RefinementTypeOrientationMatrixExactSpots,
 	RefinementTypeOrientationMatrixRough,
 	RefinementTypeOrientationMatrixMedian
 } RefinementType;

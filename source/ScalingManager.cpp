@@ -260,6 +260,7 @@ void ScalingManager::processReflections(void)
             {
                 int l = ((*refs)[i]).reflections[j].l;
                 (*Gs[l].reflections).push_back(i);
+                Gs[l].refManagers.push_back(&((*refs)[i]));
             }
         }
     }
@@ -529,17 +530,18 @@ double ScalingManager::gradientForL(int l, double currentR)
 {
     double *G = &Gs[l].G;
     
-    double G1 = *G - 0.0001;
+    double G1 = *G - 0.005;
+    double G2 = *G + 0.005;
     double G0 = *G;
     
     *G = G1;
-    double rMerge1 = rMerge();
+    double rMerge1 = rMerge(l);
     
-    //	*G = G2;
-    double rMerge2 = currentR;
+    *G = G2;
+    double rMerge2 = rMerge(l);
     
     double grad = rMerge2 - rMerge1;
-    grad /= G0 - G1;
+    grad /= G2 - G1;
     
     *G = G0;
     
@@ -557,25 +559,44 @@ void ScalingManager::mergedHolders(MtzManager *templateMtz, vector<Holder *> &ho
     }
 }
 
-void ScalingManager::rMergeThreaded(ScalingManager *self, int offset, double *numerator, double *denominator)
+void ScalingManager::rMergeThreaded(ScalingManager *self, int offset, double *numerator, double *denominator, int imageNumber)
 {
     double resolution = 2.0;
     
     int maxThreads = FileParser::getMaxThreads();
     
-    for (int i = offset; i < self->refs->size(); i += maxThreads)
+    if (imageNumber == -1)
     {
-        (*self->refs)[i].rMerge(&self->Gs, numerator, denominator, resolution);
+        for (int i = offset; i < self->refs->size(); i += maxThreads)
+        {
+            (*self->refs)[i].rMerge(&self->Gs, numerator, denominator, resolution);
+        }
+        
+        return;
     }
-
 }
 
-double ScalingManager::rMerge(void)
+double ScalingManager::rMerge(int imageNumber)
 {
+    double resolution = 2.0;
+    
     double numerator = 0;
     double denominator = 0;
     
     int maxThreads = FileParser::getMaxThreads();
+    
+    if (imageNumber >= 0)
+    {
+        Scale_factor *g = &Gs[imageNumber];
+        
+        for (int i = 0; i < g->refManagers.size(); i++)
+        {
+           g->refManagers[i]->rMerge(&Gs, &numerator, &denominator, resolution);
+        }
+
+        double rMerge = numerator / denominator;
+        return rMerge;
+    }
     
     vector<double> numerators, denominators;
     numerators.resize(maxThreads);
@@ -585,7 +606,7 @@ double ScalingManager::rMerge(void)
     
     for (int i = 0; i < maxThreads; i++)
     {
-        boost::thread *thr = new boost::thread(rMergeThreaded, this, i, &numerators[i], &denominators[i]);
+        boost::thread *thr = new boost::thread(rMergeThreaded, this, i, &numerators[i], &denominators[i], imageNumber);
         threads.add_thread(thr);
     }
     

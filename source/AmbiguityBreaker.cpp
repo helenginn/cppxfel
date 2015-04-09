@@ -270,6 +270,4 @@ void AmbiguityBreaker::breakAmbiguity()
     {
         std::cout << "Unknown error!" << std::endl;
     }
-
-    
 }

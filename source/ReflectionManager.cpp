@@ -20,7 +20,7 @@ void ReflectionManager::GForImage(ImageReflection *image,
 		vector<Scale_factor> *Gs, Scale_factor **G, int *num)
 {
 	primary_call_2++;
-	double l = (*image).l;
+	double l = image->l;
 
     if (num != NULL)
         *num = l;

@@ -175,6 +175,7 @@ void FileParser::generateFunctionList()
     parserMap["REFINEMENT_INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["TRUST_INDEXING_SOLUTION"] = simpleBool;
     parserMap["REFINE_B_FACTOR"] = simpleBool;
+    parserMap["INITIAL_GRID_SEARCH"] = simpleBool;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
@@ -225,6 +226,7 @@ void FileParser::generateFunctionList()
 	parserMap["OVER_PRED_BANDWIDTH"] = simpleFloat;
 	parserMap["OVER_PRED_RLP_SIZE"] = simpleFloat;
     parserMap["REFINE_ORIENTATIONS"] = simpleBool;
+    parserMap["REFINE_DISTANCES"] = simpleBool;
     parserMap["INDEXING_ORIENTATION_TOLERANCE"] = simpleFloat;
 	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["ABSOLUTE_INTENSITY"] = simpleBool;

@@ -37,6 +37,7 @@ void MtzManager::setParams(double parameters[], int paramCount)
 	exponent = parameters[PARAM_EXPONENT];
     bFactor = parameters[PARAM_B_FACTOR];
     applyBFactor(bFactor);
+    applyScaleFactor(parameters[PARAM_SCALE_FACTOR], 0, 0, true);
 }
 
 void MtzManager::getParams(double *parameters[], int paramCount)
@@ -49,6 +50,7 @@ void MtzManager::getParams(double *parameters[], int paramCount)
 	(*parameters)[PARAM_KROT] = kRot;
 	(*parameters)[PARAM_EXPONENT] = exponent;
     (*parameters)[PARAM_B_FACTOR] = bFactor;
+    (*parameters)[PARAM_SCALE_FACTOR] = scale;
 }
 
 void MtzManager::refreshPartialities(double parameters[])

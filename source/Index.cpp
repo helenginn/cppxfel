@@ -44,13 +44,13 @@ void findSpots(char **argv, int argc, int offset, vector<Image *>**images)
 		double wavelength = 1.304;
 		double detectorDistance = 2520;
 
-		Matrix newMat = Matrix::matrixFromUnitCell(295.14, 295.14, 678.23, 90,
+		MatrixPtr newMat = Matrix::matrixFromUnitCell(295.14, 295.14, 678.23, 90,
 				90, 120);
 		std::string imgName = std::string(argv[i]);
 		Image *newImage = new Image(imgName, wavelength,
 				detectorDistance);
 		(*images)->push_back(newImage);
-		newImage->setUpIndexer(newMat.copy());
+		newImage->setUpIndexer(newMat);
 		newImage->setPinPoint(false);
 
 	//	newImage->newShoebox(8, 10, 16);

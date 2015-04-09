@@ -59,7 +59,7 @@ public:
     void identity(void);
     void rotateModelAxes(double alpha, double beta, double gamma);
     void newMultiplyVector(double *vector[]);
-    static Matrix matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
+    static MatrixPtr matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
     void orientationMatrixUnitCell(double *a, double *b, double *c);
     void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
     
@@ -70,9 +70,9 @@ public:
     double getEwaldSphereNoMatrix(vec index);
     
     void unitCellLengths(double **lengths);
-    scitbx::mat3<long double> cctbxMatrix();
+    scitbx::mat3<double> cctbxMatrix();
     void threeDimComponents(double **componentArray);
-    void assignFromCctbxMatrix(scitbx::mat3<long double> newMat);
+    void assignFromCctbxMatrix(scitbx::mat3<double> newMat);
     double *array();
     void print(void);
     

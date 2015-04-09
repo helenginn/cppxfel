@@ -439,18 +439,13 @@ double Holder::mergeSigma()
         
         sumSquares += pow(millers[i]->intensity() - mean, 2) * weight;
         weights += weight;
-    /*    if (mean > 2000)
-        {
-            std::cout << millers[i]->intensity() << "/" << millers[i]->getWeight() << ", ";
-        }*/
     }
     
-    double stdev = sqrt(sumSquares) / sqrt(weights) / sqrt(count);
-    /*
-    if (mean > 2000)
-        std::cout << "- " << sumSquares << ", " << weights << ", " << stdev << std::endl;
-    */
-    return stdev;
+    double stdev = sqrt(sumSquares / weights);
+    
+    double error = stdev / sqrt(count);
+    
+    return error;
 }
 
 double Holder::meanSigma(bool friedel)
@@ -713,19 +708,21 @@ double Holder::standardDeviation(WeightType weighting)
 
 double Holder::rMergeContribution(double *numerator, double *denominator)
 {
+    if (acceptedCount() < 2)
+        return 0;
+
     double mean_intensity = mergedIntensity(WeightTypePartialitySigma);
     
     double littleNum = 0;
     double littleDenom = 0;
-    
-    if (millerCount() < 2)
-        return 0;
+    int count = 0;
     
     for (int i = 0; i < millerCount(); i++)
     {
         if (!miller(i)->accepted())
             continue;
         
+        count++;
         littleNum += abs(miller(i)->intensity() - mean_intensity);
         littleDenom += abs(miller(i)->intensity());
     }

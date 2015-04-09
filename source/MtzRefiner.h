@@ -24,6 +24,8 @@ private:
     static int imageMax(size_t lineCount);
     static void singleLoadImages(string *filename, std::vector<Image *> *newImages, int offset);
     static void readSingleImageV2(string *filename, std::vector<Image *> *newImages, int offset);
+    void indexImage(int offset, vector<MtzPtr> *mtzSubset);
+    static void indexImageWrapper(MtzRefiner *object, int offset, vector<MtzPtr> *mtzSubset);
     void applyParametersToImages();
     static int cycleNum;
 public:
@@ -54,7 +56,7 @@ public:
 	static void integrateImagesWrapper(MtzRefiner *object,
 			std::vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
 	void integrateImages(std::vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
-	void readMatricesAndImages(string *filename);
+	void readMatricesAndImages(string *filename = NULL);
 
 	static void readMatrix(double (&matrix)[9], std::string line);
 	static void singleThreadRead(std::vector<std::string> lines,
@@ -67,6 +69,7 @@ public:
     void displayIndexingHands();
     void findSteps();
     
+    void writeNewOrientations();
     void removeSigmaValues();
     void readXFiles(string filename);
     void xFiles();

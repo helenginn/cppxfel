@@ -72,8 +72,8 @@ void StatisticsManager::generateResolutionBins(double minD, double maxD,
 
 	if (maxD <= 0)
 	{
-		std::cout << "Warning: maximum resolution set to 0. Exiting program.";
-		exit(1);
+		std::cout << "Warning: maximum resolution set to 0. Ignoring.";
+        return;
 	}
 
 	double maxVolume = pow(maxRadius, 3);

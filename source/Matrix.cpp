@@ -76,84 +76,17 @@ void Matrix::printDescription()
 	}*/
 }
 
-Matrix Matrix::matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
+MatrixPtr Matrix::matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
 {
-    std::cout << "USING A BAD FUNCTION" << std::endl;
+    scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
+    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
     
-    return Matrix();
+    scitbx::mat3<double> mat = uc.orthogonalization_matrix().inverse();
     
-    double rad_alpha = (alpha) * M_PI / 180;
-    double rad_beta = (beta) * M_PI / 180;
-    double rad_gamma = (gamma) * M_PI / 180;
+    MatrixPtr aMatrix = MatrixPtr(new Matrix());
+    aMatrix->assignFromCctbxMatrix(mat);
     
-    scitbx::af::double6 params;
-    params[0] = a;
-    params[1] = b;
-    params[2] = c;
-    params[3] = rad_alpha;
-    params[4] = rad_beta;
-    params[5] = rad_gamma;
-
-    cctbx::uctbx::unit_cell unitCell = cctbx::uctbx::unit_cell(params);
-    
-    scitbx::sym_mat3<double> mat = unitCell.reciprocal_metrical_matrix();
-    
-    Matrix matrix = Matrix();
-    matrix[0] = mat(0, 0);
-    matrix[1] = mat(1, 0);
-    matrix[2] = mat(2, 0);
-    
-    matrix[4] = mat(0, 1);
-    matrix[5] = mat(1, 1);
-    matrix[6] = mat(2, 1);
-    
-    matrix[8] = mat(0, 2);
-    matrix[9] = mat(1, 2);
-    matrix[10] = mat(2, 2);
-    
-    matrix.printDescription();
-    
-    return matrix;
-    
-/*	vec aVec = new_vector(1, 0, 0);
-	vec bVec = new_vector(1, 0, 0);
-	vec cVec = new_vector(1, 0, 0);
-
-	double rad_alpha = (alpha) * M_PI / 180;
-	double rad_beta = (beta) * M_PI / 180;
-	double rad_gamma = (gamma) * M_PI / 180;
-
-	Matrix cMult = Matrix();
-	cMult.rotate(0, 0, rad_alpha);
-	cMult.multiplyVector(&cVec);
-
-	Matrix aMult = Matrix();
-	aMult.rotate(rad_beta, rad_gamma, 0);
-	aMult.multiplyVector(&aVec);
-
-	vec aStar = cross_product_for_vectors(bVec, cVec);
-	vec bStar = cross_product_for_vectors(aVec, cVec);
-	vec cStar = cross_product_for_vectors(bVec, aVec);
-
-	scale_vector_to_distance(&aStar, 1 / a);
-	scale_vector_to_distance(&bStar, 1 / b);
-	scale_vector_to_distance(&cStar, 1 / c);
-
-	// matrix for actual orientation
-	Matrix matrix = Matrix();
-	matrix[0] = aStar.h;
-	matrix[1] = aStar.k;
-	matrix[2] = aStar.l;
-
-	matrix[4] = bStar.h;
-	matrix[5] = bStar.k;
-	matrix[6] = bStar.l;
-
-	matrix[8] = cStar.h;
-	matrix[9] = cStar.k;
-	matrix[10] = cStar.l;
-
-	return matrix;*/
+    return aMatrix;
 }
 
 void Matrix::orientationMatrixUnitCell(double *a, double *b, double *c)
@@ -186,9 +119,9 @@ void Matrix::threeDimComponents(double **componentArray)
     (*componentArray)[8] = components[10];
 }
 
-scitbx::mat3<long double> Matrix::cctbxMatrix()
+scitbx::mat3<double> Matrix::cctbxMatrix()
 {
-    scitbx::mat3<long double> cctbxMat = scitbx::mat3<long double>();
+    scitbx::mat3<double> cctbxMat = scitbx::mat3<double>();
     
     cctbxMat(0, 0) = components[0];
     cctbxMat(1, 0) = components[4];
@@ -207,20 +140,20 @@ scitbx::mat3<long double> Matrix::cctbxMatrix()
 
 void Matrix::unitCellLengths(double **lengths)
 {
-    scitbx::mat3<long double> cctbxMat = cctbxMatrix();
-    scitbx::mat3<long double> inverseMat = cctbxMat.error_minimizing_inverse(10);
+    scitbx::mat3<double> cctbxMat = cctbxMatrix();
+    scitbx::mat3<double> inverseMat = cctbxMat.error_minimizing_inverse(10);
     
     for (int i = 0; i < 3; i++)
     {
-        scitbx::vec3<long double> axis = scitbx::vec3<long double>(i == 0, i == 1, i == 2);
-        scitbx::vec3<long double> bigAxis = inverseMat * axis;
+        scitbx::vec3<double> axis = scitbx::vec3<double>(i == 0, i == 1, i == 2);
+        scitbx::vec3<double> bigAxis = inverseMat * axis;
         (*lengths)[i] = bigAxis.length();
     }
     
 
 }
 
-void Matrix::assignFromCctbxMatrix(scitbx::mat3<long double> newMat)
+void Matrix::assignFromCctbxMatrix(scitbx::mat3<double> newMat)
 {
     components[0] = newMat(0, 0);
     components[4] = newMat(1, 0);
@@ -239,7 +172,7 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
 {
     ostringstream logged;
     
-    scitbx::mat3<long double> cctbxMat = cctbxMatrix();
+    scitbx::mat3<double> cctbxMat = cctbxMatrix();
     
     double *lengths = new double[3];
     unitCellLengths(&lengths);
@@ -251,12 +184,12 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     
     scitbx::mat3<double> ortho = uc.orthogonalization_matrix();
     
-    scitbx::mat3<long double> rotation = cctbxMat * ortho;
+    scitbx::mat3<double> rotation = cctbxMat * ortho;
     
     scitbx::af::double6 newParams = scitbx::af::double6(newA, newB, newC, alpha, beta, gamma);
     cctbx::uctbx::unit_cell newUnitCell = cctbx::uctbx::unit_cell(newParams);
     scitbx::mat3<double> newOrtho = newUnitCell.orthogonalization_matrix().error_minimizing_inverse(10);
-    scitbx::mat3<long double> newMat = rotation * newOrtho;
+    scitbx::mat3<double> newMat = rotation * newOrtho;
     
     assignFromCctbxMatrix(newMat);
     unitCellLengths(&lengths);

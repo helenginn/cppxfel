@@ -24,7 +24,8 @@
 
 #define HROT_TOLERANCE 0.001
 #define KROT_TOLERANCE 0.001
-#define ANGLE_TOLERANCE 0.0002
+#define ANGLE_TOLERANCE 0.00005
+#define SPOT_DISTANCE_TOLERANCE 5
 
 double Indexer::intensityThreshold;
 bool Indexer::absoluteIntensity;
@@ -45,7 +46,7 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     kRot = 0;
     lastTotal = 0;
     lastStdev = 0;
-    expectedSpots = 15;
+    expectedSpots = 30;
     intensityThreshold = INTENSITY_THRESHOLD;
     refinement = RefinementTypeOrientationMatrixEarly;
     image = newImage;
@@ -548,6 +549,12 @@ void Indexer::findSpots()
     
     Spot::sortSpots(&spots);
     
+    std::string name = "spots-" + image->getFilename();
+    int lastindex = (int)name.find_last_of(".");
+    std::string rootName = name.substr(0, lastindex);
+    std::string datName = rootName + ".dat";
+    writeDatFromSpots(datName);
+    
     ostringstream logged;
     logged << "Found " << spots.size() << " spots" << std::endl;
     Logger::mainLogger->addStream(&logged, LogLevelNormal);
@@ -741,6 +748,7 @@ double Indexer::score()
     if (refinement == RefinementTypeOrientationMatrixSpots)
     {
         double score = 0;
+        checkAllMillers(maxResolution, testBandwidth);
         
         for (int j = 0; j < expectedSpots && j < spots.size(); j++)
         {
@@ -760,6 +768,36 @@ double Indexer::score()
         }
         
         //	score /= millers.size();
+        
+        return 0 - score;
+    }
+    
+    if (refinement == RefinementTypeOrientationMatrixExactSpots)
+    {
+        double score = 0;
+        checkAllMillers(maxResolution, testBandwidth);
+        
+        for (int j = 0; j < expectedSpots && j < spots.size(); j++)
+        {
+            for (int i = 0; i < millers.size(); i++)
+            {
+                double millerX = millers[i]->getLastX();
+                double millerY = millers[i]->getLastY();
+                
+                double spotX = spots[j]->x;
+                double spotY = spots[j]->y;
+                
+                double distance = sqrt(pow(spotY - millerY, 2) + pow(spotX - millerX, 2));
+                
+                if (distance < SPOT_DISTANCE_TOLERANCE)
+                {
+                    spots[j]->setParentImage(image);
+                    score += spots[j]->weight();
+                    j++;
+                    i = 0;
+                }
+            }
+        }
         
         return 0 - score;
     }
@@ -877,14 +915,14 @@ void Indexer::refineDetectorAndWavelength(MtzManager *reference)
 double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
                                    bool allSolutions)
 {
-    double radians = wedge * M_PI / 180;
     double startRad = start * M_PI / 180;
     vector<double> scores = vector<double>();
     vector<double> wedges = vector<double>();
     vector<double> hRads = vector<double>();
     vector<double> kRads = vector<double>();
+    vector<MatrixPtr> matrices = vector<MatrixPtr>();
     
-    refinement = RefinementTypeOrientationMatrixEarly;
+    refinement = RefinementTypeOrientationMatrixExactSpots;
     
     MatrixPtr copyMatrix = this->getMatrix()->copy();
     
@@ -895,54 +933,54 @@ double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
         double hRad = allSolutions ? solutions[j][0] : 0;
         double kRad = allSolutions ? solutions[j][1] : 0;
         
-        this->getMatrix()->rotate(hRad, kRad, startRad);
-        
         for (double i = start; i < end; i += wedge)
         {
-            checkAllMillers(maxResolution, testBandwidth);
-            this->getMatrix()->rotate(0, 0, radians);
+            double radians = i * M_PI / 180;
             
-            double total = getTotalIntegratedSignal();
-            total /= millers.size();
+            checkAllMillers(maxResolution, testBandwidth);
+            this->getMatrix()->rotate(hRad, kRad, radians);
+            
+            double total = score();
             hRads.push_back(hRad);
             kRads.push_back(kRad);
             scores.push_back(total);
-            wedges.push_back(i);
+            wedges.push_back(radians);
+            matrices.push_back(this->getMatrix()->copy());
             logged << hRad << "\t" << kRad << "\t" << i << "\t" << total
             << std::endl;
+            sendLog(LogLevelNormal);
+            
+            this->setMatrix(copyMatrix);
         }
-        
-        this->setMatrix(copyMatrix);
+
     }
     
     double bestScore = 0;
     double bestWedge = 0;
     double bestHRad = 0;
     double bestKRad = 0;
+    MatrixPtr bestMatrix = MatrixPtr();
     
     for (int i = 0; i < scores.size(); i++)
     {
-        if (scores[i] > bestScore)
+        if (scores[i] < bestScore)
         {
             bestScore = scores[i];
             bestWedge = wedges[i];
             bestHRad = hRads[i];
             bestKRad = kRads[i];
+            bestMatrix = matrices[i];
         }
     }
     
-    double bestRad = bestWedge * M_PI / 180;
+    std::cout << "Rotating to best score for " << bestWedge
+    << "º rotation for " << bestHRad << ", " << bestKRad
+    << std::endl;
+    this->setMatrix(bestMatrix);
+    std::cout << "Score: " << score() << std::endl;
     
-    if (allSolutions)
-    {
-        logged << "Rotating to best score for " << bestWedge
-        << "º rotation for " << bestHRad << ", " << bestKRad
-        << std::endl;
-        
-        sendLog(LogLevelNormal);
-        
-        this->getMatrix()->rotate(bestHRad, bestKRad, bestRad);
-    }
+    sendLog(LogLevelNormal);
+
     
     return bestWedge;
 }
@@ -953,8 +991,6 @@ void Indexer::refineRoundBeamAxis()
     double betterWedge = refineRoundBeamAxis(-6, 6, 1, false);
     
     double bestRadians = betterWedge * M_PI / 180;
-    
-    this->getMatrix()->rotate(0, 0, bestRadians);
     checkAllMillers(maxResolution, testBandwidth);
     
     double total = getTotalIntegratedSignal();
@@ -977,7 +1013,7 @@ bool compareScore(pair<vector<double>, double> a, pair<vector<double>, double> b
 
 void Indexer::matchMatrixToSpots(RefinementType refinement)
 {
-    double wedge = 20; // degrees
+    double wedge = 45; // degrees
     //	map<vector<double>, double> scores = map<vector<double>, double>();
     vector<pair<vector<double>, double> > scores;
     
@@ -1024,7 +1060,7 @@ void Indexer::matchMatrixToSpots(RefinementType refinement)
     
     std::cout << std::endl << "Solutions to try: " << std::endl;
     
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 3; i++)
     {
         std::cout << scores[i].first[0] << "\t" << scores[i].first[1] << "\t"
         << scores[i].second << std::endl;

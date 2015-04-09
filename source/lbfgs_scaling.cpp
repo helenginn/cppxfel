@@ -156,12 +156,9 @@ void Lbfgs_Scaling::run(void)
 			scaling->mtzs[i]->applyScaleFactor(scaling->Gs[i].G);
 		else
 			scaling->mtzs[i]->setRefCorrelation(0);
-	}
-    
-    for (int i = 0; i < n; i++)
-    {
+        
         x[i] = 1;
-    }
+	}
     
     scaling->set_Gs(&x);
     

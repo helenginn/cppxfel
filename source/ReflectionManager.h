@@ -20,13 +20,14 @@ class ReflectionManager
 {
 private:
 	void holder_for_image(double l, Holder **holder);
-	static void GForImage(ImageReflection *image, vector<Scale_factor> *Gs, Scale_factor **G, int *num = NULL);
+	
 	void alpha_beta_hj(vector<Scale_factor> Gs, int j, double *alpha_hj, double *beta_hj);
     CCP4SPG *group;
     vector<double> intensities;
     vector<double *> scales;
 public:
-	int refl_id;
+	static void GForImage(ImageReflection *image, vector<Scale_factor> *Gs, Scale_factor **G, int *num = NULL);
+    int refl_id;
 	int prev_num;
 	vector<ImageReflection> reflections;
 

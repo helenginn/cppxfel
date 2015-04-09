@@ -7,6 +7,7 @@
 
 #include "MtzGrouper.h"
 
+#include "Scaler.h"
 #include <cmath>
 #include "StatisticsManager.h"
 #include "misc.h"
@@ -30,6 +31,7 @@ MtzGrouper::MtzGrouper()
 	acceptableResolution = 1;
 	cutResolution = false;
     expectedResolution = FileParser::getKey("MAX_RESOLUTION_ALL", 1.6);
+    usingNewRefinement = true;
 }
 
 MtzGrouper::~MtzGrouper()
@@ -315,6 +317,12 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 	int mtzCount = groupMillers(mergeMtz, unmergedMtz, start, end);
 
+    if (all && usingNewRefinement)
+    {
+        Scaler scaler = Scaler(mtzManagers, *mergeMtz);
+        scaler.minimizeRMerge();
+    }
+    
 	if (unmergedMtz != NULL)
 	{
 		(*unmergedMtz) = (*mergeMtz)->copy();

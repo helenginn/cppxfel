@@ -22,6 +22,7 @@ struct Scale_factor
 	vector<double> params;
 	vector<double> multipliers;
 	vector<int> *reflections;
+    vector<ReflectionManager *>refManagers;
 };
 
 class ScalingManager
@@ -36,6 +37,7 @@ public:
 	vector<MtzPtr> mtzs;
 	vector<Scale_factor> Gs;
 	vector<double> gradients;
+    std::pair<int, std::vector<ReflectionManager *> > reflectionsPerImage;
 
 	int mtz_num;
 
@@ -45,8 +47,8 @@ public:
 	double evaluate_psi();
 	double set_Gs(lbfgsfloatval_t **new_Gs);
 	void outputSimpleScaling(lbfgsfloatval_t **scales);
-    static void rMergeThreaded(ScalingManager *self, int offset, double *numerator, double *denominator);
-	double rMerge(void);
+    static void rMergeThreaded(ScalingManager *self, int offset, double *numerator, double *denominator, int imageNumber);
+	double rMerge(int imageNumber = -1);
     double rSplit(void);
 	static double rMergeWrapper(void *object);
 	double gradientForL(int l, double currentR);
