@@ -144,6 +144,10 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 	{
 		for (int i = 0; i < num; i++)
 		{
+            int h = holders1[i]->miller(0)->getH();
+            int k = holders1[i]->miller(0)->getK();
+            int l = holders1[i]->miller(0)->getL();
+            
 			double int1 = holders1[i]->meanIntensity();
 			string filename = shot1->getFilename();
 			double int2 = holders2[i]->meanIntensityWithExclusion(&filename);
@@ -155,7 +159,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 					&& holders1[i]->getResolution() < invHigh))
 				continue;
 
-			cout << int1 << "\t" << int2 << endl;
+			cout << h << "\t" << k << "\t" << l << "\t" << int1 << "\t" << int2 << endl;
 		}
 	}
 
@@ -325,8 +329,6 @@ double StatisticsManager::r_factor(RFactorType rFactor, MtzManager *shot1, int *
         }
         
         all_holders_used++;
-
-   //     std::cout << holder->miller(0)->h << "\t" << holder->miller(0)->k << "\t" << holder->miller(0)->l << std::endl;
 
 		for (int j = 0; j < n; j++)
 		{
@@ -773,51 +775,51 @@ StatisticsManager::~StatisticsManager(void)
 	free(cc_array);
 }
 
-void StatisticsManager::partialityStats(int num, double threshold)
+void StatisticsManager::partialityStats(int num, double threshold, int h, int k, int l)
 {
-	MtzManager *image = &*(mtzs[num]);
-
-	for (int i = 0; i < image->holderCount(); i++)
-	{
-		if (image->holder(i)->millerCount() < 10)
-			continue;
+    MtzManager *image = &*(mtzs[num]);
+    
+    if (!(h == 0 && k == 0 && l == 0))
+    {
+        std::cout << "Searching for hkl " << h << " " << k << " " << l << std::endl;
         
-        if (!image->holder(i)->anyAccepted())
-            continue;
-        
-        if (image->holder(i)->meanIntensity() < threshold)
-            continue;
-        
-        if (!image->holder(i)->betweenResolutions(0, 2.5))
-            continue;
+        for (int i = 0; i < image->holderCount(); i++)
+        {
+            for (int j = 0; j < image->holder(i)->millerCount(); j++)
+            {
+                vec hkl = image->holder(i)->miller(j)->hklVector();
+                if (hkl.h == h && hkl.k == k && hkl.l == l)
+                {
+                    std::cout << "Found it!" << std::endl;
+                    image->holder(i)->detailedDescription();
+                    return;
+                }
+            }
+        }
 
-		double max_intensity = 0;
-/*
-		for (int j = 0; j < image->holder(i)->millerCount(); j++)
-		{
-			if (image->holder(i)->miller(j)->getRawIntensity() > max_intensity)
-				max_intensity = image->holder(i)->miller(j)->getRawIntensity();
-		}*/
-        
-        max_intensity = image->holder(i)->meanIntensity();
-
-		for (int j = 0; j < image->holder(i)->millerCount(); j++)
-		{
-			double partiality = image->holder(i)->miller(j)->getPartiality();
-
-	//		if (partiality < PARTIAL_CUTOFF || partiality > 1)
-	//			continue;
-
-			double percentage = image->holder(i)->miller(j)->getRawIntensity()
-					/ max_intensity;
-			if (percentage < 0)
-				percentage = 0;
+    }
+    
+    for (int i = 0; i < image->holderCount(); i++)
+    {
+        for (int j = 0; j < image->holder(i)->millerCount(); j++)
+        {
+            double max_intensity = 0;
             
-            if (rand() % 20 == 0)
+            max_intensity = image->holder(i)->meanIntensity();
+            
+            for (int j = 0; j < image->holder(i)->millerCount(); j++)
+            {
+                double partiality = image->holder(i)->miller(j)->getPartiality();
+                
+                double intensity = image->holder(i)->miller(j)->getRawIntensity();
+                if (intensity < 0)
+                    intensity = 0;
+                
                 cout << partiality << "\t"
-                << percentage << "\t" << max_intensity << std::endl;
-		}
-	}
+                << intensity << std::endl;
+            }
+        }
+    }
 }
 
 void StatisticsManager::twoImagePartialityStats(int num)
