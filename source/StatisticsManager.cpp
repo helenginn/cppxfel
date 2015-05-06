@@ -158,8 +158,10 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 			if (!(holders1[i]->getResolution() > invLow
 					&& holders1[i]->getResolution() < invHigh))
 				continue;
+            
+            double resolution = 1 / holders1[i]->getResolution();
 
-			cout << h << "\t" << k << "\t" << l << "\t" << int1 << "\t" << int2 << endl;
+			cout << h << "\t" << k << "\t" << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << endl;
 		}
 	}
 

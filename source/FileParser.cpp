@@ -176,6 +176,8 @@ void FileParser::generateFunctionList()
     parserMap["TRUST_INDEXING_SOLUTION"] = simpleBool;
     parserMap["REFINE_B_FACTOR"] = simpleBool;
     parserMap["INITIAL_GRID_SEARCH"] = simpleBool;
+    parserMap["SCALE_AND_B_FACTORS"] = simpleBool;
+    parserMap["R_SPLIT_THRESHOLD"] = simpleFloat;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
@@ -209,6 +211,7 @@ void FileParser::generateFunctionList()
 	parserMap["INITIAL_MTZ"] = simpleString;
     parserMap["IMAGE_LIMIT"] = simpleInt;
 
+    parserMap["DENORMALISE_PARTIALITY"] = simpleBool;
     parserMap["RECALCULATE_SIGMA"] = simpleBool;
     parserMap["MERGE_ANOMALOUS"] = simpleBool;
     parserMap["FAKE_ANOMALOUS"] = simpleBool;
@@ -246,6 +249,7 @@ void FileParser::generateFunctionList()
     parserMap["IMAGE_MASKED_VALUE"] = simpleInt;
     parserMap["SPHERE_THICKNESS"] = simpleFloat;
     parserMap["SIGMA_RESOLUTION_CUTOFF"] = simpleFloat;
+    parserMap["PIXEL_COUNT_CUTOFF"] = simpleInt;
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;

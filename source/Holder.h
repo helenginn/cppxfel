@@ -82,12 +82,14 @@ public:
 	void merge(WeightType weighting, double *intensity, double *sigma, bool calculateRejections);
 	double standardDeviation(WeightType weighting);
     
+    void detailedDescription();
     double observedPartiality(MtzManager *reference, Miller *miller);
 
     double mergeSigma();
     
     int reflectionIdForMiller(cctbx::miller::index<> cctbxMiller);
     void generateReflectionIds();
+    void setAdditionalWeight(double weight);
     
     asu *getAsymmetricUnit()
     {

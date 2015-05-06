@@ -31,7 +31,7 @@ MtzGrouper::MtzGrouper()
 	acceptableResolution = 1;
 	cutResolution = false;
     expectedResolution = FileParser::getKey("MAX_RESOLUTION_ALL", 1.6);
-    usingNewRefinement = true;
+    usingNewRefinement = FileParser::getKey("SCALE_AND_B_FACTORS", false);
 }
 
 MtzGrouper::~MtzGrouper()
@@ -45,11 +45,17 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
                                                      "MINIMUM_REFLECTION_CUTOFF",
                                                      MINIMUM_REFLECTION_CUTOFF);
 
+    double minimumRSplit = FileParser::getKey("R_SPLIT_THRESHOLD", 0.0);
+    
     double refCorrelation = mtz->getRefCorrelation();
+    double rSplit = mtz->rSplit(0, 0);
     
     if ((refCorrelation < correlationThreshold && excludeWorst
          && !mtz->isFreePass())
         || mtz->isRejected())
+        return false;
+    
+    if (minimumRSplit > 0 && rSplit > minimumRSplit)
         return false;
     
     if (refCorrelation < 0 || refCorrelation == 1)
@@ -136,14 +142,16 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         double rSplit = 0;
         if (MtzManager::getReferenceManager() != NULL)
             rSplit = mtzManagers[i]->rSplit(0, expectedResolution);
+        if (rSplit > 0)
+            mtzManagers[i]->setAdditionalWeight(rSplit);
         
-		logged << mtzManagers[i]->getFilename() << "\t" << correl << "\t"
+		logged << mtzManagers[i]->getFilename() << "\t" << correl <<  "\t" << rSplit << "\t"
 				<< mtzManagers[i]->accepted() << "\t"
 				<< mtzManagers[i]->getMosaicity() << "\t"
 				<< mtzManagers[i]->getWavelength() << "\t"
 				<< mtzManagers[i]->getBandwidth() << "\t" << hRot << "\t"
 				<< kRot << "\t" << mtzManagers[i]->getSpotSize() << "\t"
-				<< mtzManagers[i]->getExponent() << "\t" << rSplit << "\t" << mtzManagers[i]->getActiveAmbiguity() << std::endl;
+            << mtzManagers[i]->getExponent() << "\t" << mtzManagers[i]->bFactor << "\t" << mtzManagers[i]->getActiveAmbiguity() << std::endl;
 	}
 
 	averageCorrelation /= mtzManagers.size();
@@ -303,7 +311,10 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
                        bool firstHalf, bool all, std::string *unmergedName)
 {
 	*mergeMtz = new MtzManager();
-	(*mergeMtz)->setFilename("Merged");
+    
+    std::string filename = string("merged_") + (all ? string("all_") : string("half_")) + (firstHalf ? string("0") : string("1"));
+    
+	(*mergeMtz)->setFilename(filename);
 	(*mergeMtz)->copySymmetryInformationFromManager(mtzManagers[0]);
 
 	int start = firstHalf ? 0 : (int)mtzManagers.size() / 2;
@@ -319,7 +330,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
     if (all && usingNewRefinement)
     {
-        Scaler scaler = Scaler(mtzManagers, *mergeMtz);
+        Scaler scaler = Scaler(mtzManagers, mergeMtz);
         scaler.minimizeRMerge();
     }
     
@@ -486,15 +497,12 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 	int flipCount = 0;
 	int mtzCount = 0;
 
+    logged << "Grouping Millers for anomalous merge." << std::endl;
+    sendLog();
+    
 	for (int i = start; i < end; i++)
 	{
-		double refCorrelation = mtzManagers[i]->getRefCorrelation();
-
-		if (refCorrelation < correlationThreshold && excludeWorst
-				&& !mtzManagers[i]->isFreePass())
-			continue;
-
-		if (refCorrelation < 0 || refCorrelation == 1)
+        if (!isMtzAccepted(mtzManagers[i]))
 			continue;
 
         mtzManagers[i]->flipToActiveAmbiguity();
@@ -513,11 +521,10 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 			for (int k = 0; k < mtzManagers[i]->holder(j)->millerCount(); k++)
 			{
                 bool friedel = false;
-				bool shouldUse =
-						mtzManagers[i]->holder(j)->miller(k)->positiveFriedel(&friedel);
+				mtzManagers[i]->holder(j)->miller(k)->positiveFriedel(&friedel);
                 
-                if (!shouldUse)
-                    continue;
+                logged << "Acquired Friedel " << friedel << std::endl;
+                sendLog(LogLevelDebug);
                 
 				MtzManager *friedelMtz = (friedel ? *positive : *negative);
 

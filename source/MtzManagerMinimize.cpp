@@ -446,11 +446,11 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
         
         if (!optimisedHRot && !optimisedKRot)
             minimizeTwoParameters(&hStep, &kStep, &params, PARAM_HROT,
-                                  PARAM_KROT, score, object, maxResolutionRlpSize, maxResolutionAll, FLT_MAX);
+                                  PARAM_KROT, score, object, 0, maxResolutionAll, FLT_MAX);
         
         if (!optimisedSpotSize)
             minimizeParameter(&spotStep, &params, PARAM_SPOT_SIZE, score,
-                              object, 0, maxResolutionRlpSize);
+                              object, 0, maxResolutionAll);
         
         if (!optimisedExponent)
             minimizeParameter(&expoStep, &params, PARAM_EXPONENT, score, object,
@@ -546,7 +546,7 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
     scoreType = defaultScoreType;
     string scoreDescription = this->describeScoreType();
     
-    double scale = this->gradientAgainstManager(*referenceManager);
+    double scale = this->gradientAgainstManager(*this->getReferenceManager());
     applyScaleFactor(scale);
     
     this->reallowPartialityOutliers();

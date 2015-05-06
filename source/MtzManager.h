@@ -276,12 +276,14 @@ public:
 			double (*score)(void *object, double lowRes, double highRes),
 			void *object, double lowRes, double highRes, double low);
 
+    void denormaliseMillers();
     void makeSuperGaussianLookupTable(double exponent);
     
     int ambiguityCount();
     
     void flipToActiveAmbiguity();
     void resetFlip();
+    void setAdditionalWeight(double weight);
     
     double getDetectorDistance()
     {
@@ -492,7 +494,7 @@ public:
 
 	static MtzManager*& getReferenceManager()
 	{
-		return referenceManager;
+        return referenceManager;
 	}
 
 	bool isUsingFixedWavelength() const

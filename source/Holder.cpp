@@ -618,8 +618,7 @@ void Holder::clearMillers()
 
 Holder::~Holder()
 {
-    millers.clear();
-    vector<MillerPtr>().swap(millers);
+    clearMillers();
 }
 
 int Holder::indexForReflection(int h, int k, int l, CSym::CCP4SPG *spgroup,
@@ -862,6 +861,26 @@ void Holder::printDescription()
     std::cout << std::endl;
 }
 
+void Holder::detailedDescription()
+{
+    double meanIntensity = this->meanIntensity();
+    
+    std::cout << "Mean intensity " << meanIntensity << std::endl;
+    std::cout << "Resolution " << 1 / this->getResolution() << " Å" << std::endl;
+    
+    for (int i = 0; i < millerCount(); i++)
+    {
+        double rawIntensity = miller(i)->getRawIntensity();
+        double fraction = rawIntensity / meanIntensity;
+        bool friedel = false; int isym = 0;
+        miller(i)->positiveFriedel(&friedel, &isym);
+        
+        std::cout << miller(i)->getPartiality() << "\t" << fraction << "\t" << rawIntensity << "\t" << isym << std::endl;
+    }
+    
+    std::cout << std::endl;
+}
+
 int Holder::checkOverlaps()
 {
     int count = 0;
@@ -876,4 +895,12 @@ int Holder::checkOverlaps()
     }
     
     return count;
+}
+
+void Holder::setAdditionalWeight(double weight)
+{
+    for (int i = 0; i < millerCount(); i++)
+    {
+        miller(i)->setAdditionalWeight(weight);
+    }
 }

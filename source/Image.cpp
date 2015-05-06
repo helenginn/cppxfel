@@ -56,6 +56,8 @@ Image::Image(std::string filename, double wavelength,
 	this->filename = filename;
 	this->wavelength = wavelength;
 	detectorDistance = distance;
+    
+    pixelCountCutoff = FileParser::getKey("PIXEL_COUNT_CUTOFF", 0);
 }
 
 std::string Image::filenameRoot()
@@ -418,8 +420,12 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 			if (flag == MaskForeground)
 			{
                 double weight = weightAtShoeboxIndex(shoebox, sX, sY);
+                double value = valueAt(i, j);
 				foreNum += weight;
-				foreground += valueAt(i, j) * weight;
+				foreground += value * weight;
+                
+                if (value > pixelCountCutoff && pixelCountCutoff > 0)
+                    return isnan(' ');
 			}
 			else if (flag == MaskBackground)
 			{
@@ -433,7 +439,7 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 	double backgroundInForeground = aveBackground * (double) foreNum;
 
 	double totalPhotons = foreground + background;
-	*error = 1 / sqrt(totalPhotons);
+	*error = sqrt(totalPhotons);
 
     
     ostringstream logged;

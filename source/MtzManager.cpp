@@ -610,8 +610,7 @@ void MtzManager::loadReflections(PartialityModel model)
         hkls_for_reflection(mtz, adata, &h, &k, &l, &multiplier, &offset);
         
         int reflection_holder_index = index_for_reflection(h, k, l, false);
-        int inv_holder_index = index_for_reflection(h, k, l, true);
-        
+       
         float intensity = adata[col_f->source - 1];
         float sigma = adata[col_sigf->source - 1];
         float wavelength = 1;
@@ -826,7 +825,7 @@ void MtzManager::findCommonReflections(MtzManager *other,
                                        vector<Holder *> &holderVector1, vector<Holder *> &holderVector2,
                                        int *num, bool force)
 {
-    if (other == previousReference && previousAmbiguity == activeAmbiguity && !force)
+    if (other == previousReference && previousAmbiguity == activeAmbiguity && !force && false)
     {
         holderVector1.reserve(matchHolders.size());
         holderVector2.reserve(refHolders.size());
@@ -1636,5 +1635,24 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
     
     logged << filename << ": rejected reflections over " << 1 / cutoffResolution << " Å." << std::endl;
     sendLog();
+}
+
+void MtzManager::setAdditionalWeight(double weight)
+{
+    for (int i = 0; i < holderCount(); i++)
+    {
+        holder(i)->setAdditionalWeight(weight);
+    }
+}
+
+void MtzManager::denormaliseMillers()
+{
+    for (int i = 0; i < holderCount(); i++)
+    {
+        for (int j = 0; j < holder(i)->millerCount(); j++)
+        {
+            holder(i)->miller(j)->denormalise();
+        }
+    }
 }
 

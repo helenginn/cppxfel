@@ -36,7 +36,7 @@ public:
 	void setMtzs(vector<MtzPtr> mtzs);
 
 	void twoImagePartialityStats(int num);
-	void partialityStats(int num, double threshold = -100);
+    void partialityStats(int num, double threshold = -100, int h = 0, int k = 0, int l = 0);
 	static void twoImagePartialityStatsWritten(vector<Partial> *partials,
 			MtzManager **image, MtzManager **test_image);
 	void write_refls(int num);

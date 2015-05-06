@@ -114,7 +114,7 @@ void Logger::awaitPrinting()
                 if (stringsToOutput[it->first][i].second > printedLogLevel)
                     continue;
                 
-                std::cout << stringsToOutput[it->first][i].first->str();
+                std::cout << stringsToOutput[it->first][i].first->str() << std::flush;
                 count++;
             }
             

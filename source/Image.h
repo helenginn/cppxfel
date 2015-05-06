@@ -20,6 +20,7 @@ class MtzManager;
 class Image
 {
 private:
+    int pixelCountCutoff;
 	std::string filename;
 	std::vector<int> data;
     std::vector<unsigned char> overlapMask;

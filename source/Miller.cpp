@@ -21,6 +21,9 @@
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
+asu Miller::p1_asu = asu();
+bool Miller::initialised_p1 = false;
+space_group Miller::p1_spg = space_group();
 
 double integrate_sphere(double p, double q, double radius)
 {
@@ -174,6 +177,7 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     fakeFriedel = -1;
     rejected = false;
     calculatedRejected = true;
+    denormaliseFactor = 1;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -182,6 +186,11 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     parentHolder = NULL;
     matrix = MatrixPtr();
     flipMatrix = MatrixPtr(new Matrix());
+    
+    if (!initialised_p1)
+    {
+        p1_asu = cctbx::sgtbx::reciprocal_space::asu(cctbx::sgtbx::space_group_type("P1"));
+    }
 }
 
 vec Miller::hklVector(bool shouldFlip)
@@ -328,7 +337,7 @@ double Miller::intensity()
         
         if (model == PartialityModelScaled)
         {
-            modifier /= partiality;
+            modifier /= partiality * denormaliseFactor;
         }
         
         return modifier * rawIntensity;
@@ -515,14 +524,33 @@ double Miller::partialityForHKL(vec hkl, double hRot, double kRot, double mosaic
         return 0;
     }
     
-    double thisPartiality = partiality = sliced_integral(outwards_bandwidth,
+    double thisPartiality = sliced_integral(outwards_bandwidth,
                                                         inwards_bandwidth, radius, 0, 1, wavelength, stdev, exponent);
     
     return thisPartiality;
     
 }
 
-double Miller::calculateNormPartiality(double hRot, double kRot, double mosaicity,
+double Miller::calculateDefaultNorm()
+{
+    double defaultSpotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
+    double wavelength = 1.75;
+    
+    double d = getResolution();
+    
+    double newH = 0;
+    double newK = sqrt((4 * pow(d, 2) - pow(d, 4) * pow(wavelength, 2)) / 4);
+    double newL = 0 - pow(d, 2) * wavelength / 2;
+    
+    vec newHKL = new_vector(newH, newK, newL);
+    
+    double normPartiality = partialityForHKL(newHKL, 0, 0, 0,
+                                             defaultSpotSize, wavelength, INITIAL_BANDWIDTH, INITIAL_EXPONENT);
+    
+    return normPartiality;
+}
+
+double Miller::calculateNormPartiality(double mosaicity,
                                       double spotSize, double wavelength, double bandwidth, double exponent)
 {
     vec hkl = new_vector(h, k, l);
@@ -537,7 +565,7 @@ double Miller::calculateNormPartiality(double hRot, double kRot, double mosaicit
     
     vec newHKL = new_vector(newH, newK, newL);
     
-    double normPartiality = partialityForHKL(newHKL, hRot, kRot, mosaicity,
+    double normPartiality = partialityForHKL(newHKL, 0, 0, mosaicity,
                                             spotSize, wavelength, bandwidth, exponent);
     
     return normPartiality;
@@ -583,8 +611,7 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
     
     if (normalise && partiality > 0.001)
     {
-        normPartiality = calculateNormPartiality(hRot, kRot, mosaicity,
-                                                 spotSize, wavelength, bandwidth, exponent);
+        normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
     }
     
     partiality = tempPartiality / normPartiality;
@@ -729,7 +756,7 @@ void Miller::applyPolarisation(double wavelength)
         rawIntensity *= l + 1;
 }
 
-bool Miller::positiveFriedel(bool *positive)
+bool Miller::positiveFriedel(bool *positive, int *_isym)
 {
     int h = getH();
     int k = getK();
@@ -743,12 +770,12 @@ bool Miller::positiveFriedel(bool *positive)
     
     int isym = asymmetricMiller.isym();
     
-  //  std::cout << isym << std::endl;
+    //  std::cout << isym << std::endl;
     
     *positive = ((isym > 0) == 1);
     
     return isym != 0;
-    
+    /*
     bool fake = FileParser::getKey("FAKE_ANOMALOUS", false);
     
     if (fake && fakeFriedel == -1)
@@ -770,7 +797,7 @@ bool Miller::positiveFriedel(bool *positive)
     if (l > 0)
         positives++;
     
-    return (positives == 1 || positives == 3);
+    return (positives == 1 || positives == 3);*/
 }
 
 double Miller::scatteringAngle(Image *image)
@@ -1017,6 +1044,11 @@ double Miller::observedPartiality(MtzManager *reference)
 Miller::~Miller()
 {
     
+}
+
+void Miller::denormalise()
+{
+    denormaliseFactor = calculateDefaultNorm();
 }
 
 // Vector stuff

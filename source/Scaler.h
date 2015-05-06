@@ -19,13 +19,18 @@ class Scaler
 {
 private:
     MtzDataMap mtzData;
-    MtzManager *groupedMtz;
+    MtzManager **groupedMtz;
     double evaluate();
     double evaluateForImage(MtzPtr mtz);
     double gradientForImageParameter(MtzPtr mtz, int paramNum);
     double hessianGradientForParamType(int paramNum);
     bool isRefiningParameter(int paramNum);
+    double stepForParam(int paramNum);
     
+    double xStepNorm(double step, int paramNum);
+    double gNorm(int paramNum);
+    double hessianGradientForParam(MtzPtr mtz, int paramNum);
+    void calculateDiagonals();
     void calculateGradients();
     void loadParametersFromMtzs();
     void loadParametersIntoMtzs();
@@ -33,9 +38,10 @@ private:
     int paramsPerImage();
     int parameterCount();
     scitbx::af::shared<double> g;
+    scitbx::af::shared<double> diag;
     scitbx::af::shared<double> x;
 public:
-    Scaler(std::vector<MtzPtr> mtzs, MtzManager *grouped);
+    Scaler(std::vector<MtzPtr> mtzs, MtzManager **grouped);
     void minimizeRMerge();
 };
 

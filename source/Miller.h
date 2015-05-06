@@ -16,7 +16,9 @@
 #include "Image.h"
 #include "definitions.h"
 #include "parameters.h"
-#include <deque>
+#include <cctbx/miller/asu.h>
+
+using cctbx::sgtbx::reciprocal_space::asu;
 
 class Holder;
 class Image;
@@ -31,6 +33,10 @@ typedef enum
 class Miller
 {
 private:
+    static asu p1_asu;
+    static cctbx::sgtbx::space_group p1_spg;
+    static bool initialised_p1;
+    
     double h;
     double k;
     double l;
@@ -56,6 +62,8 @@ private:
     double bFactorScale;
     bool rejected;
     bool calculatedRejected;
+    double additionalWeight;
+    double denormaliseFactor;
     
 	std::pair<double, double> shift;
     double resol;
@@ -91,12 +99,13 @@ public:
 	void printHkl(void);
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
 
-	void setPartialityModel(PartialityModel model);
+    double calculateDefaultNorm();
+    void setPartialityModel(PartialityModel model);
 	void setData(double _intensity, double _sigma, double _partiality,
 			double _wavelength);
 	void setParent(Holder *holder);
 	void setFree(bool newFree);
-	bool positiveFriedel(bool *positive);
+	bool positiveFriedel(bool *positive, int *isym = NULL);
 	bool activeWithAngle(double degrees);
 	void setRejected(std::string reason, bool rejection);
 	bool isRejected(std::string reason);
@@ -118,6 +127,7 @@ public:
 	double resolution();
     double twoTheta(bool horizontal);
 	double scatteringAngle(Image *image);
+    void denormalise();
 
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
@@ -132,7 +142,7 @@ public:
 	double partialityForHKL(vec hkl, double hRot, double kRot, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent);
 	void applyScaleFactor(double scaleFactor);
-	double calculateNormPartiality(double hRot, double kRot, double mosaicity,
+	double calculateNormPartiality(double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent);
 	double calculateNormFromResolution(double hRot, double kRot, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent,
@@ -145,6 +155,16 @@ public:
     static double averageRawIntensity(std::vector<MillerPtr> millers);
 
 	virtual ~Miller();
+    
+    void setAdditionalWeight(double weight)
+    {
+        additionalWeight = weight;
+    }
+    
+    double getAdditionalWeight()
+    {
+        return additionalWeight;
+    }
     
     MtzManager *&getMtzParent()
     {

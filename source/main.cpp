@@ -242,17 +242,25 @@ int main(int argc, char *argv[])
 			stats.loadFiles(&argv[2], 1, 0);
             
             double threshold = -100;
+            int h = 0; int k = 0; int l = 0;
             
-            if (argc == 4)
+            if (argc >= 4)
             {
                 threshold = atof(argv[3]);
             }
             
+            if (argc >= 7)
+            {
+                h = atoi(argv[4]);
+                k = atoi(argv[5]);
+                l = atoi(argv[6]);
+            }
+
+            stats.partialityStats(0, threshold, h, k, l);
+
 #ifdef MAC
             GraphDrawer drawer = GraphDrawer(&*stats.mtzs[0]);
             drawer.plotPartialityStats();
-#else
-			stats.partialityStats(0, threshold);
 #endif
 		}
 	}

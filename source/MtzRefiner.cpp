@@ -173,17 +173,17 @@ void MtzRefiner::initialMerge()
 {
     MtzManager *originalMerge = NULL;
     
-    Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
+  /*  Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
     lbfgs->initialise_cluster_lbfgs(mtzManagers, &originalMerge);
     reference = originalMerge;
     delete lbfgs;
     
-    reference->writeToFile("initialMerge.mtz");
-    /*
+    reference->writeToFile("initialMerge.mtz");*/
+    
      AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
      breaker.run();
      originalMerge = breaker.getMergedMtz();
-     reference = originalMerge;*/
+     reference = originalMerge;
 }
 
 void MtzRefiner::refine()
@@ -195,6 +195,13 @@ void MtzRefiner::refine()
     if (!loadInitialMtz())
     {
         initialMerge();
+    }
+    
+    bool denormalise = FileParser::getKey("DENORMALISE_PARTIALITY", false);
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        if (denormalise)
+            mtzManagers[i]->denormaliseMillers();
     }
     
     originalMerge = reference;
@@ -750,7 +757,7 @@ void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newIma
         {
             double matrix[9];
             readMatrix(matrix, lines[i]);
-            newMat = MatrixPtr(new Matrix());
+            newMat = MatrixPtr(new Matrix(matrix));
             if (fixUnitCell)
                 newMat->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
         }
@@ -972,8 +979,15 @@ void MtzRefiner::merge()
     {
         if ((mtzManagers[i]->getActiveAmbiguity() == 0))
             idxOnly.push_back(mtzManagers[i]);
-        
     }
+    
+    bool denormalise = FileParser::getKey("DENORMALISE_PARTIALITY", false);
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        if (denormalise)
+            mtzManagers[i]->denormaliseMillers();
+    }
+
     
     bool mergeAnomalous = FileParser::getKey("MERGE_ANOMALOUS", false);
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",

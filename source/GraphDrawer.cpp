@@ -787,7 +787,7 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 	if (maxPercentage < 250 || !isfinite(maxPercentage))
 		maxPercentage = 250;
 
-	maxPercentage = 200;
+	maxPercentage = 250;
 
 	std::sort(partials.begin(), partials.end(), sortByWavelength);
 
