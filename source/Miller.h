@@ -180,6 +180,11 @@ public:
 	{
 		this->partiality = partiality;
 	}
+    
+    double getRawestIntensity() const
+    {
+        return rawIntensity;
+    }
 
 	double getRawIntensity() const
 	{

@@ -562,7 +562,33 @@ void MtzManager::loadReflections(PartialityModel model)
     
     if (col_f == NULL)
     {
-        std::cout << "Warning: intensity column not labelled I or IMEAN" << std::endl;
+        col_f = MtzColLookup(mtz, "FC");
+        
+        if (col_f == NULL)
+        {
+            col_f = MtzColLookup(mtz, "FP");
+            
+            if (col_f == NULL)
+                col_f = MtzColLookup(mtz, "F");
+            
+            if (col_f != NULL)
+            {
+                std::cout << "Warning: using observed amplitude instead of intensity" << std::endl;
+            }
+            else
+            {
+                std::cout << "Warning: could not find any amplitude columns" << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "Warning: using calculated amplitude instead of intensity" << std::endl;
+        }
+    }
+    
+    if (col_f == NULL)
+    {
+        std::cout << "Warning: intensity column not labelled I or IMEAN or amplitude" << std::endl;
         exit(1);
     }
     
@@ -575,8 +601,17 @@ void MtzManager::loadReflections(PartialityModel model)
     
     if (col_sigf == NULL)
     {
+        col_sigf = MtzColLookup(mtz, "SIGF");
+        
+        if (col_sigf != NULL)
+        {
+            std::cout << "Warning: using SIGF column" << std::endl;
+        }
+    }
+    
+    if (col_sigf == NULL)
+    {
         std::cout << "Warning: sigma column not labelled SIGI or SIGIMEAN" << std::endl;
-        exit(1);
     }
     
     MTZCOL *col_wave = MtzColLookup(mtz, "WAVE");
@@ -612,7 +647,10 @@ void MtzManager::loadReflections(PartialityModel model)
         int reflection_holder_index = index_for_reflection(h, k, l, false);
        
         float intensity = adata[col_f->source - 1];
-        float sigma = adata[col_sigf->source - 1];
+        
+        float sigma = 1;
+        if (col_sigf != NULL)
+            sigma = adata[col_sigf->source - 1];
         float wavelength = 1;
         float partiality = 1;
         float shiftX = 0;

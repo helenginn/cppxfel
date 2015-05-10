@@ -98,7 +98,7 @@ double MtzManager::bestWavelength(double lowRes, double highRes)
 				continue;
 
 			double weight = 1;
-			double isigi = holder(i)->miller(j)->getRawIntensity();
+			double isigi = holder(i)->miller(j)->getRawestIntensity();
 
 			if (isigi > refinementIntensityThreshold && isigi == isigi)
 			{

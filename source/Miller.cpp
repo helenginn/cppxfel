@@ -186,11 +186,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     parentHolder = NULL;
     matrix = MatrixPtr();
     flipMatrix = MatrixPtr(new Matrix());
-    
-    if (!initialised_p1)
-    {
-        p1_asu = cctbx::sgtbx::reciprocal_space::asu(cctbx::sgtbx::space_group_type("P1"));
-    }
 }
 
 vec Miller::hklVector(bool shouldFlip)
@@ -968,6 +963,7 @@ void Miller::integrateIntensity(double hRot, double kRot)
     int y = 0;
     
     positionOnDetector(hRot, kRot, &x, &y);
+    
     gainScale = Panel::scaleForMiller(this);
     
     rawIntensity = image->intensityAt(x, y, shoebox, &countingSigma, 0);

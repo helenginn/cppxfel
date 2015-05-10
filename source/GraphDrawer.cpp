@@ -761,7 +761,7 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
     
     std::cout << "Correlations: " << correl << ", " << invCorrel << std::endl;
     
-	properties["title"] = "Partiality plot";
+	properties["title"] = "Partiality plot " + mtz->getFilename();
 	properties["xTitle"] = "Wavelength (Å)";
 	properties["yTitle"] = "Fraction of merged data set (%)";
 	properties["plotType"] = "fill";

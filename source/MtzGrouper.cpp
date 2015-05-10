@@ -48,14 +48,18 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     double minimumRSplit = FileParser::getKey("R_SPLIT_THRESHOLD", 0.0);
     
     double refCorrelation = mtz->getRefCorrelation();
-    double rSplit = mtz->rSplit(0, 0);
+    bool needsRSplit = mtz->getReferenceManager() != NULL;
+    double rSplit = 0;
+    
+    if (needsRSplit)
+        rSplit = mtz->rSplit(0, 0);
     
     if ((refCorrelation < correlationThreshold && excludeWorst
          && !mtz->isFreePass())
         || mtz->isRejected())
         return false;
     
-    if (minimumRSplit > 0 && rSplit > minimumRSplit)
+    if (needsRSplit && minimumRSplit > 0 && rSplit > minimumRSplit)
         return false;
     
     if (refCorrelation < 0 || refCorrelation == 1)
@@ -452,6 +456,7 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 						k++)
 				{
                     MillerPtr newMiller = mtzManagers[i]->holder(j)->miller(k);
+                    
 					holder->addMiller(newMiller);
                 }
 			}

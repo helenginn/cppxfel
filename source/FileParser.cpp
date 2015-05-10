@@ -210,6 +210,7 @@ void FileParser::generateFunctionList()
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;
 	parserMap["INITIAL_MTZ"] = simpleString;
     parserMap["IMAGE_LIMIT"] = simpleInt;
+    parserMap["IMAGE_SKIP"] = simpleInt;
 
     parserMap["DENORMALISE_PARTIALITY"] = simpleBool;
     parserMap["RECALCULATE_SIGMA"] = simpleBool;

@@ -728,7 +728,20 @@ void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newIma
     
     int end = imageMax(lines.size());
     
-    for (int i = offset; i < end; i += maxThreads)
+    int skip = FileParser::getKey("IMAGE_SKIP", 0);
+    
+    if (skip > lines.size())
+    {
+        std::cout << "Image skip beyond image count" << std::endl;
+        exit(1);
+    }
+    
+    if (skip > 0)
+    {
+        std::cout << "Skipping " << skip << " lines" << std::endl;
+    }
+    
+    for (int i = offset + skip; i < end + skip; i += maxThreads)
     {
         std::vector<std::string> components = FileReader::split(lines[i], ' ');
         
@@ -865,7 +878,20 @@ void MtzRefiner::singleThreadRead(std::vector<std::string> lines,
     
     int end = imageMax(lines.size());
     
-    for (int i = offset; i < end; i += maxThreads)
+    int skip = FileParser::getKey("IMAGE_SKIP", 0);
+    
+    if (skip > lines.size())
+    {
+        std::cout << "Mtz skip beyond Mtz count" << std::endl;
+        exit(1);
+    }
+    
+    if (skip > 0)
+    {
+        std::cout << "Skipping " << skip << " lines" << std::endl;
+    }
+    
+    for (int i = skip + offset; i < end + skip; i += maxThreads)
     {
         std::ostringstream log;
         
@@ -968,6 +994,13 @@ void MtzRefiner::merge()
             mtzManagers[i]->excludePartialityOutliers();
     }
     
+    bool denormalise = FileParser::getKey("DENORMALISE_PARTIALITY", false);
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        if (denormalise)
+            mtzManagers[i]->denormaliseMillers();
+    }
+
     correlationAndInverse(true);
     
     double correlationThreshold = FileParser::getKey("CORRELATION_THRESHOLD",
@@ -980,14 +1013,7 @@ void MtzRefiner::merge()
         if ((mtzManagers[i]->getActiveAmbiguity() == 0))
             idxOnly.push_back(mtzManagers[i]);
     }
-    
-    bool denormalise = FileParser::getKey("DENORMALISE_PARTIALITY", false);
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        if (denormalise)
-            mtzManagers[i]->denormaliseMillers();
-    }
-
+   
     
     bool mergeAnomalous = FileParser::getKey("MERGE_ANOMALOUS", false);
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
@@ -1245,7 +1271,7 @@ void MtzRefiner::writeNewOrientations()
         
         // write out matrices etc.
         string imgFilename = manager->filenameRoot();
-        newMats << imgFilename << " ";
+        newMats << "img-" << imgFilename << " ";
         
         MatrixPtr matrix = manager->getMatrix();
         
