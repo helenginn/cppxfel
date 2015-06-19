@@ -69,7 +69,7 @@ public:
     void displayIndexingHands();
     void findSteps();
     
-    void writeNewOrientations();
+    void writeNewOrientations(bool includeRots = false);
     void removeSigmaValues();
     void readXFiles(string filename);
     void xFiles();

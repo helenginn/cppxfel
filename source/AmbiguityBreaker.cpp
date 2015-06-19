@@ -154,7 +154,7 @@ void AmbiguityBreaker::merge()
 {
     for (int i = 0; i < mtzs.size(); i++)
     {
-        mtzs[i]->applyUnrefinedPartiality();
+   //     mtzs[i]->applyUnrefinedPartiality();
     }
     
     MtzGrouper *idxGrouper = new MtzGrouper();

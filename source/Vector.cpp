@@ -382,7 +382,7 @@ double least_squares_between_vectors(std::vector<double> *vec1,
 {
 	if (slope == 0)
 	{
-		slope = gradient_between_vectors(vec1, vec2);
+        slope = gradient_between_vectors(vec1, vec2);
 	}
 
 	if (vec1->size() == 0)
@@ -452,6 +452,27 @@ double weighted_mean(std::vector<double> *means, std::vector<double> *weights)
 	}
 
 	return sum / weight_sum;
+}
+
+bool higher(double mean1, double mean2)
+{
+    return mean1 > mean2;
+}
+
+double median(std::vector<double> *means)
+{
+    std::sort(means->begin(), means->end(), higher);
+    int mid = (int)means->size() / 2;
+    double midPoint = 0;
+    
+    if (means->size() % 2 == 0)
+    {
+        midPoint = ((*means)[mid] + (*means)[mid + 1]) / 2;
+    }
+    else
+        midPoint = (*means)[mid];
+    
+    return midPoint;
 }
 
 void histogram_gaussian(std::vector<double> *means, std::vector<int> *freq,

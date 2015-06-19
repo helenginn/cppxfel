@@ -13,7 +13,7 @@
 #include <vector>
 #include "MtzManager.h"
 
-typedef std::map<MtzPtr, std::vector<Holder *>> MtzDataMap;
+typedef std::map<MtzPtr, std::vector<Holder *> > MtzDataMap;
 
 class Scaler
 {

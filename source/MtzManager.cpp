@@ -57,6 +57,8 @@ string MtzManager::describeScoreType()
             return string("logR");
         case ScoreTypeCorrelationLog:
             return string("logCC");
+        case ScoreTypeStandardDeviation:
+            return string("stdev");
         default:
             return string("unknown");
     }
@@ -96,7 +98,15 @@ void MtzManager::makeSuperGaussianLookupTable(double exponent)
 std::string MtzManager::filenameRoot()
 {
     std::vector<std::string> components = FileReader::split(filename, '.');
-    return components[0];
+    
+    std::string root = "";
+    
+    for (int i = 0; i < components.size() - 1; i++)
+    {
+        root += components[i] + ".";
+    }
+    
+    return root.substr(0, root.size() - 1);
 }
 
 double MtzManager::extreme_index(MTZ *mtz, int max)
@@ -533,6 +543,12 @@ void MtzManager::loadReflections(PartialityModel model)
     int spgnum = MtzSpacegroupNumber(mtz);
     
     low_group = ccp4spg_load_by_ccp4_num(spgnum);
+    
+    if (low_group == NULL)
+    {
+        setRejected(true);
+        return;
+    }
     
     char *hallSymbol = ccp4spg_symbol_Hall(low_group);
     
@@ -1186,8 +1202,8 @@ double MtzManager::gradientAgainstManager(MtzManager &otherManager,
             x_squared += mean1 * mean1 * part1;
             x_y += mean1 * mean2 * part1;
             
-            if (holders1[i]->miller(j)->getPartiality() < 0.5)
-                continue;
+     //       if (holders1[i]->miller(j)->getPartiality() < 0.5)
+      //          continue;
             
             ints1.push_back(mean1);
             ints2.push_back(mean2);
@@ -1253,7 +1269,9 @@ void MtzManager::applyScaleFactor(double scaleFactor,
         else
             scale *= scaleFactor;
     }
-        
+    
+    logged << "Applying scale factor " << scaleFactor << " now ";
+    
     for (int i = 0; i < holders.size(); i++)
     {
         for (int j = 0; j < holders[i]->millerCount(); j++)
@@ -1264,9 +1282,15 @@ void MtzManager::applyScaleFactor(double scaleFactor,
                     holder(i)->miller(j)->setScale(scale);
                 else
                     holder(i)->miller(j)->applyScaleFactor(scaleFactor);
+                
+                if (i == 0 && j == 0)
+                    logged << holder(i)->miller(j)->getScale() << std::endl;
             }
         }
     }
+    
+    sendLog(LogLevelDebug);
+
 }
 
 double MtzManager::averageIntensity(void)
@@ -1694,3 +1718,17 @@ void MtzManager::denormaliseMillers()
     }
 }
 
+bool MtzManager::checkUnitCell(double trueA, double trueB, double trueC, double tolerance)
+{
+    double *cellDims = new double[3];
+    matrix->unitCellLengths(&cellDims);
+    
+    if (cellDims[0] < trueA - tolerance || cellDims[0] > trueA + tolerance)
+        return false;
+    if (cellDims[1] < trueB - tolerance || cellDims[1] > trueB + tolerance)
+        return false;
+    if (cellDims[2] < trueC - tolerance || cellDims[2] > trueC + tolerance)
+        return false;
+    
+    return true;
+}

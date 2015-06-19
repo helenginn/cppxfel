@@ -77,15 +77,21 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
 
 }
 
-double MtzManager::bestWavelength(double lowRes, double highRes)
+double MtzManager::bestWavelength(double lowRes, double highRes, bool usingReference)
 {
 	double totalWavelength = 0;
 	double count = 0;
 
+    double minWavelength = 1.23;
+    double maxWavelength = 1.32;
+    
 	double low, high;
 	StatisticsManager::convertResolutions(lowRes, highRes, &low, &high);
 
     double refinementIntensityThreshold = FileParser::getKey("REFINEMENT_INTENSITY_THRESHOLD", 200.0);
+    
+    if (usingReference)
+        refinementIntensityThreshold = 0.3;
     
 	for (int i = 0; i < holderCount(); i++)
 	{
@@ -96,13 +102,33 @@ double MtzManager::bestWavelength(double lowRes, double highRes)
 
 			if (holder(i)->getResolution() > high)
 				continue;
+            
+            double wavelength = holder(i)->miller(0)->getWavelength();
+            if (wavelength < minWavelength || wavelength > maxWavelength)
+                continue;
 
 			double weight = 1;
 			double isigi = holder(i)->miller(j)->getRawestIntensity();
 
+            if (usingReference)
+            {
+                MtzManager *reference = MtzManager::getReferenceManager();
+                Holder *refHolder = NULL;
+                reference->findHolderWithId(holder(i)->getReflId(), &refHolder);
+                
+                if (refHolder == NULL)
+                    continue;
+                
+                double imgIntensity = holder(i)->miller(j)->getRawestIntensity();
+                double refIntensity = refHolder->meanIntensity();
+                
+                double proportion = imgIntensity / refIntensity;
+                isigi = proportion;
+            }
+            
 			if (isigi > refinementIntensityThreshold && isigi == isigi)
 			{
-				totalWavelength += holder(i)->miller(j)->getWavelength()
+				totalWavelength += wavelength
 						* weight;
 				count += weight;
 			}
@@ -261,4 +287,63 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 	}
 
 	return statistic;
+}
+
+double MtzManager::wavelengthStandardDeviation()
+{
+    double minResolution = maxResolutionRlpSize;
+    double maxResolution = maxResolutionAll;
+    int reflectionCount = 100;
+    
+    vector<Holder *>refHolders, imageHolders;
+    std::map<double, double> wavelengths;
+    
+    this->findCommonReflections(getReferenceManager(), imageHolders, refHolders);
+    
+    for (int i = 0; i < imageHolders.size(); i++)
+    {
+        double refIntensity = refHolders[i]->meanIntensity();
+        if (refIntensity < 1000)
+            continue;
+        
+        if (!imageHolders[i]->betweenResolutions(minResolution, maxResolution))
+            continue;
+        
+        for (int j = 0; j < imageHolders[i]->millerCount(); j++)
+        {
+            double intensity = imageHolders[i]->miller(j)->getRawestIntensity();
+            
+            double wavelength = imageHolders[i]->miller(0)->getWavelength();
+            
+            if (wavelength < 1.25 || wavelength > 1.33)
+                continue;
+            
+            double proportion = intensity / refIntensity;
+            
+            wavelengths[proportion] = wavelength;
+        }
+    }
+    
+    if (wavelengths.size() == 0)
+        return FLT_MAX;
+    
+    int count = 0;
+    vector<double> bigWavelengths;
+    
+    std::map<double, double>::iterator it = wavelengths.end();
+    it--;
+    
+    for (; it != wavelengths.begin() && count < reflectionCount; --it)
+    {
+        bigWavelengths.push_back(it->second);
+        count++;
+    }
+    
+    
+    double stDev = standard_deviation(&bigWavelengths);
+    this->wavelength = median(&bigWavelengths);
+    
+//    std::cout << "St dev: " << stDev << ", median: " << wavelength << std::endl;
+    
+    return stDev;
 }

@@ -9,7 +9,7 @@
 #include "GraphDrawer.h"
 
 #define DEFAULT_RESOLUTION 3.4
-typedef boost::tuple<double, double, double, double> ResultTuple;
+typedef boost::tuple<double, double, double, double, double> ResultTuple;
 
 double MtzManager::weightedBestWavelength(double lowRes, double highRes)
 {
@@ -104,6 +104,11 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
         - static_cast<MtzManager *>(object)->leastSquaresPartiality(
                                                                     scoreType);
     }
+    else if (scoreType == ScoreTypeStandardDeviation)
+    {
+        return static_cast<MtzManager *>(object)->wavelengthStandardDeviation();
+    }
+    
     else
         return static_cast<MtzManager *>(object)->exclusionScore(lowRes,
                                                                  highRes, ScoreTypeCorrelation);
@@ -142,6 +147,9 @@ double MtzManager::rSplit(double low, double high, bool square)
         double weight = holder->meanWeight() * holder->getResolution();
         
         if (int1 != int1 || int2 != int2)
+            continue;
+        
+        if (int1 + int2 < 0)
             continue;
         
         count++;
@@ -209,7 +217,7 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     vector<double> percentages;
     
     double lowCut = low == 0 ? 0 : 1 / low;
-    double highCut = high == 0 ? FLT_MAX : 1 / high;
+    double highCut = 1 / 2.0;
     
     for (int i = 0; i < holders.size(); i++)
     {
@@ -221,6 +229,9 @@ double MtzManager::leastSquaresPartiality(double low, double high,
         
         if (refHolder != NULL)
         {
+            if (refHolder->meanIntensity() < 1500)
+                continue;
+            
             Partial partial;
             partial.partiality = imageHolder->miller(0)->getPartiality();
             partial.percentage = imageHolder->miller(0)->getRawIntensity()
@@ -234,18 +245,19 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     std::sort(partials.begin(), partials.end(), percentage);
     int position = (int)partials.size() - 5;
     if (position <= 0) return 0;
-    double maxPercentage = partials[position].percentage;
+    double maxPercentage = 2.5;
+    double minPartiality = FileParser::getKey("PARTIALITY_CUTOFF", PARTIAL_CUTOFF);
     
     for (int i = 0; i < partials.size(); i++)
     {
-        if (partials[i].percentage > maxPercentage)
+        if (partials[i].percentage > maxPercentage || partials[i].percentage < 0)
             continue;
         
         if (partials[i].resolution > highCut || partials[i].resolution < lowCut)
             continue;
         
         if (partials[i].partiality != partials[i].partiality
-            || partials[i].partiality > 1 || partials[i].partiality < 0.02)
+            || partials[i].partiality > 1 || partials[i].partiality < minPartiality)
             continue;
         
         if (partials[i].percentage != partials[i].percentage)
@@ -253,6 +265,8 @@ double MtzManager::leastSquaresPartiality(double low, double high,
         
         partialities.push_back(partials[i].partiality);
         percentages.push_back(partials[i].percentage);
+        
+     //   std::cout << partials[i].partiality << "\t" << partials[i].percentage << std::endl;
     }
     
     double correl = 0;
@@ -375,6 +389,10 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
 {
     double wavelength = 0;
     
+    bool reinitialiseWavelength = FileParser::getKey("REINITIALISE_WAVELENGTH", false);
+    
+    bool correlationThreshold = FileParser::getKey("CORRELATION_THRESHOLD", CORRELATION_THRESHOLD);
+    
     if (isUsingFixedWavelength())
     {
         wavelength = this->getWavelength();
@@ -385,9 +403,15 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
             << std::endl;
         }
     }
+    else if (isUsingFixedWavelength() && reinitialiseWavelength)
+    {
+        wavelength = FileParser::getKey("INITIAL_WAVELENGTH", 1.75);
+    }
     else
     {
-        wavelength = bestWavelength();
+        MtzManager *reference = MtzManager::getReferenceManager();
+        
+        wavelength = bestWavelength(0, 0, false);
         
         if (this->isRejected())
             return 0;
@@ -398,11 +422,11 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     
     bandwidth = this->getBandwidth();
     
-    bool optimisedMean = !optimisingWavelength;
-    bool optimisedBandwidth = !optimisingBandwidth;
-    bool optimisedExponent = !optimisingExponent;
-    bool optimisedSpotSize = !optimisingRlpSize;
-    bool optimisedMos = !optimisingMosaicity;
+    bool optimisedMean = !optimisingWavelength || (scoreType == ScoreTypeStandardDeviation);
+    bool optimisedBandwidth = !optimisingBandwidth || (scoreType == ScoreTypeStandardDeviation);
+    bool optimisedExponent = !optimisingExponent || (scoreType == ScoreTypeStandardDeviation);
+    bool optimisedSpotSize = !optimisingRlpSize || (scoreType == ScoreTypeStandardDeviation);
+    bool optimisedMos = !optimisingMosaicity || (scoreType == ScoreTypeStandardDeviation);
     bool optimisedHRot = !optimisingOrientation;
     bool optimisedKRot = !optimisingOrientation;
     
@@ -413,11 +437,7 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     double mosStep = stepSizeMosaicity;
     double hStep = stepSizeOrientation;
     double kStep = stepSizeOrientation;
-    
-    bool optimisedUnitCell = false;
-    double unitCellStepSize = 0.2;
-    double unitCellTolerance = 0.001;
-    
+  
     params = new double[PARAM_NUM];
     
     params[PARAM_HROT] = this->getHRot();
@@ -430,35 +450,51 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     
     int count = 0;
     
+    refreshPartialities(params);
+    
+ //   std::cout << "Before refinement, R split = " << rSplit(0, 0) << std::endl;
+    
     while (!(optimisedMean && optimisedBandwidth && optimisedSpotSize
              && optimisedMos && optimisedExponent && optimisedHRot
              && optimisedKRot) && count < 50)
     {
         count++;
         
-        if (!optimisedMean)
-            minimizeParameter(&meanStep, &params, PARAM_WAVELENGTH, score,
-                              object, 0, maxResolutionAll);
-        
-        if (!optimisedBandwidth)
-            minimizeParameter(&bandStep, &params, PARAM_BANDWIDTH, score,
-                              object, 0, maxResolutionAll);
+        if (scoreType != ScoreTypeStandardDeviation)
+        {
+            if (!optimisedMean)
+                minimizeParameter(&meanStep, &params, PARAM_WAVELENGTH, score,
+                                  object, 0, maxResolutionAll);
+            
+            if (!optimisedBandwidth)
+                minimizeParameter(&bandStep, &params, PARAM_BANDWIDTH, score,
+                                  object, 0, maxResolutionAll);
+        }
         
         if (!optimisedHRot && !optimisedKRot)
             minimizeTwoParameters(&hStep, &kStep, &params, PARAM_HROT,
                                   PARAM_KROT, score, object, 0, maxResolutionAll, FLT_MAX);
         
-        if (!optimisedSpotSize)
-            minimizeParameter(&spotStep, &params, PARAM_SPOT_SIZE, score,
-                              object, 0, maxResolutionAll);
+        /*
+        if (scoreType == ScoreTypeStandardDeviation)
+        {
+            params[PARAM_WAVELENGTH] = this->wavelength;
+        }*/
         
-        if (!optimisedExponent)
-            minimizeParameter(&expoStep, &params, PARAM_EXPONENT, score, object,
-                              0, maxResolutionAll);
-        
-        if (!optimisedMos)
-            minimizeParameter(&mosStep, &params, PARAM_MOS, score, object,
-                              0, maxResolutionAll);
+        if (scoreType != ScoreTypeStandardDeviation)
+        {
+            if (!optimisedSpotSize)
+                minimizeParameter(&spotStep, &params, PARAM_SPOT_SIZE, score,
+                                  object, 0, maxResolutionRlpSize);
+            
+            if (!optimisedExponent)
+                minimizeParameter(&expoStep, &params, PARAM_EXPONENT, score, object,
+                                  0, maxResolutionAll);
+            
+            if (!optimisedMos)
+                minimizeParameter(&mosStep, &params, PARAM_MOS, score, object,
+                                  0, maxResolutionAll);
+        }
         
         if (hStep < toleranceOrientation)
             optimisedHRot = true;
@@ -480,6 +516,11 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
         
         if (expoStep < toleranceExponent)
             optimisedExponent = true;
+        
+        if (scoreType == ScoreTypeStandardDeviation)
+        {
+            std::cout << "stdev" << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << (*score)(object, 0, 0) << std::endl;
+        }
     }
     
     bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);
@@ -507,6 +548,7 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     this->applyBFactor(bFactor);
     
     double newScore = (*score)(object, 0, 0);
+    
     double hits = accepted();
     string scoreDescription = this->describeScoreType();
     double correl = correlation(true);
@@ -604,6 +646,7 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
         
         setActiveAmbiguity(bestAmbiguity);
         setParams(&(*(ambiguityResults[bestAmbiguity].first).begin()));
+        refreshPartialities(&(*(ambiguityResults[bestAmbiguity].first).begin()));
         
         double threshold = 0.9;
         
@@ -829,14 +872,17 @@ void MtzManager::excludePartialityOutliers()
 
 bool compareResult(ResultTuple one, ResultTuple two)
 {
-    return boost::get<3>(two) > boost::get<3>(one);
+    return boost::get<4>(two) > boost::get<4>(one);
 }
 
 void MtzManager::findSteps()
 {
     params = new double[PARAM_NUM];
     
-    wavelength = bestWavelength();
+    wavelength = 1.295;//bestWavelength();
+    
+    if (isnan(wavelength))
+        return;
     
     params[PARAM_HROT] = this->getHRot();
     params[PARAM_KROT] = this->getKRot();
@@ -848,59 +894,83 @@ void MtzManager::findSteps()
     
     refreshPartialities(params);
     
-    double iMinParam = -0.04;
-    double iMaxParam = 0.04;
-    double iStep = (iMaxParam - iMinParam) / 10;
+    double iMinParam = -0.005;
+    double iMaxParam = 0.005;
+    double iStep = (iMaxParam - iMinParam) / 2;
+    double iParam = 0;
     
-    double jMinParam = -0.04;
-    double jMaxParam = 0.04;
-    double jStep = (jMaxParam - jMinParam) / 10;
+    double jMinParam = -0.005;
+    double jMaxParam = 0.005;
+    double jStep = (jMaxParam - jMinParam) / 2;
+    double jParam = 0;
     
-    double kMinParam = wavelength - 0.005;
-    double kMaxParam = wavelength + 0.005;
-    double kStep = (kMaxParam - kMinParam) / 20;
+    double kMinParam = wavelength - 0.01;
+    double kMaxParam = wavelength + 0.01;
+    double kStep = (kMaxParam - kMinParam) / 50;
+    double kParam = 1.293;
+    
+    double lMinParam = 0.0002;
+    double lMaxParam = 0.0008;
+    double lStep = (lMaxParam - lMinParam) / 50;
+    double lParam = 0.0004;
     
     std::vector<ResultTuple> results;
+    double bestResult = FLT_MAX;
     
-    for (double iParam = iMinParam; iParam < iMaxParam; iParam += iStep)
+   /* for (double iParam = iMinParam; iParam < iMaxParam; iParam += iStep)
     {
         for (double jParam = jMinParam; jParam < jMaxParam; jParam += jStep)
-        {
+        {*/
             for (double kParam = kMinParam; kParam < kMaxParam; kParam += kStep)
             {
-                params[PARAM_HROT] = iParam;
-                params[PARAM_KROT] = jParam;
-                params[PARAM_WAVELENGTH] = kParam;
-                this->refreshPartialities(params);
-                double score = rSplit(0, 0);
-                
-                ResultTuple result = boost::make_tuple<>(iParam, jParam, kParam, score);
-                results.push_back(result);
+                for (double lParam = lMinParam; lParam < lMaxParam; lParam += lStep)
+                {
+                    params[PARAM_HROT] = iParam;
+                    params[PARAM_KROT] = jParam;
+                    params[PARAM_WAVELENGTH] = kParam;
+                    params[PARAM_SPOT_SIZE] = lParam;
+                    this->refreshPartialities(params);
+                    double score = rSplit(0, 0);
+                    
+                    ResultTuple result = boost::make_tuple<>(iParam, jParam, kParam, lParam, score);
+                    results.push_back(result);
+                 
+                    std::cout << iParam << "\t" << jParam << "\t" << kParam << "\t" << lParam << "\t" << score << std::endl;
+                    
+                    if (bestResult > score)
+                    {
+                        bestResult = score;
+                    }
+                }
             }
-        }
+/*        }
     }
-    
+*/
     std::sort(results.begin(), results.end(), compareResult);
     
     double newHRot = (boost::get<0>(results[0]));
     double newKRot = (boost::get<1>(results[0]));
     double newWavelength = (boost::get<2>(results[0]));
+    double newSpotSize = (boost::get<3>(results[0]));
     
     params[PARAM_HROT] = newHRot;
     params[PARAM_KROT] = newKRot;
     params[PARAM_WAVELENGTH] = newWavelength;
+    params[PARAM_SPOT_SIZE] = newSpotSize;
     
     setHRot(newHRot);
     setKRot(newKRot);
     setWavelength(newWavelength);
+    setSpotSize(newSpotSize);
     
-    double rSplit = boost::get<3>(results[0]);
+    double rSplit = boost::get<4>(results[0]);
     
-    std::cout << getFilename() << "\t" << hRot << "\t" << kRot << "\t" << wavelength << "\t" << rSplit << std::endl;
+    std::cout << getFilename() << "grid" << "\t" << hRot << "\t" << kRot << "\t" << wavelength << "\t" << newSpotSize << "\t" << rSplit << std::endl;
 
     this->refreshPartialities(params);
     
     this->setRefCorrelation(correlation());
-
+    this->setFinalised(true);
+    
     this->writeToFile("ref-" + getFilename());
 }

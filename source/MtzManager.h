@@ -32,6 +32,7 @@ typedef enum
 	ScoreTypePartialityLeastSquares = 6,
 	ScoreTypePartialityGradient = 7,
     ScoreTypeSymmetry = 8,
+    ScoreTypeStandardDeviation = 9,
 } ScoreType;
 
 typedef enum
@@ -128,6 +129,7 @@ protected:
 	MtzManager *lastReference;
 
     static double unitCellScore(void *object);
+    double wavelengthStandardDeviation();
     ostringstream logged;
 public:
     vector<double> superGaussianTable;
@@ -147,7 +149,8 @@ public:
 	void excludePartialityOutliers();
 
     MatrixPtr matrix;
-
+    bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
+    
 	void setFilename(string name);
 	string getFilename(void);
 	void description(void);
@@ -238,7 +241,7 @@ public:
 	void getParams(double *parameters[], int paramCount = PARAM_NUM);
 	void setParams(double parameters[], int paramCount = PARAM_NUM);
 
-	double bestWavelength(double lowRes = 0.0, double highRes = 0);
+	double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
 	double weightedBestWavelength(double lowRes, double highRes);
 	int accepted(void);
 	static double exclusionScoreWrapper(void *object, double lowRes,

@@ -153,6 +153,33 @@ void Matrix::unitCellLengths(double **lengths)
 
 }
 
+/** Warning: only use for unit cells with 90 degree angles! */
+void Matrix::scaleUnitCellAxes(double aScale, double bScale, double cScale)
+{
+    //    this->printDescription();
+    
+    for (int i = 0; i < 3; i++)
+    {
+        double scaleToUse = aScale;
+        if (i == 1) scaleToUse = bScale;
+        else if (i == 2) scaleToUse = cScale;
+        
+        vec aAxis = new_vector((i == 0), (i == 1), (i == 2));
+        vec aAxisScaled = copy_vector(aAxis);
+        this->multiplyVector(&aAxis);
+        this->multiplyVector(&aAxisScaled);
+        scale_vector_to_distance(&aAxisScaled, scaleToUse);
+        scale_vector_to_distance(&aAxis, 1);
+        vec aVec = new_vector(aAxisScaled.h / aAxis.h, aAxisScaled.k / aAxis.k, aAxisScaled.l / aAxis.l);
+        Matrix aScaler = Matrix();
+        aScaler.scale(aVec.h, aVec.k, aVec.l);
+        this->preMultiply(aScaler);
+    }
+    
+    
+    //    this->printDescription();
+}
+
 void Matrix::assignFromCctbxMatrix(scitbx::mat3<double> newMat)
 {
     components[0] = newMat(0, 0);

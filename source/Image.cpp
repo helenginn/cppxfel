@@ -18,9 +18,18 @@
 Image::Image(std::string filename, double wavelength,
 		double distance)
 {
+    vector<double> dims = FileParser::getKey("DETECTOR_SIZE", vector<double>());
+    
 	xDim = 1765;
 	yDim = 1765;
-	data = std::vector<int>();
+
+    if (dims.size())
+    {
+        xDim = dims[0];
+        yDim = dims[1];
+    }
+        
+    data = std::vector<int>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
     vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
 
@@ -63,7 +72,15 @@ Image::Image(std::string filename, double wavelength,
 std::string Image::filenameRoot()
 {
 	std::vector<std::string> components = FileReader::split(filename, '.');
-	return components[0];
+    
+    std::string root = "";
+    
+    for (int i = 0; i < components.size() - 1; i++)
+    {
+        root += components[i] + ".";
+    }
+    
+	return root.substr(0, root.size() - 1);
 }
 
 void Image::setUpIndexer(MatrixPtr matrix)
@@ -136,14 +153,35 @@ void Image::loadImage()
 			c = file.get();
 		}
 
-		data.resize(memblock.size());
+        int bitsPerPixel = FileParser::getKey("BITS_PER_PIXEL", 32);
+        bool shortInt = (bitsPerPixel == 16);
+        
+        if (!shortInt)
+            data.resize(memblock.size() / sizeof(int));
+        else
+            data.resize(memblock.size() / sizeof(short));
+        
         overlapMask = std::vector<unsigned char>(memblock.size(), 0);
 
         ostringstream logged;
 		logged << "Image size: " << memblock.size() << " for image: "
 				<< filename << std::endl;
         Logger::mainLogger->addStream(&logged);
-		memcpy(&data[0], &memblock[0], memblock.size());
+        
+        if (!shortInt)
+            memcpy(&data[0], &memblock[0], memblock.size());
+        
+        if (shortInt)
+        {
+            for (int i = 0; i < data.size(); i++)
+            {
+                unsigned short point = *(&memblock[i * sizeof(short)]);
+                int convertedPoint = point;
+                data[i] = convertedPoint;
+            }
+            
+            addMask(968, 950, 1441, 1079);
+        }
 	}
 	else
         Logger::mainLogger->addString("Unable to open file");
@@ -201,11 +239,11 @@ int Image::valueAt(int x, int y)
 			return 0;
 	}
 
-	double position = y * yDim + x;
-
-	if (position > data.size())
+    int position = y * yDim + x;
+    
+	if (position < 0 || position >= data.size())
 		return 0;
-
+    
 	return data[position];
 }
 
@@ -352,7 +390,10 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
 		{
 			if (!accepted(i, j))
 			{
-				return false;
+                ostringstream logged;
+                logged << "Rejecting miller - too many zeros" << std::endl;
+                Logger::mainLogger->addStream(&logged, LogLevelDebug);
+                return false;
 			}
             
             count++;
@@ -362,7 +403,12 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
 	}
     
     if (double(zeroCount) / double(count) > 0.4)
+    {
+        ostringstream logged;
+        logged << "Rejecting miller - too many zeros" << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelDebug);
         return false;
+    }
 
 	return true;
 }
@@ -425,7 +471,9 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 				foreground += value * weight;
                 
                 if (value > pixelCountCutoff && pixelCountCutoff > 0)
+                {
                     return isnan(' ');
+                }
 			}
 			else if (flag == MaskBackground)
 			{
@@ -443,7 +491,7 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 
     
     ostringstream logged;
-    logged << "Photons (back/fore/back-in-fore): " << background << "\t" << foreground << "\t" << "; weights: " << backNum << "\t" << foreNum << std::endl;
+ //   logged << "Photons (back/fore/back-in-fore): " << background << "\t" << foreground << "\t" << "; weights: " << backNum << "\t" << foreNum << std::endl;
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
     
 	double intensity = (foreground - backgroundInForeground);
@@ -640,6 +688,9 @@ void Image::incrementOverlapMask(int x, int y)
 {
     int position = y * yDim + x;
     
+    if (position < 0 || position >= overlapMask.size())
+        return;
+    
     overlapMask[position]++;
 }
 
@@ -666,6 +717,9 @@ void Image::incrementOverlapMask(int x, int y, ShoeboxPtr shoebox)
 unsigned char Image::overlapAt(int x, int y)
 {
     int position = y * yDim + x;
+    
+    if (position < 0 || position >= overlapMask.size())
+        return 0;
     
     return overlapMask[position];
 }

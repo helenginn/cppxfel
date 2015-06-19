@@ -130,7 +130,14 @@ void MtzRefiner::cycleThread(int offset)
             Logger::mainLogger->addStream(&logged);
             if (initialGridSearch && cycleNum == 0)
                 image->findSteps();
+            
             image->gridSearch(true);
+            
+            if (image->getScoreType() == ScoreTypeStandardDeviation)
+            {
+                image->setDefaultScoreType(DEFAULT_SCORE_TYPE);
+      //          image->gridSearch(true);
+            }
             
             image->writeToDat();
         }
@@ -172,18 +179,20 @@ void MtzRefiner::cycle()
 void MtzRefiner::initialMerge()
 {
     MtzManager *originalMerge = NULL;
-    
-  /*  Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
+    /*
+    Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
     lbfgs->initialise_cluster_lbfgs(mtzManagers, &originalMerge);
     reference = originalMerge;
     delete lbfgs;
     
-    reference->writeToFile("initialMerge.mtz");*/
-    
+    reference->writeToFile("initialMerge.mtz");
+    */
      AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
      breaker.run();
      originalMerge = breaker.getMergedMtz();
      reference = originalMerge;
+    
+    reference->writeToFile("initialMerge.mtz");
 }
 
 void MtzRefiner::refine()
@@ -227,6 +236,7 @@ void MtzRefiner::refineCycle(bool once)
     bool finished = false;
     
     int minimumCycles = FileParser::getKey("MINIMUM_CYCLES", 6);
+    int maximumCycles = FileParser::getKey("MAXIMUM_CYCLES", 50);
     
     bool stop = FileParser::getKey("STOP_REFINEMENT", true);
     double correlationThreshold = FileParser::getKey("CORRELATION_THRESHOLD",
@@ -303,6 +313,9 @@ void MtzRefiner::refineCycle(bool once)
         if (once)
             finished = true;
         
+        if (i == maximumCycles - 1 && stop)
+            finished = true;
+        
         delete grouper;
         if (!once)
             delete reference;
@@ -310,6 +323,7 @@ void MtzRefiner::refineCycle(bool once)
         i++;
     }
 }
+
 
 // MARK: Symmetry-related reflection refinement
 
@@ -578,7 +592,7 @@ void MtzRefiner::readSingleImageV2(string *filename, std::vector<Image *> *newIm
                 
                 double upRot = 0.75;
                 newMatrix->rotate(0, 0, M_PI / 2);
-                newMatrix->rotateHK(0, upRot);
+        //        newMatrix->rotateHK(0, upRot);
                 newImage->setUpIndexer(newMatrix);
             }
         }
@@ -745,6 +759,9 @@ void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newIma
     {
         std::vector<std::string> components = FileReader::split(lines[i], ' ');
         
+        if (components.size() == 0)
+            continue;
+        
         string imgName = components[0] + ".img";
         if (!FileReader::exists(imgName))
         {
@@ -879,6 +896,13 @@ void MtzRefiner::singleThreadRead(std::vector<std::string> lines,
     int end = imageMax(lines.size());
     
     int skip = FileParser::getKey("IMAGE_SKIP", 0);
+    vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
+    
+    bool checkingUnitCell = false;
+    
+    if (unitCell.size() > 0 && tolerance > 0.0)
+        checkingUnitCell = true;
     
     if (skip > lines.size())
     {
@@ -921,7 +945,21 @@ void MtzRefiner::singleThreadRead(std::vector<std::string> lines,
         newManager->setSigmaToUnity();
         newManager->loadParametersMap();
         
-        mtzManagers->push_back(newManager);
+        if (newManager->holderCount() > 0)
+        {
+            if (checkingUnitCell && newManager->checkUnitCell(unitCell[0], unitCell[1], unitCell[2], tolerance))
+            {
+                mtzManagers->push_back(newManager);
+            }
+            else if (!checkingUnitCell)
+            {
+                mtzManagers->push_back(newManager);
+            }
+            else
+            {
+                log << "Skipping file " << mtzName << " due to poor unit cell" << std::endl;
+            }
+        }
         
         Logger::mainLogger->addStream(&log);
     }
@@ -1140,6 +1178,11 @@ void MtzRefiner::integrate(bool orientation)
     
     writeNewOrientations();
     
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        mtzManagers[i]->writeToDat();
+    }
+    
     for (int i = 0; i < images.size(); i++)
     {
         for (int j = 0; j < images[i]->indexerCount(); j++)
@@ -1260,10 +1303,13 @@ void MtzRefiner::loadMillersIntoPanels()
 
 // MARK: indexing
 
-void MtzRefiner::writeNewOrientations()
+void MtzRefiner::writeNewOrientations(bool includeRots)
 {
     ofstream newMats;
-    newMats.open("new_orientations.dat");
+    
+    std::string filename = FileParser::getKey("NEW_MATRIX_LIST", string("new_orientations.dat"));
+    
+    newMats.open(filename);
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
@@ -1271,18 +1317,27 @@ void MtzRefiner::writeNewOrientations()
         
         // write out matrices etc.
         string imgFilename = manager->filenameRoot();
-        newMats << "img-" << imgFilename << " ";
+        newMats << imgFilename << " ";
         
-        MatrixPtr matrix = manager->getMatrix();
+        MatrixPtr matrix = manager->getMatrix()->copy();
+        
+        if (includeRots)
+        {
+            double hRad = manager->getHRot() * M_PI / 180;
+            double kRad = manager->getKRot() * M_PI / 180;
+            
+            matrix->rotate(hRad, kRad, 0);
+        }
         
         string description = matrix->description();
         newMats << description << std::endl;
     }
     
-    Logger::mainLogger->addString("Written to new_orientations.dat");
+    Logger::mainLogger->addString("Written to " + filename);
     
     newMats.close();
 }
+
 
 void MtzRefiner::indexImage(int offset, vector<MtzPtr> *mtzSubset)
 {
@@ -1323,7 +1378,7 @@ void MtzRefiner::index()
 {
     this->readMatricesAndImages();
     loadPanels();
-    std::vector<std::vector<MtzPtr>> mtzSubsets;
+    std::vector<std::vector<MtzPtr> > mtzSubsets;
     mtzSubsets.resize(MAX_THREADS);
     
     boost::thread_group threads;

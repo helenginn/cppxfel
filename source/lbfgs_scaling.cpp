@@ -150,7 +150,7 @@ void Lbfgs_Scaling::run(void)
 	{
 		string filename = scaling->mtzs[i]->getFilename();
 
-		cout << filename << " " << scaling->Gs[i].G << endl;
+	//	cout << filename << " " << scaling->Gs[i].G << endl;
 
 		if (scaling->Gs[i].G > 0.5)
 			scaling->mtzs[i]->applyScaleFactor(scaling->Gs[i].G);

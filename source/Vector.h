@@ -54,6 +54,7 @@ double gradient_between_vectors(std::vector<double> *vec1,
 double minimize_gradient_between_vectors(std::vector<double> *vec1,
 		std::vector<double> *vec2);
 double weighted_mean(std::vector<double> *means, std::vector<double> *weights = NULL);
+double median(std::vector<double> *means);
 void histogram_gaussian(std::vector<double> *means, std::vector<int> *freq, double &mean, double &stdev);
 double least_squares_gaussian_fit(std::vector<double> *means,
 		std::vector<int> *freq);

@@ -213,7 +213,7 @@ void ScalingManager::processReflections(void)
             
             int refl_id = mtzs[i]->holder(j)->getReflId();
             
-            if (mtzs[i]->holder(j)->getResolution() > 1 / 2.5)
+            if (mtzs[i]->holder(j)->getResolution() > 1 / 2.0)
             		continue;
             
             int l = 0;

@@ -852,6 +852,9 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 		Holder *imageHolder = imageHolders[i];
 
 		double max_intensity = refHolder->meanIntensity();
+        
+        if (max_intensity < 2000)
+            continue;
 
 		for (int j = 0; j < imageHolder->millerCount(); j++)
 		{
@@ -859,7 +862,7 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 					imageHolder->miller(j)->getPartiality();
 
 			double rawIntensity =
-					imageHolder->miller(j)->getRawIntensity();
+					imageHolder->miller(j)->getRawestIntensity();
 
 			double percentage = rawIntensity / max_intensity * 100;
 			if (percentage < 0)
@@ -867,6 +870,8 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 
 			double wavelength =
 					imageHolder->miller(j)->getWavelength();
+            
+      //      std::cout << rawIntensity << "\t" << max_intensity << std::endl;
 
 			if (partials == NULL)
 			{

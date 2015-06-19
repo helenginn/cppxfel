@@ -28,11 +28,12 @@ typedef enum
     RefinementTypeOrientationMatrixEarly = 0,
 	RefinementTypeDetectorWavelength = 1,
     RefinementTypeOrientationMatrixVeryEarly = 2,
-    RefinementTypeOrientationMatrixLate,
-	RefinementTypeOrientationMatrixSpots,
-    RefinementTypeOrientationMatrixExactSpots,
-	RefinementTypeOrientationMatrixRough,
-	RefinementTypeOrientationMatrixMedian
+    RefinementTypeOrientationMatrixLate = 3,
+	RefinementTypeOrientationMatrixSpots = 4,
+    RefinementTypeOrientationMatrixExactSpots = 5,
+	RefinementTypeOrientationMatrixRough = 6,
+	RefinementTypeOrientationMatrixMedian = 7,
+    RefinementTypeOrientationMatrixTotalSignal = 8,
 } RefinementType;
 
 class Indexer
@@ -127,6 +128,11 @@ public:
     void setMatrix(MatrixPtr matrix)
     {
         this->matrix = matrix;
+    }
+    
+    void setMatrixCopy(MatrixPtr matrix)
+    {
+        this->matrix = matrix->copy();
     }
     
     double getLastScore()

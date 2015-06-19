@@ -154,8 +154,10 @@ void FileParser::generateFunctionList()
 	parserMap["REMOVE_WEDGE"] = simpleFloat;
 
     parserMap["MINIMUM_CYCLES"] = simpleInt;
-	parserMap["STOP_REFINEMENT"] = simpleBool;
+    parserMap["MAXIMUM_CYCLES"] = simpleInt;
+    parserMap["STOP_REFINEMENT"] = simpleBool;
 
+    parserMap["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = simpleFloat;
     parserMap["ALLOW_TRUST"] = simpleBool;
     parserMap["EXCLUDE_OWN_REFLECTIONS"] = simpleBool;
     parserMap["PARTIALITY_CUTOFF"] = simpleFloat;
@@ -178,6 +180,7 @@ void FileParser::generateFunctionList()
     parserMap["INITIAL_GRID_SEARCH"] = simpleBool;
     parserMap["SCALE_AND_B_FACTORS"] = simpleBool;
     parserMap["R_SPLIT_THRESHOLD"] = simpleFloat;
+    parserMap["REINITIALISE_WAVELENGTH"] = simpleBool;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
@@ -211,7 +214,8 @@ void FileParser::generateFunctionList()
 	parserMap["INITIAL_MTZ"] = simpleString;
     parserMap["IMAGE_LIMIT"] = simpleInt;
     parserMap["IMAGE_SKIP"] = simpleInt;
-
+    parserMap["NEW_MATRIX_LIST"] = simpleString;
+    
     parserMap["DENORMALISE_PARTIALITY"] = simpleBool;
     parserMap["RECALCULATE_SIGMA"] = simpleBool;
     parserMap["MERGE_ANOMALOUS"] = simpleBool;
@@ -222,11 +226,13 @@ void FileParser::generateFunctionList()
 
 	// Indexing parameters
 
+    parserMap["BITS_PER_PIXEL"] = simpleInt;
 	parserMap["SPACE_GROUP"] = simpleInt;
 	parserMap["INTEGRATION_WAVELENGTH"] = simpleFloat;
 	parserMap["DETECTOR_DISTANCE"] = simpleFloat;
     parserMap["BEAM_CENTRE"] = doubleVector;
     parserMap["MM_PER_PIXEL"] = simpleFloat;
+    parserMap["DETECTOR_SIZE"] = doubleVector;
 	parserMap["OVER_PRED_BANDWIDTH"] = simpleFloat;
 	parserMap["OVER_PRED_RLP_SIZE"] = simpleFloat;
     parserMap["REFINE_ORIENTATIONS"] = simpleBool;
@@ -251,6 +257,8 @@ void FileParser::generateFunctionList()
     parserMap["SPHERE_THICKNESS"] = simpleFloat;
     parserMap["SIGMA_RESOLUTION_CUTOFF"] = simpleFloat;
     parserMap["PIXEL_COUNT_CUTOFF"] = simpleInt;
+    parserMap["EXPECTED_SPOTS"] = simpleInt;
+    parserMap["INDEXING_SLICE_ANGLE"] = simpleFloat;
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;
@@ -273,8 +281,13 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
 
 	rest = line.substr(space_index + 1, std::string::npos);
 
-
-	ParserFunction function = parserMap[upperCommand];
+    if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL")
+    {
+        std::cout << "Error: do not understand command " << upperCommand << std::endl;
+        exit(1);
+    }
+    
+    ParserFunction function = parserMap[upperCommand];
 	command = upperCommand;
 
 	return function;

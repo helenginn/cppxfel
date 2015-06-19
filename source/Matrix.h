@@ -62,6 +62,7 @@ public:
     static MatrixPtr matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
     void orientationMatrixUnitCell(double *a, double *b, double *c);
     void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
+    void scaleUnitCellAxes(double aScale, double bScale, double cScale);
     
     void rotate2D(double angle);
     void translation(double **vector);

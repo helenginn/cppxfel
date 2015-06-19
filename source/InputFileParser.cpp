@@ -158,6 +158,12 @@ void InputFileParser::parse()
                 refiner.loadInitialMtz(true);
             }
             
+            if (line == "WRITE_NEW_MATRICES")
+            {
+                understood = true;
+                refiner.writeNewOrientations(true);
+            }
+            
             if (line == "REFINE_WITH_SYMMETRY")
             {
                 understood = true;

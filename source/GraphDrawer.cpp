@@ -349,8 +349,8 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 	properties["yMin"] = 0;
 	properties["yMax"] = 4;
 
-	properties["colour_0"] = 9;
-	properties["colour_1"] = 2;
+	properties["colour_0"] = 10;
+	properties["colour_1"] = 4;
 
 	vector<double> bins;
 	StatisticsManager::generateResolutionBins(50, 1.6, 18, &bins);
@@ -360,20 +360,38 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 	referenceManager->applyScaleFactor(grad);
 
 	vector<double> blueX, blueY, redX, redY;
-
-	for (int i = 0; i < managers.size() && i < 200; i++)
+    
+    double percentSum = 0;
+    double sum = 0;
+    
+    for (int i = 0; i < managers.size(); i++)
 	{
 		mtz = managers[i];
 
-		mtz->excludeFromLogCorrelation();
-
-		double correl = managers[i]->correlation(true);
-		if (correl < 0.95)
-			continue;
+	//	mtz->excludeFromLogCorrelation();
+        
+        double correl = mtz->correlation(true);
+        double invCorrel = correl;
+        
+        if (MtzManager::getReferenceManager()->ambiguityCount() == 2)
+        {
+            mtz->setActiveAmbiguity(1);
+            invCorrel = mtz->correlation(true);
+            mtz->setActiveAmbiguity(0);
+            
+            if (invCorrel > correl)
+                mtz->setActiveAmbiguity(1);
+        }
+        double newCorrel = mtz->correlation(true);
+        mtz->setRefCorrelation(newCorrel);
+        
+        std::cout << mtz->getFilename() << "\t" << correl << "\t"
+        << invCorrel << std::endl;
 
 		double scale = mtz->gradientAgainstManager(*referenceManager);
-		mtz->applyScaleFactor(scale);
-
+        std::cout << "Scale: " << scale << std::endl;
+        mtz->applyScaleFactor(scale);
+     
 		vector<Holder *> refHolders, imgHolders;
 
 		mtz->findCommonReflections(referenceManager, imgHolders, refHolders,
@@ -386,18 +404,19 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 
 			double imgIntensity = imgHolders[j]->meanIntensity();
 			double refIntensity = refHolders[j]->meanIntensity();
-			
+            double meanPartiality = imgHolders[j]->meanPartiality();
+            
 			double percent = imgIntensity / refIntensity;
 
-			vector<double> *chosenX = &blueX;
-			vector<double> *chosenY = &blueY;
+			vector<double> *chosenX = &redX;
+			vector<double> *chosenY = &redY;
 
-			if (log(imgIntensity) > 6)
+			if (log(imgIntensity) > 7)
 			{
-				chosenX = &redX;
-				chosenY = &redY;
+				chosenX = &blueX;
+				chosenY = &blueY;
 			}
-
+            
 			if (!intensityBins)
 			{
 				double resolution = refHolders[j]->getResolution();
@@ -416,9 +435,13 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 			}
 			chosenY->push_back(percent);
 
-		}
-	}
-
+        }
+    }
+    
+    double aveSum = percentSum / (double)sum;
+    
+    std::cout << "Average sum = " << aveSum << std::endl;
+    
 	if (redX.size() == 0)
 		properties["colour_0"] = 1;
 
@@ -465,7 +488,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
 	properties["yMax"] = 4;
 
 	vector<double> bins;
-	StatisticsManager::generateResolutionBins(50, 1.6, 18, &bins);
+	StatisticsManager::generateResolutionBins(50, 2.1, 18, &bins);
 
 	vector<vector<double> > xs;
 	vector<vector<double> > ys;
@@ -496,7 +519,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
 */
 
 		vector<double> bins;
-		StatisticsManager::generateResolutionBins(50, 1.6, 8, &bins);
+		StatisticsManager::generateResolutionBins(50, 2.1, 8, &bins);
 
 		vector<double> x, y;
 
@@ -767,7 +790,7 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 2.1, 4, &resolutions);
+	StatisticsManager::generateResolutionBins(0, 2, 2, &resolutions);
 
 	double scatterRes = 1 / 5.0;
 
@@ -787,18 +810,20 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 	if (maxPercentage < 250 || !isfinite(maxPercentage))
 		maxPercentage = 250;
 
-	maxPercentage = 250;
+	maxPercentage = 200;
 
 	std::sort(partials.begin(), partials.end(), sortByWavelength);
 
 	double minX = partials[50].wavelength;
 	double maxX = partials[partials.size() - 50].wavelength;
 
-	if (maxX - minX > 0.2)
+    double wantedWidth = 0.2;
+    
+	if (maxX - minX > wantedWidth)
 	{
 		double ave = (maxX + minX) / 2;
-		maxX = ave + 0.1;
-		minX = ave - 0.1;
+		maxX = ave + wantedWidth / 2;
+		minX = ave - wantedWidth / 2;
 	}
 
 	int resCount = resolutions.size();
@@ -934,7 +959,7 @@ void GraphDrawer::plotPartialityStats()
             if (percentage < 0)
                 percentage = 0;
             
-            if (rand() % 20 == 0)
+         //   if (rand() % 20 == 0)
             {
                 xs.push_back(partiality);
                 ys.push_back(percentage);

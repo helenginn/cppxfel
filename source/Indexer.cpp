@@ -24,7 +24,7 @@
 
 #define HROT_TOLERANCE 0.001
 #define KROT_TOLERANCE 0.001
-#define ANGLE_TOLERANCE 0.00005
+#define ANGLE_TOLERANCE 0.0001
 #define SPOT_DISTANCE_TOLERANCE 5
 
 double Indexer::intensityThreshold;
@@ -46,7 +46,7 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     kRot = 0;
     lastTotal = 0;
     lastStdev = 0;
-    expectedSpots = 30;
+    expectedSpots = FileParser::getKey("EXPECTED_SPOTS", 30);
     intensityThreshold = INTENSITY_THRESHOLD;
     refinement = RefinementTypeOrientationMatrixEarly;
     image = newImage;
@@ -286,14 +286,22 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
         vec hkl = new_vector(miller->getH(), miller->getK(), miller->getL());
         matrix->multiplyVector(&hkl);
         
+        int roughX = 0;
+        int roughY = 0;
+        
+        miller->setMatrix(matrix);
+        miller->positionOnDetector(0, 0, &roughX, &roughY);
+        
         double d = length_of_vector(hkl);
         if (d > maxD)
         {
+            logged << "Rejected Miller unacceptable resolution at\t" << roughX << "\t" << roughY << std::endl;
+            sendLog(LogLevelDebug);
             cutResolution++;
             continue;
         }
         
-        miller->setMatrix(matrix);
+        
         miller->recalculatePartiality(hRot, kRot, 0.03, testSpotSize,
                                       wavelength, bandwidth, 1.5);
         
@@ -302,6 +310,8 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
         
         if (miller->getPartiality() <= 0)
         {
+            logged << "Rejected Miller partiality too low at\t" << roughX << "\t" << roughY << std::endl;
+            sendLog(LogLevelDebug);
             partialityTooLow++;
             continue;
         }
@@ -322,8 +332,10 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
         
         double rawIntensity = miller->getRawIntensity();
         
-        if (rawIntensity != rawIntensity || (int) rawIntensity == 0)
+        if (rawIntensity != rawIntensity || (int) rawIntensity == 0 || rawIntensity < -500)
         {
+            logged << "Rejected Miller with non-intensity at\t" << roughX << "\t" << roughY << std::endl;
+            sendLog(LogLevelDebug);
             unacceptableIntensity++;
             continue;
         }
@@ -520,7 +532,7 @@ void Indexer::findSpots()
             
             for (int tolX = 0; tolX < tolerance; tolX++)
             {
-                for (int tolY = 0; tolY < tolerance / 2; tolY++)
+                for (int tolY = 0; tolY < tolerance; tolY++)
                 {
                     double x = i + tolX;
                     double y = j + tolY;
@@ -807,6 +819,21 @@ double Indexer::score()
         return 0 - identicalSpotsAndMillers();
     }
     
+    if (refinement == RefinementTypeOrientationMatrixTotalSignal)
+    {
+        double total = 0;
+        
+        for (int i = 0; i < millers.size(); i++)
+        {
+            if (millerReachesThreshold(millers[i]))
+            {
+                total -= millers[i]->getRawestIntensity();
+            }
+        }
+        
+        return total;
+    }
+    
     if (refinement == RefinementTypeOrientationMatrixRough)
     {
         std::vector<double> wavelengths;
@@ -937,8 +964,8 @@ double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
         {
             double radians = i * M_PI / 180;
             
-            checkAllMillers(maxResolution, testBandwidth);
             this->getMatrix()->rotate(hRad, kRad, radians);
+            checkAllMillers(maxResolution, testBandwidth);
             
             double total = score();
             hRads.push_back(hRad);
@@ -950,7 +977,7 @@ double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
             << std::endl;
             sendLog(LogLevelNormal);
             
-            this->setMatrix(copyMatrix);
+            this->setMatrixCopy(copyMatrix);
         }
 
     }
@@ -973,11 +1000,11 @@ double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
         }
     }
     
-    std::cout << "Rotating to best score for " << bestWedge
+    logged << "Rotating to best score for " << bestWedge
     << "º rotation for " << bestHRad << ", " << bestKRad
     << std::endl;
-    this->setMatrix(bestMatrix);
-    std::cout << "Score: " << score() << std::endl;
+    this->setMatrixCopy(bestMatrix);
+    logged << "Score: " << score() << std::endl;
     
     sendLog(LogLevelNormal);
 
@@ -996,7 +1023,8 @@ void Indexer::refineRoundBeamAxis()
     double total = getTotalIntegratedSignal();
     total /= millers.size();
     
-    std::cout << "Signal is: " << total << std::endl;
+    logged << "Signal is: " << total << std::endl;
+    sendLog(LogLevelNormal);
     
     this->getMatrix()->printDescription();
 }
@@ -1013,7 +1041,7 @@ bool compareScore(pair<vector<double>, double> a, pair<vector<double>, double> b
 
 void Indexer::matchMatrixToSpots(RefinementType refinement)
 {
-    double wedge = 45; // degrees
+    double wedge = FileParser::getKey("INDEXING_SLICE_ANGLE", 30.0); // degrees
     //	map<vector<double>, double> scores = map<vector<double>, double>();
     vector<pair<vector<double>, double> > scores;
     
@@ -1034,8 +1062,6 @@ void Indexer::matchMatrixToSpots(RefinementType refinement)
             double kRad = kr * M_PI / 180;
             
             this->getMatrix()->rotate(hRad, kRad, 0);
-            checkAllMillers(maxResolution, testBandwidth);
-            
             double theScore = score();
             
             vector<double> rotation = vector<double>();
@@ -1047,9 +1073,9 @@ void Indexer::matchMatrixToSpots(RefinementType refinement)
             scores.push_back(pair);
             
             std::cout << hRad << "\t" << kRad << "\t" << theScore << std::endl;
+            
+            this->setMatrixCopy(copyMatrix);
         }
-        
-        this->setMatrix(copyMatrix);
     }
     
     std::cout << "100%" << std::endl;
@@ -1060,13 +1086,18 @@ void Indexer::matchMatrixToSpots(RefinementType refinement)
     
     std::cout << std::endl << "Solutions to try: " << std::endl;
     
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 6; i++)
     {
         std::cout << scores[i].first[0] << "\t" << scores[i].first[1] << "\t"
         << scores[i].second << std::endl;
         
         solutions.push_back(scores[i].first);
     }
+    
+    this->getMatrix()->rotate(scores[0].first[0], scores[0].first[1], 0);
+    std::cout << "Max score: " << score() << std::endl;
+    
+    this->setMatrix(copyMatrix);
     
     std::cout << std::endl;
 }

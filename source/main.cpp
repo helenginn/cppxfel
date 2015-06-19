@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
                 l = atoi(argv[6]);
             }
 
-            stats.partialityStats(0, threshold, h, k, l);
+   //         stats.partialityStats(0, threshold, h, k, l);
 
 #ifdef MAC
             GraphDrawer drawer = GraphDrawer(&*stats.mtzs[0]);
@@ -321,6 +321,12 @@ int main(int argc, char *argv[])
 
 			managers.push_back(mtz);
 		}
+        
+        
+        for (int i = 0; i < managers.size(); i++)
+        {
+            managers[i]->denormaliseMillers();
+        }
 
 		GraphDrawer graph = GraphDrawer(reference);
 
@@ -329,7 +335,8 @@ int main(int argc, char *argv[])
 		graph.resolutionStatsPlot(managers, "intensity_bins_2", GraphMap(),
 				true, true);
 		graph.resolutionStatsPlot(managers);
-
+        graph.bFactorPlot(managers);
+        
 		for (int i = 0; i < managers.size(); i++)
 			delete managers[i];
 

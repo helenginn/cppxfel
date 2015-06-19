@@ -149,13 +149,18 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         if (rSplit > 0)
             mtzManagers[i]->setAdditionalWeight(rSplit);
         
+        double *cellDims = new double[3];
+        mtzManagers[i]->getMatrix()->unitCellLengths(&cellDims);
+        
 		logged << mtzManagers[i]->getFilename() << "\t" << correl <<  "\t" << rSplit << "\t"
 				<< mtzManagers[i]->accepted() << "\t"
 				<< mtzManagers[i]->getMosaicity() << "\t"
 				<< mtzManagers[i]->getWavelength() << "\t"
 				<< mtzManagers[i]->getBandwidth() << "\t" << hRot << "\t"
 				<< kRot << "\t" << mtzManagers[i]->getSpotSize() << "\t"
-            << mtzManagers[i]->getExponent() << "\t" << mtzManagers[i]->bFactor << "\t" << mtzManagers[i]->getActiveAmbiguity() << std::endl;
+            << mtzManagers[i]->getExponent() << "\t" << cellDims[0] << "\t" << cellDims[1] << "\t" << cellDims[2] << std::endl;
+        
+        delete [] cellDims;
 	}
 
 	averageCorrelation /= mtzManagers.size();
@@ -611,7 +616,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
         {
             totalSigma = holder->mergeSigma();
         }
-
+        
 		millerCount += holder->acceptedCount();
 		rejectCount += holder->rejectCount();
 		holderCount++;
