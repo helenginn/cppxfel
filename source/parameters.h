@@ -21,7 +21,10 @@
 #define PARAM_EXPONENT 6
 #define PARAM_B_FACTOR 7
 #define PARAM_SCALE_FACTOR 8
-#define PARAM_NUM 9
+#define PARAM_UNIT_CELL_A 9
+#define PARAM_UNIT_CELL_B 10
+#define PARAM_UNIT_CELL_C 11
+#define PARAM_NUM 12
 
 #define INITIAL_BANDWIDTH 0.0013
 #define INITIAL_MOSAICITY 0.0
@@ -89,18 +92,24 @@
 
 #define PIXEL_LEAK 2.5
 #define SHOEBOX_BANDWIDTH_MULTIPLIER 0.33
+#define REFERENCE_WEAK_REFLECTION 800
 
 #define SUPER_GAUSSIAN_STEP 0.0001
 #define MAX_SUPER_GAUSSIAN 10
 
 class Miller;
 
+
+#include "parameters.h"
 #include <sstream>
 #include <memory>
 #include <vector>
 #include <map>
 #include <boost/variant.hpp>
+#include <boost/shared_ptr.hpp>
 #include <string>
+
+using std::vector;
 
 typedef enum
 {
@@ -112,26 +121,26 @@ typedef enum
 	RFactorNone, RFactorTypeMerge, RFactorTypePim, RFactorTypeMeas,
 } RFactorType;
 
-class MtzManager;
 class Panel;
 class Logger;
 class Image;
 class Shoebox;
 class Matrix;
 class Indexer;
+class MtzManager;
 
-typedef std::shared_ptr<Miller> MillerPtr;
-typedef std::shared_ptr<Shoebox>ShoeboxPtr;
-typedef std::shared_ptr<Panel>PanelPtr;
-typedef std::shared_ptr<MtzManager>MtzPtr;
-typedef std::shared_ptr<std::ostringstream> StreamPtr;
-typedef std::shared_ptr<Logger>LoggerPtr;
-typedef std::shared_ptr<Image>ImagePtr;
+typedef boost::shared_ptr<Miller> MillerPtr;
+typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
+typedef boost::shared_ptr<Panel>PanelPtr;
+typedef boost::shared_ptr<MtzManager>MtzPtr;
+typedef boost::shared_ptr<std::ostringstream> StreamPtr;
+typedef boost::shared_ptr<Logger>LoggerPtr;
+typedef boost::shared_ptr<Image>ImagePtr;
 typedef std::shared_ptr<Matrix>MatrixPtr;
-typedef std::shared_ptr<Indexer>IndexerPtr;
+typedef boost::shared_ptr<Indexer>IndexerPtr;
 
 typedef boost::variant<double, double, std::string, bool, int,
-		std::vector<double>, std::vector<int> > ParameterVariant;
+		vector<double>, vector<int> > ParameterVariant;
 typedef std::map<std::string, ParameterVariant> ParametersMap;
 typedef void (*ParserFunction)(ParametersMap *, std::string, std::string);
 typedef std::map<std::string, ParserFunction> ParserMap;

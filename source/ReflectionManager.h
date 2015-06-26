@@ -7,11 +7,9 @@
 #include "MtzManager.h"
 #include "ScalingManager.h"
 
-using namespace std;
-
 struct ImageReflection
 {
-	Holder *holder;
+	Reflection *reflection;
 	MtzManager *manager;
 	double l;
 };
@@ -19,7 +17,7 @@ struct ImageReflection
 class ReflectionManager
 {
 private:
-	void holder_for_image(double l, Holder **holder);
+	void reflection_for_image(double l, Reflection **reflection);
 	
 	void alpha_beta_hj(vector<Scale_factor> Gs, int j, double *alpha_hj, double *beta_hj);
     CCP4SPG *group;
@@ -34,7 +32,7 @@ public:
 	ReflectionManager(void);
 	~ReflectionManager(void);
 
-	void addHolderForImage(Holder *holder, MtzManager *manager, double l);
+	void addReflectionForImage(Reflection *reflection, MtzManager *manager, double l);
 	double l_sum_E_alpha_2(vector<Scale_factor> Gs);
 	double contributionToGradient(vector<Scale_factor> Gs, int l);
 	void sortReflections();
@@ -50,7 +48,7 @@ public:
     void splitIntensities(vector<Scale_factor> *Gs,
                           double *int1, double *int2);
     double intensity(vector<Scale_factor> *Gs, double *sigma);
-    Holder *mergedHolder(vector<Scale_factor> *Gs, bool half, bool all);
+    Reflection *mergedReflection(vector<Scale_factor> *Gs, bool half, bool all);
 	
 	double E_alpha(vector<Scale_factor> Gs, int l, double *sum_alpha_beta, double *sum_alpha_alpha);
     

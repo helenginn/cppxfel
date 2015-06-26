@@ -2,11 +2,15 @@
 #include <cmath>
 #include "Vector.h"
 #include <algorithm>
+#include "Scaler.h"
 
+#include "MtzRefiner.h"
 #include "FileParser.h"
 #include "MtzManager.h"
 #include "parameters.h"
 #include "GraphDrawer.h"
+
+
 
 #define DEFAULT_RESOLUTION 3.4
 typedef boost::tuple<double, double, double, double, double> ResultTuple;
@@ -16,27 +20,27 @@ double MtzManager::weightedBestWavelength(double lowRes, double highRes)
     vector<double> wavelengths;
     vector<double> percentages;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        Holder *imageHolder = holder(i);
+        Reflection *imageReflection = reflection(i);
         
-        if (imageHolder->getResolution() < lowRes)
+        if (imageReflection->getResolution() < lowRes)
             continue;
         
-        if (imageHolder->getResolution() > highRes)
+        if (imageReflection->getResolution() > highRes)
             continue;
         
-        Holder *refHolder = NULL;
-        int reflid = imageHolder->getReflId();
+        Reflection *refReflection = NULL;
+        int reflid = imageReflection->getReflId();
         
-        referenceManager->findHolderWithId(reflid, &refHolder);
+        referenceManager->findReflectionWithId(reflid, &refReflection);
         
-        if (refHolder != NULL)
+        if (refReflection != NULL)
         {
-            double wavelength = imageHolder->miller(0)->getWavelength();
+            double wavelength = imageReflection->miller(0)->getWavelength();
             
-            double percentage = imageHolder->miller(0)->getRawIntensity()
-            / imageHolder->miller(0)->getCountingSigma();
+            double percentage = imageReflection->miller(0)->getRawIntensity()
+            / imageReflection->miller(0)->getCountingSigma();
             
             if (percentage != percentage)
                 continue;
@@ -108,6 +112,19 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     {
         return static_cast<MtzManager *>(object)->wavelengthStandardDeviation();
     }
+    else if (scoreType == ScoreTypeMinimizeRMeas)
+    {
+        Scaler *scaler = Scaler::getScaler();
+        double rSplit = static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
+        if (scaler == NULL)
+        {
+            return rSplit;
+        }
+        else
+        {
+            return scaler->evaluateForImage(static_cast<MtzManager *>(object)) + rSplit / 2;
+        }
+    }
     
     else
         return static_cast<MtzManager *>(object)->exclusionScore(lowRes,
@@ -128,23 +145,27 @@ double MtzManager::rSplit(double low, double high, bool square)
     double lowCut = low == 0 ? 0 : 1 / low;
     double highCut = high == 0 ? FLT_MAX : 1 / high;
     
-    vector<Holder *> holders1;
-    vector<Holder *> holders2;
+    vector<Reflection *> reflections1;
+    vector<Reflection *> reflections2;
     
-    this->findCommonReflections(referenceManager, holders1, holders2, NULL);
+    this->findCommonReflections(referenceManager, reflections1, reflections2, NULL);
     
-    for (int i = 0; i < holders1.size(); i++)
+    for (int i = 0; i < reflections1.size(); i++)
     {
-        Holder *holder = holders1[i];
-        Holder *holder2 = holders2[i];
+        Reflection *reflection = reflections1[i];
+        Reflection *reflection2 = reflections2[i];
         
-        if (holder->getResolution() < lowCut
-            || holder->getResolution() > highCut)
+        if (reflection->getResolution() < lowCut
+            || reflection->getResolution() > highCut)
             continue;
         
-        double int1 = holder->meanIntensity();
-        double int2 = holder2->meanIntensityWithExclusion(&filename);
-        double weight = holder->meanWeight() * holder->getResolution();
+        double int1 = reflection->meanIntensity();
+        if (reflection2->meanIntensity() < REFERENCE_WEAK_REFLECTION)
+            continue;
+
+        double int2 = reflection2->meanIntensityWithExclusion(&filename);
+        
+        double weight = reflection->meanWeight() * reflection->getResolution();
         
         if (int1 != int1 || int2 != int2)
             continue;
@@ -219,24 +240,24 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     double lowCut = low == 0 ? 0 : 1 / low;
     double highCut = 1 / 2.0;
     
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        Holder *imageHolder = holders[i];
-        Holder *refHolder = NULL;
-        int reflid = imageHolder->getReflId();
+        Reflection *imageReflection = reflections[i];
+        Reflection *refReflection = NULL;
+        int reflid = imageReflection->getReflId();
         
-        referenceManager->findHolderWithId(reflid, &refHolder);
+        referenceManager->findReflectionWithId(reflid, &refReflection);
         
-        if (refHolder != NULL)
+        if (refReflection != NULL)
         {
-            if (refHolder->meanIntensity() < 1500)
+            if (refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
                 continue;
             
             Partial partial;
-            partial.partiality = imageHolder->miller(0)->getPartiality();
-            partial.percentage = imageHolder->miller(0)->getRawIntensity()
-            / refHolder->meanIntensityWithExclusion(&filename);
-            partial.resolution = imageHolder->getResolution();
+            partial.partiality = imageReflection->miller(0)->getPartiality();
+            partial.percentage = imageReflection->miller(0)->getRawIntensity()
+            / refReflection->meanIntensityWithExclusion(&filename);
+            partial.resolution = imageReflection->getResolution();
             
             partials.push_back(partial);
         }
@@ -376,22 +397,21 @@ double MtzManager::minimizeParameter(double *meanStep, double **params,
     if (param_min_num == 1)
         *meanStep /= 2;
     
+    this->refreshPartialities((*params));
+
     return param_min_score;
 }
 
-double MtzManager::minimize(bool minimizeSpotSize, bool suppress)
+double MtzManager::minimize()
 {
-    return minimize(minimizeSpotSize, suppress, exclusionScoreWrapper, this);
+    return minimize(exclusionScoreWrapper, this);
 }
 
-double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
-                            double (*score)(void *object, double lowRes, double highRes), void *object)
+double MtzManager::minimize(double (*score)(void *object, double lowRes, double highRes), void *object)
 {
     double wavelength = 0;
     
     bool reinitialiseWavelength = FileParser::getKey("REINITIALISE_WAVELENGTH", false);
-    
-    bool correlationThreshold = FileParser::getKey("CORRELATION_THRESHOLD", CORRELATION_THRESHOLD);
     
     if (isUsingFixedWavelength())
     {
@@ -409,8 +429,6 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     }
     else
     {
-        MtzManager *reference = MtzManager::getReferenceManager();
-        
         wavelength = bestWavelength(0, 0, false);
         
         if (this->isRejected())
@@ -437,6 +455,10 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     double mosStep = stepSizeMosaicity;
     double hStep = stepSizeOrientation;
     double kStep = stepSizeOrientation;
+    double aStep = 0.5;
+    double bStep = 0.5;
+    double cStep = 0.5;
+    
   
     params = new double[PARAM_NUM];
     
@@ -446,7 +468,12 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     params[PARAM_SPOT_SIZE] = this->getSpotSize();
     params[PARAM_WAVELENGTH] = wavelength;
     params[PARAM_BANDWIDTH] = bandwidth;
+    params[PARAM_B_FACTOR] = bFactor;
+    params[PARAM_SCALE_FACTOR] = scale;
     params[PARAM_EXPONENT] = this->getExponent();
+    params[PARAM_UNIT_CELL_A] = this->cellDim[0];
+    params[PARAM_UNIT_CELL_B] = this->cellDim[1];
+    params[PARAM_UNIT_CELL_C] = this->cellDim[2];
     
     int count = 0;
     
@@ -474,12 +501,6 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
         if (!optimisedHRot && !optimisedKRot)
             minimizeTwoParameters(&hStep, &kStep, &params, PARAM_HROT,
                                   PARAM_KROT, score, object, 0, maxResolutionAll, FLT_MAX);
-        
-        /*
-        if (scoreType == ScoreTypeStandardDeviation)
-        {
-            params[PARAM_WAVELENGTH] = this->wavelength;
-        }*/
         
         if (scoreType != ScoreTypeStandardDeviation)
         {
@@ -523,6 +544,11 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
         }
     }
     
+    bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+    bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+    bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
+    
+    
     bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);
     
     if (refineB && bFactor == 0)
@@ -544,13 +570,45 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
         }
     }
     
+    this->setParams(params);
     this->refreshPartialities(params);
     this->applyBFactor(bFactor);
     
-    double newScore = (*score)(object, 0, 0);
     
-    double hits = accepted();
-    string scoreDescription = this->describeScoreType();
+    while (!(optimisedUnitCellA && optimisedUnitCellB
+             && optimisedUnitCellC) && count < 50)
+    {
+        if (!optimisedUnitCellA)
+        {
+            minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, 0, maxResolutionAll);
+        }
+        
+        if (!optimisedUnitCellB)
+        {
+            minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, 0, maxResolutionAll);
+        }
+        
+        if (!optimisedUnitCellC)
+        {
+            minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
+        }
+        
+        std::cout << (*score)(object, 0, maxResolutionAll) << ", " << correlation() << std::endl;
+        
+        if (aStep < 0.005)
+            optimisedUnitCellA = true;
+        
+        if (bStep < 0.005)
+            optimisedUnitCellB = true;
+        
+        if (cStep < 0.005)
+            optimisedUnitCellC = true;
+        
+        count++;
+    }
+    
+    this->refreshPartialities(params);
+    
     double correl = correlation(true);
     
     this->wavelength = params[PARAM_WAVELENGTH];
@@ -560,6 +618,9 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
     this->hRot = params[PARAM_HROT];
     this->kRot = params[PARAM_KROT];
     this->exponent = params[PARAM_EXPONENT];
+    this->cellDim[0] = params[PARAM_UNIT_CELL_A];
+    this->cellDim[1] = params[PARAM_UNIT_CELL_B];
+    this->cellDim[2] = params[PARAM_UNIT_CELL_C];
     this->refCorrelation = correl;
     
     delete[] params;
@@ -569,37 +630,30 @@ double MtzManager::minimize(bool minimizeSpotSize, bool suppress,
         return rFactorWithManager(RFactorTypeMeas);
     }
     
+    logged << "Returning correl: " << correl << std::endl;
+    
     return correl;
 }
 
-void MtzManager::gridSearchWrapper(MtzManager *image, bool minimizeSpotSize)
-{
-    image->gridSearch(minimizeSpotSize);
-}
 
-void MtzManager::gridSearch(
-                            double (*score)(void *object, double lowRes, double highRes), void *object)
-{
-    minimize(true, 0, score, object);
-}
-
-void MtzManager::gridSearch(bool minimizeSpotSize)
+void MtzManager::gridSearch()
 {
     scoreType = defaultScoreType;
-    string scoreDescription = this->describeScoreType();
+    chooseAppropriateTarget();
+    std::string scoreDescription = this->describeScoreType();
     
     double scale = this->gradientAgainstManager(*this->getReferenceManager());
     applyScaleFactor(scale);
     
     this->reallowPartialityOutliers();
     
-    std::map<int, std::pair<std::vector<double>, double> > ambiguityResults;
+    std::map<int, std::pair<vector<double>, double> > ambiguityResults;
     
     double *firstParams = new double[PARAM_NUM];
     getParams(&firstParams);
     
     if (trust == TrustLevelGood)
-        minimize(minimizeSpotSize, true);
+        minimize();
     
     if (trust != TrustLevelGood)
     {
@@ -617,7 +671,7 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
             int hits = 0;
             double realCorrel = StatisticsManager::cc_pearson(this, getReferenceManager(), true, &hits, NULL, 0, 0, false);
             
-            std::pair<std::vector<double>, double> result = std::make_pair(bestParams, correl);
+            std::pair<vector<double>, double> result = std::make_pair(bestParams, correl);
             
             ambiguityResults[ambiguity] = result;
             incrementActiveAmbiguity();
@@ -630,7 +684,7 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
         
         for (int i = 0; i < ambiguityCount(); i++)
         {
-            std::pair<std::vector<double>, double> result = ambiguityResults[i];
+            std::pair<vector<double>, double> result = ambiguityResults[i];
             
             logged << result.second << " ";
             
@@ -688,15 +742,22 @@ void MtzManager::gridSearch(bool minimizeSpotSize)
     
     this->sendLog(LogLevelDetailed);
     
+    Scaler *scaler = Scaler::getScaler();
+    
+    double rMerge = 0;
+    
+    if (scaler)
+        rMerge = scaler->evaluateForImage(this);
+    
     logged << filename << "\t" << scoreDescription << "\t" << "\t"
     << newerCorrel << "\t" << rSplitValue << "\t"
-    << partCorrel << "\t" << abs(bFactor) << "\t" << hits << std::endl;
+    << partCorrel << "\t" << rMerge << "\t" << hits << std::endl;
     
     this->sendLog(LogLevelNormal);
     
     delete[] firstParams;
     
-    writeToFile(string("ref-") + filename);
+    writeToFile(std::string("ref-") + filename);
 }
 
 void MtzManager::excludeFromLogCorrelation()
@@ -710,29 +771,29 @@ void MtzManager::excludeFromLogCorrelation()
     vector<double> refIntensities;
     vector<double> imageIntensities;
     vector<double> weights;
-    vector<Holder *> imgHolders;
+    vector<Reflection *> imgReflections;
     
-    for (int i = 0; i < image1.holderCount(); i++)
+    for (int i = 0; i < image1.reflectionCount(); i++)
     {
-        Holder *holder = image1.holder(i);
-        Holder *holder2 = NULL;
+        Reflection *reflection = image1.reflection(i);
+        Reflection *reflection2 = NULL;
         
-        if (holder->getResolution() < lowCut
-            || holder->getResolution() > highCut)
+        if (reflection->getResolution() < lowCut
+            || reflection->getResolution() > highCut)
             continue;
         
-        int refl = holder->getReflId();
+        int refl = reflection->getReflId();
         
-        image2.findHolderWithId(refl, &holder2);
+        image2.findReflectionWithId(refl, &reflection2);
         
-        if (holder2 == NULL)
+        if (reflection2 == NULL)
             continue;
         
-        double int1 = (holder->meanIntensity());
+        double int1 = (reflection->meanIntensity());
         
-        double int2 = (holder2->meanIntensityWithExclusion(&filename));
+        double int2 = (reflection2->meanIntensityWithExclusion(&filename));
         
-        double weight = holder->meanPartiality() / holder2->meanSigma();
+        double weight = reflection->meanPartiality() / reflection2->meanSigma();
         
         if (int1 != int1 || int2 != int2 || weight != weight)
             continue;
@@ -740,7 +801,7 @@ void MtzManager::excludeFromLogCorrelation()
         if (!isfinite(int1) || !isfinite(int2))
             continue;
         
-        imgHolders.push_back(holder);
+        imgReflections.push_back(reflection);
         imageIntensities.push_back(int1);
         refIntensities.push_back(int2);
         weights.push_back(weight);
@@ -781,19 +842,19 @@ void MtzManager::excludeFromLogCorrelation()
         
         if (it->first > 0.06)
         {
-            imgHolders[correlationResults[it->first]]->miller(0)->setRejected(
+            imgReflections[correlationResults[it->first]]->miller(0)->setRejected(
                                                                               "correl", true);
             count++;
         }
     }
 }
 
-double MtzManager::partialityRatio(Holder *imgHolder, Holder *refHolder)
+double MtzManager::partialityRatio(Reflection *imgReflection, Reflection *refReflection)
 {
-    double rawIntensity = imgHolder->miller(0)->getRawIntensity();
-    double percentage = rawIntensity /= refHolder->meanIntensity();
+    double rawIntensity = imgReflection->miller(0)->getRawIntensity();
+    double percentage = rawIntensity /= refReflection->meanIntensity();
     
-    double partiality = imgHolder->meanPartiality();
+    double partiality = imgReflection->meanPartiality();
     
     double ratio = percentage / partiality;
     
@@ -805,32 +866,32 @@ double MtzManager::partialityRatio(Holder *imgHolder, Holder *refHolder)
 
 void MtzManager::reallowPartialityOutliers()
 {
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        holder(i)->miller(0)->setRejected("partiality", false);
+        reflection(i)->miller(0)->setRejected("partiality", false);
     }
 }
 
 void MtzManager::excludePartialityOutliers()
 {
-    vector<Holder *> refHolders, imgHolders;
+    vector<Reflection *> refReflections, imgReflections;
     
     applyScaleFactor(this->gradientAgainstManager(*referenceManager));
     
-    this->findCommonReflections(referenceManager, imgHolders, refHolders,
+    this->findCommonReflections(referenceManager, imgReflections, refReflections,
                                 NULL);
     
     vector<double> ratios;
     
-    for (int i = 0; i < refHolders.size(); i++)
+    for (int i = 0; i < refReflections.size(); i++)
     {
-        Holder *imgHolder = imgHolders[i];
-        Holder *refHolder = refHolders[i];
+        Reflection *imgReflection = imgReflections[i];
+        Reflection *refReflection = refReflections[i];
         
-        if (!imgHolder->anyAccepted())
+        if (!imgReflection->anyAccepted())
             continue;
         
-        double ratio = partialityRatio(imgHolder, refHolder);
+        double ratio = partialityRatio(imgReflection, refReflection);
         ratios.push_back(ratio);
     }
     
@@ -846,22 +907,22 @@ void MtzManager::excludePartialityOutliers()
     
     int rejectedCount = 0;
     
-    for (int i = 0; i < refHolders.size(); i++)
+    for (int i = 0; i < refReflections.size(); i++)
     {
-        Holder *imgHolder = imgHolders[i];
-        Holder *refHolder = refHolders[i];
+        Reflection *imgReflection = imgReflections[i];
+        Reflection *refReflection = refReflections[i];
         
-        double ratio = partialityRatio(imgHolder, refHolder);
+        double ratio = partialityRatio(imgReflection, refReflection);
         
         if (ratio > upperBound || ratio < lowerBound)
         {
-            if (!imgHolder->miller(0)->accepted())
+            if (!imgReflection->miller(0)->accepted())
                 continue;
             
-            if (imgHolder->betweenResolutions(1.7, 0))
+            if (imgReflection->betweenResolutions(1.7, 0))
                 continue;
             
-            imgHolder->miller(0)->setRejected("partiality", true);
+            imgReflection->miller(0)->setRejected("partiality", true);
             rejectedCount++;
         }
     }
@@ -891,6 +952,10 @@ void MtzManager::findSteps()
     params[PARAM_WAVELENGTH] = wavelength;
     params[PARAM_BANDWIDTH] = bandwidth;
     params[PARAM_EXPONENT] = this->getExponent();
+    params[PARAM_UNIT_CELL_A] = this->cellDim[0];
+    params[PARAM_UNIT_CELL_B] = this->cellDim[1];
+    params[PARAM_UNIT_CELL_C] = this->cellDim[2];
+    
     
     refreshPartialities(params);
     
@@ -904,17 +969,16 @@ void MtzManager::findSteps()
     double jStep = (jMaxParam - jMinParam) / 2;
     double jParam = 0;
     
-    double kMinParam = wavelength - 0.01;
-    double kMaxParam = wavelength + 0.01;
-    double kStep = (kMaxParam - kMinParam) / 50;
-    double kParam = 1.293;
+    double kMinParam = wavelength - 0.03;
+    double kMaxParam = wavelength + 0.03;
+    double kStep = (kMaxParam - kMinParam) / 100;
     
-    double lMinParam = 0.0002;
-    double lMaxParam = 0.0008;
+    double lMinParam = 0.00079;
+    double lMaxParam = 0.00081;
     double lStep = (lMaxParam - lMinParam) / 50;
     double lParam = 0.0004;
     
-    std::vector<ResultTuple> results;
+    vector<ResultTuple> results;
     double bestResult = FLT_MAX;
     
    /* for (double iParam = iMinParam; iParam < iMaxParam; iParam += iStep)
@@ -923,8 +987,8 @@ void MtzManager::findSteps()
         {*/
             for (double kParam = kMinParam; kParam < kMaxParam; kParam += kStep)
             {
-                for (double lParam = lMinParam; lParam < lMaxParam; lParam += lStep)
-                {
+     /*           for (double lParam = lMinParam; lParam < lMaxParam; lParam += lStep)
+                {*/
                     params[PARAM_HROT] = iParam;
                     params[PARAM_KROT] = jParam;
                     params[PARAM_WAVELENGTH] = kParam;
@@ -935,13 +999,13 @@ void MtzManager::findSteps()
                     ResultTuple result = boost::make_tuple<>(iParam, jParam, kParam, lParam, score);
                     results.push_back(result);
                  
-                    std::cout << iParam << "\t" << jParam << "\t" << kParam << "\t" << lParam << "\t" << score << std::endl;
+          //          std::cout << iParam << "\t" << jParam << "\t" << kParam << "\t" << lParam << "\t" << score << std::endl;
                     
                     if (bestResult > score)
                     {
                         bestResult = score;
                     }
-                }
+          //      }
             }
 /*        }
     }
@@ -973,4 +1037,47 @@ void MtzManager::findSteps()
     this->setFinalised(true);
     
     this->writeToFile("ref-" + getFilename());
+}
+
+void MtzManager::chooseAppropriateTarget()
+{
+    if (defaultScoreType != ScoreTypeMinimizeRMeas)
+        return;
+    
+    if (MtzRefiner::getCycleNum() == 0)
+    {
+        scoreType = ScoreTypeMinimizeRSplit;
+        return;
+    }
+    
+    if (failedCount == 0)
+    {
+        scoreType = ScoreTypeMinimizeRMeas;
+    }
+    
+    if (failedCount > 1)
+    {
+        scoreType = ScoreTypeMinimizeRSplit;
+        resetDefaultParameters();
+        wavelength = bestWavelength();
+        applyUnrefinedPartiality();
+    }
+}
+
+void MtzManager::resetDefaultParameters()
+{
+    wavelength = FileParser::getKey("INITIAL_WAVELENGTH", 0.0);
+    usingFixedWavelength = (wavelength != 0);
+    bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
+    mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
+    spotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
+    hRot = 0;
+    kRot = 0;
+    exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
+    
+    allowTrust = FileParser::getKey("ALLOW_TRUST", true);
+    bool alwaysTrust = FileParser::getKey("TRUST_INDEXING_SOLUTION", false);
+    
+    if (alwaysTrust)
+        trust = TrustLevelGood;
 }

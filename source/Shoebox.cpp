@@ -48,7 +48,7 @@ void Shoebox::simpleShoebox(int foregroundLength, int neitherLength, int backgro
     
     for (int i = 0; i < backgroundLength * 2 + 1; i++)
     {
-        shoebox.push_back(std::vector<double>());
+        shoebox.push_back(vector<double>());
         
         for (int j = 0; j < backgroundLength * 2 + 1; j++)
             shoebox[i].push_back(-1);
@@ -87,7 +87,7 @@ void shoeboxCoordinates(double largeDim, double resolution, int i, int j, double
 
 void Shoebox::printShoebox(Box &smallBox)
 {
-    ostringstream logged;
+    std::ostringstream logged;
     
     logged << "Shoebox for Miller" << std::endl;
     
@@ -396,9 +396,9 @@ void Shoebox::clearShoebox()
     for (int i = 0; i < shoebox.size(); i++)
     {
         shoebox[i].clear();
-        std::vector<double>().swap(shoebox[i]);
+        vector<double>().swap(shoebox[i]);
     }
     
     shoebox.clear();
-    std::vector<std::vector<double> >().swap(shoebox);
+    vector<vector<double> >().swap(shoebox);
 }

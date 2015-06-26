@@ -9,6 +9,11 @@
 #include "Scaler.h"
 #include "parameters.h"
 #include <scitbx/lbfgsb.h>
+#include "Vector.h"
+
+
+
+Scaler *Scaler::publicScaler = NULL;
 
 double Scaler::stepForParam(int paramNum)
 {
@@ -58,6 +63,22 @@ double Scaler::gNorm(int paramNum)
     return pow(Gsquares, 0.5);
 }
 
+Scaler *Scaler::getScaler(vector<MtzPtr> mtzs, MtzManager **grouped)
+{
+    if (publicScaler == NULL && mtzs.size() == 0)
+    {
+        return NULL;
+    }
+    
+    if (publicScaler == NULL && mtzs.size() > 0)
+    {
+        publicScaler = new Scaler(mtzs, grouped);
+        return publicScaler;
+    }
+    
+    return publicScaler;
+}
+
 double Scaler::hessianGradientForParam(MtzPtr mtz, int paramNum)
 {/*
     double *params = new double[PARAM_NUM];
@@ -88,7 +109,7 @@ double Scaler::hessianGradientForParam(MtzPtr mtz, int paramNum)
     if (second_derivative == 0)
         return 1;
     
-    return abs(1 / second_derivative) * hessianGradientForParamType(paramNum);*/
+    return fabs(1 / second_derivative) * hessianGradientForParamType(paramNum);*/
     
     return hessianGradientForParamType(paramNum);
 }
@@ -112,17 +133,161 @@ double Scaler::hessianGradientForParamType(int paramNum)
     return 1;
 }
 
-Scaler::Scaler(std::vector<MtzPtr> mtzs, MtzManager **grouped)
+Scaler::Scaler(vector<MtzPtr> mtzs, MtzManager **grouped)
 {
-    groupedMtz = grouped;
+    groupedMtz = (*grouped)->copy();
 
     for (int i = 0; i < mtzs.size(); i++)
     {
-        std::vector<Holder *> refHolders, imageHolders;
-        mtzs[i]->findCommonReflections(*grouped, imageHolders, refHolders);
+        vector<Reflection *> refReflections, imageReflections;
+        mtzs[i]->findCommonReflections(&*groupedMtz, imageReflections, refReflections);
         
-        mtzData[mtzs[i]] = refHolders;
+        mtzData[mtzs[i]] = refReflections;
     }
+}
+
+bool Scaler::mtzIsBeneficial(MtzPtr mtz)
+{
+    vector<Reflection *>reflections = mtzData[mtz];
+    vector<double> cchalf1, cchalf2;
+    vector<double> excCChalf1, excCChalf2;
+    
+    
+    for (int i = 0; i < reflections.size(); i++)
+    {
+        Reflection *reflection = reflections[i];
+        int acceptedCount = reflection->acceptedCount();
+        if (acceptedCount < 4)
+            continue;
+        
+        int half = acceptedCount / 2;
+        
+        double int1 = 0;
+        double int2 = 0;
+        
+        double excInt1 = 0;
+        double excInt2 = 0;
+        
+        std::string filename = mtz->getFilename();
+        
+        if (acceptedCount == 3)
+        {
+            int num = -1;
+            for (int j = 0; j < 3; j++)
+            {
+                if (reflection->miller(j)->getFilename() == filename)
+                {
+                    num = j;
+                    break;
+                }
+            }
+            
+            if (num == -1)
+                continue;
+            
+            switch (num)
+            {
+                case 0:
+                    int1 = reflection->acceptedMiller(1)->intensity();
+                    int2 = reflection->acceptedMiller(2)->intensity();
+                    excInt1 = reflection->acceptedMiller(0)->intensity() + reflection->acceptedMiller(1)->intensity() / 2;
+                    excInt2 = reflection->acceptedMiller(2)->intensity();
+                    break;
+                case 1:
+                    int1 = reflection->acceptedMiller(0)->intensity();
+                    int2 = reflection->acceptedMiller(2)->intensity();
+                    excInt1 = reflection->acceptedMiller(0)->intensity() + reflection->acceptedMiller(2)->intensity() / 2;
+                    excInt2 = reflection->acceptedMiller(2)->intensity();
+                    break;
+                case 2:
+                    int1 = reflection->acceptedMiller(0)->intensity();
+                    int2 = reflection->acceptedMiller(1)->intensity();
+                    excInt1 = reflection->acceptedMiller(1)->intensity() + reflection->acceptedMiller(2)->intensity() / 2;
+                    excInt2 = reflection->acceptedMiller(0)->intensity();
+                    break;
+            }
+        }
+        else
+        {
+            int1 = reflection->meanIntensity(0, half);
+            int2 = reflection->meanIntensity(half, acceptedCount);
+        
+            excInt1 = reflection->meanIntensityWithExclusion(&filename, 0, half);
+            excInt2 = reflection->meanIntensityWithExclusion(&filename, half, acceptedCount);
+        }
+        
+        if (int1 == int1 && int2 == int2 && excInt1 == excInt1 && excInt2 == excInt2)
+        {
+            cchalf1.push_back(int1);
+            cchalf2.push_back(int2);
+        
+            excCChalf1.push_back(excInt1);
+            excCChalf2.push_back(excInt2);
+            
+        }
+    }
+    
+    double plainCorrel = correlation_between_vectors(&cchalf1, &cchalf2, NULL, -1);
+    double excCorrel = correlation_between_vectors(&excCChalf1, &excCChalf2, NULL, -1);
+    
+    bool increased = (plainCorrel > excCorrel);
+    if (isnan(plainCorrel) || isnan(excCorrel))
+        increased = true;
+
+    std::ostringstream logged;
+    
+    logged << mtz->getFilename() << "\t" << excCorrel << "\t" << plainCorrel << "\t" << excCChalf1.size() << "\t" << cchalf1.size() << "\t" << std::endl;
+    
+    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
+    
+    if (!increased)
+    {
+        mtz->incrementFailedCount();
+        
+        for (int i = 0; i < reflections.size(); i++)
+        {
+            for (int j = 0; j < reflections[i]->millerCount(); j++)
+            {
+                if (reflections[i]->miller(j)->getFilename() == mtz->getFilename())
+                {
+                    reflections[i]->miller(j)->setExcluded();
+                }
+            }
+        }
+    }
+    else
+    {
+        mtz->resetFailedCount();
+        
+        for (int i = 0; i < reflections.size(); i++)
+        {
+            for (int j = 0; j < reflections[i]->millerCount(); j++)
+            {
+                reflections[i]->miller(j)->setExcluded(false);
+            }
+        }
+    }
+    
+    return increased;
+}
+
+MtzPtr Scaler::pointerForMtz(MtzManager *pointer)
+{
+    for (MtzDataMap::iterator it = mtzData.begin(); it != mtzData.end(); it++)
+    {
+        MtzPtr mtz = it->first;
+        
+        if (&*mtz == pointer)
+            return mtz;
+    }
+    
+    return MtzPtr();
+}
+
+double Scaler::evaluateForImage(MtzManager *mtz)
+{
+    MtzPtr mtzPtr = pointerForMtz(mtz);
+    return evaluateForImage(mtzPtr);
 }
 
 double Scaler::evaluateForImage(MtzPtr mtz)
@@ -186,9 +351,9 @@ double Scaler::evaluate()
     double numerator = 0;
     double denominator = 0;
     
-    for (int i = 0; i < (*groupedMtz)->holderCount(); i++)
+    for (int i = 0; i < groupedMtz->reflectionCount(); i++)
     {
-        (*groupedMtz)->holder(i)->rMergeContribution(&numerator, &denominator);
+        groupedMtz->reflection(i)->rMergeContribution(&numerator, &denominator);
     }
     
     double fx = numerator / denominator;
@@ -321,7 +486,7 @@ void Scaler::minimizeRMerge()
 {
     int n = parameterCount();
     
-    ostringstream logged;
+    std::ostringstream logged;
   /*
     scitbx::af::shared<int> nbd(n);
     scitbx::af::shared<double> lowerLims(n);

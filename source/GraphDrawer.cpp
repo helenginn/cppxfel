@@ -25,6 +25,7 @@
 #include <cctbx/sgtbx/space_group.h>
 
 
+
 GraphDrawer::GraphDrawer(MtzManager *mtz)
 {
 	// TODO Auto-generated constructor stub
@@ -53,7 +54,7 @@ std::string GraphDrawer::generateFilename(std::string stem, std::string ext)
 	time_t cputime;
 	time(&cputime);
 
-	ostringstream timeString;
+	std::ostringstream timeString;
 	timeString << stem;
 
 	timeString << "_" << cputime << "." << ext;
@@ -63,29 +64,29 @@ std::string GraphDrawer::generateFilename(std::string stem, std::string ext)
 
 #ifdef MAC
 
-std::string GraphDrawer::plot(string filename, GraphMap properties,
-		std::vector<std::vector<double> > xs,
-		std::vector<std::vector<double> > ys)
+std::string GraphDrawer::plot(std::string filename, GraphMap properties,
+		vector<vector<double> > xs,
+		vector<vector<double> > ys)
 {
-	std::vector<double> x2, y2;
+	vector<double> x2, y2;
 
 	return plot(filename, properties, xs, ys, x2, y2);
 }
 
-std::string GraphDrawer::plot(string filename, GraphMap properties,
-		std::vector<double> x, std::vector<double> y)
+std::string GraphDrawer::plot(std::string filename, GraphMap properties,
+		vector<double> x, vector<double> y)
 {
-	std::vector<double> x2, y2;
+	vector<double> x2, y2;
 
 	return plot(filename, properties, x, y, x2, y2);
 }
 
-std::string GraphDrawer::plot(string filename, GraphMap properties,
-		std::vector<double> x, std::vector<double> y, std::vector<double> x2,
-		std::vector<double> y2)
+std::string GraphDrawer::plot(std::string filename, GraphMap properties,
+		vector<double> x, vector<double> y, vector<double> x2,
+		vector<double> y2)
 {
-	std::vector<std::vector<double> > xs;
-	std::vector<std::vector<double> > ys;
+	vector<vector<double> > xs;
+	vector<vector<double> > ys;
 
 	xs.push_back(x);
 	ys.push_back(y);
@@ -93,16 +94,16 @@ std::string GraphDrawer::plot(string filename, GraphMap properties,
 	return plot(filename, properties, xs, ys, x2, y2);
 }
 
-std::string GraphDrawer::plot(string filename, GraphMap properties,
-		std::vector<std::vector<double> > xs,
-		std::vector<std::vector<double> > ys, std::vector<double> x2,
-		std::vector<double> y2)
+std::string GraphDrawer::plot(std::string filename, GraphMap properties,
+		vector<vector<double> > xs,
+		vector<vector<double> > ys, vector<double> x2,
+		vector<double> y2)
 {
-	string plotType = "line";
-	string plotType2 = "line";
-	string title = "Title";
-	string xTitle = "x axis";
-	string yTitle = "y axis";
+	std::string plotType = "line";
+	std::string plotType2 = "line";
+	std::string title = "Title";
+	std::string xTitle = "x axis";
+	std::string yTitle = "y axis";
 
 	if (properties.count("title") > 0)
 		title = boost::get<std::string>(properties["title"]);
@@ -126,7 +127,7 @@ std::string GraphDrawer::plot(string filename, GraphMap properties,
 
 	plsetopt(geometry, dims);
 
-	string fullName = generateFilename(filename);
+	std::string fullName = generateFilename(filename);
 
 	plsfnam(fullName.c_str());
 	plscolbg(255, 255, 255);
@@ -176,15 +177,15 @@ std::string GraphDrawer::plot(string filename, GraphMap properties,
 		vector<double> x = xs[i];
 		vector<double> y = ys[i];
 
-		ostringstream plotTypeStream;
+		std::ostringstream plotTypeStream;
 		plotTypeStream << "plotType_" << i;
-		string plotTypeName = plotTypeStream.str();
+		std::string plotTypeName = plotTypeStream.str();
 
 		plssym(0, 0.5);
 
-		ostringstream colourStream;
+		std::ostringstream colourStream;
 		colourStream << "colour_" << i;
-		string colourString = colourStream.str();
+		std::string colourString = colourStream.str();
 
 		if (properties.count(colourString) > 0)
 		{
@@ -192,7 +193,7 @@ std::string GraphDrawer::plot(string filename, GraphMap properties,
 			plcol0(colour);
 		}
 
-		string usedPlotType = plotType;
+		std::string usedPlotType = plotType;
 		if (properties.count(plotTypeName) > 0)
 			usedPlotType = boost::get<std::string>(properties[plotTypeName]);
 
@@ -263,14 +264,14 @@ std::string GraphDrawer::plot(string filename, GraphMap properties,
 	// Close PLplot library
 	plend();
 
-    ostringstream logged;
+    std::ostringstream logged;
 	logged << "Plotted " << fullName << std::endl;
     Logger::mainLogger->addStream(&logged, LogLevelDetailed);
     
 	return fullName;
 }
 
-void GraphDrawer::correlationPlot(string filename, double xMax, double yMax)
+void GraphDrawer::correlationPlot(std::string filename, double xMax, double yMax)
 {
 	GraphMap properties;
 
@@ -293,17 +294,17 @@ void GraphDrawer::correlationPlot(string filename, double xMax, double yMax)
 //	double scale = mtz->gradientAgainstManager(*shot2);
 //	mtz->applyScaleFactor(scale);
 
-	vector<Holder *> holders1;
-	vector<Holder *> holders2;
+	vector<Reflection *> reflections1;
+	vector<Reflection *> reflections2;
 	int num = 0;
 
-	shot1->findCommonReflections(shot2, holders1, holders2, &num);
+	shot1->findCommonReflections(shot2, reflections1, reflections2, &num);
 
 	for (int i = 0; i < num; i++)
 	{
-		double int1 = holders1[i]->meanIntensity();
-		string filename = shot1->getFilename();
-		double int2 = holders2[i]->meanIntensity();
+		double int1 = reflections1[i]->meanIntensity();
+		std::string filename = shot1->getFilename();
+		double int2 = reflections2[i]->meanIntensity();
 
 		if (int1 != int1 || int2 != int2)
 			continue;
@@ -312,12 +313,12 @@ void GraphDrawer::correlationPlot(string filename, double xMax, double yMax)
 		y.push_back(int2);
 	}
 
-	string fullName = this->plot(filename, properties, x, y);
+	std::string fullName = this->plot(filename, properties, x, y);
 	std::cout << "N: plot " << fullName << std::endl;
 }
 
 void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
-		string filename, GraphMap properties, bool intensityBins, bool image)
+		std::string filename, GraphMap properties, bool intensityBins, bool image)
 {
 	if (!intensityBins)
 		properties["title"] = "Intensity agreement vs resolution";
@@ -392,19 +393,19 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
         std::cout << "Scale: " << scale << std::endl;
         mtz->applyScaleFactor(scale);
      
-		vector<Holder *> refHolders, imgHolders;
+		vector<Reflection *> refReflections, imgReflections;
 
-		mtz->findCommonReflections(referenceManager, imgHolders, refHolders,
+		mtz->findCommonReflections(referenceManager, imgReflections, refReflections,
 		NULL);
 
-		for (int j = 0; j < refHolders.size(); j++)
+		for (int j = 0; j < refReflections.size(); j++)
 		{
-			if (!imgHolders[j]->anyAccepted())
+			if (!imgReflections[j]->anyAccepted())
 				continue;
 
-			double imgIntensity = imgHolders[j]->meanIntensity();
-			double refIntensity = refHolders[j]->meanIntensity();
-            double meanPartiality = imgHolders[j]->meanPartiality();
+			double imgIntensity = imgReflections[j]->meanIntensity();
+			double refIntensity = refReflections[j]->meanIntensity();
+            double meanPartiality = imgReflections[j]->meanPartiality();
             
 			double percent = imgIntensity / refIntensity;
 
@@ -419,7 +420,7 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
             
 			if (!intensityBins)
 			{
-				double resolution = refHolders[j]->getResolution();
+				double resolution = refReflections[j]->getResolution();
 				double res_squared = pow(resolution, 2);
 				chosenX->push_back(res_squared);
 			}
@@ -454,7 +455,7 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 	plot(filename, properties, xs, ys);
 }
 
-void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
+void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, std::string filename,
 		GraphMap properties)
 {
 	vector<vector<std::string> > filenames;
@@ -467,7 +468,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
 
 		for (int j = 0; j < 3; j++)
 		{
-			ostringstream stream;
+			std::ostringstream stream;
 			stream << cputime << "_bfactor_" << i << "_" << j;
 			filenames[i].push_back(stream.str());
 		}
@@ -475,7 +476,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
 		cputime++;
 	}
 
-	ostringstream results;
+	std::ostringstream results;
 
 	properties["title"] = "Scale and B factor plot";
 	properties["xTitle"] = "Resolution (1 / d^2)";
@@ -528,9 +529,9 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
 			double low = bins[shell];
 			double high = bins[shell + 3];
 
-			vector<Holder *> refHolders, imgHolders;
+			vector<Reflection *> refReflections, imgReflections;
 
-			mtz->findCommonReflections(referenceManager, imgHolders, refHolders,
+			mtz->findCommonReflections(referenceManager, imgReflections, refReflections,
 			NULL);
 
 			double weights = 0;
@@ -538,18 +539,18 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
 			double imgMean = 0;
 			int count = 0;
 
-			for (int i = 0; i < imgHolders.size(); i++)
+			for (int i = 0; i < imgReflections.size(); i++)
 			{
-				if (!imgHolders[i]->anyAccepted())
+				if (!imgReflections[i]->anyAccepted())
 					continue;
 
-				if (imgHolders[i]->betweenResolutions(low, high))
+				if (imgReflections[i]->betweenResolutions(low, high))
 				{
-					weights += imgHolders[i]->meanPartiality();
-					refMean += refHolders[i]->meanIntensity()
-							* imgHolders[i]->meanPartiality();
-					imgMean += imgHolders[i]->meanIntensity()
-							* imgHolders[i]->meanPartiality();
+					weights += imgReflections[i]->meanPartiality();
+					refMean += refReflections[i]->meanIntensity()
+							* imgReflections[i]->meanPartiality();
+					imgMean += imgReflections[i]->meanIntensity()
+							* imgReflections[i]->meanPartiality();
 					count++;
 				}
 			}
@@ -703,7 +704,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, string filename,
 	std::cout << results.str();*/
 }
 
-void GraphDrawer::plotPolarisation(std::vector<MtzPtr> mtzs)
+void GraphDrawer::plotPolarisation(vector<MtzPtr> mtzs)
 {
     int count = 36;
     int divide = 360 / count;
@@ -713,14 +714,14 @@ void GraphDrawer::plotPolarisation(std::vector<MtzPtr> mtzs)
     
     for (int i = 0; i < mtzs.size(); i++)
     {
-        for (int j = 0; j < mtzs[i]->holderCount(); j++)
+        for (int j = 0; j < mtzs[i]->reflectionCount(); j++)
         {
-            if (!mtzs[i]->holder(j)->betweenResolutions(1.8, 1.4))
+            if (!mtzs[i]->reflection(j)->betweenResolutions(1.8, 1.4))
                 continue;
             
-            for (int k = 0; k < mtzs[i]->holder(j)->millerCount(); k++)
+            for (int k = 0; k < mtzs[i]->reflection(j)->millerCount(); k++)
             {
-                MillerPtr miller = mtzs[i]->holder(j)->miller(k);
+                MillerPtr miller = mtzs[i]->reflection(j)->miller(k);
                 
                 if (miller->getRawIntensity() < 0)
                     continue;
@@ -773,7 +774,7 @@ void GraphDrawer::plotPolarisation(std::vector<MtzPtr> mtzs)
     plot("polarisation", graphMap, xs, ys);
 }
 
-void GraphDrawer::partialityPlot(string filename, GraphMap properties)
+void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 {
     double correl = mtz->correlation();
     mtz->setActiveAmbiguity(1);
@@ -790,11 +791,11 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 2, 2, &resolutions);
+	StatisticsManager::generateResolutionBins(0, 1.6, 3, &resolutions);
 
 	double scatterRes = 1 / 5.0;
 
-	std::vector<string> files;
+	vector<std::string> files;
 
 	vector<Partial> partials;
 	StatisticsManager::twoImagePartialityStatsWritten(&partials,
@@ -880,8 +881,8 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 
 	int milliseconds = 1200 / resCount;
 
-	string animate = "convert -delay " + i_to_str(milliseconds) + " -loop 0 ";
-	string rmv = "rm ";
+	std::string animate = "convert -delay " + i_to_str(milliseconds) + " -loop 0 ";
+	std::string rmv = "rm ";
 
 	for (int i = 0; i < resCount - 1; i++)
 	{
@@ -891,13 +892,13 @@ void GraphDrawer::partialityPlot(string filename, GraphMap properties)
 
 	rmv += "\n";
 
-	string fullName = generateFilename(filename, "gif");
+	std::string fullName = generateFilename(filename, "gif");
 
 	animate += fullName;
 	animate += "\n";
 //	std::cout << animate << std::endl;
 
-	string all = animate + rmv;
+	std::string all = animate + rmv;
 
 	system(all.c_str());
 
@@ -924,37 +925,37 @@ void GraphDrawer::plotPartialityStats()
     GraphMap map;
     map["xMin"] = 0.0;
     map["xMax"] = 1;
-    map["yMax"] = 2;
+    map["yMax"] = 3;
     map["xTitle"] = "Calculated partiality";
     map["yTitle"] = "Proportion of merged value";
     map["plotType"] = "point";
     
     vector<double> xs, ys;
     
-    for (int i = 0; i < mtz->holderCount(); i++)
+    for (int i = 0; i < mtz->reflectionCount(); i++)
     {
-        if (mtz->holder(i)->millerCount() < 10)
+        if (mtz->reflection(i)->millerCount() < 10)
             continue;
         
-        if (!mtz->holder(i)->anyAccepted())
+        if (!mtz->reflection(i)->anyAccepted())
             continue;
         
-        if (mtz->holder(i)->meanIntensity() < threshold)
+        if (mtz->reflection(i)->meanIntensity() < threshold)
             continue;
         
-        if (!mtz->holder(i)->betweenResolutions(0, 2.5))
+        if (!mtz->reflection(i)->betweenResolutions(0, 2.5))
             continue;
         
-        double max_intensity = mtz->holder(i)->meanIntensity();
+        double max_intensity = mtz->reflection(i)->meanIntensity();
         
-        for (int j = 0; j < mtz->holder(i)->millerCount(); j++)
+        for (int j = 0; j < mtz->reflection(i)->millerCount(); j++)
         {
-            double partiality = mtz->holder(i)->miller(j)->getPartiality();
+            double partiality = mtz->reflection(i)->miller(j)->getPartiality();
             
             if (partiality < 0.05 || partiality > 1)
             	continue;
             
-            double percentage = mtz->holder(i)->miller(j)->getRawIntensity()
+            double percentage = mtz->reflection(i)->miller(j)->getRawIntensity()
             / max_intensity;
             if (percentage < 0)
                 percentage = 0;
@@ -970,12 +971,12 @@ void GraphDrawer::plotPartialityStats()
     plot("partialityStats", map, xs, ys);
 }
 
-void GraphDrawer::plotOrientationStats(std::vector<MtzPtr> mtzs)
+void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 {
     cctbx::miller::index<> genericIndex = cctbx::miller::index<>(0, 0, 1);
-    cctbx::sgtbx::space_group *spaceGroup = mtzs[0]->holder(0)->getSpaceGroup();
+    cctbx::sgtbx::space_group *spaceGroup = mtzs[0]->reflection(0)->getSpaceGroup();
     
-    std::vector<double> xs, ys, zs;
+    vector<double> xs, ys, zs;
     
     for (int i = 0; i < mtzs.size(); i++)
     {

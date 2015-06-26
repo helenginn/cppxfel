@@ -11,7 +11,7 @@
 #include "parameters.h"
 #include <sstream>
 #include <iostream>
-#include <boost/container/vector.hpp>
+#include <vector>
 #include <boost/thread/thread.hpp>
 
 typedef enum
@@ -51,7 +51,7 @@ private:
     void fractionalCoordinates(Miller *miller, Coord *frac);
 
 	static bool usePanelInfo;
-	static boost::container::vector<PanelPtr> panels;
+	static vector<PanelPtr> panels;
     bool addMiller(MillerPtr miller);
 
     void refineAllParameters(double windowSize);
@@ -66,18 +66,18 @@ private:
 
     static double scoreDetectorDistance(void *object);
     
-    std::map<boost::thread::id, std::vector<MillerPtr> > tempMillers;
+    std::map<boost::thread::id, vector<MillerPtr> > tempMillers;
     
     static void calculateMetrology(PanelPtr thisPanel);
     static std::string printAllThreaded();
     double detectorGain(double *error);
 
-    std::vector<MillerPtr> millers;
+    vector<MillerPtr> millers;
 	int defaultShift;
     std::ostringstream logged;
 
 public:
-	Panel(std::vector<double> dimensions);
+	Panel(vector<double> dimensions);
 	virtual ~Panel();
 
 	bool isCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);

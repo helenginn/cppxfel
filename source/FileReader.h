@@ -11,18 +11,19 @@
 
 #include <iostream>
 #include <string>
+#include "parameters.h"
 #include <vector>
 
 namespace FileReader
 {
     std::string get_file_contents(const char *filename);
     
-    std::vector<std::string> split(const std::string s, const std::string &delim);
-    std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
-    std::vector<std::string> split(const std::string &s, char delim);
+    vector<std::string> split(const std::string s, const std::string &delim);
+    vector<std::string> &split(const std::string &s, char delim, vector<std::string> &elems);
+    vector<std::string> split(const std::string &s, char delim);
     bool exists(const std::string& name);
     
-    int splitAtIndices(const std::string &s, std::vector<int> &positions, std::vector<std::string> &elems);
+    int splitAtIndices(const std::string &s, vector<int> &positions, vector<std::string> &elems);
 };
 
 #endif /* defined(__GameDriver__FileReader__) */

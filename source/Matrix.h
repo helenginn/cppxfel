@@ -32,6 +32,8 @@ private:
         
     };
     
+    MatrixPtr unitCell;
+    MatrixPtr rotation;
     
 public:
     double components[16];
@@ -39,12 +41,11 @@ public:
     Matrix(void);
     Matrix(double *components);
     MatrixPtr copy(void);
-    void printDescription();
-    std::string description();
+    void printDescription(bool detailed = false);
+    std::string description(bool detailed = false);
     Matrix inverse2DMatrix();
     Matrix inverse3DMatrix();
     Matrix transpose();
-    Matrix operator=(Matrix &b);
     cctbx::miller::index<double> multiplyIndex(cctbx::miller::index<> *index);
 
     void translate(double x, double y, double z);
@@ -63,6 +64,7 @@ public:
     void orientationMatrixUnitCell(double *a, double *b, double *c);
     void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
     void scaleUnitCellAxes(double aScale, double bScale, double cScale);
+    void setComplexMatrix(MatrixPtr unitCell, MatrixPtr rotation);
     
     void rotate2D(double angle);
     void translation(double **vector);
@@ -71,11 +73,21 @@ public:
     double getEwaldSphereNoMatrix(vec index);
     
     void unitCellLengths(double **lengths);
-    scitbx::mat3<double> cctbxMatrix();
+    scitbx::mat3<double> cctbxMatrix(MatrixPtr theMatrix = MatrixPtr());
     void threeDimComponents(double **componentArray);
     void assignFromCctbxMatrix(scitbx::mat3<double> newMat);
+    void assignFromCctbxMatrix(Matrix *changeMat, scitbx::mat3<double> newMat);
     double *array();
     void print(void);
+    void recalculateOrientationMatrix();
+    
+    bool isComplex()
+    {
+        if (unitCell)
+            return true;
+        
+        return false;
+    }
     
     Matrix operator*=(Matrix &b);
     Matrix operator*(Matrix &b);

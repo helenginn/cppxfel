@@ -17,7 +17,6 @@
 #include <tuple>
 #include "Logger.h"
 
-using namespace std;
 using namespace CMtz;
 using namespace CSym;
 
@@ -33,6 +32,7 @@ typedef enum
 	ScoreTypePartialityGradient = 7,
     ScoreTypeSymmetry = 8,
     ScoreTypeStandardDeviation = 9,
+    ScoreTypeMinimizeRMeas = 10,
 } ScoreType;
 
 typedef enum
@@ -41,15 +41,14 @@ typedef enum
 } TrustLevel;
 
 class Miller;
-class Holder;
 
 class MtzManager
 {
 
 protected:
-	string filename;
+    std::string filename;
 	CCP4SPG *low_group;
-	static bool holder_comparison(Holder *i, Holder *j);
+	static bool reflection_comparison(Reflection *i, Reflection *j);
 
 	double extreme_index(MTZ *mtz, int max);
 	void hkls_for_reflection(MTZ *mtz, float *adata, int *h, int *k, int *l,
@@ -59,9 +58,9 @@ protected:
 
 	// minimisation stuff
 
-	vector<Holder *> holders;
-	vector<Holder *> refHolders;
-	vector<Holder *> matchHolders;
+	vector<Reflection *> reflections;
+	vector<Reflection *> refReflections;
+	vector<Reflection *> matchReflections;
     MtzManager *previousReference;
     int previousAmbiguity;
     bool allowTrust;
@@ -107,7 +106,7 @@ protected:
 	double maxResolutionAll;
 	double maxResolutionRlpSize;
 
-    double trialUnitCell;
+    vector<double> trialUnitCell;
     double superGaussianScale;
     double lastExponent;
     double *params;
@@ -116,6 +115,7 @@ protected:
 	bool finalised;
 	bool inverse;
 	bool flipped;
+    int failedCount;
 	static double lowRes;
 	static double highRes;
 	bool freePass;
@@ -130,7 +130,7 @@ protected:
 
     static double unitCellScore(void *object);
     double wavelengthStandardDeviation();
-    ostringstream logged;
+    std::ostringstream logged;
 public:
     vector<double> superGaussianTable;
     double bFactor;
@@ -138,28 +138,32 @@ public:
 
 	MtzManager(void);
 	virtual ~MtzManager(void);
-	MtzManager *copy();
+	MtzPtr copy();
 	void loadParametersMap();
 
-    void addHolders(vector<Holder *>holders);
-	void clearHolders();
-	void addHolder(Holder *holder);
-	void removeHolder(int i);
+    void addReflections(vector<Reflection *>reflections);
+	void clearReflections();
+	void addReflection(Reflection *reflection);
+	void removeReflection(int i);
 	void excludeFromLogCorrelation();
 	void excludePartialityOutliers();
 
     MatrixPtr matrix;
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
-	void setFilename(string name);
-	string getFilename(void);
+	void setFilename(std::string name);
+    std::string getFilename(void);
 	void description(void);
-
+    void incrementFailedCount();
+    void resetFailedCount();
+    void resetDefaultParameters();
+    void chooseAppropriateTarget();
+    
     void setDefaultMatrix();
 	void setMatrix(double *components);
 	void setMatrix(MatrixPtr newMat);
-	void insertionSortHolders(void);
-	void sortLastHolder(void);
+	void insertionSortReflections(void);
+	void sortLastReflection(void);
     void applyUnrefinedPartiality();
     void incrementActiveAmbiguity();
     void cutToResolutionWithSigma(double acceptableSigma);
@@ -170,14 +174,14 @@ public:
 	virtual void loadReflections(PartialityModel model);
 	void loadReflections(int partiality);
 	static void setReference(MtzManager *reference);
-	int findHolderWithId(int refl_id, Holder **holder, bool insertionPoint = false);
+	int findReflectionWithId(int refl_id, Reflection **reflection, bool insertionPoint = false);
 	void findCommonReflections(MtzManager *other,
-			vector<Holder *> &holderVector1, vector<Holder *> &holderVector2,
+			vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
 			int *num = NULL, bool force = false);
-	double meanCorrectedIntensity(Holder *holder);
+	double meanCorrectedIntensity(Reflection *reflection);
 	double gradientAgainstManager(MtzManager &otherManager, bool leastSquares = false, double lowRes = 0, double highRes = 0);
 	double minimizeGradient(MtzManager *otherManager, bool leastSquares);
-	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<pair<double, double> > *dataPoints = NULL);
+    void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<std::pair<double, double> > *dataPoints = NULL);
 	double minimizeRFactor(MtzManager *otherManager);
     void applyBFactor(double bFactor);
 	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0, bool absolute = false);
@@ -187,9 +191,9 @@ public:
 	double averageIntensity(void);
 	void setSigmaToUnity();
 	void setPartialityToUnity();
-	double partialityRatio(Holder *imgHolder, Holder *refHolder);
-	void getRefHolders(vector<Holder *> *refPointer,
-			vector<Holder *> *matchPointer);
+	double partialityRatio(Reflection *imgReflection, Reflection *refReflection);
+	void getRefReflections(vector<Reflection *> *refPointer,
+			vector<Reflection *> *matchPointer);
 	void reallowPartialityOutliers();
 
 	void setUnitCell(double a, double b, double c, double alpha, double beta,
@@ -200,7 +204,7 @@ public:
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 
-	void writeToFile(string newFilename, bool announce = false, bool shifts = false, bool includeAmbiguity = false);
+	void writeToFile(std::string newFilename, bool announce = false, bool shifts = false, bool includeAmbiguity = false);
 	void writeToDat();
     void sendLog(LogLevel priority = LogLevelNormal);
 
@@ -241,6 +245,7 @@ public:
 	void getParams(double *parameters[], int paramCount = PARAM_NUM);
 	void setParams(double parameters[], int paramCount = PARAM_NUM);
 
+    double medianWavelength(double lowRes, double highRes);
 	double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
 	double weightedBestWavelength(double lowRes, double highRes);
 	int accepted(void);
@@ -251,10 +256,11 @@ public:
 	double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
 	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high, bool square = false);
-	string describeScoreType();
+	std::string describeScoreType();
     
 	void refreshPartialities(double hRot, double kRot, double mosaicity,
-			double spotSize, double wavelength, double bandwidth, double exponent);
+                             double spotSize, double wavelength, double bandwidth, double exponent,
+                             double a, double b, double c);
 	void refreshPartialities(double parameters[]);
 	double minimizeParameter(double *meanStep, double **params, int paramNum,
 			double (*score)(void *object, double lowRes, double highRes),
@@ -265,14 +271,10 @@ public:
 // more grid search
 
     void findSteps();
-	void gridSearch(bool spotSize);
-	void gridSearch(double (*score)(void *object, double lowRes, double highRes),
-			void *object);
-	static void gridSearchWrapper(MtzManager *image, bool spotSize);
+	void gridSearch();
 	double leastSquaresPartiality(ScoreType typeOfScore);
-	double minimize(bool minimizeSpotSize = true, bool suppressOutput = true);
-	double minimize(bool minimizeSpotSize, bool suppress,
-			double (*score)(void *object, double lowRes, double highRes),
+    double minimize();
+	double minimize(double (*score)(void *object, double lowRes, double highRes),
 			void *object);
 	double minimizeTwoParameters(double *meanStep1, double *meanStep2,
 			double **params, int paramNum1, int paramNum2,
@@ -305,14 +307,14 @@ public:
     
     void setActiveAmbiguity(int newAmbiguity);
 
-    virtual int holderCount()
+    virtual int reflectionCount()
     {
-        return (int)holders.size();
+        return (int)reflections.size();
     }
     
-    virtual Holder *holder(int i)
+    virtual Reflection *reflection(int i)
     {
-        return holders[i];
+        return reflections[i];
     }
     
     void setDefaultScoreType(ScoreType scoreType)
@@ -320,7 +322,7 @@ public:
         defaultScoreType = scoreType;
     }
     
-    double getTrialUnitCell()
+    vector<double> getTrialUnitCell()
     {
         return trialUnitCell;
     }

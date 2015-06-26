@@ -13,17 +13,19 @@
 #include "MtzManager.h"
 #include "FileParser.h"
 
+
+
 MtzManager *MtzManager::currentManager;
 
 void MtzManager::applyUnrefinedPartiality()
 {
     double wavelength = bestWavelength();
-    double mosaicity = getMosaicity();
-    double rlpSize = getSpotSize();
-    double bandwidth = getBandwidth();
-    double exponent = getExponent();
+    double mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
+    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_MOSAICITY);
+    double exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
 
-    refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent);
+    refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent, cellDim[0], cellDim[1], cellDim[2]);
 }
 
 void MtzManager::setParams(double parameters[], int paramCount)
@@ -36,8 +38,13 @@ void MtzManager::setParams(double parameters[], int paramCount)
 	kRot = parameters[PARAM_KROT];
 	exponent = parameters[PARAM_EXPONENT];
     bFactor = parameters[PARAM_B_FACTOR];
+    
     applyBFactor(bFactor);
     applyScaleFactor(parameters[PARAM_SCALE_FACTOR], 0, 0, true);
+    
+    cellDim[0] = parameters[PARAM_UNIT_CELL_A];
+    cellDim[1] = parameters[PARAM_UNIT_CELL_B];
+    cellDim[2] = parameters[PARAM_UNIT_CELL_C];
 }
 
 void MtzManager::getParams(double *parameters[], int paramCount)
@@ -51,25 +58,40 @@ void MtzManager::getParams(double *parameters[], int paramCount)
 	(*parameters)[PARAM_EXPONENT] = exponent;
     (*parameters)[PARAM_B_FACTOR] = bFactor;
     (*parameters)[PARAM_SCALE_FACTOR] = scale;
+    (*parameters)[PARAM_UNIT_CELL_A] = cellDim[0];
+    (*parameters)[PARAM_UNIT_CELL_B] = cellDim[1];
+    (*parameters)[PARAM_UNIT_CELL_C] = cellDim[2];
 }
 
 void MtzManager::refreshPartialities(double parameters[])
 {
-    refreshPartialities(parameters[0], parameters[1], parameters[2],
-			parameters[3], parameters[4], parameters[5], parameters[6]);
+    refreshPartialities(parameters[PARAM_HROT],
+                        parameters[PARAM_KROT],
+                        parameters[PARAM_MOS],
+                        parameters[PARAM_SPOT_SIZE],
+                        parameters[PARAM_WAVELENGTH],
+                        parameters[PARAM_BANDWIDTH],
+                        parameters[PARAM_EXPONENT],
+                        parameters[PARAM_UNIT_CELL_A],
+                        parameters[PARAM_UNIT_CELL_B],
+                        parameters[PARAM_UNIT_CELL_C]);
 }
 
 void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
-		double spotSize, double wavelength, double bandwidth, double exponent)
+		double spotSize, double wavelength, double bandwidth, double exponent,
+                                     double a, double b, double c)
 {
 
     this->makeSuperGaussianLookupTable(exponent);
 
-	for (int i = 0; i < holders.size(); i++)
+    if (matrix->isComplex())
+        this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
+    
+	for (int i = 0; i < reflections.size(); i++)
 	{
-		for (int j = 0; j < holders[i]->millerCount(); j++)
+		for (int j = 0; j < reflections[i]->millerCount(); j++)
 		{
-			MillerPtr miller = holders[i]->miller(j);
+			MillerPtr miller = reflections[i]->miller(j);
 			miller->recalculatePartiality(hRot, kRot, mosaicity, spotSize,
 					wavelength, bandwidth, exponent);
 		}
@@ -77,15 +99,48 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
 
 }
 
+static bool greaterThan(double num1, double num2)
+{
+    return (num1 > num2);
+}
+
+double MtzManager::medianWavelength(double lowRes, double highRes)
+{
+    vector<double> wavelengths;
+    double refinementIntensityThreshold = FileParser::getKey("REFINEMENT_INTENSITY_THRESHOLD", 200.0);
+    
+    for (int i = 0; i < reflectionCount(); i++)
+    {
+        for (int j = 0; j < reflection(i)->millerCount(); j++)
+        {
+            double wavelength = reflection(i)->miller(0)->getWavelength();
+            double isigi = reflection(i)->miller(j)->getRawestIntensity();
+            
+            if (isigi > refinementIntensityThreshold && isigi == isigi)
+            {
+                wavelengths.push_back(wavelength);
+            }
+        }
+    }
+    
+    std::sort(wavelengths.begin(), wavelengths.end(), greaterThan);
+    
+    for (int i = 0; i < wavelengths.size(); i++)
+    {
+ //       std::cout << wavelengths[i] << std::endl;
+    }
+    
+    return wavelengths[int(wavelengths.size() / 2)];
+}
+
 double MtzManager::bestWavelength(double lowRes, double highRes, bool usingReference)
 {
+    return medianWavelength(lowRes, highRes);
+    
 	double totalWavelength = 0;
 	double count = 0;
 
-    double minWavelength = 1.23;
-    double maxWavelength = 1.32;
-    
-	double low, high;
+    double low, high;
 	StatisticsManager::convertResolutions(lowRes, highRes, &low, &high);
 
     double refinementIntensityThreshold = FileParser::getKey("REFINEMENT_INTENSITY_THRESHOLD", 200.0);
@@ -93,34 +148,35 @@ double MtzManager::bestWavelength(double lowRes, double highRes, bool usingRefer
     if (usingReference)
         refinementIntensityThreshold = 0.3;
     
-	for (int i = 0; i < holderCount(); i++)
+	for (int i = 0; i < reflectionCount(); i++)
 	{
-		for (int j = 0; j < holder(i)->millerCount(); j++)
+		for (int j = 0; j < reflection(i)->millerCount(); j++)
 		{
-			if (holder(i)->getResolution() < low)
+			if (reflection(i)->getResolution() < low)
 				continue;
 
-			if (holder(i)->getResolution() > high)
+			if (reflection(i)->getResolution() > high)
 				continue;
             
-            double wavelength = holder(i)->miller(0)->getWavelength();
-            if (wavelength < minWavelength || wavelength > maxWavelength)
-                continue;
-
+            double wavelength = reflection(i)->miller(0)->getWavelength();
+            
 			double weight = 1;
-			double isigi = holder(i)->miller(j)->getRawestIntensity();
+			double isigi = reflection(i)->miller(j)->getRawestIntensity();
 
+            MtzManager *reference = MtzManager::getReferenceManager();
+            Reflection *refReflection = NULL;
+            reference->findReflectionWithId(reflection(i)->getReflId(), &refReflection);
+            
+            if (refReflection != NULL && refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
+                continue;
+            
             if (usingReference)
             {
-                MtzManager *reference = MtzManager::getReferenceManager();
-                Holder *refHolder = NULL;
-                reference->findHolderWithId(holder(i)->getReflId(), &refHolder);
-                
-                if (refHolder == NULL)
+                if (refReflection == NULL)
                     continue;
                 
-                double imgIntensity = holder(i)->miller(j)->getRawestIntensity();
-                double refIntensity = refHolder->meanIntensity();
+                double imgIntensity = reflection(i)->miller(j)->getRawestIntensity();
+                double refIntensity = refReflection->meanIntensity();
                 
                 double proportion = imgIntensity / refIntensity;
                 isigi = proportion;
@@ -212,14 +268,14 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 
 	double maxResolution = 0;
 
-	for (int i = 0; i < holderCount(); i++)
+	for (int i = 0; i < reflectionCount(); i++)
 	{
-		if (holder(i)->getResolution() > maxResolution
-				&& holder(i)->getResolution() < 1 / 1.4)
+		if (reflection(i)->getResolution() > maxResolution
+				&& reflection(i)->getResolution() < 1 / 1.4)
 		{
-            Holder *bestHolder = holder(i);
+            Reflection *bestReflection = reflection(i);
             
-			maxResolution = bestHolder->getResolution();
+			maxResolution = bestReflection->getResolution();
 		}
 	}
 
@@ -295,25 +351,25 @@ double MtzManager::wavelengthStandardDeviation()
     double maxResolution = maxResolutionAll;
     int reflectionCount = 100;
     
-    vector<Holder *>refHolders, imageHolders;
+    vector<Reflection *>refReflections, imageReflections;
     std::map<double, double> wavelengths;
     
-    this->findCommonReflections(getReferenceManager(), imageHolders, refHolders);
+    this->findCommonReflections(getReferenceManager(), imageReflections, refReflections);
     
-    for (int i = 0; i < imageHolders.size(); i++)
+    for (int i = 0; i < imageReflections.size(); i++)
     {
-        double refIntensity = refHolders[i]->meanIntensity();
+        double refIntensity = refReflections[i]->meanIntensity();
         if (refIntensity < 1000)
             continue;
         
-        if (!imageHolders[i]->betweenResolutions(minResolution, maxResolution))
+        if (!imageReflections[i]->betweenResolutions(minResolution, maxResolution))
             continue;
         
-        for (int j = 0; j < imageHolders[i]->millerCount(); j++)
+        for (int j = 0; j < imageReflections[i]->millerCount(); j++)
         {
-            double intensity = imageHolders[i]->miller(j)->getRawestIntensity();
+            double intensity = imageReflections[i]->miller(j)->getRawestIntensity();
             
-            double wavelength = imageHolders[i]->miller(0)->getWavelength();
+            double wavelength = imageReflections[i]->miller(0)->getWavelength();
             
             if (wavelength < 1.25 || wavelength > 1.33)
                 continue;

@@ -29,7 +29,7 @@ Image::Image(std::string filename, double wavelength,
         yDim = dims[1];
     }
         
-    data = std::vector<int>();
+    data = vector<int>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
     vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
 
@@ -71,7 +71,7 @@ Image::Image(std::string filename, double wavelength,
 
 std::string Image::filenameRoot()
 {
-	std::vector<std::string> components = FileReader::split(filename, '.');
+	vector<std::string> components = FileReader::split(filename, '.');
     
     std::string root = "";
     
@@ -87,6 +87,16 @@ void Image::setUpIndexer(MatrixPtr matrix)
 {
 	IndexerPtr indexer = IndexerPtr(new Indexer(this, matrix));
     
+    if (matrix->isComplex())
+        indexer->setComplexMatrix();
+
+    indexers.push_back(indexer);
+}
+
+void Image::setUpIndexer(MatrixPtr unitcell, MatrixPtr rotation)
+{
+    IndexerPtr indexer = IndexerPtr(new Indexer(this, MatrixPtr(new Matrix())));
+    
     indexers.push_back(indexer);
 }
 
@@ -98,7 +108,7 @@ Image::~Image()
 
 void Image::addMask(int startX, int startY, int endX, int endY)
 {
-	std::vector<int> mask = std::vector<int>();
+	vector<int> mask = vector<int>();
 
 	mask.push_back(startX);
 	mask.push_back(startY);
@@ -110,7 +120,7 @@ void Image::addMask(int startX, int startY, int endX, int endY)
 
 void Image::addSpotCover(int startX, int startY, int endX, int endY)
 {
-	std::vector<int> mask = std::vector<int>();
+	vector<int> mask = vector<int>();
 
 	mask.push_back(startX);
 	mask.push_back(startY);
@@ -120,7 +130,7 @@ void Image::addSpotCover(int startX, int startY, int endX, int endY)
 	spotCovers.push_back(mask);
 }
 
-void Image::applyMaskToImages(std::vector<Image *> images, int startX,
+void Image::applyMaskToImages(vector<Image *> images, int startX,
 		int startY, int endX, int endY)
 {
 	for (int i = 0; i < images.size(); i++)
@@ -137,13 +147,13 @@ bool Image::isLoaded()
 void Image::loadImage()
 {
 	std::streampos size;
-	std::vector<char> memblock;
+	vector<char> memblock;
 
 	std::ifstream file(filename.c_str(), std::ios::in | std::ios::binary);
 	if (file.is_open())
 	{
 		size = file.tellg();
-		memblock = std::vector<char>();
+		memblock = vector<char>();
 
 		char c = file.get();
 
@@ -161,9 +171,9 @@ void Image::loadImage()
         else
             data.resize(memblock.size() / sizeof(short));
         
-        overlapMask = std::vector<unsigned char>(memblock.size(), 0);
+        overlapMask = vector<unsigned char>(memblock.size(), 0);
 
-        ostringstream logged;
+        std::ostringstream logged;
 		logged << "Image size: " << memblock.size() << " for image: "
 				<< filename << std::endl;
         Logger::mainLogger->addStream(&logged);
@@ -390,7 +400,7 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
 		{
 			if (!accepted(i, j))
 			{
-                ostringstream logged;
+                std::ostringstream logged;
                 logged << "Rejecting miller - too many zeros" << std::endl;
                 Logger::mainLogger->addStream(&logged, LogLevelDebug);
                 return false;
@@ -404,7 +414,7 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
     
     if (double(zeroCount) / double(count) > 0.4)
     {
-        ostringstream logged;
+        std::ostringstream logged;
         logged << "Rejecting miller - too many zeros" << std::endl;
         Logger::mainLogger->addStream(&logged, LogLevelDebug);
         return false;
@@ -415,7 +425,7 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
 
 void Image::printBox(int x, int y, int tolerance)
 {
-    ostringstream logged;
+    std::ostringstream logged;
     
     logged << "Print box at (" << x << ", " << y << "), radius " << tolerance << std::endl;
     
@@ -490,7 +500,7 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 	*error = sqrt(totalPhotons);
 
     
-    ostringstream logged;
+    std::ostringstream logged;
  //   logged << "Photons (back/fore/back-in-fore): " << background << "\t" << foreground << "\t" << "; weights: " << backNum << "\t" << foreNum << std::endl;
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
     
@@ -537,7 +547,7 @@ bool Image::accepted(int x, int y)
             return false;
     }
     
-    Coord coord = make_pair(x, y);
+    Coord coord = std::make_pair(x, y);
     
     PanelPtr panel = Panel::panelForCoord(coord);
     
@@ -601,9 +611,9 @@ void Image::refineDistances()
     }
 }
 
-std::vector<MtzPtr> Image::currentMtzs()
+vector<MtzPtr> Image::currentMtzs()
 {
-    std::vector<MtzPtr> mtzs;
+    vector<MtzPtr> mtzs;
     int count = 0;
     
     for (int i = 0; i < indexerCount(); i++)

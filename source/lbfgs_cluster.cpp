@@ -32,22 +32,22 @@ lbfgsfloatval_t Lbfgs_Cluster::evaluate(void *instance,
 			{
 				double addition = pow(correl - dot_product, 2);
 				fx += addition;
-				//		cout << "Correl 0/0 = " << addition << endl;
+				//		std::cout << "Correl 0/0 = " << addition << std::endl;
 			}
 			if (inv_correl != 2)
 			{ // 1 - (-1)
 				double addition = pow(inv_correl - dot_product, 2);
 				fx += addition;
-				//		cout << "Correl 0/1 = " << addition << endl;
+				//		std::cout << "Correl 0/1 = " << addition << std::endl;
 			}
 		}
 	}
 
 //	for (int i = 0; i < n; i += 2)
-//		cout << "x[" << i << "] = " << x[i] << ", x[" << i + 1 << "] = "
-//				<< x[i + 1] << endl;
+//		std::cout << "x[" << i << "] = " << x[i] << ", x[" << i + 1 << "] = "
+//				<< x[i + 1] << std::endl;
 
-//	cout << endl;
+//	std::cout << std::endl;
 
 //	printf("f(x) = %.3f\n", fx);
 
@@ -83,7 +83,7 @@ lbfgsfloatval_t Lbfgs_Cluster::evaluate(void *instance,
 			double addition_i = left_hand_side * right_hand_side;
 			double inv_addition_i = inv_left_hand_side * right_hand_side;
 
-			//		cout << "For " << i << ": left_hand_side = " << left_hand_side << ", right_hand_side_left = " << right_hand_side_left << ", right_hand_side_right = " << right_hand_side_right << endl;
+			//		std::cout << "For " << i << ": left_hand_side = " << left_hand_side << ", right_hand_side_left = " << right_hand_side_left << ", right_hand_side_right = " << right_hand_side_right << std::endl;
 
 			// and for aj
 
@@ -92,32 +92,32 @@ lbfgsfloatval_t Lbfgs_Cluster::evaluate(void *instance,
 			double addition_j = left_hand_side * right_hand_side;
 			double inv_addition_j = inv_left_hand_side * right_hand_side;
 
-			//		cout << "For " << i + 1 << ": left_hand_side = " << left_hand_side << ", right_hand_side_left = " << right_hand_side_left << ", right_hand_side_right = " << right_hand_side_right << endl;
+			//		std::cout << "For " << i + 1 << ": left_hand_side = " << left_hand_side << ", right_hand_side_left = " << right_hand_side_left << ", right_hand_side_right = " << right_hand_side_right << std::endl;
 
 			if ((*statsManager).cc_array[i / 2][j / 2] != -1)
 			{
 				sigma_i += addition_i;
 				sigma_j += addition_j;
 
-				//		cout << "Correl 0/0 gradient addition = " << addition_i << ", " << addition_j << endl;
+				//		std::cout << "Correl 0/0 gradient addition = " << addition_i << ", " << addition_j << std::endl;
 			}
 			if ((*statsManager).inv_cc_array[i / 2][j / 2] != -1)
 			{
 				sigma_i += inv_addition_i;
 				sigma_j += inv_addition_j;
 
-				//		cout << "Correl 0/1 gradient addition = " << inv_addition_i << ", " << inv_addition_j << endl;
+				//		std::cout << "Correl 0/1 gradient addition = " << inv_addition_i << ", " << inv_addition_j << std::endl;
 			}
 		}
 
 		g[i] = sigma_i;
 		g[i + 1] = sigma_j;
 
-//		cout << "g[" << i << "] = " << g[i] << ", g[" << i + 1 << "] = "
-//				<< g[i + 1] << endl;
+//		std::cout << "g[" << i << "] = " << g[i] << ", g[" << i + 1 << "] = "
+//				<< g[i + 1] << std::endl;
 	}
 
-//	cout << endl;
+//	std::cout << std::endl;
 
 	return fx;
 }
@@ -145,23 +145,23 @@ lbfgsfloatval_t Lbfgs_Cluster::evaluate_angle_only(void *instance,
 			{
 				double addition = pow(correl - dot_product / magnitude_term, 2);
 				fx += addition;
-				//		cout << "Correl 0/0 = " << addition << endl;
+				//		std::cout << "Correl 0/0 = " << addition << std::endl;
 			}
 			if (inv_correl != 2)
 			{
 				double addition = pow(inv_correl - dot_product / magnitude_term,
 						2);
 				fx += addition;
-				//		cout << "Correl 0/1 = " << addition << endl;
+				//		std::cout << "Correl 0/1 = " << addition << std::endl;
 			}
 		}
 	}
 
 	for (int i = 0; i < n; i += 2)
-		cout << "x[" << i << "] = " << x[i] << ", x[" << i + 1 << "] = "
-				<< x[i + 1] << endl;
+		std::cout << "x[" << i << "] = " << x[i] << ", x[" << i + 1 << "] = "
+				<< x[i + 1] << std::endl;
 
-	cout << endl;
+	std::cout << std::endl;
 
 	printf("f(x) = %.3f\n", fx);
 
@@ -203,7 +203,7 @@ lbfgsfloatval_t Lbfgs_Cluster::evaluate_angle_only(void *instance,
 			double inv_addition_i = inv_left_hand_side
 					* (right_hand_side_left - right_hand_side_right);
 
-			//		cout << "For " << i << ": left_hand_side = " << left_hand_side << ", right_hand_side_left = " << right_hand_side_left << ", right_hand_side_right = " << right_hand_side_right << endl;
+			//		std::cout << "For " << i << ": left_hand_side = " << left_hand_side << ", right_hand_side_left = " << right_hand_side_left << ", right_hand_side_right = " << right_hand_side_right << std::endl;
 
 
 			// and for aj
@@ -217,32 +217,32 @@ lbfgsfloatval_t Lbfgs_Cluster::evaluate_angle_only(void *instance,
 			double inv_addition_j = inv_left_hand_side
 					* (right_hand_side_left - right_hand_side_right);
 
-			//		cout << "For " << i + 1 << ": left_hand_side = " << left_hand_side << ", right_hand_side_left = " << right_hand_side_left << ", right_hand_side_right = " << right_hand_side_right << endl;
+			//		std::cout << "For " << i + 1 << ": left_hand_side = " << left_hand_side << ", right_hand_side_left = " << right_hand_side_left << ", right_hand_side_right = " << right_hand_side_right << std::endl;
 
 			if ((*statsManager).cc_array[i / 2][j / 2] != -1)
 			{
 				sigma_i += addition_i;
 				sigma_j += addition_j;
 
-				//		cout << "Correl 0/0 gradient addition = " << addition_i << ", " << addition_j << endl;
+				//		std::cout << "Correl 0/0 gradient addition = " << addition_i << ", " << addition_j << std::endl;
 			}
 			if ((*statsManager).inv_cc_array[i / 2][j / 2] != -1)
 			{
 				sigma_i += inv_addition_i;
 				sigma_j += inv_addition_j;
 
-				//		cout << "Correl 0/1 gradient addition = " << inv_addition_i << ", " << inv_addition_j << endl;
+				//		std::cout << "Correl 0/1 gradient addition = " << inv_addition_i << ", " << inv_addition_j << std::endl;
 			}
 		}
 
 		g[i] = sigma_i;
 		g[i + 1] = sigma_j;
 
-		cout << "g[" << i << "] = " << g[i] << ", g[" << i + 1 << "] = "
-				<< g[i + 1] << endl;
+		std::cout << "g[" << i << "] = " << g[i] << ", g[" << i + 1 << "] = "
+				<< g[i + 1] << std::endl;
 	}
 
-//	cout << endl;
+//	std::cout << std::endl;
 
 	return fx;
 }
@@ -252,7 +252,7 @@ static int progress(void *instance, const lbfgsfloatval_t *x,
 		const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
 		const lbfgsfloatval_t step, int n, int k, int ls)
 {
-    ostringstream logged;
+    std::ostringstream logged;
     
     logged << "Iteration: " << k << std::endl;
     logged << "fx = " << fx << std::endl;
@@ -294,7 +294,7 @@ void Lbfgs_Cluster::run(MtzManager **mergedMtz)
 {
 	int n = mtz_num * 2;
 
-    ostringstream logged;
+    std::ostringstream logged;
     
 	if (mtz_num <= 10)
 	{
@@ -409,8 +409,8 @@ void Lbfgs_Cluster::run(MtzManager **mergedMtz)
 
 	logged << "Flipping images" << std::endl;
 
-	std::vector<std::pair<double, double> > dots =
-			std::vector<std::pair<double, double> >();
+	vector<std::pair<double, double> > dots =
+			vector<std::pair<double, double> >();
 
 	for (int i = 0; i < n; i += 2)
 	{
@@ -488,9 +488,9 @@ void Lbfgs_Cluster::run(MtzManager **mergedMtz)
 	lbfgs_free(x);
 }
 
-double Lbfgs_Cluster::findDividingLine(std::vector<std::pair<double, double> > dots)
+double Lbfgs_Cluster::findDividingLine(vector<std::pair<double, double> > dots)
 {
-    ostringstream logged;
+    std::ostringstream logged;
     
 	double angle = 45 * M_PI / 180;
 	int count = 0;

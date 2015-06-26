@@ -19,21 +19,32 @@
 #include <cctbx/miller.h>
 #include "FileParser.h"
 
+
+
 using cctbx::sgtbx::reciprocal_space::asu;
 
 asu Miller::p1_asu = asu();
 bool Miller::initialised_p1 = false;
 space_group Miller::p1_spg = space_group();
 
-double integrate_sphere(double p, double q, double radius)
+double Miller::integrate_sphere(double p, double q, double radius)
 {
     double partiality_add = 3 * pow(q, 2) - 2 * pow(q, 3);
     double partiality_remove = 3 * pow(p, 2) - 2 * pow(p, 3);
     
     double proportion = partiality_add - partiality_remove;
     
-    double sphere_volume = (4 * M_PI / 3) * pow(radius, 3);
-    double circle_surface_area = pow(radius, 2) * M_PI;
+    double sphere_volume = lastVolume;
+    double circle_surface_area = lastSurfaceArea;
+    
+    if (sizeChanged)
+    {
+        sphere_volume = (4 * M_PI / 3) * pow(radius, 3);
+        circle_surface_area = pow(radius, 2) * M_PI;
+        
+        lastVolume = sphere_volume;
+        lastSurfaceArea = circle_surface_area;
+    }
     
     double distance_total = radius * 2;
     double distance_fraction = distance_total * (q - p);
@@ -79,7 +90,7 @@ double Miller::integrate_beam_slice(double pBandwidth, double qBandwidth, double
     double pX = (pBandwidth - mean) / sigma;
     double qX = (qBandwidth - mean) / sigma;
     
-    double width = abs(qX - pX);
+    double width = fabs(qX - pX);
     
     double area = (pValue + qValue) / 2 * width;
     
@@ -102,6 +113,9 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
                               double exponent)
 {
     int slices = 8;
+    
+    if (resolution() > 2.5)
+        slices = 5;
     
     double bandwidth_span = high_wavelength - low_wavelength;
     
@@ -178,12 +192,17 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     rejected = false;
     calculatedRejected = true;
     denormaliseFactor = 1;
+    excluded = false;
+    lastRlpSize = 0;
+    lastMosaicity = 0;
+    lastVolume = 0;
+    lastSurfaceArea = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
     
     mtzParent = parent;
-    parentHolder = NULL;
+    parentReflection = NULL;
     matrix = MatrixPtr();
     flipMatrix = MatrixPtr(new Matrix());
 }
@@ -221,9 +240,9 @@ void Miller::setFlipMatrix(MatrixPtr flipMat)
     flipMatrix = flipMat;
 }
 
-void Miller::setParent(Holder *holder)
+void Miller::setParent(Reflection *reflection)
 {
-    parentHolder = holder;
+    parentReflection = reflection;
 }
 
 void Miller::setPartialityModel(PartialityModel _model)
@@ -248,9 +267,7 @@ void Miller::printHkl(void)
 bool Miller::accepted(void)
 {
     if (this->model == PartialityModelNone)
-    {
         return true;
-    }
 
     if (this->partiality < partialCutoff)
         return false;
@@ -454,12 +471,12 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
     }
     
     
-    spotSize = abs(spotSize);
-    double radMos = abs(mosaicity) * M_PI / 180;
+    spotSize = fabs(spotSize);
+    double radMos = fabs(mosaicity) * M_PI / 180;
     
     double distanceFromOrigin = length_of_vector(*hkl);
     
-    double spotSizeIncrease = abs(radMos * distanceFromOrigin);
+    double spotSizeIncrease = fabs(radMos * distanceFromOrigin);
     
     double radius = (spotSize + spotSizeIncrease);
     
@@ -469,9 +486,15 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
 double Miller::partialityForHKL(vec hkl, double hRot, double kRot, double mosaicity,
                                double spotSize, double wavelength, double bandwidth, double exponent)
 {
-    bandwidth = abs(bandwidth);
+    bandwidth = fabs(bandwidth);
     
-    double radius = expectedRadius(spotSize, mosaicity, &hkl);
+    
+    double radius = 0;
+    
+    if (!sizeChanged)
+        radius = lastRadius;
+    else
+        radius = expectedRadius(spotSize, mosaicity, &hkl);
     
     vec mean_wavelength_ewald_centre = new_vector(0, 0, -1 / wavelength);
     
@@ -575,17 +598,12 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
                                    double spotSize, double wavelength, double bandwidth, double exponent,
                                    bool normalise)
 {
-    latestHRot = hRot;
-    latestKRot = kRot;
-    lastWavelength = wavelength;
-    lastBandwidth = bandwidth;
-    lastRlpSize = spotSize;
-    lastMosaicity = mosaicity;
-    
     if (model == PartialityModelFixed)
     {
         return;
     }
+    
+    sizeChanged = !(spotSize == lastRlpSize && mosaicity == lastMosaicity);
     
     MatrixPtr newMatrix = MatrixPtr();
     rotateMatrix(hRot, kRot, &newMatrix);
@@ -609,6 +627,14 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
         normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
     }
     
+    latestHRot = hRot;
+    latestKRot = kRot;
+    lastWavelength = wavelength;
+    lastBandwidth = bandwidth;
+    lastRlpSize = spotSize;
+    lastMosaicity = mosaicity;
+    lastRadius = expectedRadius(spotSize, mosaicity, &hkl);
+
     partiality = tempPartiality / normPartiality;
 }
 
@@ -708,7 +734,7 @@ MillerPtr Miller::copy(void)
     newMiller->partiality = partiality;
     newMiller->wavelength = wavelength;
     newMiller->matrix = matrix;
-    newMiller->filename = string(filename);
+    newMiller->filename = std::string(filename);
     newMiller->countingSigma = countingSigma;
     newMiller->lastX = lastX;
     newMiller->lastY = lastY;
@@ -758,8 +784,8 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
     int l = getL();
     
     cctbx::miller::index<> newMiller = cctbx::miller::index<>(h, k, l);
-    space_group *spaceGroup = parentHolder->getSpaceGroup();
-    asu *asymmetricUnit = parentHolder->getAsymmetricUnit();
+    space_group *spaceGroup = parentReflection->getSpaceGroup();
+    asu *asymmetricUnit = parentReflection->getAsymmetricUnit();
     
     cctbx::miller::asym_index asymmetricMiller = cctbx::miller::asym_index(*spaceGroup, *asymmetricUnit, newMiller);
     
@@ -1009,7 +1035,7 @@ bool Miller::isRejected(std::string reason)
     return rejectedReasons[reason];
 }
 
-double Miller::averageRawIntensity(std::vector<MillerPtr> millers)
+double Miller::averageRawIntensity(vector<MillerPtr> millers)
 {
     double allIntensities = 0;
     int num = 0;
@@ -1034,7 +1060,7 @@ double Miller::observedPartiality(double reference)
 
 double Miller::observedPartiality(MtzManager *reference)
 {
-    return parentHolder->observedPartiality(reference, this);
+    return parentReflection->observedPartiality(reference, this);
 }
 
 Miller::~Miller()

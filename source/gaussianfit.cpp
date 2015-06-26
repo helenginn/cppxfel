@@ -13,8 +13,8 @@ double gaussian_distribution(double x, double mean, double sigma, double height)
 	return exp;
 }
 
-double sq_diff_for_num(std::vector<double> wavelengths,
-		std::vector<int> refcounts, int diff_num, double mean, double sigma,
+double sq_diff_for_num(vector<double> wavelengths,
+		vector<int> refcounts, int diff_num, double mean, double sigma,
 		double height)
 {
 	double wavelength_lower = wavelengths[diff_num];
@@ -32,7 +32,7 @@ double sq_diff_for_num(std::vector<double> wavelengths,
 	return square_difference;
 }
 
-double find_residual(std::vector<double> wavelengths, std::vector<int> refcounts,
+double find_residual(vector<double> wavelengths, vector<int> refcounts,
 		int num, double mean, double sigma, double height)
 {
 	double residual = 0;
@@ -47,8 +47,8 @@ double find_residual(std::vector<double> wavelengths, std::vector<int> refcounts
 	return residual;
 }
 
-double find_mode_height(std::vector<double> wavelengths,
-		std::vector<int> refcounts, int num, int *mode_num)
+double find_mode_height(vector<double> wavelengths,
+		vector<int> refcounts, int num, int *mode_num)
 {
 	int max_num = -1;
 	double best_count = 0;
@@ -67,7 +67,7 @@ double find_mode_height(std::vector<double> wavelengths,
 	return best_count;
 }
 
-void gaussian_fit(std::vector<double> wavelengths, std::vector<int> refcounts,
+void gaussian_fit(vector<double> wavelengths, vector<int> refcounts,
 		int num, double *mean, double *stdev, double *score, bool print)
 {
 	double height = 0;

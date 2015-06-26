@@ -20,6 +20,7 @@
 #include <scitbx/vec3.h>
 #include <cctbx/crystal_orientation.h>
 #include "Logger.h"
+#include "FileParser.h"
 
 /*+(void) populate: (GLdouble*) aGLMatrix
  fromFrustumLeft: (GLdouble) left
@@ -41,12 +42,25 @@ Matrix::Matrix(void)
 
 	for (int i = 0; i < 16; i += 5)
 		components[i] = 1;
+    
+    unitCell = MatrixPtr();
+    rotation = MatrixPtr();
 }
 
-std::string Matrix::description()
+std::string Matrix::description(bool detailed)
 {
-	std::ostringstream description;
+    std::ostringstream description;
 
+    if (detailed == true && unitCell)
+    {
+        description << "unitcell ";
+        description << unitCell->description() << std::endl;
+        description << "rotation ";
+        description << rotation->description();
+        
+        return description.str();
+    }
+    
 	description << std::setprecision(14);
 
 	description << components[0] << " ";
@@ -62,9 +76,9 @@ std::string Matrix::description()
 	return description.str();
 }
 
-void Matrix::printDescription()
+void Matrix::printDescription(bool detailed)
 {
-	std::cout << description() << std::endl;
+	std::cout << description(detailed) << std::endl;
 /*
 	for (int i = 0; i < 9; i += 3)
 	{
@@ -119,21 +133,25 @@ void Matrix::threeDimComponents(double **componentArray)
     (*componentArray)[8] = components[10];
 }
 
-scitbx::mat3<double> Matrix::cctbxMatrix()
+scitbx::mat3<double> Matrix::cctbxMatrix(MatrixPtr theMatrix)
 {
+    Matrix *chosenMatrix = this;
+    if (theMatrix)
+        chosenMatrix = &*theMatrix;
+    
     scitbx::mat3<double> cctbxMat = scitbx::mat3<double>();
     
-    cctbxMat(0, 0) = components[0];
-    cctbxMat(1, 0) = components[4];
-    cctbxMat(2, 0) = components[8];
+    cctbxMat(0, 0) = chosenMatrix->components[0];
+    cctbxMat(1, 0) = chosenMatrix->components[4];
+    cctbxMat(2, 0) = chosenMatrix->components[8];
     
-    cctbxMat(0, 1) = components[1];
-    cctbxMat(1, 1) = components[5];
-    cctbxMat(2, 1) = components[9];
+    cctbxMat(0, 1) = chosenMatrix->components[1];
+    cctbxMat(1, 1) = chosenMatrix->components[5];
+    cctbxMat(2, 1) = chosenMatrix->components[9];
     
-    cctbxMat(0, 2) = components[2];
-    cctbxMat(1, 2) = components[6];
-    cctbxMat(2, 2) = components[10];
+    cctbxMat(0, 2) = chosenMatrix->components[2];
+    cctbxMat(1, 2) = chosenMatrix->components[6];
+    cctbxMat(2, 2) = chosenMatrix->components[10];
     
     return cctbxMat;
 }
@@ -156,83 +174,80 @@ void Matrix::unitCellLengths(double **lengths)
 /** Warning: only use for unit cells with 90 degree angles! */
 void Matrix::scaleUnitCellAxes(double aScale, double bScale, double cScale)
 {
-    //    this->printDescription();
+    double *oldLengths = new double[3];
+    unitCellLengths(&oldLengths);
     
-    for (int i = 0; i < 3; i++)
-    {
-        double scaleToUse = aScale;
-        if (i == 1) scaleToUse = bScale;
-        else if (i == 2) scaleToUse = cScale;
-        
-        vec aAxis = new_vector((i == 0), (i == 1), (i == 2));
-        vec aAxisScaled = copy_vector(aAxis);
-        this->multiplyVector(&aAxis);
-        this->multiplyVector(&aAxisScaled);
-        scale_vector_to_distance(&aAxisScaled, scaleToUse);
-        scale_vector_to_distance(&aAxis, 1);
-        vec aVec = new_vector(aAxisScaled.h / aAxis.h, aAxisScaled.k / aAxis.k, aAxisScaled.l / aAxis.l);
-        Matrix aScaler = Matrix();
-        aScaler.scale(aVec.h, aVec.k, aVec.l);
-        this->preMultiply(aScaler);
-    }
+    double *newLengths = new double[3];
+    newLengths[0] = oldLengths[0] * aScale;
+    newLengths[1] = oldLengths[1] * bScale;
+    newLengths[2] = oldLengths[2] * cScale;
     
+    vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
-    //    this->printDescription();
+    changeOrientationMatrixDimensions(newLengths[0], newLengths[1], newLengths[2], unitCell[3], unitCell[4], unitCell[5]);
+    
+    delete [] oldLengths;
+    delete [] newLengths;
+}
+
+void Matrix::recalculateOrientationMatrix()
+{
+    MatrixPtr newMat = unitCell->copy();
+    MatrixPtr copyRot = rotation->copy();
+    *newMat *= *rotation;
+    memcpy(components, newMat->components, 16 * sizeof(double));
+}
+
+void Matrix::setComplexMatrix(MatrixPtr newUnitCell, MatrixPtr newRotation)
+{
+    unitCell = newUnitCell;
+    rotation = newRotation;
+    
+    recalculateOrientationMatrix();
 }
 
 void Matrix::assignFromCctbxMatrix(scitbx::mat3<double> newMat)
 {
-    components[0] = newMat(0, 0);
-    components[4] = newMat(1, 0);
-    components[8] = newMat(2, 0);
+    assignFromCctbxMatrix(this, newMat);
+}
 
-    components[1] = newMat(0, 1);
-    components[5] = newMat(1, 1);
-    components[9] = newMat(2, 1);
+void Matrix::assignFromCctbxMatrix(Matrix *changeMat, scitbx::mat3<double> newMat)
+{
+    changeMat->components[0] = newMat(0, 0);
+    changeMat->components[4] = newMat(1, 0);
+    changeMat->components[8] = newMat(2, 0);
 
-    components[2] = newMat(0, 2);
-    components[6] = newMat(1, 2);
-    components[10] = newMat(2, 2);
+    changeMat->components[1] = newMat(0, 1);
+    changeMat->components[5] = newMat(1, 1);
+    changeMat->components[9] = newMat(2, 1);
+
+    changeMat->components[2] = newMat(0, 2);
+    changeMat->components[6] = newMat(1, 2);
+    changeMat->components[10] = newMat(2, 2);
 }
 
 void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma)
 {
-    ostringstream logged;
-    
-    scitbx::mat3<double> cctbxMat = cctbxMatrix();
+    std::ostringstream logged;
     
     double *lengths = new double[3];
     unitCellLengths(&lengths);
     
     logged << "Original cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2];
     
-    scitbx::af::double6 params = scitbx::af::double6(lengths[0], lengths[1], lengths[2], alpha, beta, gamma);
-    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
-    
-    scitbx::mat3<double> ortho = uc.orthogonalization_matrix();
-    
-    scitbx::mat3<double> rotation = cctbxMat * ortho;
-    
     scitbx::af::double6 newParams = scitbx::af::double6(newA, newB, newC, alpha, beta, gamma);
     cctbx::uctbx::unit_cell newUnitCell = cctbx::uctbx::unit_cell(newParams);
     scitbx::mat3<double> newOrtho = newUnitCell.orthogonalization_matrix().error_minimizing_inverse(10);
-    scitbx::mat3<double> newMat = rotation * newOrtho;
     
-    assignFromCctbxMatrix(newMat);
+    assignFromCctbxMatrix(&*this->unitCell, newOrtho);
+    recalculateOrientationMatrix();
+
     unitCellLengths(&lengths);
     logged << "; new cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2] << std::endl;
     
     delete [] lengths;
     
-    Logger::mainLogger->addStream(&logged);
-}
-
-
-Matrix Matrix::operator=(Matrix &b)
-{
-    memcpy(b.components, this->components, 16 * sizeof(double));
-
-    return *this;
+    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
 }
 
 Matrix Matrix::operator*=(Matrix &b)
@@ -305,7 +320,12 @@ MatrixPtr Matrix::copy(void)
 {
     MatrixPtr newMat = MatrixPtr(new Matrix());
 	memcpy(newMat->components, this->components, 16 * sizeof(double));
-
+    
+    if (isComplex())
+    {
+        newMat->unitCell = unitCell->copy();
+        newMat->rotation = rotation->copy();
+    }
 	return newMat;
 }
 
@@ -400,12 +420,14 @@ void Matrix::rotateModelAxes(double alpha, double beta, double gamma)
 	(*gammaMat)[4] = -sin(-gamma);
 	(*gammaMat)[1] = sin(-gamma);
 	(*gammaMat)[5] = cos(-gamma);
+    
+    Matrix *chosenMatrix = this;
 
-	Matrix alphaThis = *alphaMat * *this;
+	Matrix alphaThis = *alphaMat * *chosenMatrix;
 	Matrix betaAlphaThis = *betaMat * alphaThis;
 	Matrix allThis = *gammaMat * betaAlphaThis;
 
-	memcpy(this->components, allThis.components, 16 * sizeof(double));
+	memcpy(chosenMatrix->components, allThis.components, 16 * sizeof(double));
 
 }
 
@@ -431,7 +453,19 @@ void Matrix::rotateRoundUnitVector(double *unitVector, double radians)
 			+ unitVector[0] * sin(radians);
 	(matrix)[10] = cos(radians) + pow(unitVector[2], 2) * (1 - cos(radians));
 
-	this->multiply(matrix);
+    Matrix *chosenMatrix = this;
+    
+    if (rotation)
+    {
+        chosenMatrix = &*rotation;
+    }
+    
+	chosenMatrix->multiply(matrix);
+    
+    if (rotation)
+    {
+        recalculateOrientationMatrix();
+    }
 }
 
 void Matrix::multiplyVector(vec *vector)

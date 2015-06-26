@@ -12,6 +12,8 @@
 #include "parameters.h"
 #include "FileParser.h"
 
+
+
 XManager::XManager()
 {
     lineSplitters.push_back(0);
@@ -35,7 +37,7 @@ XManager::~XManager()
     
 }
 
-void XManager::setFilenames(std::vector<std::string> newFiles)
+void XManager::setFilenames(vector<std::string> newFiles)
 {
     filenames = newFiles;
     filename = newFiles[0];
@@ -62,7 +64,7 @@ void XManager::loadReflections(PartialityModel model)
         exit(1);
     }
     
-    std::vector<double> unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
+    vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
     if (unitCell.size() == 0)
     {
@@ -81,15 +83,15 @@ void XManager::loadReflections(PartialityModel model)
     {
         std::string filename = filenames[i];
         std::string contents = FileReader::get_file_contents(filename.c_str());
-        std::vector<std::string> lines = FileReader::split(contents, '\n');
+        vector<std::string> lines = FileReader::split(contents, '\n');
         
         for (int j = skipLines; j < lines.size(); j++)
         {
-            std::vector<std::string> components;
+            vector<std::string> components;
             
             int success = FileReader::splitAtIndices(lines[j], lineSplitters, components);
             
-            if (success == 0 && holders.size() == 0)
+            if (success == 0 && reflections.size() == 0)
             {
                 std::cout << "Cannot parse line " << j << " of file, perhaps you need to skip some lines. Include SKIP_LINES keyword." << std::endl;
                 exit(1);
@@ -113,29 +115,29 @@ void XManager::loadReflections(PartialityModel model)
             int reflid = this->index_for_reflection(h, k, l, false);
             int invreflid = this->index_for_reflection(h, k, l, true);
             
-            Holder *currentHolder = NULL;
+            Reflection *currentReflection = NULL;
             
-            this->findHolderWithId(reflid, &currentHolder);
+            this->findReflectionWithId(reflid, &currentReflection);
             
-            if (currentHolder == NULL)
+            if (currentReflection == NULL)
             {
-                currentHolder = new Holder();
+                currentReflection = new Reflection();
                 
                 MillerPtr miller = MillerPtr(new Miller(this, h, k, l));
                 miller->setData(0, 0, 0, 0);
-                miller->setParent(currentHolder);
+                miller->setParent(currentReflection);
                 miller->setMatrix(matrix);
                 miller->setPartialityModel(PartialityModelFixed);
                 miller->setFilename(filename);
-                currentHolder->addMiller(miller);
+                currentReflection->addMiller(miller);
                 
-                currentHolder->calculateResolution(this);
+                currentReflection->calculateResolution(this);
                 
-                holders.push_back(currentHolder);
-                sortLastHolder();
+                reflections.push_back(currentReflection);
+                sortLastReflection();
             }
             
-            MillerPtr miller = currentHolder->miller(0);
+            MillerPtr miller = currentReflection->miller(0);
             
             double rawInt = miller->getRawIntensity();
             double sigma = miller->getSigma();

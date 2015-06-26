@@ -41,13 +41,13 @@ Wiki::Wiki(std::string filename)
 
 void Wiki::process()
 {
-	std::vector<std::string> lines = FileReader::split(contents, '\n');
+	vector<std::string> lines = FileReader::split(contents, '\n');
 
 	bool firstTabSeparated = false;
 
 	/* TAGS */
 
-	std::vector<std::string> tags;
+	vector<std::string> tags;
 
 #ifdef MAC
 	tags.push_back("Apple");
@@ -55,7 +55,7 @@ void Wiki::process()
 	tags.push_back("Linux");
 #endif
 
-	std::vector<std::string> directories = FileReader::split(filename, '/');
+	vector<std::string> directories = FileReader::split(filename, '/');
 
 	int num = (int)directories.size() - 2;
 
@@ -135,7 +135,7 @@ void Wiki::process()
 		{
 			std::string cutLine = line->substr(3, std::string::npos);
 
-			std::vector<std::string> tabSeparated = FileReader::split(cutLine,
+			vector<std::string> tabSeparated = FileReader::split(cutLine,
 					'\t');
 
 			if (tabSeparated.size() >= 2)

@@ -17,7 +17,6 @@
 #include "parameters.h"
 #include "Logger.h"
 
-class MtzManager;
 class Image;
 class Miller;
 
@@ -34,19 +33,24 @@ typedef enum
 	RefinementTypeOrientationMatrixRough = 6,
 	RefinementTypeOrientationMatrixMedian = 7,
     RefinementTypeOrientationMatrixTotalSignal = 8,
+    RefinementTypeOrientationMatrixHighestPeak = 9,
 } RefinementType;
 
 class Indexer
 {
 private:
 	Image *image;
-	std::vector<MillerPtr> millers;
-	std::vector<MillerPtr> nearbyMillers;
-	std::vector<Spot *>spots;
+	vector<MillerPtr> millers;
+	vector<MillerPtr> nearbyMillers;
+	vector<Spot *>spots;
     MatrixPtr matrix;
 
     CCP4SPG *spaceGroup;
-	std::vector<double> unitCell;
+    bool complexUnitCell;
+	vector<double> unitCell;
+    bool refineA;
+    bool refineB;
+    bool refineC;
 	double hRot;
 	double kRot;
     double bestHRot;
@@ -69,26 +73,27 @@ private:
 	double lastStdev;
 	double testBandwidth;
     double lastScore;
-	std::vector<std::vector<double> > solutions;
+	vector<vector<double> > solutions;
     
     std::ostringstream logged;
     void sendLog(LogLevel priority);
 
 public:
 	Indexer(Image *newImage = NULL, MatrixPtr matrix = MatrixPtr());
-	virtual ~Indexer();
+    void setComplexMatrix();
+    virtual ~Indexer();
 
 	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false);
 	MtzPtr newMtz(int i);
-	void getWavelengthHistogram(std::vector<double> &wavelengths,
-			std::vector<int> &frequencies, LogLevel level = LogLevelDetailed);
+	void getWavelengthHistogram(vector<double> &wavelengths,
+			vector<int> &frequencies, LogLevel level = LogLevelDetailed);
 	double score();
 
 	static bool millerReachesThreshold(MillerPtr miller);
 	void findSpots();
-	static void duplicateSpots(std::vector<Image *>images);
+	static void duplicateSpots(vector<Image *>images);
 	void writeDatFromSpots(std::string filename);
-	static void scatterSpots(std::vector<Image *> images);
+	static void scatterSpots(vector<Image *> images);
 
 	void matchMatrixToSpots();
 	void matchMatrixToSpots(RefinementType refinement);
@@ -243,7 +248,7 @@ public:
 		this->spaceGroup = spaceGroup;
 	}
 
-	const std::vector<Spot *>& getSpots() const
+	const vector<Spot *>& getSpots() const
 	{
 		return spots;
 	}
@@ -258,12 +263,12 @@ public:
 		this->expectedSpots = expectedSpots;
 	}
 
-	const std::vector<std::vector<double> >& getSolutions() const
+	const vector<vector<double> >& getSolutions() const
 	{
 		return solutions;
 	}
 
-	void setSolutions(const std::vector<std::vector<double> >& solutions)
+	void setSolutions(const vector<vector<double> >& solutions)
 	{
 		this->solutions = solutions;
 	}
@@ -278,12 +283,12 @@ public:
 		this->intensityThreshold = intensityThreshold;
 	}
 
-	std::vector<double>& getUnitCell()
+	vector<double>& getUnitCell()
 	{
 		return unitCell;
 	}
 
-	void setUnitCell(std::vector<double>& unitCell)
+	void setUnitCell(vector<double>& unitCell)
 	{
 		this->unitCell = unitCell;
 	}

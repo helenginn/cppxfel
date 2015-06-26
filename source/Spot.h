@@ -9,13 +9,14 @@
 #define SPOT_H_
 
 #include <vector>
+#include "parameters.h"
 
 class Image;
 
 class Spot
 {
 private:
-	std::vector<std::vector<double> > probe;
+	vector<vector<double> > probe;
 	Image *parentImage;
 
 public:
@@ -31,7 +32,7 @@ public:
 	void setXY(int x, int y);
 	double scatteringAngle(Image *image);
 	bool isAcceptable(Image *image);
-	static void sortSpots(std::vector<Spot *> *spots);
+	static void sortSpots(vector<Spot *> *spots);
 	static bool spotComparison(Spot *a, Spot *b);
 
 	Image*& getParentImage()

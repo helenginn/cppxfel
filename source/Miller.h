@@ -17,13 +17,11 @@
 #include "definitions.h"
 #include "parameters.h"
 #include <cctbx/miller/asu.h>
+#include "Holder.h"
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
-class Holder;
 class Image;
-
-#include "Holder.h"
 
 typedef enum
 {
@@ -57,9 +55,16 @@ private:
     double lastWavelength;
     double lastRlpSize;
     double lastMosaicity;
+    
+    double lastRadius;
+    double lastVolume;
+    double lastSurfaceArea;
+    bool sizeChanged;
+    
     double latestHRot;
     double latestKRot;
     double bFactorScale;
+    bool excluded;
     bool rejected;
     bool calculatedRejected;
     double additionalWeight;
@@ -76,12 +81,14 @@ private:
                           double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
                           double exponent);
     
+    double integrate_sphere(double p, double q, double radius);
+    
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
     
     Image *image;
     Indexer *indexer;
     ShoeboxPtr shoebox;
-    std::weak_ptr<Miller> selfPtr;
+    boost::weak_ptr<Miller> selfPtr;
     MatrixPtr flipMatrix;
 public:
     int getH();
@@ -91,7 +98,7 @@ public:
     vec hklVector(bool shouldFlip = true);
     void setFlipMatrix(MatrixPtr flipMat);
 	MatrixPtr matrix;
-	Holder *parentHolder;
+	Reflection *parentReflection;
     MtzManager *mtzParent;
 
 	Miller(MtzManager *parent, int _h = 0, int _k = 0, int _l = 0);
@@ -103,7 +110,7 @@ public:
     void setPartialityModel(PartialityModel model);
 	void setData(double _intensity, double _sigma, double _partiality,
 			double _wavelength);
-	void setParent(Holder *holder);
+	void setParent(Reflection *reflection);
 	void setFree(bool newFree);
 	bool positiveFriedel(bool *positive, int *isym = NULL);
 	bool activeWithAngle(double degrees);
@@ -152,9 +159,19 @@ public:
     
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
     
-    static double averageRawIntensity(std::vector<MillerPtr> millers);
+    static double averageRawIntensity(vector<MillerPtr> millers);
 
 	virtual ~Miller();
+    
+    void setExcluded(bool exc = true)
+    {
+        excluded = exc;
+    }
+    
+    bool isExcluded()
+    {
+        return excluded;
+    }
     
     void setAdditionalWeight(double weight)
     {

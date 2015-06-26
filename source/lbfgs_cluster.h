@@ -1,14 +1,12 @@
 #ifndef lbfgs_cluster
 #define lbfgs_cluster
 
+#include "parameters.h"
 #include <vector>
 #include <string>
 #include <iostream>
 #include <liblbfgs.h>
 #include "StatisticsManager.h"
-
-using namespace std;
-
 
 class Lbfgs_Cluster
 {
@@ -23,7 +21,7 @@ public:
 	void run(MtzManager **mergedMtz);
 	void initialise_cluster_lbfgs(char **files, int filenum, MtzManager **mergedMtz);
 	void initialise_cluster_lbfgs(vector<MtzPtr>mtzs, MtzManager **mergedMtz);
-	double findDividingLine(std::vector<std::pair<double, double> > dots);
+	double findDividingLine(vector<std::pair<double, double> > dots);
 
 	int getMtzNum() const {
 		return mtz_num;

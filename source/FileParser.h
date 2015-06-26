@@ -12,6 +12,8 @@
 #include "parameters.h"
 #include <iostream>
 
+class MtzRefiner;
+
 class FileParser
 {
 protected:

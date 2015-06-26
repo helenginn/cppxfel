@@ -18,13 +18,13 @@
 class XManager : public MtzManager
 {
 private:
-    std::vector<std::string> filenames;
-    std::vector<int> lineSplitters;
+    vector<std::string> filenames;
+    vector<int> lineSplitters;
 public:
     XManager();
     ~XManager();
     
-    void setFilenames(std::vector<std::string> newFiles);
+    void setFilenames(vector<std::string> newFiles);
     
     virtual void loadReflections(PartialityModel model);
 };

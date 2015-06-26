@@ -10,9 +10,11 @@
 
 #include "headers/csymlib.h"
 
+class Reflection;
+
+#include "parameters.h"
 #include "Miller.h"
 #include "MtzGrouper.h"
-#include "parameters.h"
 #include "headers/csymlib.h"
 #include <cctbx/sgtbx/space_group.h>
 #include <cctbx/sgtbx/symbols.h>
@@ -27,10 +29,10 @@ using cctbx::sgtbx::space_group_symbols;
 using cctbx::sgtbx::space_group_type;
 using cctbx::sgtbx::reciprocal_space::asu;
 
-class Holder
+class Reflection
 {
 private:
-	std::vector<MillerPtr> millers;
+	vector<MillerPtr> millers;
 	int refl_id;
 	int inv_refl_id;
 	double refIntensity;
@@ -43,30 +45,31 @@ private:
     static bool hasSetup;
     static bool setupUnitCell;
     int activeAmbiguity;
-    std::vector<int> reflectionIds;
+    vector<int> reflectionIds;
     static cctbx::uctbx::unit_cell unitCell;
 public:
-    Holder(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
+    Reflection(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
     void setUnitCell(float *unitCell);
-	virtual ~Holder();
+	virtual ~Reflection();
 
+    MillerPtr acceptedMiller(int num);
 	MillerPtr miller(int i);
     void printDescription();
 	void addMiller(MillerPtr miller);
 	int millerCount();
-	Holder *copy(bool copyMillers);
-	Holder *copy();
+	Reflection *copy(bool copyMillers);
+	Reflection *copy();
     
 	static int indexForReflection(int h, int k, int l, CSym::CCP4SPG *lowspgroup, bool inverted);
 
     int checkOverlaps();
-	void holderDescription();
+	void reflectionDescription();
 	void calculateResolution(MtzManager *mtz);
 	void clearMillers();
     void removeMiller(int index);
 
-	double meanIntensityWithExclusion(std::string *filename);
-	double meanIntensity();
+	double meanIntensityWithExclusion(std::string *filename, int start = 0, int end = 0);
+	double meanIntensity(int start = 0, int end = 0);
 	double meanSigma();
 	double meanSigma(bool friedel);
 	double meanPartiality();
@@ -122,12 +125,12 @@ public:
         activeAmbiguity = newAmbiguity;
     }
 
-	const std::vector<MillerPtr>& getMillers() const
+	const vector<MillerPtr>& getMillers() const
 	{
 		return millers;
 	}
 
-	void setMillers(const std::vector<MillerPtr>& millers)
+	void setMillers(const vector<MillerPtr>& millers)
 	{
 		this->millers = millers;
 	}

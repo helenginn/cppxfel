@@ -11,7 +11,7 @@
 #include "Index.h"
 #include "Logger.h"
 
-using namespace std;
+
 
 int main(int argc, char *argv[])
 {
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     
 	if (argc == 1)
 	{
-		cout << "No tasks selected. Try -i {input_file}." << endl;
+		std::cout << "No tasks selected. Try -i {input_file}." << std::endl;
 		exit(1);
 	}
 
@@ -28,19 +28,16 @@ int main(int argc, char *argv[])
 	{
 		if (argc <= 2)
 		{
-			cout << "arguments: -wiki <logfile>" << endl;
+			std::cout << "arguments: -wiki <logfile>" << std::endl;
 			exit(1);
 		}
 
-		Wiki wiki = Wiki(string(argv[2]));
+        Wiki wiki = Wiki(std::string(argv[2]));
 		wiki.process();
 
 		exit(1);
 	}
     
-    Logger::mainLogger = LoggerPtr(new Logger());
-    boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
-
 #ifdef MAC
 //	std::cout << "Original: " << getenv("SYMINFO") << std::endl;
 
@@ -49,22 +46,27 @@ int main(int argc, char *argv[])
 	std::cout << getenv("SYMINFO") << std::endl;
 #endif
     
-	std::cout << "Welcome to Helen's XFEL tasks" << endl;
+	std::cout << "Welcome to Helen's XFEL tasks" << std::endl;
     
 	if (strcmp(argv[1], "-i") == 0)
 	{
 		if (argc < 3)
 		{
-			cout << "arguments: -i <input_script>" << endl;
+			std::cout << "arguments: -i <input_script>" << std::endl;
 			exit(1);
 		}
 
-		InputFileParser *parser = new InputFileParser(string(argv[2]));
+        InputFileParser *parser = new InputFileParser(std::string(argv[2]));
 		parser->parse();
         
         delete parser;
 	}
-
+    else
+    {
+        Logger::mainLogger = LoggerPtr(new Logger());
+        boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
+    }
+    
 	if (strcmp(argv[1], "-index") == 0)
 	{
 		index(argv, argc);
@@ -74,7 +76,7 @@ int main(int argc, char *argv[])
 	{
 		if (argc <= 2)
 		{
-			cout << "arguments: -allcc <file1> <file2> ... <filen>." << endl;
+			std::cout << "arguments: -allcc <file1> <file2> ... <filen>." << std::endl;
 			exit(1);
 		}
 
@@ -90,8 +92,8 @@ int main(int argc, char *argv[])
 	{
 		if (argc < 3)
 		{
-			cout << "arguments: -r{merge} <file1> [lowRes] [highRes] [bins]."
-					<< endl;
+			std::cout << "arguments: -r{merge} <file1> [lowRes] [highRes] [bins]."
+					<< std::endl;
 			exit(1);
 		}
 
@@ -121,7 +123,7 @@ int main(int argc, char *argv[])
 		}
 
         MtzManager *mtz = new MtzManager();
-		mtz->setFilename(string(argv[2]));
+		mtz->setFilename(std::string(argv[2]));
 		mtz->loadReflections(1);
 
 		mtz->rFactorWithManager(rFactor, false, false, lowRes, highRes, bins);
@@ -131,9 +133,9 @@ int main(int argc, char *argv[])
 	{
 		if (argc < 4)
 		{
-			cout
+			std::cout
 					<< "arguments: -cc <file1> <file2> (0 / 1) [lowRes] [highRes] [bins]."
-					<< endl;
+					<< std::endl;
 			exit(1);
 		}
 
@@ -159,11 +161,11 @@ int main(int argc, char *argv[])
 		}
 
 		MtzManager *mtz1 = new MtzManager();
-		mtz1->setFilename(string(argv[2]));
+		mtz1->setFilename(std::string(argv[2]));
 		mtz1->loadReflections(1);
 
 		MtzManager *mtz2 = new MtzManager();
-		mtz2->setFilename(string(argv[3]));
+		mtz2->setFilename(std::string(argv[3]));
 		mtz2->loadReflections(1);
 
 		if (inverted)
@@ -189,8 +191,8 @@ int main(int argc, char *argv[])
 	{
 		if (argc <= 3)
 		{
-			cout << "arguments: -gradscaling <ref> <file2> ... <filen>."
-					<< endl;
+			std::cout << "arguments: -gradscaling <ref> <file2> ... <filen>."
+					<< std::endl;
 			exit(1);
 		}
 
@@ -216,23 +218,23 @@ int main(int argc, char *argv[])
 	{
 		if (argc <= 2)
 		{
-			cout << "arguments: -inv <file>." << endl;
+			std::cout << "arguments: -inv <file>." << std::endl;
 			exit(1);
 		}
         
         MtzManager *mtz = new MtzManager();
-		mtz->setFilename(string(argv[2]));
+		mtz->setFilename(std::string(argv[2]));
 		mtz->loadReflections(1);
         mtz->setActiveAmbiguity(1);
 
-		mtz->writeToFile(string("inv-") + argv[2], false, false, true);
+		mtz->writeToFile(std::string("inv-") + argv[2], false, false, true);
 	}
 
 	if (strcmp(argv[1], "-stats") == 0)
 	{
 		if (argc < 3)
 		{
-			cout << "arguments: -stats <filein> <threshold>." << endl;
+			std::cout << "arguments: -stats <filein> <threshold>." << std::endl;
 			exit(1);
 		}
 
@@ -270,7 +272,7 @@ int main(int argc, char *argv[])
 	{
 		if (argc <= 3)
 		{
-			cout << "arguments: -partimg <ref> <filein>." << endl;
+			std::cout << "arguments: -partimg <ref> <filein>." << std::endl;
 			exit(1);
 		}
 
@@ -286,7 +288,7 @@ int main(int argc, char *argv[])
             std::cout << argv[i] << std::endl;
 			mtz->loadReflections(PartialityModelNone);
 
-            vector<Holder *>refHolders, imageHolders;
+            vector<Reflection *>refReflections, imageReflections;
             
 			GraphDrawer graph = GraphDrawer(mtz);
 
@@ -302,7 +304,7 @@ int main(int argc, char *argv[])
 	{
 		if (argc <= 2)
 		{
-			cout << "arguments: -bfactor <ref> <file1> {<file2> ...}." << endl;
+			std::cout << "arguments: -bfactor <ref> <file1> {<file2> ...}." << std::endl;
 			exit(1);
 		}
 
@@ -374,11 +376,11 @@ int main(int argc, char *argv[])
     int finalSeconds = (int) seconds % 60;
     int minutes = seconds / 60;
     
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "N: Total time: " << minutes << " minutes, "
     << finalSeconds << " seconds (" << seconds << " seconds)." << std::endl;
 
-	logged << "Done" << endl;
+	logged << "Done" << std::endl;
     Logger::mainLogger->addStream(&logged);
     
     sleep(2);

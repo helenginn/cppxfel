@@ -9,6 +9,7 @@
 #include "AmbiguityBreaker.h"
 #include <scitbx/lbfgsb.h>
 #include "StatisticsManager.h"
+#include <vector>
 
 double AmbiguityBreaker::dotProduct(int imageNumI, int imageNumJ)
 {
@@ -95,12 +96,12 @@ void AmbiguityBreaker::makeCorrelationGrid()
 
 // Call constructor and then run()
 
-AmbiguityBreaker::AmbiguityBreaker(std::vector<MtzPtr> newMtzs)
+AmbiguityBreaker::AmbiguityBreaker(vector<MtzPtr> newMtzs)
 {
     setMtzs(newMtzs);
 }
 
-void AmbiguityBreaker::setMtzs(std::vector<MtzPtr> newMtzs)
+void AmbiguityBreaker::setMtzs(vector<MtzPtr> newMtzs)
 {
     mtzs = newMtzs;
     
@@ -166,7 +167,7 @@ void AmbiguityBreaker::merge()
 
 void AmbiguityBreaker::printResults()
 {
-    ostringstream logged;
+    std::ostringstream logged;
     
     for (int i = 0; i < mtzs.size(); i++)
     {
@@ -190,7 +191,7 @@ void AmbiguityBreaker::breakAmbiguity()
 {
     int n = ambiguityCount * (int)mtzs.size();
 
-    ostringstream logged;
+    std::ostringstream logged;
     
     scitbx::af::shared<int> nbd(n);
     scitbx::af::shared<double> lowerLims(n);

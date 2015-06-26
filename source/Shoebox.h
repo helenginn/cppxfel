@@ -12,13 +12,14 @@
 #include <stdio.h>
 #include "parameters.h"
 #include <vector>
+#include <boost/weak_ptr.hpp>
 
-typedef std::vector<std::vector<double> > Box;
+typedef vector<vector<double> > Box;
 
 class Shoebox
 {
 private:
-    std::weak_ptr<Miller> miller;
+    boost::weak_ptr<Miller> miller;
     Box shoebox;
     
     double mmPerPixel;
@@ -41,12 +42,12 @@ public:
     void clearShoebox();
     void sideLengths(int *slowSide, int *fastSide);
     
-    std::vector<double>& operator[](std::size_t index)
+    vector<double>& operator[](std::size_t index)
     {
         return shoebox[index];
     }
     
-    std::weak_ptr<Miller> getMiller()
+    boost::weak_ptr<Miller> getMiller()
     {
         return miller;
     }

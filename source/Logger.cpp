@@ -77,7 +77,7 @@ void Logger::addStream(std::ostringstream *stream, LogLevel level)
     
     if (stringsToOutput.count(thread_id) == 0)
     {
-        stringsToOutput[thread_id] = std::vector<LogAndLevel>();
+        stringsToOutput[thread_id] = vector<LogAndLevel>();
         stringsToOutput[thread_id].reserve(100);
     }
     
@@ -121,7 +121,7 @@ void Logger::awaitPrinting()
             num++;
             
             stringsToOutput[it->first].clear();
-            std::vector<LogAndLevel>().swap(stringsToOutput[it->first]);
+            vector<LogAndLevel>().swap(stringsToOutput[it->first]);
         }
         
         ready = false;

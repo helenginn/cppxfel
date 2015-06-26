@@ -29,7 +29,7 @@ void PanelParser::addPanel(std::string rest)
 
 	this->doubleVector(&singleParameter, "PANEL", rest);
 
-	std::vector<double> panelCoords = boost::get<std::vector<double> >(singleParameter["PANEL"]);
+	vector<double> panelCoords = boost::get<vector<double> >(singleParameter["PANEL"]);
 
 	PanelPtr ptr = PanelPtr(new Panel(panelCoords));
 	Panel::setupPanel(ptr);
@@ -45,7 +45,7 @@ void PanelParser::parse()
     }
     
 	std::string fileContents = FileReader::get_file_contents(filename.c_str());
-	std::vector<std::string> fileLines = FileReader::split(fileContents, '\n');
+	vector<std::string> fileLines = FileReader::split(fileContents, '\n');
 
 	for (int i = 0; i < fileLines.size(); i++)
 	{

@@ -13,8 +13,6 @@ struct Scale_factor;
 
 #include "ReflectionManager.h"
 
-using namespace std;
-
 struct Scale_factor
 {
 	MtzManager *image;
@@ -37,7 +35,7 @@ public:
 	vector<MtzPtr> mtzs;
 	vector<Scale_factor> Gs;
 	vector<double> gradients;
-    std::pair<int, std::vector<ReflectionManager *> > reflectionsPerImage;
+    std::pair<int, vector<ReflectionManager *> > reflectionsPerImage;
 
 	int mtz_num;
 
@@ -56,7 +54,7 @@ public:
 	double multiplierForParam(int l, int paramNum, double currentR,
 			double resolution);
 	double multiplierForL(int l, double currentR);
-    void mergedHolders(MtzManager *templateMtz, vector<Holder *> &holders, bool half, bool all);
+    void mergedReflections(MtzManager *templateMtz, vector<Reflection *> &reflections, bool half, bool all);
 
 	void minimize(void);
 //	void minimizeLimited(void);

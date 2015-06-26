@@ -22,8 +22,9 @@
 #include "definitions.h"
 #include "FileParser.h"
 
-using namespace std;
+
 using namespace CMtz;
+
 using namespace CSym;
 
 MtzManager *MtzManager::referenceManager;
@@ -41,26 +42,28 @@ using cctbx::sgtbx::space_group_type;
 using cctbx::sgtbx::reciprocal_space::asu;
 
 
-string MtzManager::describeScoreType()
+std::string MtzManager::describeScoreType()
 {
     switch (scoreType)
     {
         case ScoreTypeCorrelation:
-            return string("correl");
+            return std::string("correl");
         case ScoreTypePartialityCorrelation:
-            return string("part");
+            return std::string("part");
         case ScoreTypePartialityLeastSquares:
-            return string("part");
+            return std::string("part");
         case ScoreTypeMinimizeRSplit:
-            return string("rfactor");
+            return std::string("rfactor");
         case ScoreTypeMinimizeRSplitLog:
-            return string("logR");
+            return std::string("logR");
         case ScoreTypeCorrelationLog:
-            return string("logCC");
+            return std::string("logCC");
         case ScoreTypeStandardDeviation:
-            return string("stdev");
+            return std::string("stdev");
+        case ScoreTypeMinimizeRMeas:
+            return std::string("rmeas");
         default:
-            return string("unknown");
+            return std::string("unknown");
     }
 }
 
@@ -97,7 +100,7 @@ void MtzManager::makeSuperGaussianLookupTable(double exponent)
 
 std::string MtzManager::filenameRoot()
 {
-    std::vector<std::string> components = FileReader::split(filename, '.');
+    vector<std::string> components = FileReader::split(filename, '.');
     
     std::string root = "";
     
@@ -198,30 +201,30 @@ int MtzManager::index_for_reflection(int h, int k, int l, bool inverted)
     return index;
 }
 
-bool MtzManager::holder_comparison(Holder *i, Holder *j)
+bool MtzManager::reflection_comparison(Reflection *i, Reflection *j)
 {
     return (i->getReflId() < j->getReflId());
 }
 
-void MtzManager::insertionSortHolders(void)
+void MtzManager::insertionSortReflections(void)
 {
-    std::sort(holders.begin(), holders.end(), holder_comparison);
+    std::sort(reflections.begin(), reflections.end(), reflection_comparison);
 }
 
-void MtzManager::sortLastHolder(void)
+void MtzManager::sortLastReflection(void)
 {
     int i, j;
-    Holder *tmp;
+    Reflection *tmp;
     
-    i = (int)holders.size() - 1;
+    i = (int)reflections.size() - 1;
     j = i;
-    tmp = holders[i];
-    while (j > 0 && tmp->getReflId() < holders[j - 1]->getReflId())
+    tmp = reflections[i];
+    while (j > 0 && tmp->getReflId() < reflections[j - 1]->getReflId())
     {
-        holders[j] = holders[j - 1];
+        reflections[j] = reflections[j - 1];
         j--;
     }
-    holders[j] = tmp;
+    reflections[j] = tmp;
     
     return;
     
@@ -243,19 +246,7 @@ void MtzManager::loadParametersMap()
     optimisingExponent = FileParser::getKey("OPTIMISING_EXPONENT",
                                             !OPTIMISED_EXPONENT);
     
-    wavelength = FileParser::getKey("INITIAL_WAVELENGTH", 0.0);
-    usingFixedWavelength = (wavelength != 0);
-    bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
-    mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
-    spotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
-    
-    exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
-    
-    allowTrust = FileParser::getKey("ALLOW_TRUST", true);
-    bool alwaysTrust = FileParser::getKey("TRUST_INDEXING_SOLUTION", false);
-    
-    if (alwaysTrust)
-        trust = TrustLevelGood;
+    resetDefaultParameters();
     
     stepSizeWavelength = FileParser::getKey("STEP_SIZE_WAVELENGTH",
                                             MEAN_STEP);
@@ -298,8 +289,9 @@ void MtzManager::loadParametersMap()
 MtzManager::MtzManager(void)
 {
     lastReference = NULL;
+    failedCount = 0;
     filename = "";
-    holders.resize(0);
+    reflections.resize(0);
     low_group = NULL;
     bandwidth = INITIAL_BANDWIDTH;
     hRot = 0;
@@ -353,9 +345,9 @@ MtzManager::MtzManager(void)
     matrix = MatrixPtr();
 }
 
-MtzManager *MtzManager::copy()
+MtzPtr MtzManager::copy()
 {
-    MtzManager *newManager = new MtzManager();
+    MtzPtr newManager = MtzPtr(new MtzManager());
     newManager->filename = filename;
     double lowNum = low_group->spg_num;
     newManager->setSpaceGroup(lowNum);
@@ -377,10 +369,10 @@ MtzManager *MtzManager::copy()
         
     }
     
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        Holder *newHolder = holders[i]->copy();
-        newManager->holders.push_back(newHolder);
+        Reflection *newReflection = reflections[i]->copy();
+        newManager->reflections.push_back(newReflection);
     }
     
     return newManager;
@@ -408,40 +400,40 @@ void MtzManager::setUnitCell(vector<double> unitCell)
     cellAngles[2] = unitCell[5];
 }
 
-void MtzManager::clearHolders()
+void MtzManager::clearReflections()
 {
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        delete holders[i];
+        delete reflections[i];
     }
     
-    holders.clear();
-    vector<Holder *>().swap(holders);
+    reflections.clear();
+    vector<Reflection *>().swap(reflections);
 }
 
-void MtzManager::removeHolder(int i)
+void MtzManager::removeReflection(int i)
 {
-    delete holders[i];
+    delete reflections[i];
     
-    holders.erase(holders.begin() + i);
+    reflections.erase(reflections.begin() + i);
 }
 
-void MtzManager::addHolder(Holder *holder)
+void MtzManager::addReflection(Reflection *reflection)
 {
-    Holder *newHolder = NULL;
-    int insertionPoint = findHolderWithId(holder->getReflId(), &newHolder, true);
+    Reflection *newReflection = NULL;
+    int insertionPoint = findReflectionWithId(reflection->getReflId(), &newReflection, true);
     
-    holders.insert(holders.begin() + insertionPoint, holder);
+    reflections.insert(reflections.begin() + insertionPoint, reflection);
     
- //   holders.push_back(holder);
- //   this->sortLastHolder();
+ //   reflections.push_back(reflection);
+ //   this->sortLastReflection();
 }
 
-void MtzManager::addHolders(vector<Holder *>holders)
+void MtzManager::addReflections(vector<Reflection *>reflections)
 {
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        addHolder(holders[i]);
+        addReflection(reflections[i]);
     }
 }
 
@@ -450,9 +442,9 @@ int MtzManager::symmetryRelatedReflectionCount()
 {
     int count = 0;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        if (holder(i)->millerCount() > 1)
+        if (reflection(i)->millerCount() > 1)
             count++;
     }
     
@@ -534,7 +526,7 @@ void MtzManager::loadReflections(PartialityModel model)
     {
         std::cerr
         << "Cannot load reflections as no filename has been specified."
-        << endl;
+        << std::endl;
         return;
     }
     
@@ -660,7 +652,7 @@ void MtzManager::loadReflections(PartialityModel model)
         
         hkls_for_reflection(mtz, adata, &h, &k, &l, &multiplier, &offset);
         
-        int reflection_holder_index = index_for_reflection(h, k, l, false);
+        int reflection_reflection_index = index_for_reflection(h, k, l, false);
        
         float intensity = adata[col_f->source - 1];
         
@@ -689,37 +681,37 @@ void MtzManager::loadReflections(PartialityModel model)
         miller->setCountingSigma(sigma);
         miller->setFilename(filename);
         miller->setPartialityModel(model);
-        miller->setShift(make_pair(shiftX, shiftY));
+        miller->setShift(std::make_pair(shiftX, shiftY));
         miller->matrix = this->matrix;
         
-        Holder *prevHolder;
+        Reflection *prevReflection;
         
-        this->findHolderWithId(reflection_holder_index, &prevHolder);
+        this->findReflectionWithId(reflection_reflection_index, &prevReflection);
         
-        if (prevHolder != NULL)
+        if (prevReflection != NULL)
         {
             /** Exclude unobserved reflections by checking for nan */
             if (adata[col_f->source - 1] == adata[col_f->source - 1])
             {
-                prevHolder->addMiller(miller); // TODO
-                miller->setParent(prevHolder);
+                prevReflection->addMiller(miller); // TODO
+                miller->setParent(prevReflection);
             }
             
             // reflection is a repeat so set flag.
         }
         
-        if (prevHolder == NULL)
+        if (prevReflection == NULL)
         {
-            Holder *newHolder = new Holder();
-            holders.push_back(newHolder);
-            newHolder->setUnitCell(cell);
-            newHolder->setSpaceGroup(low_group, spgType, asymmetricUnit);
+            Reflection *newReflection = new Reflection();
+            reflections.push_back(newReflection);
+            newReflection->setUnitCell(cell);
+            newReflection->setSpaceGroup(low_group, spgType, asymmetricUnit);
             
-            holders[num]->addMiller(miller);
-            miller->setParent(holders[num]);
-            holders[num]->calculateResolution(this);
+            reflections[num]->addMiller(miller);
+            miller->setParent(reflections[num]);
+            reflections[num]->calculateResolution(this);
             
-            this->sortLastHolder();
+            this->sortLastReflection();
             
             num++;
         }
@@ -728,50 +720,50 @@ void MtzManager::loadReflections(PartialityModel model)
     free(refldata);
     free(adata);
     
-    //	insertionSortHolders();
+    //	insertionSortReflections();
     
     std::ostringstream log;
     
     log << "Loaded " << mtz->nref_filein << " reflections (" << accepted()
-    << " accepted)." << endl;
+    << " accepted)." << std::endl;
     
     Logger::mainLogger->addStream(&log);
     
     MtzFree(mtz);
 }
 
-void MtzManager::getRefHolders(vector<Holder *> *refPointer,
-                               vector<Holder *> *matchPointer)
+void MtzManager::getRefReflections(vector<Reflection *> *refPointer,
+                               vector<Reflection *> *matchPointer)
 {
     if (lastReference != referenceManager)
     {
-        refHolders.clear();
-        matchHolders.clear();
+        refReflections.clear();
+        matchReflections.clear();
         
-        for (int i = 0; i < holderCount(); i++)
+        for (int i = 0; i < reflectionCount(); i++)
         {
-            int reflId = holder(i)->getReflId();
+            int reflId = reflection(i)->getReflId();
             
-            Holder *refHolder = NULL;
-            referenceManager->findHolderWithId(reflId, &refHolder);
+            Reflection *refReflection = NULL;
+            referenceManager->findReflectionWithId(reflId, &refReflection);
             
-            if (refHolder != NULL)
+            if (refReflection != NULL)
             {
-                matchHolders.push_back(holder(i));
-                refHolders.push_back(refHolder);
+                matchReflections.push_back(reflection(i));
+                refReflections.push_back(refReflection);
             }
         }
         
         lastReference = referenceManager;
     }
     
-    refPointer->reserve(refHolders.size());
-    refPointer->insert(refPointer->begin(), refHolders.begin(),
-                       refHolders.end());
+    refPointer->reserve(refReflections.size());
+    refPointer->insert(refPointer->begin(), refReflections.begin(),
+                       refReflections.end());
     
-    matchPointer->reserve(matchHolders.size());
-    matchPointer->insert(matchPointer->begin(), matchHolders.begin(),
-                         matchHolders.end());
+    matchPointer->reserve(matchReflections.size());
+    matchPointer->insert(matchPointer->begin(), matchReflections.begin(),
+                         matchReflections.end());
     
 }
 
@@ -780,12 +772,12 @@ void MtzManager::setReference(MtzManager *reference)
     MtzManager::referenceManager = reference;
 }
 
-void MtzManager::setFilename(string name)
+void MtzManager::setFilename(std::string name)
 {
     filename = name;
 }
 
-string MtzManager::getFilename(void)
+std::string MtzManager::getFilename(void)
 {
     return filename;
 }
@@ -795,47 +787,47 @@ void MtzManager::setSpaceGroup(int spgnum)
     low_group = ccp4spg_load_by_ccp4_num(spgnum);
 }
 
-int MtzManager::findHolderWithId(int refl_id, Holder **holder, bool insertionPoint)
+int MtzManager::findReflectionWithId(int refl_id, Reflection **reflection, bool insertionPoint)
 {
-    if (holderCount() == 0)
+    if (reflectionCount() == 0)
     {
-        *holder = NULL;
+        *reflection = NULL;
         return 0;
     }
     
     int lower = 0;
-    int higher = holderCount() - 1;
+    int higher = reflectionCount() - 1;
     int new_bound = (higher + lower) / 2;
     
-    if ((refl_id < this->holder(lower)->getReflId())
-        || (refl_id > this->holder(higher)->getReflId()))
+    if ((refl_id < this->reflection(lower)->getReflId())
+        || (refl_id > this->reflection(higher)->getReflId()))
     {
         if (insertionPoint)
         {
-            if (refl_id < this->holder(lower)->getReflId())
+            if (refl_id < this->reflection(lower)->getReflId())
                 return 0;
             
-            if (refl_id > this->holder(higher)->getReflId())
-                return holderCount();
+            if (refl_id > this->reflection(higher)->getReflId())
+                return reflectionCount();
         }
         
-        *holder = NULL;
+        *reflection = NULL;
         return -1;
     }
     
-    while (this->holder(new_bound)->getReflId() != refl_id)
+    while (this->reflection(new_bound)->getReflId() != refl_id)
     {
         if (new_bound == higher || new_bound == lower)
         {
-            if (this->holder(higher)->getReflId() == refl_id)
+            if (this->reflection(higher)->getReflId() == refl_id)
             {
-                (*holder) = this->holder(higher);
+                (*reflection) = this->reflection(higher);
                 return -1;
             }
             
-            if (this->holder(lower)->getReflId() == refl_id)
+            if (this->reflection(lower)->getReflId() == refl_id)
             {
-                (*holder) = this->holder(lower);
+                (*reflection) = this->reflection(lower);
                 return -1;
             }
             
@@ -845,24 +837,24 @@ int MtzManager::findHolderWithId(int refl_id, Holder **holder, bool insertionPoi
                 
                 int start = lower - 2 >= 0 ? lower - 2 : 0;
                 
-                for (int i = start; i < higher + 2 && i < holderCount(); i++)
+                for (int i = start; i < higher + 2 && i < reflectionCount(); i++)
                 {
-                    if (this->holder(i)->getReflId() < refl_id)
+                    if (this->reflection(i)->getReflId() < refl_id)
                         lowest = i;
                 }
                 
                 return lowest + 1;
             }
             
-            *holder = NULL;
+            *reflection = NULL;
             return -1;
         }
         
-        if (this->holder(new_bound)->getReflId() > refl_id)
+        if (this->reflection(new_bound)->getReflId() > refl_id)
         {
             higher = new_bound;
         }
-        else if (this->holder(new_bound)->getReflId() < refl_id)
+        else if (this->reflection(new_bound)->getReflId() < refl_id)
         {
             lower = new_bound;
         }
@@ -870,55 +862,55 @@ int MtzManager::findHolderWithId(int refl_id, Holder **holder, bool insertionPoi
         new_bound = (higher + lower) / 2;
     }
     
-    (*holder) = this->holder(new_bound);
+    (*reflection) = this->reflection(new_bound);
     
     return -1;
 }
 
 void MtzManager::findCommonReflections(MtzManager *other,
-                                       vector<Holder *> &holderVector1, vector<Holder *> &holderVector2,
+                                       vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
                                        int *num, bool force)
 {
-    if (other == previousReference && previousAmbiguity == activeAmbiguity && !force && false)
+    if (other == previousReference && previousAmbiguity == activeAmbiguity && !force)
     {
-        holderVector1.reserve(matchHolders.size());
-        holderVector2.reserve(refHolders.size());
+        reflectionVector1.reserve(matchReflections.size());
+        reflectionVector2.reserve(refReflections.size());
         
-        holderVector1.insert(holderVector1.begin(), matchHolders.begin(), matchHolders.end());
-        holderVector2.insert(holderVector2.begin(), refHolders.begin(), refHolders.end());
+        reflectionVector1.insert(reflectionVector1.begin(), matchReflections.begin(), matchReflections.end());
+        reflectionVector2.insert(reflectionVector2.begin(), refReflections.begin(), refReflections.end());
         
         if (num != NULL)
-            *num = (int)holderVector1.size();
+            *num = (int)reflectionVector1.size();
         
         return;
     }
 
-    matchHolders.clear();
-    refHolders.clear();
+    matchReflections.clear();
+    refReflections.clear();
     
     previousReference = other;
     previousAmbiguity = activeAmbiguity;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {        
-        int refl_id = holder(i)->getReflId();
+        int refl_id = reflection(i)->getReflId();
         
-        Holder *otherHolder = NULL;
+        Reflection *otherReflection = NULL;
         
-        other->findHolderWithId(refl_id, &otherHolder);
+        other->findReflectionWithId(refl_id, &otherReflection);
         
-        if (otherHolder != NULL)
+        if (otherReflection != NULL && otherReflection->millerCount() > 0)
         {
-            holderVector1.push_back(holder(i));
-            matchHolders.push_back(holder(i));
-            holderVector2.push_back(otherHolder);
-            refHolders.push_back(otherHolder);
+            reflectionVector1.push_back(reflection(i));
+            matchReflections.push_back(reflection(i));
+            reflectionVector2.push_back(otherReflection);
+            refReflections.push_back(otherReflection);
         }
     }
     
     if (num != NULL)
     {
-        *num = (int)holderVector1.size();
+        *num = (int)reflectionVector1.size();
     }
 }
 
@@ -932,9 +924,9 @@ void MtzManager::applyScaleFactorsForBins()
         double low = bins[shell];
         double high = bins[shell + 1];
         
-        vector<Holder *> refHolders, imgHolders;
+        vector<Reflection *> refReflections, imgReflections;
         
-        this->findCommonReflections(referenceManager, imgHolders, refHolders,
+        this->findCommonReflections(referenceManager, imgReflections, refReflections,
                                     NULL);
         
         double weights = 0;
@@ -942,18 +934,18 @@ void MtzManager::applyScaleFactorsForBins()
         double imgMean = 0;
         int count = 0;
         
-        for (int i = 0; i < imgHolders.size(); i++)
+        for (int i = 0; i < imgReflections.size(); i++)
         {
-            if (!imgHolders[i]->anyAccepted())
+            if (!imgReflections[i]->anyAccepted())
                 continue;
             
-            if (imgHolders[i]->betweenResolutions(low, high))
+            if (imgReflections[i]->betweenResolutions(low, high))
             {
-                weights += imgHolders[i]->meanPartiality();
-                refMean += refHolders[i]->meanIntensity()
-                * imgHolders[i]->meanPartiality();
-                imgMean += imgHolders[i]->meanIntensity()
-                * imgHolders[i]->meanPartiality();
+                weights += imgReflections[i]->meanPartiality();
+                refMean += refReflections[i]->meanIntensity()
+                * imgReflections[i]->meanPartiality();
+                imgMean += imgReflections[i]->meanIntensity()
+                * imgReflections[i]->meanPartiality();
                 count++;
             }
         }
@@ -971,7 +963,7 @@ void MtzManager::applyScaleFactorsForBins()
 }
 
 void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent,
-                                 vector<pair<double, double> > *dataPoints)
+                                 vector<std::pair<double, double> > *dataPoints)
 {
     clearScaleFactor();
     MtzManager *reference = MtzManager::getReferenceManager();
@@ -979,15 +971,15 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
     double grad = this->gradientAgainstManager(*reference);
     this->applyScaleFactor(grad);
     
-    vector<Holder *> refHolders, imageHolders;
-    this->findCommonReflections(reference, imageHolders, refHolders, NULL);
+    vector<Reflection *> refReflections, imageReflections;
+    this->findCommonReflections(reference, imageReflections, refReflections, NULL);
     
     vector<double> smoothBins;
     StatisticsManager::generateResolutionBins(50, 1.8, 24, &smoothBins);
     
     if (dataPoints == NULL)
     {
-        vector<pair<double, double> > data = vector<pair<double, double> >();
+        vector<std::pair<double, double> > data = vector<std::pair<double, double> >();
         dataPoints = &data;
     }
     
@@ -998,29 +990,29 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
         double low = smoothBins[shell];
         double high = smoothBins[shell + 3];
         
-        vector<Holder *> refHolders, imgHolders;
+        vector<Reflection *> refReflections, imgReflections;
         
-        this->findCommonReflections(referenceManager, imgHolders, refHolders);
+        this->findCommonReflections(referenceManager, imgReflections, refReflections);
         
         double weights = 0;
         double refMean = 0;
         double imgMean = 0;
         int count = 0;
         
-        for (int i = 0; i < imgHolders.size(); i++)
+        for (int i = 0; i < imgReflections.size(); i++)
         {
-            if (!imgHolders[i]->anyAccepted())
+            if (!imgReflections[i]->anyAccepted())
                 continue;
             
-            if (imgHolders[i]->betweenResolutions(low, high))
+            if (imgReflections[i]->betweenResolutions(low, high))
             {
-                weights += imgHolders[i]->meanPartiality();
+                weights += imgReflections[i]->meanPartiality();
                 
-                refMean += refHolders[i]->meanIntensity()
-                * imgHolders[i]->meanPartiality();
+                refMean += refReflections[i]->meanIntensity()
+                * imgReflections[i]->meanPartiality();
                 
-                imgMean += imgHolders[i]->meanIntensity()
-                * imgHolders[i]->meanPartiality();
+                imgMean += imgReflections[i]->meanIntensity()
+                * imgReflections[i]->meanPartiality();
                 count++;
             }
         }
@@ -1057,7 +1049,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
         boost::tuple<double, double, double> point = boost::make_tuple(four_d_to_exp,
                                                               logIntensityRatio, weight);
         
-        pair<double, double> showPoint = std::make_pair(res_squared,
+        std::pair<double, double> showPoint = std::make_pair(res_squared,
                                                         1 / intensityRatio);
         
         dataPoints->push_back(showPoint);
@@ -1071,7 +1063,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
     
     double k = exp(intercept);
     
-    double b = pow(abs(gradient), 1 / (double) exponent);
+    double b = pow(fabs(gradient), 1 / (double) exponent);
     
     if (gradient < 0)
         b = -b;
@@ -1094,25 +1086,25 @@ double MtzManager::minimizeGradient(MtzManager *otherManager, bool leastSquares)
     double step = 0.1;
     double gradient = gradientAgainstManager(*otherManager);
     
-    vector<Holder *> holders1;
-    vector<Holder *> holders2;
+    vector<Reflection *> reflections1;
+    vector<Reflection *> reflections2;
     vector<double> ints1;
     vector<double> ints2;
     vector<double> weights;
     int num = 0;
     
-    MtzManager::findCommonReflections(otherManager, holders1, holders2, &num);
+    MtzManager::findCommonReflections(otherManager, reflections1, reflections2, &num);
     
     for (int i = 0; i < num; i++)
     {
-        for (int j = 0; j < holders1[i]->millerCount(); j++)
+        for (int j = 0; j < reflections1[i]->millerCount(); j++)
         {
-            if (!holders1[i]->miller(j)->accepted())
+            if (!reflections1[i]->miller(j)->accepted())
                 continue;
             
-            double mean1 = holders1[i]->miller(j)->intensity();
-            double mean2 = holders2[i]->meanIntensity();
-            double weight = holders2[i]->meanPartiality();
+            double mean1 = reflections1[i]->miller(j)->intensity();
+            double mean2 = reflections2[i]->meanIntensity();
+            double weight = reflections2[i]->meanPartiality();
             
             if (mean1 != mean1 || mean2 != mean2 || weight != weight)
                 continue;
@@ -1162,8 +1154,8 @@ double MtzManager::minimizeGradient(MtzManager *otherManager, bool leastSquares)
 double MtzManager::gradientAgainstManager(MtzManager &otherManager,
                                           bool leastSquares, double lowRes, double highRes)
 {
-    vector<Holder *> holders1;
-    vector<Holder *> holders2;
+    vector<Reflection *> reflections1;
+    vector<Reflection *> reflections2;
     
     vector<double> ints1, ints2;
     int num = 0;
@@ -1172,7 +1164,7 @@ double MtzManager::gradientAgainstManager(MtzManager &otherManager,
     double maxD = 0;
     StatisticsManager::convertResolutions(lowRes, highRes, &minD, &maxD);
     
-    MtzManager::findCommonReflections(&otherManager, holders1, holders2, &num);
+    MtzManager::findCommonReflections(&otherManager, reflections1, reflections2, &num);
     
     if (num <= 1)
         return 1;
@@ -1182,19 +1174,19 @@ double MtzManager::gradientAgainstManager(MtzManager &otherManager,
     
     for (int i = 0; i < num; i++)
     {
-        for (int j = 0; j < holders1[i]->millerCount(); j++)
+        for (int j = 0; j < reflections1[i]->millerCount(); j++)
         {
-            if (!holders1[i]->miller(j)->accepted())
+            if (!reflections1[i]->miller(j)->accepted())
                 continue;
             
-            if (holders1[i]->getResolution() < minD
-                || holders1[i]->getResolution() > maxD)
+            if (reflections1[i]->getResolution() < minD
+                || reflections1[i]->getResolution() > maxD)
                 continue;
             
-            double mean1 = holders1[i]->miller(j)->intensity();
-            double mean2 = holders2[i]->meanIntensity();
+            double mean1 = reflections1[i]->miller(j)->intensity();
+            double mean2 = reflections2[i]->meanIntensity();
             
-            double part1 = holders1[i]->miller(j)->getPartiality();
+            double part1 = reflections1[i]->miller(j)->getPartiality();
             
             if (mean1 != mean1 || mean2 != mean2)
                 continue;
@@ -1202,7 +1194,7 @@ double MtzManager::gradientAgainstManager(MtzManager &otherManager,
             x_squared += mean1 * mean1 * part1;
             x_y += mean1 * mean2 * part1;
             
-     //       if (holders1[i]->miller(j)->getPartiality() < 0.5)
+     //       if (reflections1[i]->miller(j)->getPartiality() < 0.5)
       //          continue;
             
             ints1.push_back(mean1);
@@ -1224,23 +1216,23 @@ double MtzManager::gradientAgainstManager(MtzManager &otherManager,
 
 void MtzManager::clearScaleFactor()
 {
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < holders[i]->millerCount(); j++)
+        for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
-            holders[i]->miller(j)->setScale(1);
-            holders[i]->miller(j)->setBFactor(0);
+            reflections[i]->miller(j)->setScale(1);
+            reflections[i]->miller(j)->setBFactor(0);
         }
     }
 }
 
 void MtzManager::makeScalesPermanent()
 {
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < holder(i)->millerCount(); j++)
+        for (int j = 0; j < reflection(i)->millerCount(); j++)
         {
-            holder(i)->miller(j)->makeScalesPermanent();
+            reflection(i)->miller(j)->makeScalesPermanent();
         }
     }
 }
@@ -1250,11 +1242,11 @@ void MtzManager::applyBFactor(double bFactor)
  //   if (bFactor < 0)
  //       bFactor = 0 - bFactor;
     
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < holders[i]->millerCount(); j++)
+        for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
-            holder(i)->miller(j)->setBFactor(bFactor);
+            reflection(i)->miller(j)->setBFactor(bFactor);
         }
     }
 }
@@ -1272,19 +1264,19 @@ void MtzManager::applyScaleFactor(double scaleFactor,
     
     logged << "Applying scale factor " << scaleFactor << " now ";
     
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < holders[i]->millerCount(); j++)
+        for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
-            if (holder(i)->betweenResolutions(lowRes, highRes))
+            if (reflection(i)->betweenResolutions(lowRes, highRes))
             {
                 if (absolute)
-                    holder(i)->miller(j)->setScale(scale);
+                    reflection(i)->miller(j)->setScale(scale);
                 else
-                    holder(i)->miller(j)->applyScaleFactor(scaleFactor);
+                    reflection(i)->miller(j)->applyScaleFactor(scaleFactor);
                 
                 if (i == 0 && j == 0)
-                    logged << holder(i)->miller(j)->getScale() << std::endl;
+                    logged << reflection(i)->miller(j)->getScale() << std::endl;
             }
         }
     }
@@ -1298,12 +1290,12 @@ double MtzManager::averageIntensity(void)
     double total_intensity = 0;
     double total = 0;
     
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        double intensity = holders[i]->meanIntensity();
+        double intensity = reflections[i]->meanIntensity();
         if (intensity == intensity)
         {
-            double weight = holders[i]->meanPartiality();
+            double weight = reflections[i]->meanPartiality();
             total_intensity += intensity * weight;
             total += weight;
         }
@@ -1315,16 +1307,16 @@ double MtzManager::averageIntensity(void)
 
 void MtzManager::applyPolarisation(void)
 {
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < holders[i]->millerCount(); j++)
+        for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
-            holders[i]->miller(j)->applyPolarisation(1.459);
+            reflections[i]->miller(j)->applyPolarisation(1.459);
         }
     }
 }
 
-void MtzManager::writeToFile(string newFilename, bool announce, bool shifts, bool includeAmbiguity)
+void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity)
 {
     int columns = 7;
     if (includeAmbiguity)
@@ -1388,20 +1380,20 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts, boo
     
     int num = 0;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        for (int j = 0; j < holders[i]->millerCount(); j++)
+        for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
-            if (!holder(i)->miller(j))
+            if (!reflection(i)->miller(j))
                 std::cout << "!miller(j) in mtz manager" << std::endl;
             
-            if (holders[i]->miller(j)->isRejected())
+            if (reflections[i]->miller(j)->isRejected())
                 continue;
             
-            double intensity = holders[i]->miller(j)->getRawIntensity();
-            double sigma = holders[i]->miller(j)->getSigma();
-            double partiality = holders[i]->miller(j)->getPartiality();
-            double bFactor = holders[i]->miller(j)->getBFactorScale();
+            double intensity = reflections[i]->miller(j)->getRawIntensity();
+            double sigma = reflections[i]->miller(j)->getSigma();
+            double partiality = reflections[i]->miller(j)->getPartiality();
+            double bFactor = reflections[i]->miller(j)->getBFactorScale();
             
             if (intensity != intensity)
             {
@@ -1410,9 +1402,9 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts, boo
             
             num++;
             
-            int h = holders[i]->miller(j)->getH();
-            int k = holders[i]->miller(j)->getK();
-            int l = holders[i]->miller(j)->getL();
+            int h = reflections[i]->miller(j)->getH();
+            int k = reflections[i]->miller(j)->getK();
+            int l = reflections[i]->miller(j)->getL();
             int _h, _k, _l;
             ccp4spg_put_in_asu(low_group, h, k, l, &_h, &_k, &_l);
             
@@ -1423,12 +1415,12 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts, boo
             fdata[3] = intensity / bFactor;
             fdata[4] = sigma;
             fdata[5] = partiality;
-            fdata[6] = holders[i]->miller(j)->getWavelength();
+            fdata[6] = reflections[i]->miller(j)->getWavelength();
             
             if (shifts)
             {
-                fdata[7] = holders[i]->miller(j)->getShift().first;
-                fdata[8] = holders[i]->miller(j)->getShift().second;
+                fdata[7] = reflections[i]->miller(j)->getShift().first;
+                fdata[8] = reflections[i]->miller(j)->getShift().second;
             }
             
             ccp4_lwrefl(mtzout, fdata, colout, columns, num);
@@ -1440,7 +1432,7 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts, boo
     
     LogLevel shouldAnnounce = announce ? LogLevelNormal : LogLevelDebug;
     
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "Written to file " << newFilename << std::endl;
     Logger::mainLogger->addStream(&logged, shouldAnnounce);
     
@@ -1453,13 +1445,13 @@ void MtzManager::writeToFile(string newFilename, bool announce, bool shifts, boo
 
 MtzManager::~MtzManager(void)
 {
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        delete holders[i];
+        delete reflections[i];
     }
     
-    holders.clear();
-    vector<Holder *>().swap(holders);
+    reflections.clear();
+    vector<Reflection *>().swap(reflections);
     
     if (low_group != NULL)
         ccp4spg_free(&low_group);
@@ -1469,7 +1461,7 @@ MtzManager::~MtzManager(void)
 void MtzManager::description(void)
 {
     logged << "Filename: " << filename << std::endl;
-    logged << "Number of holders: " << holderCount() << std::endl;
+    logged << "Number of reflections: " << reflectionCount() << std::endl;
     logged << "Number of accepted Millers: " << accepted() << std::endl;
     logged << "Average intensity: " << this->averageIntensity() << std::endl;
     
@@ -1478,11 +1470,11 @@ void MtzManager::description(void)
 
 void MtzManager::setSigmaToUnity()
 {
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < holders[i]->millerCount(); j++)
+        for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
-            holders[i]->miller(j)->setSigma(1);
+            reflections[i]->miller(j)->setSigma(1);
             
             // TAKE NEXT LINE OUT
         }
@@ -1491,11 +1483,11 @@ void MtzManager::setSigmaToUnity()
 
 void MtzManager::setPartialityToUnity()
 {
-    for (int i = 0; i < holders.size(); i++)
+    for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < holders[i]->millerCount(); j++)
+        for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
-            holders[i]->miller(j)->setPartiality(1);
+            reflections[i]->miller(j)->setPartiality(1);
             
             // TAKE NEXT LINE OUT
         }
@@ -1506,11 +1498,11 @@ int MtzManager::accepted(void)
 {
     int acceptedCount = 0;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        for (int j = 0; j < holder(i)->millerCount(); j++)
+        for (int j = 0; j < reflection(i)->millerCount(); j++)
         {
-            if (holder(i)->miller(j)->accepted())
+            if (reflection(i)->miller(j)->accepted())
                 acceptedCount++;
         }
     }
@@ -1531,12 +1523,12 @@ void MtzManager::writeToDat()
     
     datOutput << this->matrix->description() << std::endl;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        Holder *aHolder = holder(i);
-        for (int j = 0; j < aHolder->millerCount(); j++)
+        Reflection *aReflection = reflection(i);
+        for (int j = 0; j < aReflection->millerCount(); j++)
         {
-            MillerPtr miller = aHolder->miller(j);
+            MillerPtr miller = aReflection->miller(j);
             double shiftX = miller->getShift().first;
             double shiftY = miller->getShift().second;
             double lastX = miller->getLastX();
@@ -1571,9 +1563,9 @@ int MtzManager::rejectOverlaps()
 {
     int count = 0;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        count += holder(i)->checkOverlaps();
+        count += reflection(i)->checkOverlaps();
     }
     
     return count;
@@ -1581,7 +1573,7 @@ int MtzManager::rejectOverlaps()
 
 int MtzManager::ambiguityCount()
 {
-    int count = holder(0)->ambiguityCount();
+    int count = reflection(0)->ambiguityCount();
     
     return count;
 }
@@ -1593,40 +1585,40 @@ void MtzManager::incrementActiveAmbiguity()
     activeAmbiguity++;
     activeAmbiguity = (activeAmbiguity % count);
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        holder(i)->setActiveAmbiguity(activeAmbiguity);
+        reflection(i)->setActiveAmbiguity(activeAmbiguity);
     }
 }
 
 void MtzManager::flipToActiveAmbiguity()
 {
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        holder(i)->setFlip(activeAmbiguity);
+        reflection(i)->setFlip(activeAmbiguity);
     }
     
-    this->insertionSortHolders();
+    this->insertionSortReflections();
 }
 
 
 void MtzManager::resetFlip()
 {
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        holder(i)->resetFlip();
+        reflection(i)->resetFlip();
     }
     
-    this->insertionSortHolders();
+    this->insertionSortReflections();
 }
 
 void MtzManager::setActiveAmbiguity(int newAmbiguity)
 {
     activeAmbiguity = newAmbiguity;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        holder(i)->setActiveAmbiguity(newAmbiguity);
+        reflection(i)->setActiveAmbiguity(newAmbiguity);
     }
 }
 
@@ -1634,11 +1626,11 @@ double MtzManager::maxResolution()
 {
     double maxResolution = 0;
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        if (holder(i)->getResolution() > maxResolution)
+        if (reflection(i)->getResolution() > maxResolution)
         {
-            maxResolution = holder(i)->getResolution();
+            maxResolution = reflection(i)->getResolution();
         }
     }
     
@@ -1658,17 +1650,17 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
         double isigiSum = 0;
         double weights = 0;
         
-        for (int i = 0; i < holderCount(); i++)
+        for (int i = 0; i < reflectionCount(); i++)
         {
             double highRes = resolutions[i];
             double lowRes = resolutions[i - 1];
             
-            if (!holder(i)->betweenResolutions(lowRes, highRes))
+            if (!reflection(i)->betweenResolutions(lowRes, highRes))
                 continue;
 
-            for (int j = 0; j < holder(i)->millerCount(); j++)
+            for (int j = 0; j < reflection(i)->millerCount(); j++)
             {
-                MillerPtr miller = holder(i)->miller(j);
+                MillerPtr miller = reflection(i)->miller(j);
                 
                 double weight = 1;
                 double isigi = miller->getRawIntensity() / miller->getCountingSigma();
@@ -1686,11 +1678,11 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
         }
     }
     
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        if (holder(i)->getResolution() > cutoffResolution)
+        if (reflection(i)->getResolution() > cutoffResolution)
         {
-            this->removeHolder(i);
+            this->removeReflection(i);
             i--;
         }
     }
@@ -1701,19 +1693,19 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
 
 void MtzManager::setAdditionalWeight(double weight)
 {
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        holder(i)->setAdditionalWeight(weight);
+        reflection(i)->setAdditionalWeight(weight);
     }
 }
 
 void MtzManager::denormaliseMillers()
 {
-    for (int i = 0; i < holderCount(); i++)
+    for (int i = 0; i < reflectionCount(); i++)
     {
-        for (int j = 0; j < holder(i)->millerCount(); j++)
+        for (int j = 0; j < reflection(i)->millerCount(); j++)
         {
-            holder(i)->miller(j)->denormalise();
+            reflection(i)->miller(j)->denormalise();
         }
     }
 }
@@ -1731,4 +1723,14 @@ bool MtzManager::checkUnitCell(double trueA, double trueB, double trueC, double 
         return false;
     
     return true;
+}
+
+void MtzManager::incrementFailedCount()
+{
+    failedCount++;
+}
+
+void MtzManager::resetFailedCount()
+{
+    failedCount = 0;
 }

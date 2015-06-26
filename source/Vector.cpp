@@ -179,7 +179,7 @@ double super_gaussian(double x, double mean, double sigma_0, double exponent)
 	double correction_sigma = 2 / exponent - 1;
 	double sigma = pow(M_PI / 2, correction_sigma) * sigma_0;
 
-	double power = 0 - pow(std::abs((x - mean)), exponent) / (2 * pow(sigma, exponent));
+	double power = 0 - pow(fabs((x - mean)), exponent) / (2 * pow(sigma, exponent));
 
     double exp = pow(M_E, power);
 
@@ -188,20 +188,20 @@ double super_gaussian(double x, double mean, double sigma_0, double exponent)
 	return exp / denominator;
 }
 
-double correlation_between_vectors(std::vector<double> *vec1,
-		std::vector<double> *vec2)
+double correlation_between_vectors(vector<double> *vec1,
+		vector<double> *vec2)
 {
 	return correlation_between_vectors(vec1, vec2, NULL);
 }
 
-double correlation_between_vectors(std::vector<double> *vec1,
-		std::vector<double> *vec2, std::vector<double> *weights)
+double correlation_between_vectors(vector<double> *vec1,
+		vector<double> *vec2, vector<double> *weights)
 {
 	return correlation_between_vectors(vec1, vec2, weights, -1);
 }
 
-double correlation_through_origin(std::vector<double> *vec1,
-		std::vector<double> *vec2, std::vector<double> *weights)
+double correlation_through_origin(vector<double> *vec1,
+		vector<double> *vec2, vector<double> *weights)
 {
 	double mean_y = weighted_mean(vec2, weights);
 	double grad = gradient_between_vectors(vec1, vec2);
@@ -236,8 +236,8 @@ double correlation_through_origin(std::vector<double> *vec1,
 	return R;
 }
 
-double correlation_between_vectors(std::vector<double> *vec1,
-		std::vector<double> *vec2, std::vector<double> *weights, int exclude)
+double correlation_between_vectors(vector<double> *vec1,
+		vector<double> *vec2, vector<double> *weights, int exclude)
 {
 	double sum_x = 0;
 	double sum_y = 0;
@@ -316,8 +316,8 @@ double correlation_between_vectors(std::vector<double> *vec1,
 	return r;
 }
 
-double gradient_between_vectors(std::vector<double> *vec1,
-		std::vector<double> *vec2)
+double gradient_between_vectors(vector<double> *vec1,
+		vector<double> *vec2)
 {
 
 	double sum_x_y = 0;
@@ -334,8 +334,8 @@ double gradient_between_vectors(std::vector<double> *vec1,
 	return grad;
 }
 
-double minimize_gradient_between_vectors(std::vector<double> *vec1,
-		std::vector<double> *vec2)
+double minimize_gradient_between_vectors(vector<double> *vec1,
+		vector<double> *vec2)
 {
 	double firstSlope = gradient_between_vectors(vec1, vec2);
 
@@ -377,8 +377,8 @@ double minimize_gradient_between_vectors(std::vector<double> *vec1,
 }
 
 
-double least_squares_between_vectors(std::vector<double> *vec1,
-		std::vector<double> *vec2, double slope)
+double least_squares_between_vectors(vector<double> *vec1,
+		vector<double> *vec2, double slope)
 {
 	if (slope == 0)
 	{
@@ -403,8 +403,8 @@ double least_squares_between_vectors(std::vector<double> *vec1,
 	return total / num;
 }
 
-double r_factor_between_vectors(std::vector<double> *vec1,
-		std::vector<double> *vec2, std::vector<double> *weights, double scale)
+double r_factor_between_vectors(vector<double> *vec1,
+		vector<double> *vec2, vector<double> *weights, double scale)
 {
 	double sum_numerator = 0;
 	double sum_denominator = 0;
@@ -427,7 +427,7 @@ double r_factor_between_vectors(std::vector<double> *vec1,
 		double absAddition = fabs(int1 - int2) * sqrtD;
 		absAddition /= (int1 + int2) * sqrtD / 2;
 
-		absolute += abs(absAddition) * weight;
+		absolute += fabs(absAddition) * weight;
 
 		sum_numerator += fabs(int1 - int2) * weight;
 		sum_denominator += (int1 + int2) * weight / 2;
@@ -438,7 +438,7 @@ double r_factor_between_vectors(std::vector<double> *vec1,
 	return r_split;
 }
 
-double weighted_mean(std::vector<double> *means, std::vector<double> *weights)
+double weighted_mean(vector<double> *means, vector<double> *weights)
 {
 	double sum = 0;
 	double weight_sum = 0;
@@ -459,7 +459,7 @@ bool higher(double mean1, double mean2)
     return mean1 > mean2;
 }
 
-double median(std::vector<double> *means)
+double median(vector<double> *means)
 {
     std::sort(means->begin(), means->end(), higher);
     int mid = (int)means->size() / 2;
@@ -475,7 +475,7 @@ double median(std::vector<double> *means)
     return midPoint;
 }
 
-void histogram_gaussian(std::vector<double> *means, std::vector<int> *freq,
+void histogram_gaussian(vector<double> *means, vector<int> *freq,
 		double &mean, double &stdev)
 {
 	double sum = 0;
@@ -503,8 +503,8 @@ void histogram_gaussian(std::vector<double> *means, std::vector<int> *freq,
 	stdev = sqrt(squaredSum / weightSqSum);
 }
 
-double least_squares_gaussian_fit(std::vector<double> *means,
-		std::vector<int> *freq)
+double least_squares_gaussian_fit(vector<double> *means,
+		vector<int> *freq)
 {
 	double mean = 0;
 	double stdev = 0;
@@ -515,7 +515,7 @@ double least_squares_gaussian_fit(std::vector<double> *means,
 	return score;
 }
 
-double standard_deviation(std::vector<double> *values, std::vector<double> *weights)
+double standard_deviation(vector<double> *values, vector<double> *weights)
 {
 	double mean = weighted_mean(values, NULL);
 	double squaredSum = 0;
@@ -540,7 +540,7 @@ double standard_deviation(std::vector<double> *values, std::vector<double> *weig
 	return stdev;
 }
 
-void regression_line(std::vector<boost::tuple<double, double, double> > values, double &intercept, double &gradient)
+void regression_line(vector<boost::tuple<double, double, double> > values, double &intercept, double &gradient)
 {
 	double sigma_x = 0;
 	double sigma_y = 0;

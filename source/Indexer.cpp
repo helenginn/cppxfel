@@ -18,6 +18,8 @@
 #include "Panel.h"
 #include "FileParser.h"
 
+
+
 #define BIG_BANDWIDTH 0.015
 #define DISTANCE_TOLERANCE 0.02
 #define WAVELENGTH_TOLERANCE 0.0001
@@ -32,7 +34,9 @@ bool Indexer::absoluteIntensity;
 
 Indexer::Indexer(Image *newImage, MatrixPtr matrix)
 {
-    spaceGroup = ccp4spg_load_by_standard_num(197);
+    int spgNum = FileParser::getKey("SPACE_GROUP", 197);
+    
+    spaceGroup = ccp4spg_load_by_standard_num(spgNum);
     initialStep = 0.2;
     testWavelength = 0;
     testDistance = 0;
@@ -52,6 +56,13 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     image = newImage;
     absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
     this->matrix = matrix;
+    refineA = FileParser::getKey("REFINE_UNIT_CELL_A", false);
+    refineB = FileParser::getKey("REFINE_UNIT_CELL_B", false);;
+    refineC = FileParser::getKey("REFINE_UNIT_CELL_C", false);;
+    unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+    
+    
+    complexUnitCell = false;
     
     //	calculateNearbyMillers(true);
 }
@@ -64,6 +75,17 @@ double Indexer::getDetectorDistance()
 double Indexer::getWavelength()
 {
     return image->getWavelength();
+}
+
+void Indexer::setComplexMatrix()
+{
+    complexUnitCell = true;
+    
+    double *unitCellDouble = new double[3];
+    matrix->unitCellLengths(&unitCellDouble);
+    this->unitCell[0] = unitCellDouble[0];
+    this->unitCell[1] = unitCellDouble[1];
+    this->unitCell[2] = unitCellDouble[2];
 }
 
 void Indexer::dropMillers()
@@ -93,7 +115,7 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
     double wavelength = image->getWavelength();
     vector<double> totals;
     
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "Wavelength histogram for " << this->image->getFilename() << std::endl;
     
     for (double i = wavelength * (1 - testBandwidth);
@@ -173,7 +195,7 @@ void Indexer::calculateNearbyMillers(bool rough)
         double maxD = 1 / maxResolution;
         double hklLength = length_of_vector(testHKL);
         
-        maxMillers[i] = abs(maxD / hklLength);
+        maxMillers[i] = fabs(maxD / hklLength);
     }
     
     logged << "Integrating to maximum Miller indices: (" << maxMillers[0] << ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
@@ -255,6 +277,10 @@ void Indexer::calculateNearbyMillers(bool rough)
 void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox)
 {
     MatrixPtr matrix = getMatrix();
+    if (complexUnitCell)
+    {
+        matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+    }
     double wavelength = image->getWavelength();
     double maxD = 1 / maxResolution;
     if (maxResolution == 0)
@@ -364,7 +390,7 @@ void Indexer::minimizeParameter(double *meanStep, double *param)
     
     double bestParam = *param;
     
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "Scores for " << image->getFilename() << ": ";
     
     for (double i = bestParam - *meanStep; j < 3; i += *meanStep)
@@ -567,15 +593,15 @@ void Indexer::findSpots()
     std::string datName = rootName + ".dat";
     writeDatFromSpots(datName);
     
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "Found " << spots.size() << " spots" << std::endl;
     Logger::mainLogger->addStream(&logged, LogLevelNormal);
 }
 
-void Indexer::duplicateSpots(std::vector<Image *> images)
+void Indexer::duplicateSpots(vector<Image *> images)
 {
-    std::map<std::vector<int>, int> frequencies =
-    std::map<std::vector<int>, int>();
+    std::map<vector<int>, int> frequencies =
+    std::map<vector<int>, int>();
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -583,14 +609,14 @@ void Indexer::duplicateSpots(std::vector<Image *> images)
         {
             IndexerPtr indexer = images[i]->getIndexer(j);
             
-            std::vector<Spot *> spots = indexer->getSpots();
+            vector<Spot *> spots = indexer->getSpots();
             
             std::cout << "Image: " << i << " Spot count: " << spots.size()
             << std::endl;
             
             for (int j = 0; j < spots.size(); j++)
             {
-                std::vector<int> coord = std::vector<int>();
+                vector<int> coord = vector<int>();
                 coord.push_back(spots[j]->x);
                 coord.push_back(spots[j]->y);
                 
@@ -612,7 +638,7 @@ void Indexer::duplicateSpots(std::vector<Image *> images)
     if (images.size() < 4)
         return;
     
-    for (map<std::vector<int>, int>::iterator it = frequencies.begin();
+    for (std::map<vector<int>, int>::iterator it = frequencies.begin();
          it != frequencies.end(); ++it)
     {
         std::cout << it->first[0] << "\t" << it->first[1] << "\t"
@@ -633,7 +659,7 @@ void Indexer::duplicateSpots(std::vector<Image *> images)
     std::cout << "Spots removed: " << spotsRemoved << std::endl;
 }
 
-void Indexer::scatterSpots(std::vector<Image *> images)
+void Indexer::scatterSpots(vector<Image *> images)
 {
     for (int i = 0; i < images.size(); i++)
     {
@@ -641,7 +667,7 @@ void Indexer::scatterSpots(std::vector<Image *> images)
         {
             IndexerPtr indexer = images[i]->getIndexer(j);
             
-            std::vector<Spot *> spots = indexer->getSpots();
+            vector<Spot *> spots = indexer->getSpots();
             
             for (int j = 0; j < spots.size(); j++)
             {
@@ -757,6 +783,36 @@ double Indexer::score()
         return score;
     }
     
+    if (refinement == RefinementTypeOrientationMatrixHighestPeak)
+    {
+        vector<double> wavelengths;
+        vector<int> frequencies;
+        
+        getWavelengthHistogram(wavelengths, frequencies);
+        
+        double mean = 0;
+        double stdev = 0;
+        histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
+        
+        int *highest = new int[3];
+        
+        for (int i = 0; i < frequencies.size(); i++)
+        {
+            if (frequencies[i] > highest[0])
+            {
+                for (int j = 0; j < 2; j++)
+                    highest[j + 1] = highest[j];
+                highest[0] = frequencies[i];
+            }
+        }
+        
+        double sum = 0;
+        for (int i = 0; i < 3; i++)
+            sum += highest[i];
+        
+        return 1 / sum;
+    }
+    
     if (refinement == RefinementTypeOrientationMatrixSpots)
     {
         double score = 0;
@@ -769,7 +825,7 @@ double Indexer::score()
                 double millerAngle = millers[i]->scatteringAngle(image);
                 double spotAngle = spots[j]->scatteringAngle(image);
                 
-                if (abs(spotAngle - millerAngle) < ANGLE_TOLERANCE)
+                if (fabs(spotAngle - millerAngle) < ANGLE_TOLERANCE)
                 {
                     spots[j]->setParentImage(image);
                     score += spots[j]->weight();
@@ -836,7 +892,7 @@ double Indexer::score()
     
     if (refinement == RefinementTypeOrientationMatrixRough)
     {
-        std::vector<double> wavelengths;
+        vector<double> wavelengths;
         
         for (int i = 0; i < millers.size(); i++)
         {
@@ -1034,7 +1090,7 @@ void Indexer::matchMatrixToSpots()
     matchMatrixToSpots(RefinementTypeOrientationMatrixSpots);
 }
 
-bool compareScore(pair<vector<double>, double> a, pair<vector<double>, double> b)
+bool compareScore(std::pair<vector<double>, double> a, std::pair<vector<double>, double> b)
 {
     return (a.second < b.second);
 }
@@ -1043,7 +1099,7 @@ void Indexer::matchMatrixToSpots(RefinementType refinement)
 {
     double wedge = FileParser::getKey("INDEXING_SLICE_ANGLE", 30.0); // degrees
     //	map<vector<double>, double> scores = map<vector<double>, double>();
-    vector<pair<vector<double>, double> > scores;
+    vector<std::pair<vector<double>, double> > scores;
     
     MatrixPtr copyMatrix = this->getMatrix()->copy();
     
@@ -1068,7 +1124,7 @@ void Indexer::matchMatrixToSpots(RefinementType refinement)
             rotation.push_back(hRad);
             rotation.push_back(kRad);
             
-            pair<vector<double>, double> pair = std::make_pair(rotation,
+            std::pair<vector<double>, double> pair = std::make_pair(rotation,
                                                              theScore);
             scores.push_back(pair);
             
@@ -1118,12 +1174,6 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     testDistance = image->getDetectorDistance();
     testWavelength = image->getWavelength();
     
-    int count = 0;
-    double hRotStep = initialStep;
-    double kRotStep = initialStep;
-    
-    bool refinedH = false;
-    bool refinedK = false;
     
     vector<double> wavelengths;
     vector<int> frequencies;
@@ -1145,44 +1195,82 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     
     bool recalculated = false;
     
-    while (!(refinedH && refinedK) && count < 50)
+    for (int i = 0; i < 2; i++)
     {
-      //  if (count % 2 == 1)
-      //      this->calculateNearbyMillers(true);
+        double hRotStep = initialStep;
+        double kRotStep = initialStep;
+        double aStep = FileParser::getKey("STEP_UNIT_CELL_A", 0.2);
+        double bStep = FileParser::getKey("STEP_UNIT_CELL_B", 0.2);;
+        double cStep = FileParser::getKey("STEP_UNIT_CELL_C", 0.2);;
         
-        this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
+        bool refinedH = false;
+        bool refinedK = false;
+        bool refinedA = !refineA;
+        bool refinedB = !refineB;
+        bool refinedC = !refineC;
         
-        checkAllMillers(maxResolution, testBandwidth);
+        int count = 0;
         
-        getWavelengthHistogram(wavelengths, frequencies);
-        histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
-        lastStdev = stdev;
-        lastTotal = getTotalReflections();
-        
-        double newScore = score();
-        lastScore = newScore;
-        
-        logged << hRot << "\t" << kRot << "\t" << newScore << "\t" << hRotStep << std::endl;
-        
-        if (refinement == RefinementTypeOrientationMatrixLate)
+        while (!(refinedH && refinedK) && count < 50)
         {
-            image->setWavelength(mean);
+            this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
+            
+            
+            checkAllMillers(maxResolution, testBandwidth);
+            
+            getWavelengthHistogram(wavelengths, frequencies);
+            histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
+            lastStdev = stdev;
+            lastTotal = getTotalReflections();
+            
+            double newScore = score();
+            lastScore = newScore;
+            
+            logged << hRot << "\t" << kRot << "\t" << newScore << "\t" << hRotStep << std::endl;
+            
+            if (hRotStep < 0.25 && kRotStep < 0.25)
+            {
+                image->setWavelength(mean);
+                
+                if (!recalculated)
+                {
+                    recalculated = true;
+                    this->calculateNearbyMillers(true);
+                }
+                
+                //      refinement = RefinementTypeOrientationMatrixHighestPeak;
+            }
+            
+            if (hRotStep < HROT_TOLERANCE)
+                refinedH = true;
+            if (kRotStep < KROT_TOLERANCE)
+                refinedK = true;
+           
+            
+            count++;
         }
         
-        if (hRotStep < 0.1 && kRotStep < 0.1 && !recalculated)
-        {
-            recalculated = true;
-            this->calculateNearbyMillers(true);
-    //      refinement = RefinementTypeOrientationMatrixLate;
+        count = 0;
+        
+        while (refinedA && refinedB && refinedC && count < 50) {
+            
+            if (!refinedA)
+                minimizeParameter(&aStep, &unitCell[0]);
+            if (!refinedB)
+                minimizeParameter(&bStep, &unitCell[1]);
+            if (!refinedC)
+                minimizeParameter(&cStep, &unitCell[2]);
+
+            
+            if (aStep < 0.01)
+                refinedA = true;
+            if (bStep < 0.01)
+                refinedB = true;
+            if (cStep < 0.01)
+                refinedC = true;
+            
+            count++;
         }
-   
-        if (hRotStep < HROT_TOLERANCE)
-            refinedH = true;
-        
-        if (kRotStep < KROT_TOLERANCE)
-            refinedK = true;
-        
-        count++;
     }
     
     logged << "Rotation result:\t" << image->getFilename() << "\t" << hRot
@@ -1190,6 +1278,28 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     
     double hRad = hRot * M_PI / 180;
     double kRad = kRot * M_PI / 180;
+    
+    vector<double> originalUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+    double *lengths = new double[3];
+    getMatrix()->unitCellLengths(&lengths);
+    
+    double aRatio = originalUnitCell[0] / lengths[0];
+    double bRatio = originalUnitCell[1] / lengths[1];
+    double cRatio = originalUnitCell[2] / lengths[2];
+    
+    double aveRatio = (aRatio + bRatio + cRatio) / 3;
+    
+    lengths[0] *= aveRatio;
+    lengths[1] *= aveRatio;
+    lengths[2] *= aveRatio;
+    
+ /*   unitCell[0] = lengths[0] * aveRatio;
+    unitCell[1] = lengths[1] * aveRatio;
+    unitCell[2] = lengths[2] * aveRatio;
+
+    testWavelength *= aveRatio;
+*/
+    delete [] lengths;
     
     getMatrix()->rotate(hRad, kRad, 0);
     
@@ -1256,11 +1366,11 @@ MtzPtr Indexer::newMtz(int index)
         miller->incrementOverlapMask();
         miller->setMtzParent(&*mtz);
         
-        int index = Holder::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
+        int index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
                                                mtz->getLowGroup(), false);
         
-        Holder *found = NULL;
-        mtz->findHolderWithId(index, &found);
+        Reflection *found = NULL;
+        mtz->findReflectionWithId(index, &found);
         
         Panel::addMillerToPanelArray(miller);
         
@@ -1271,13 +1381,13 @@ MtzPtr Indexer::newMtz(int index)
         }
         else
         {
-            Holder *holder = new Holder();
-            holder->setSpaceGroup(spaceGroup, spgType, asymmetricUnit);
-            holder->addMiller(miller);
-            holder->calculateResolution(&*mtz);
-            miller->setParent(holder);
-            mtz->addHolder(holder);
-            mtz->sortLastHolder();
+            Reflection *reflection = new Reflection();
+            reflection->setSpaceGroup(spaceGroup, spgType, asymmetricUnit);
+            reflection->addMiller(miller);
+            reflection->calculateResolution(&*mtz);
+            miller->setParent(reflection);
+            mtz->addReflection(reflection);
+            mtz->sortLastReflection();
         }
     }
     
@@ -1288,7 +1398,7 @@ MtzPtr Indexer::newMtz(int index)
     if (cutoff != 0)
         mtz->cutToResolutionWithSigma(cutoff);
     
-    string imgFilename = "img-" + image->filenameRoot() + "_" + i_to_str(index) + ".mtz";
+    std::string imgFilename = "img-" + image->filenameRoot() + "_" + i_to_str(index) + ".mtz";
     mtz->writeToFile(imgFilename, false, true);
     mtz->writeToDat();
 

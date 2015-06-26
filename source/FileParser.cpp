@@ -25,7 +25,7 @@ int FileParser::getMaxThreads()
     if (threadsFound != 0)
         return threadsFound;
     
-    ostringstream logged;
+    std::ostringstream logged;
     
     char *nslots;
     nslots = getenv("NSLOTS");
@@ -106,8 +106,8 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
 void FileParser::doubleVector(ParametersMap *map, std::string command,
 		std::string rest)
 {
-	std::vector<std::string> components = FileReader::split(rest, ' ');
-	std::vector<double> doubleVector;
+	vector<std::string> components = FileReader::split(rest, ' ');
+	vector<double> doubleVector;
 
 	log << "Setting " << command << " to ";
 
@@ -126,8 +126,8 @@ void FileParser::doubleVector(ParametersMap *map, std::string command,
 void FileParser::intVector(ParametersMap *map, std::string command,
 		std::string rest)
 {
-	std::vector<std::string> components = FileReader::split(rest, ' ');
-	std::vector<int> intVector;
+	vector<std::string> components = FileReader::split(rest, ' ');
+	vector<int> intVector;
 
 	log << "Setting " << command << " to ";
 
@@ -208,6 +208,9 @@ void FileParser::generateFunctionList()
 	parserMap["OPTIMISING_EXPONENT"] = simpleBool;
 	parserMap["OPTIMISING_ORIENTATION"] = simpleBool;
 	parserMap["OPTIMISING_RLP_SIZE"] = simpleBool;
+    parserMap["OPTIMISING_UNIT_CELL_A"] = simpleBool;
+    parserMap["OPTIMISING_UNIT_CELL_B"] = simpleBool;
+    parserMap["OPTIMISING_UNIT_CELL_C"] = simpleBool;
 
 	parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;
@@ -259,7 +262,13 @@ void FileParser::generateFunctionList()
     parserMap["PIXEL_COUNT_CUTOFF"] = simpleInt;
     parserMap["EXPECTED_SPOTS"] = simpleInt;
     parserMap["INDEXING_SLICE_ANGLE"] = simpleFloat;
-    
+    parserMap["REFINE_UNIT_CELL_A"] = simpleBool;
+    parserMap["REFINE_UNIT_CELL_B"] = simpleBool;
+    parserMap["REFINE_UNIT_CELL_C"] = simpleBool;
+    parserMap["STEP_UNIT_CELL_A"] = simpleFloat;
+    parserMap["STEP_UNIT_CELL_B"] = simpleFloat;
+    parserMap["STEP_UNIT_CELL_C"] = simpleFloat;
+
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;
 }

@@ -18,7 +18,7 @@ class StatisticsManager;
 class AmbiguityBreaker
 {
 private:
-    std::vector<MtzPtr> mtzs;
+    vector<MtzPtr> mtzs;
     int ambiguityCount;
     StatisticsManager *statsManager;
     double gridCorrelation(int imageNumI, int imageNumJ);
@@ -44,9 +44,9 @@ private:
     MtzManager *merged;
     
 public:
-    void setMtzs(std::vector<MtzPtr> newMtzs);
+    void setMtzs(vector<MtzPtr> newMtzs);
     
-    AmbiguityBreaker(std::vector<MtzPtr> newMtzs);
+    AmbiguityBreaker(vector<MtzPtr> newMtzs);
     void run();
     void overrideAmbiguity(int newAmbiguity);
     

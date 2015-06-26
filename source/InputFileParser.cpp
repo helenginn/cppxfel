@@ -21,12 +21,26 @@ InputFileParser::~InputFileParser()
 	// TODO Auto-generated destructor stub
 }
 
+void InputFileParser::refine(int maxCycles)
+{
+    setKey("MAXIMUM_CYCLES", maxCycles);
+    refiner->refine();
+}
+
+vector<MtzPtr> InputFileParser::mtzs()
+{
+    return refiner->getMtzManagers();
+}
+
 void InputFileParser::parse()
 {
+    Logger::mainLogger = LoggerPtr(new Logger());
+    boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
+
 	parameters = ParametersMap();
 
 	std::string fileContents = FileReader::get_file_contents(filename.c_str());
-	std::vector<std::string> fileLines = FileReader::split(fileContents, '\n');
+	vector<std::string> fileLines = FileReader::split(fileContents, '\n');
 
 	bool foundCommands = false;
 	int continueFrom = 0;
@@ -68,8 +82,8 @@ void InputFileParser::parse()
     Logger::mainLogger->addStream(&log);
     log.str("");
 
-	MtzRefiner refiner = MtzRefiner();
-
+	refiner = boost::shared_ptr<MtzRefiner>(new MtzRefiner());
+    
 	if (foundCommands)
 	{
 		for (int i = continueFrom; i < fileLines.size(); i++)
@@ -83,115 +97,115 @@ void InputFileParser::parse()
 			if (line == "INTEGRATE")
 			{
                 understood = true;
-                refiner.integrate(false);
+                refiner->integrate(false);
 			}
             
             if (line == "REFINE_DETECTOR_GEOMETRY")
             {
                 understood = true;
-                refiner.refineDetectorGeometry();
+                refiner->refineDetectorGeometry();
             }
 
 			if (line == "REFINE_PARTIALITY")
 			{
                 understood = true;
-                refiner.refine();
+                refiner->refine();
 			}
             
             if (line == "REFINE_METROLOGY")
             {
                 understood = true;
-                refiner.refineMetrology();
+                refiner->refineMetrology();
             }
 
 			if (line == "MERGE")
 			{
                 understood = true;
-                refiner.merge();
+                refiner->merge();
 			}
             
             if (line == "LOAD_X_FILES")
             {
                 understood = true;
-                refiner.xFiles();
+                refiner->xFiles();
             }
             
             if (line == "REMOVE_SIGMA_VALUES")
             {
                 understood = true;
-                refiner.removeSigmaValues();
+                refiner->removeSigmaValues();
             }
             
             if (line == "DISPLAY_INDEXING_HANDS")
             {
                 understood = true;
-                refiner.displayIndexingHands();
+                refiner->displayIndexingHands();
             }
             
             if (line == "CORRELATION_PLOT")
             {
                 understood = true;
-                refiner.correlationAndInverse();
+                refiner->correlationAndInverse();
             }
             
             if (line == "POLARISATION_GRAPH")
             {
                 understood = true;
-                refiner.polarisationGraph();
+                refiner->polarisationGraph();
             }
             
             if (line == "LOAD_MTZ_FILES")
             {
                 understood = true;
-                refiner.readMatricesAndMtzs();
+                refiner->readMatricesAndMtzs();
             }
             
             if (line == "DETECTOR_GAINS")
             {
                 understood = true;
-                refiner.plotDetectorGains();
+                refiner->plotDetectorGains();
             }
             
             if (line == "LOAD_INITIAL_MTZ")
             {
                 understood = true;
-                refiner.loadInitialMtz(true);
+                refiner->loadInitialMtz(true);
             }
             
             if (line == "WRITE_NEW_MATRICES")
             {
                 understood = true;
-                refiner.writeNewOrientations(true);
+                refiner->writeNewOrientations(true);
             }
             
             if (line == "REFINE_WITH_SYMMETRY")
             {
                 understood = true;
-                refiner.refineSymmetry();
+                refiner->refineSymmetry();
             }
             
             if (line == "INITIAL_MERGE")
             {
                 understood = true;
-                refiner.initialMerge();
+                refiner->initialMerge();
             }
             
             if (line == "ORIENTATION_PLOT")
             {
                 understood = true;
-                refiner.orientationPlot();
+                refiner->orientationPlot();
             }
             
             if (line == "APPLY_PARTIALITY")
             {
                 understood = true;
-                refiner.applyUnrefinedPartiality();
+                refiner->applyUnrefinedPartiality();
             }
             
             if (line == "INDEX")
             {
                 understood = true;
-                refiner.index();
+                refiner->index();
             }
             
             if (!understood)
@@ -214,6 +228,6 @@ void InputFileParser::parse()
 				<< std::endl;
         Logger::mainLogger->addStream(&log);
         log.str("");
-		refiner.refine();
+		refiner->refine();
 	}
 }

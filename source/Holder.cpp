@@ -22,14 +22,14 @@ using cctbx::miller::sym_equiv_indices;
 using cctbx::miller::asym_index;
 using cctbx::sgtbx::reciprocal_space::asu;
 
-asu Holder::asymmetricUnit = asu();
-bool Holder::hasSetup = false;
-bool Holder::setupUnitCell = false;
-space_group_type Holder::spgType = cctbx::sgtbx::space_group_type();
-cctbx::sgtbx::space_group Holder::spaceGroup = cctbx::sgtbx::space_group();
-cctbx::uctbx::unit_cell Holder::unitCell;
+asu Reflection::asymmetricUnit = asu();
+bool Reflection::hasSetup = false;
+bool Reflection::setupUnitCell = false;
+space_group_type Reflection::spgType = cctbx::sgtbx::space_group_type();
+cctbx::sgtbx::space_group Reflection::spaceGroup = cctbx::sgtbx::space_group();
+cctbx::uctbx::unit_cell Reflection::unitCell;
 
-MatrixPtr Holder::matrixForAmbiguity(int i)
+MatrixPtr Reflection::matrixForAmbiguity(int i)
 {
     if (i >= ambiguityCount())
         std::cout << "Ambiguity issue!" << std::endl;
@@ -128,7 +128,7 @@ MatrixPtr Holder::matrixForAmbiguity(int i)
     return MatrixPtr(new Matrix());
 }
 
-int Holder::ambiguityCount()
+int Reflection::ambiguityCount()
 {
     if (spgNum >= 195 && spgNum <= 199)
         return 2;
@@ -148,7 +148,7 @@ int Holder::ambiguityCount()
     return 1;
 }
 
-void Holder::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_type newSpgType, asu newAsymmetricUnit)
+void Reflection::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_type newSpgType, asu newAsymmetricUnit)
 {
     if (ccp4spg == NULL)
         return;
@@ -166,7 +166,7 @@ void Holder::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_typ
     hasSetup = true;
 }
 
-void Holder::setSpaceGroup(int spaceGroupNum)
+void Reflection::setSpaceGroup(int spaceGroupNum)
 {
     if (hasSetup)
         return;
@@ -182,7 +182,7 @@ void Holder::setSpaceGroup(int spaceGroupNum)
     hasSetup = true;
 }
 
-int Holder::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
+int Reflection::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
 {
     int h = cctbxMiller[0];
     int k = cctbxMiller[1];
@@ -194,7 +194,7 @@ int Holder::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
     return index;
 }
 
-void Holder::generateReflectionIds()
+void Reflection::generateReflectionIds()
 {
     if (millerCount() == 0)
     {
@@ -223,7 +223,7 @@ void Holder::generateReflectionIds()
     }
 }
 
-void Holder::setUnitCell(float *theUnitCell)
+void Reflection::setUnitCell(float *theUnitCell)
 {
     scitbx::af::double6 params;
     params[0] = theUnitCell[0];
@@ -238,7 +238,7 @@ void Holder::setUnitCell(float *theUnitCell)
     setupUnitCell = true;
 }
 
-Holder::Holder(float *unitCell, CSym::CCP4SPG *spg)
+Reflection::Reflection(float *unitCell, CSym::CCP4SPG *spg)
 {
     spgNum = 0;
     
@@ -260,12 +260,29 @@ Holder::Holder(float *unitCell, CSym::CCP4SPG *spg)
     activeAmbiguity = 0;
 }
 
-MillerPtr Holder::miller(int i)
+MillerPtr Reflection::acceptedMiller(int num)
+{
+    int accepted = 0;
+    
+    for (int i = 0; i < millers.size(); i++)
+    {
+        if (miller(i)->accepted() && accepted == num)
+            return miller(i);
+        
+        if (miller(i)->accepted())
+            accepted++;
+    }
+    
+    return MillerPtr();
+}
+
+
+MillerPtr Reflection::miller(int i)
 {
     return millers[i];
 }
 
-void Holder::addMiller(MillerPtr miller)
+void Reflection::addMiller(MillerPtr miller)
 {
     miller->setResolution(resolution);
     millers.push_back(miller);
@@ -276,7 +293,7 @@ void Holder::addMiller(MillerPtr miller)
     }
 }
 
-bool Holder::betweenResolutions(double lowAngstroms, double highAngstroms)
+bool Reflection::betweenResolutions(double lowAngstroms, double highAngstroms)
 {
     double minD, maxD = 0;
     StatisticsManager::convertResolutions(lowAngstroms,
@@ -288,33 +305,33 @@ bool Holder::betweenResolutions(double lowAngstroms, double highAngstroms)
     return true;
 }
 
-int Holder::millerCount()
+int Reflection::millerCount()
 {
     return (int)millers.size();
 }
 
-void Holder::removeMiller(int index)
+void Reflection::removeMiller(int index)
 {
     millers.erase(millers.begin() + index);
 }
 
-Holder *Holder::copy()
+Reflection *Reflection::copy()
 {
     return copy(false);
 }
 
-Holder *Holder::copy(bool copyMillers)
+Reflection *Reflection::copy(bool copyMillers)
 {
-    Holder *newHolder = new Holder();
+    Reflection *newReflection = new Reflection();
     
-    newHolder->spgNum = spgNum;
-    newHolder->activeAmbiguity = activeAmbiguity;
-    newHolder->reflectionIds = reflectionIds;
-    newHolder->refIntensity = refIntensity;
-    newHolder->refSigma = refSigma;
-    newHolder->refl_id = refl_id;
-    newHolder->inv_refl_id = inv_refl_id;
-    newHolder->resolution = resolution;
+    newReflection->spgNum = spgNum;
+    newReflection->activeAmbiguity = activeAmbiguity;
+    newReflection->reflectionIds = reflectionIds;
+    newReflection->refIntensity = refIntensity;
+    newReflection->refSigma = refSigma;
+    newReflection->refl_id = refl_id;
+    newReflection->inv_refl_id = inv_refl_id;
+    newReflection->resolution = resolution;
     
     for (int i = 0; i < millerCount(); i++)
     {
@@ -329,13 +346,13 @@ Holder *Holder::copy(bool copyMillers)
             newMiller = miller(i);
         }
         
-        newHolder->addMiller(newMiller);
+        newReflection->addMiller(newMiller);
     }
 
-    return newHolder;
+    return newReflection;
 }
 
-double Holder::meanPartiality()
+double Reflection::meanPartiality()
 {
     int num = (int)millers.size();
     double total_partiality = 0;
@@ -357,21 +374,20 @@ double Holder::meanPartiality()
     return total_partiality;
 }
 
-double Holder::meanIntensity()
+double Reflection::meanIntensity(int start, int end)
 {
-    int num = (int)millers.size();
+    if (end == 0)
+        end = acceptedCount();
+    
     double total_intensity = 0;
     double weight = 0;
     
-    for (int i = 0; i < num; i++)
+    for (int i = start; i < end; i++)
     {
-        MillerPtr miller = this->miller(i);
+        MillerPtr miller = this->acceptedMiller(i);
         
-        if (miller->accepted())
-        {
-            total_intensity += miller->intensity() * miller->getPartiality();
-            weight += miller->getPartiality();
-        }
+        total_intensity += miller->intensity() * miller->getPartiality();
+        weight += miller->getPartiality();
     }
     
     total_intensity /= weight;
@@ -379,41 +395,26 @@ double Holder::meanIntensity()
     return total_intensity;
 }
 
-double Holder::meanIntensityWithExclusion(string *filename)
+double Reflection::meanIntensityWithExclusion(std::string *filename, int start, int end)
 {
     if (filename == NULL)
-        return meanIntensity();
+        return meanIntensity(start, end);
     
-    int num = (int)millers.size();
+    if (end == 0)
+        end = acceptedCount();
     double total_intensity = 0;
     double weight = 0;
-    int acceptedCount = 0;
-    bool noFilenames = true;
+    int accepted = acceptedCount();
     
-    for (int i = 0; i < num; i++)
+    for (int i = start; i < end; i++)
     {
-        if (miller(i)->accepted())
-            acceptedCount++;
+        MillerPtr miller = this->acceptedMiller(i);
         
-        if (miller(i)->getFilename().substr(0, 3) == "img")
-            noFilenames = false;
-        
-        if (acceptedCount >= 2)
-            break;
-    }
-    
-    for (int i = 0; i < num; i++)
-    {
-        MillerPtr miller = this->miller(i);
-        
-        if (miller->accepted())
-        {
-            if (acceptedCount > 2 && miller->getFilename() == *filename)
-                continue;
+        if (accepted > 2 && miller->getFilename() == *filename)
+            continue;
             
-            total_intensity += miller->intensity() * miller->getPartiality();
-            weight += miller->getPartiality();
-        }
+        total_intensity += miller->intensity() * miller->getPartiality();
+        weight += miller->getPartiality();
     }
     
     total_intensity /= weight;
@@ -421,7 +422,7 @@ double Holder::meanIntensityWithExclusion(string *filename)
     return total_intensity;
 }
 
-double Holder::mergeSigma()
+double Reflection::mergeSigma()
 {
     double mean = mergedIntensity(WeightTypePartialitySigma);
     
@@ -448,7 +449,7 @@ double Holder::mergeSigma()
     return error;
 }
 
-double Holder::meanSigma(bool friedel)
+double Reflection::meanSigma(bool friedel)
 {
     int num = (int)millers.size();
     int count = 0;
@@ -479,7 +480,7 @@ double Holder::meanSigma(bool friedel)
     return total_sigi;
 }
 
-double Holder::meanWeight()
+double Reflection::meanWeight()
 {
     int num = (int)millers.size();
     int count = 0;
@@ -502,7 +503,7 @@ double Holder::meanWeight()
     return total_weight;
 }
 
-double Holder::meanSigma()
+double Reflection::meanSigma()
 {
     int num = (int)millers.size();
     int count = 0;
@@ -525,7 +526,7 @@ double Holder::meanSigma()
     return total_sigi;
 }
 
-void Holder::calculateResolution(MtzManager *mtz)
+void Reflection::calculateResolution(MtzManager *mtz)
 {
   /*  double a, b, c, alpha, beta, gamma;
     
@@ -557,19 +558,19 @@ void Holder::calculateResolution(MtzManager *mtz)
 }
 
 
-void Holder::incrementAmbiguity()
+void Reflection::incrementAmbiguity()
 {
     int count = ambiguityCount();
     int newActive = activeAmbiguity + 1;
     activeAmbiguity = (newActive % count);
 }
 
-void Holder::setFlipAsActiveAmbiguity()
+void Reflection::setFlipAsActiveAmbiguity()
 {
     setFlip(activeAmbiguity);
 }
 
-void Holder::resetFlip()
+void Reflection::resetFlip()
 {
     for (int j = 0; j < millerCount(); j++)
     {
@@ -577,7 +578,7 @@ void Holder::resetFlip()
     }
 }
 
-void Holder::setFlip(int i)
+void Reflection::setFlip(int i)
 {
     for (int j = 0; j < millerCount(); j++)
     {
@@ -588,7 +589,7 @@ void Holder::setFlip(int i)
 }
 
 
-void Holder::holderDescription()
+void Reflection::reflectionDescription()
 {
     int acceptedCount = 0;
     
@@ -609,19 +610,19 @@ void Holder::holderDescription()
     Logger::mainLogger->addStream(&logged);
 }
 
-void Holder::clearMillers()
+void Reflection::clearMillers()
 {
     millers.clear();
     vector<MillerPtr>().swap(millers);
     
 }
 
-Holder::~Holder()
+Reflection::~Reflection()
 {
     clearMillers();
 }
 
-int Holder::indexForReflection(int h, int k, int l, CSym::CCP4SPG *spgroup,
+int Reflection::indexForReflection(int h, int k, int l, CSym::CCP4SPG *spgroup,
                                bool inverted)
 {
     int _h, _k, _l;
@@ -659,7 +660,7 @@ int Holder::indexForReflection(int h, int k, int l, CSym::CCP4SPG *spgroup,
     return index;
 }
 
-double Holder::mergedIntensity(WeightType weighting)
+double Reflection::mergedIntensity(WeightType weighting)
 {
     double sum_intensities = 0;
     double sum_weights = 0;
@@ -667,6 +668,9 @@ double Holder::mergedIntensity(WeightType weighting)
     for (int i = 0; i < millers.size(); i++)
     {
         if (!miller(i)->accepted())
+            continue;
+        
+        if (miller(i)->isExcluded())
             continue;
         
         double weight = miller(i)->getWeight(weighting);
@@ -680,7 +684,7 @@ double Holder::mergedIntensity(WeightType weighting)
     return mean_intensity;
 }
 
-double Holder::standardDeviation(WeightType weighting)
+double Reflection::standardDeviation(WeightType weighting)
 {
     double mean_intensity = mergedIntensity(weighting);
     
@@ -691,6 +695,9 @@ double Holder::standardDeviation(WeightType weighting)
     for (int i = 0; i < millerCount(); i++)
     {
         if (!miller(i)->accepted())
+            continue;
+        
+        if (miller(i)->isExcluded())
             continue;
         
         squares += pow(miller(i)->intensity() - mean_intensity, 2);
@@ -705,7 +712,7 @@ double Holder::standardDeviation(WeightType weighting)
     return stdev;
 }
 
-double Holder::rMergeContribution(double *numerator, double *denominator)
+double Reflection::rMergeContribution(double *numerator, double *denominator)
 {
     if (acceptedCount() < 2)
         return 0;
@@ -721,9 +728,15 @@ double Holder::rMergeContribution(double *numerator, double *denominator)
         if (!miller(i)->accepted())
             continue;
         
+        double intensity = miller(i)->intensity();
+        double weight = miller(i)->getWeight();
+        
+        if (intensity < 0 || mean_intensity < 0)
+            continue;
+        
         count++;
-        littleNum += abs(miller(i)->intensity() - mean_intensity);
-        littleDenom += abs(miller(i)->intensity());
+        littleNum += weight * fabs(intensity - mean_intensity);
+        littleDenom += weight * fabs(intensity);
     }
     
     *numerator += littleNum;
@@ -732,10 +745,10 @@ double Holder::rMergeContribution(double *numerator, double *denominator)
     return littleNum / littleDenom;
 }
 
-void Holder::merge(WeightType weighting, double *intensity, double *sigma,
+void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
                    bool calculateRejections)
 {
-    ostringstream logged;
+    std::ostringstream logged;
     
     logged << "Rejection info:" << std::endl;
     
@@ -795,7 +808,7 @@ void Holder::merge(WeightType weighting, double *intensity, double *sigma,
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
 }
 
-int Holder::rejectCount()
+int Reflection::rejectCount()
 {
     int count = 0;
     
@@ -810,7 +823,7 @@ int Holder::rejectCount()
     return count;
 }
 
-int Holder::acceptedCount()
+int Reflection::acceptedCount()
 {
     int count = 0;
     
@@ -825,7 +838,7 @@ int Holder::acceptedCount()
     return count;
 }
 
-bool Holder::anyAccepted()
+bool Reflection::anyAccepted()
 {
     for (int i = 0; i < millers.size(); i++)
     {
@@ -836,19 +849,19 @@ bool Holder::anyAccepted()
     return false;
 }
 
-double Holder::observedPartiality(MtzManager *reference, Miller *miller)
+double Reflection::observedPartiality(MtzManager *reference, Miller *miller)
 {
-    Holder *refHolder;
+    Reflection *refReflection;
     double reflId = refl_id;
-    reference->findHolderWithId(reflId, &refHolder);
+    reference->findReflectionWithId(reflId, &refReflection);
     
-    if (refHolder != NULL)
-        return miller->observedPartiality(refHolder->meanIntensity());
+    if (refReflection != NULL)
+        return miller->observedPartiality(refReflection->meanIntensity());
     
     return nan(" ");
 }
 
-void Holder::printDescription()
+void Reflection::printDescription()
 {
     std::cout << "Mean intensity " << this->meanIntensity() << std::endl;
     std::cout << "Miller corrected intensities: ";
@@ -861,7 +874,7 @@ void Holder::printDescription()
     std::cout << std::endl;
 }
 
-void Holder::detailedDescription()
+void Reflection::detailedDescription()
 {
     double meanIntensity = this->meanIntensity();
     
@@ -881,7 +894,7 @@ void Holder::detailedDescription()
     std::cout << std::endl;
 }
 
-int Holder::checkOverlaps()
+int Reflection::checkOverlaps()
 {
     int count = 0;
     
@@ -897,10 +910,11 @@ int Holder::checkOverlaps()
     return count;
 }
 
-void Holder::setAdditionalWeight(double weight)
+void Reflection::setAdditionalWeight(double weight)
 {
     for (int i = 0; i < millerCount(); i++)
     {
         miller(i)->setAdditionalWeight(weight);
     }
 }
+

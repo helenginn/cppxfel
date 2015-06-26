@@ -8,9 +8,6 @@
 #include <liblbfgs.h>
 #include "parameters.h"
 
-using namespace std;
-
-
 class Lbfgs_Scaling
 {
 

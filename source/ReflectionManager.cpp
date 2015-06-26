@@ -10,7 +10,8 @@
 #include "misc.h"
 #include "parameters.h"
 
-using namespace std;
+
+
 
 int primary_call = 0;
 int primary_call_2 = 0;
@@ -28,7 +29,7 @@ void ReflectionManager::GForImage(ImageReflection *image,
 	*G = &(*Gs)[l];
 }
 
-void ReflectionManager::holder_for_image(double l, Holder **holder)
+void ReflectionManager::reflection_for_image(double l, Reflection **reflection)
 {
 	primary_call_3++;
 	int lower = 0;
@@ -40,20 +41,20 @@ void ReflectionManager::holder_for_image(double l, Holder **holder)
 	if (reflections.size() == 2)
 	{
 		if (reflections[0].l == l)
-			*holder = reflections[0].holder;
+			*reflection = reflections[0].reflection;
 
 		else if (reflections[1].l == l)
-			*holder = reflections[1].holder;
+			*reflection = reflections[1].reflection;
 
 		else
-			*holder = NULL;
+			*reflection = NULL;
 
 		return;
 	}
 
 	if ((l < reflections[lower].l) || (l > reflections[higher].l))
 	{
-		*holder = NULL;
+		*reflection = NULL;
 		return;
 	}
 
@@ -64,17 +65,17 @@ void ReflectionManager::holder_for_image(double l, Holder **holder)
 		{
 			if (reflections[lower].l == l)
 			{
-				*holder = reflections[lower].holder;
+				*reflection = reflections[lower].reflection;
 				return;
 			}
 			else if (reflections[higher].l == l)
 			{
-				*holder = reflections[higher].holder;
+				*reflection = reflections[higher].reflection;
 				return;
 			}
 			else
 			{
-				*holder = NULL;
+				*reflection = NULL;
 				return;
 			}
 		}
@@ -91,16 +92,16 @@ void ReflectionManager::holder_for_image(double l, Holder **holder)
 		new_bound = (higher + lower) / 2;
 	}
 
-	(*holder) = reflections[new_bound].holder;
+	(*reflection) = reflections[new_bound].reflection;
 }
 
 void ReflectionManager::alpha_beta_hj(vector<Scale_factor> Gs, int j,
 		double *alpha_hj, double *beta_hj)
 {
 	primary_call++;
-	double ref_intensity = reflections[j].holder->meanIntensity();
+	double ref_intensity = reflections[j].reflection->meanIntensity();
 
-	double partiality =  reflections[j].holder->meanPartiality();
+	double partiality =  reflections[j].reflection->meanPartiality();
 	double ref_sigma = 1;
 
 	Scale_factor *G_ref;
@@ -181,14 +182,14 @@ double ReflectionManager::contributionToGradient(vector<Scale_factor> Gs, int l)
 			double m2_first_sum = 0;
 			double m2_second_sum = 0;
 
-			double partiality = reflections[j].holder->meanPartiality();
+			double partiality = reflections[j].reflection->meanPartiality();
 			double sigma_j = 1 / sqrt(partiality);
 			sigma_j = 1;
 
-			Holder *lth_ref;
-			holder_for_image(l, &lth_ref);
+			Reflection *lth_ref;
+			reflection_for_image(l, &lth_ref);
 
-			double epsilon = (reflections[j].holder != lth_ref);
+			double epsilon = (reflections[j].reflection != lth_ref);
 			Scale_factor *G_j;
 			GForImage(&reflections[j], &Gs, &G_j);
 
@@ -209,7 +210,7 @@ double ReflectionManager::contributionToGradient(vector<Scale_factor> Gs, int l)
 				Scale_factor *G_ref;
 				GForImage(&reflections[m], &Gs, &G_ref);
 				double Gm = (*G_ref).G;
-				double partiality = reflections[m].holder->meanPartiality();
+				double partiality = reflections[m].reflection->meanPartiality();
 				double sigma_m = 1 / sqrt(partiality);
 				sigma_m = 1;
 
@@ -249,8 +250,8 @@ double ReflectionManager::contributionToGradient(vector<Scale_factor> Gs, int l)
 	}
 	else
 	{
-		Holder *lth_ref;
-		holder_for_image(l, &lth_ref);
+		Reflection *lth_ref;
+		reflection_for_image(l, &lth_ref);
 
 		if (lth_ref == NULL)
 		{
@@ -276,7 +277,7 @@ double ReflectionManager::contributionToGradient(vector<Scale_factor> Gs, int l)
 			double sigma_il = 0;
 			double intensity_il = 0;
 
-			int delta_lj = (reflections[j].holder == lth_ref);
+			int delta_lj = (reflections[j].reflection == lth_ref);
 
 			double partiality = lth_ref->meanPartiality();
 			sigma_il = 1 / sqrt(partiality);
@@ -341,14 +342,14 @@ void ReflectionManager::sortReflections(void)
 
 	 for (int i=0; i < reflections.size(); i++)
 	 {
-	 mean_intensity += (*reflections[i].holder).mean_intensity;
+	 mean_intensity += (*reflections[i].reflection).mean_intensity;
 	 }
 
 	 mean_intensity /= reflections.size();
 
 	 for (int i=0; i < reflections.size(); i++)
 	 {
-	 if ((*reflections[i].holder).mean_intensity < mean_intensity)
+	 if ((*reflections[i].reflection).mean_intensity < mean_intensity)
 	 {
 	 reflections.erase(reflections.begin()+i);
 	 i--;
@@ -356,10 +357,10 @@ void ReflectionManager::sortReflections(void)
 	 }*/
 }
 
-void ReflectionManager::addHolderForImage(Holder *holder, MtzManager *manager,
+void ReflectionManager::addReflectionForImage(Reflection *reflection, MtzManager *manager,
 		double l)
 {
-	double intensity = holder->meanIntensity();
+	double intensity = reflection->meanIntensity();
 
 	if (intensity != intensity)
 		return;
@@ -368,7 +369,7 @@ void ReflectionManager::addHolderForImage(Holder *holder, MtzManager *manager,
 
 	reflections.resize(num + 1);
 
-	reflections[num].holder = holder;
+	reflections[num].reflection = reflection;
 	reflections[num].manager = manager;
 	reflections[num].l = l;
 }
@@ -381,14 +382,14 @@ double ReflectionManager::intensity(vector<Scale_factor> *Gs, double *sigma)
     
     for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < reflections[i].holder->millerCount(); j++)
+        for (int j = 0; j < reflections[i].reflection->millerCount(); j++)
         {
             int l = 0;
             
             Scale_factor *G = NULL;
             GForImage(&reflections[i], Gs, &G, &l);
             
-            MillerPtr miller = reflections[i].holder->miller(j);
+            MillerPtr miller = reflections[i].reflection->miller(j);
             
             if (!miller->accepted())
                 continue;
@@ -399,7 +400,7 @@ double ReflectionManager::intensity(vector<Scale_factor> *Gs, double *sigma)
             if (weight != weight || weight == 0)
                 continue;
             
-            double scale = abs(G->G);
+            double scale = fabs(G->G);
             
             if (scale < 0.1)
                 continue;
@@ -419,15 +420,15 @@ double ReflectionManager::intensity(vector<Scale_factor> *Gs, double *sigma)
     return intensity;
 }
 
-Holder *ReflectionManager::mergedHolder(vector<Scale_factor> *Gs, bool half, bool all)
+Reflection *ReflectionManager::mergedReflection(vector<Scale_factor> *Gs, bool half, bool all)
 {
-    Holder *newHolder = reflections[0].holder->copy(false);
+    Reflection *newReflection = reflections[0].reflection->copy(false);
     
-    newHolder->setFlipAsActiveAmbiguity();
+    newReflection->setFlipAsActiveAmbiguity();
     
-    int _h = newHolder->miller(0)->getH();
-    int _k = newHolder->miller(0)->getK();
-    int _l = newHolder->miller(0)->getL();
+    int _h = newReflection->miller(0)->getH();
+    int _k = newReflection->miller(0)->getK();
+    int _l = newReflection->miller(0)->getL();
 
     int h, k, l;
     
@@ -435,7 +436,7 @@ Holder *ReflectionManager::mergedHolder(vector<Scale_factor> *Gs, bool half, boo
     
     MillerPtr miller = MillerPtr(new Miller(NULL, h, k, l));
     
-    miller->setParent(newHolder);
+    miller->setParent(newReflection);
     
     double newSigma = 0;
     double newIntensity = 0;
@@ -456,10 +457,10 @@ Holder *ReflectionManager::mergedHolder(vector<Scale_factor> *Gs, bool half, boo
     
     miller->setData(newIntensity, 1, 1, 0);
 
-    newHolder->clearMillers();
-    newHolder->addMiller(miller);
+    newReflection->clearMillers();
+    newReflection->addMiller(miller);
     
-    return newHolder;
+    return newReflection;
 }
 
 void ReflectionManager::splitIntensities(vector<Scale_factor> *Gs,
@@ -472,7 +473,7 @@ void ReflectionManager::splitIntensities(vector<Scale_factor> *Gs,
     
     for (int i = 0; i < reflections.size(); i++)
     {
-        for (int j = 0; j < reflections[i].holder->millerCount(); j++)
+        for (int j = 0; j < reflections[i].reflection->millerCount(); j++)
         {
             int l = 0;
             
@@ -482,7 +483,7 @@ void ReflectionManager::splitIntensities(vector<Scale_factor> *Gs,
             double &intensity = (l % 2 == 0) ? intensity2 : intensity1;
             double &weights = (l % 2 == 0) ? weights2 : weights1;
             
-            MillerPtr miller = reflections[i].holder->miller(j);
+            MillerPtr miller = reflections[i].reflection->miller(j);
             
             if (!miller->accepted())
                 continue;
@@ -493,7 +494,7 @@ void ReflectionManager::splitIntensities(vector<Scale_factor> *Gs,
             if (weight != weight || weight == 0)
                 continue;
             
-            double scale = abs(G->G);
+            double scale = fabs(G->G);
             
             if (scale < 0.1)
                 continue;
@@ -527,14 +528,14 @@ double ReflectionManager::rMerge(vector<Scale_factor> *Gs,
     {
         for (int i = 0; i < reflections.size(); i++)
         {
-            if (!reflections[i].holder->betweenResolutions(0, resolution))
+            if (!reflections[i].reflection->betweenResolutions(0, resolution))
                 continue;
             
-            for (int j = 0; j < reflections[i].holder->millerCount(); j++)
+            for (int j = 0; j < reflections[i].reflection->millerCount(); j++)
             {
                 Scale_factor *G = NULL;
                 GForImage(&reflections[i], Gs, &G);
-                MillerPtr miller = reflections[i].holder->miller(j);
+                MillerPtr miller = reflections[i].reflection->miller(j);
                 
                 if (!miller->accepted())
                     continue;
@@ -551,7 +552,7 @@ double ReflectionManager::rMerge(vector<Scale_factor> *Gs,
     for (int i = 0; i < intensities.size(); i++)
     {
         double intensity = intensities[i];
-        double scale = abs(*(scales[i]));
+        double scale = fabs(*(scales[i]));
         
         if (scale < 0.1)
             continue;
@@ -583,8 +584,8 @@ double ReflectionManager::rMerge(vector<Scale_factor> *Gs,
         
         intensity *= scale;
         
-        double numAddition = abs((mean - intensity));
-        double denomAddition = abs(intensity);
+        double numAddition = fabs((mean - intensity));
+        double denomAddition = fabs(intensity);
         
         numerator += numAddition;
         denominator += denomAddition;
@@ -610,7 +611,7 @@ ReflectionManager::ReflectionManager(void)
 
 ReflectionManager::~ReflectionManager(void)
 {
-//	cout << "deallocating RefManager" << endl;
+//	std::cout << "deallocating RefManager" << std::endl;
 
 //	print_trace();
 }

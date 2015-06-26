@@ -28,7 +28,7 @@ typedef enum
 
 typedef std::pair<StreamPtr, LogLevel> LogAndLevel;
 
-typedef std::map<boost::thread::id, std::vector<LogAndLevel> > StringMap;
+typedef std::map<boost::thread::id, vector<LogAndLevel> > StringMap;
 
 
 class Logger

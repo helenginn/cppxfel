@@ -15,7 +15,7 @@
 
 #include "Logger.h"
 
-std::vector<std::string> &FileReader::split(const std::string &s, char delim, std::vector<std::string> &elems) {
+vector<std::string> &FileReader::split(const std::string &s, char delim, vector<std::string> &elems) {
     std::stringstream ss(s);
     std::string item;
     while (std::getline(ss, item, delim)) {
@@ -24,9 +24,9 @@ std::vector<std::string> &FileReader::split(const std::string &s, char delim, st
     return elems;
 }
 
-std::vector<std::string> FileReader::split(const std::string s, const std::string &delim)
+vector<std::string> FileReader::split(const std::string s, const std::string &delim)
 {
-    std::vector<std::string> elems;
+    vector<std::string> elems;
     std::string rest = s;
     
     int count = 0;
@@ -55,13 +55,13 @@ std::vector<std::string> FileReader::split(const std::string s, const std::strin
     return elems;
 }
 
-std::vector<std::string> FileReader::split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
+vector<std::string> FileReader::split(const std::string &s, char delim) {
+    vector<std::string> elems;
     split(s, delim, elems);
     return elems;
 }
 
-int FileReader::splitAtIndices(const std::string &s, std::vector<int> &positions, std::vector<std::string> &elems) {
+int FileReader::splitAtIndices(const std::string &s, vector<int> &positions, vector<std::string> &elems) {
     
     for (int i = 0; i < positions.size() - 1; i++)
     {

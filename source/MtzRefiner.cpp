@@ -29,6 +29,8 @@ bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
 int MtzRefiner::cycleNum;
 
+
+
 MtzRefiner::MtzRefiner()
 {
     // TODO Auto-generated constructor stub
@@ -120,7 +122,7 @@ void MtzRefiner::cycleThread(int offset)
     {
         j++;
         
-        ostringstream logged;
+        std::ostringstream logged;
         
         MtzPtr image = mtzManagers[i];
         
@@ -131,7 +133,8 @@ void MtzRefiner::cycleThread(int offset)
             if (initialGridSearch && cycleNum == 0)
                 image->findSteps();
             
-            image->gridSearch(true);
+            for (int i = 0; i < 5; i++)
+                image->gridSearch();
             
             if (image->getScoreType() == ScoreTypeStandardDeviation)
             {
@@ -281,7 +284,7 @@ void MtzRefiner::refineCycle(bool once)
         MtzManager::currentManager = mergedMtz;
         MtzManager::setReference(reference);
         
-        std::cout << "Holders: " << mergedMtz->holderCount() << std::endl;
+        std::cout << "Reflections: " << mergedMtz->reflectionCount() << std::endl;
         if (!once)
         {
             double correl = mergedMtz->correlation(true);
@@ -294,7 +297,7 @@ void MtzRefiner::refineCycle(bool once)
         
         std::cout << "Here" << std::endl;
         
-        string filename = "allMerge" + i_to_str(i) + ".mtz";
+        std::string filename = "allMerge" + i_to_str(i) + ".mtz";
         mergedMtz->writeToFile(filename.c_str(), true);
         
         MtzManager *reloadMerged = new MtzManager();
@@ -365,8 +368,8 @@ void MtzRefiner::refineSymmetry()
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
-        double spotSize = abs(mtzManagers[i]->getSpotSize());
-        double mosaicity = abs(mtzManagers[i]->getMosaicity());
+        double spotSize = fabs(mtzManagers[i]->getSpotSize());
+        double mosaicity = fabs(mtzManagers[i]->getMosaicity());
         
         if (mtzManagers[i]->isRejected() == false)
         {
@@ -404,7 +407,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
     if (reference != NULL && !force)
         return true;
     
-    ostringstream logged;
+    std::ostringstream logged;
     
     logged << "Initial orientation matrix has "
     << (hasInitialMtz ? "" : "not ") << "been provided." << std::endl;
@@ -415,7 +418,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
     {
         
         std::string referenceFile = FileParser::getKey("INITIAL_MTZ",
-                                                       string(""));
+                                                       std::string(""));
         
         reference = new MtzManager();
         
@@ -496,11 +499,14 @@ void MtzRefiner::applyParametersToImages()
         newImage->setMaxResolution(maxIntegratedResolution);
         newImage->setSearchSize(metrologySearchSize);
         newImage->setIntensityThreshold(intensityThreshold);
-        newImage->setUnitCell(unitCell);
+        if (fixUnitCell)
+            newImage->setUnitCell(unitCell);
         
         if (fixUnitCell)
             for (int j = 0; j < newImage->indexerCount(); j++)
+            {
                 newImage->getIndexer(j)->getMatrix()->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+            }
         
         newImage->setInitialStep(orientationStep);
       
@@ -509,13 +515,19 @@ void MtzRefiner::applyParametersToImages()
     }
 }
 
-void MtzRefiner::readSingleImageV2(string *filename, std::vector<Image *> *newImages, int offset)
+void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newImages, vector<MtzPtr> *newMtzs, int offset)
 {
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
+    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
+    vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
+    bool checkingUnitCell = false;
     
-    if (wavelength == 0)
+    if (givenUnitCell.size() > 0 && tolerance > 0.0)
+        checkingUnitCell = true;
+
+    if (wavelength == 0 && newImages != NULL)
     {
         std::cout
         << "Please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH"
@@ -523,7 +535,7 @@ void MtzRefiner::readSingleImageV2(string *filename, std::vector<Image *> *newIm
         exit(1);
     }
     
-    if (detectorDistance == 0)
+    if (detectorDistance == 0 && newImages != NULL)
     {
         std::cout
         << "Please provide detector distance for integration under keyword DETECTOR_DISTANCE"
@@ -534,7 +546,7 @@ void MtzRefiner::readSingleImageV2(string *filename, std::vector<Image *> *newIm
     const std::string contents = FileReader::get_file_contents(
                                                                filename->c_str());
     
-    std::vector<std::string> imageList = FileReader::split(contents, "\nimage ");
+    vector<std::string> imageList = FileReader::split(contents, "\nimage ");
     
     int maxThreads = FileParser::getMaxThreads();
     int end = imageMax(imageList.size());
@@ -544,16 +556,21 @@ void MtzRefiner::readSingleImageV2(string *filename, std::vector<Image *> *newIm
         if (imageList[i].length() == 0)
             continue;
         
-        std::vector<std::string> lines = FileReader::split(imageList[i], '\n');
+        vector<std::string> lines = FileReader::split(imageList[i], '\n');
         
-        std::vector<std::string> components = FileReader::split(lines[0], ' ');
+        vector<std::string> components = FileReader::split(lines[0], ' ');
         
         if (components.size() <= 1)
             continue;
         
-        string imgName = components[1] + ".img";
+        std::string imgName = components[1];
         
-        ostringstream logged;
+        if (newImages)
+            imgName += ".img";
+        else if (newMtzs)
+            imgName += ".mtz";
+        
+        std::ostringstream logged;
         
         if (!FileReader::exists(imgName))
         {
@@ -575,12 +592,15 @@ void MtzRefiner::readSingleImageV2(string *filename, std::vector<Image *> *newIm
             usedDistance = atof(components[2].c_str());
         }
         
+        MatrixPtr unitCell;
+        MatrixPtr newMatrix;
+        
         Image *newImage = new Image(imgName, wavelength,
                                     detectorDistance);
         
         for (int i = 1; i < lines.size(); i++)
         {
-            std::vector<std::string> components = FileReader::split(lines[i], ' ');
+            vector<std::string> components = FileReader::split(lines[i], ' ');
             
             if (components[0] == "matrix")
             {
@@ -588,28 +608,91 @@ void MtzRefiner::readSingleImageV2(string *filename, std::vector<Image *> *newIm
                 double matrix[9];
                 readMatrix(matrix, lines[i]);
                 
-                MatrixPtr newMatrix = MatrixPtr(new Matrix(matrix));
+                newMatrix = MatrixPtr(new Matrix(matrix));
                 
-                double upRot = 0.75;
                 newMatrix->rotate(0, 0, M_PI / 2);
-        //        newMatrix->rotateHK(0, upRot);
-                newImage->setUpIndexer(newMatrix);
+                continue;
+            }
+            
+            if (components[0] == "unitcell")
+            {
+                // individual matrices
+                double matrix[9];
+                readMatrix(matrix, lines[i]);
+                
+                unitCell = MatrixPtr(new Matrix(matrix));
+            }
+            
+            if (components[0] == "rotation")
+            {
+                // individual matrices
+                double matrix[9];
+                readMatrix(matrix, lines[i]);
+                
+                MatrixPtr rotation = MatrixPtr(new Matrix(matrix));
+                
+                if (unitCell)
+                {
+                    double rightRot = 0.5 * M_PI / 180;
+                    double upRot = 0.1 * M_PI / 180;
+                    if (newImages)
+                        rotation->rotate(0, 0, M_PI / 2);
+                    rotation->rotate(rightRot, upRot, 0);
+                    newMatrix = MatrixPtr(new Matrix);
+                    newMatrix->setComplexMatrix(unitCell, rotation);
+                    
+                    unitCell = MatrixPtr();
+                }
+                else
+                {
+                    std::cout << "Warning, unmatched unitcell / rotation pair?" << std::endl;
+                }
             }
         }
+        if (newImages)
+        {
+            newImage->setUpIndexer(newMatrix);
+            newImages->push_back(newImage);
+        }
         
-        newImages->push_back(newImage);
+        if (newMtzs)
+        {
+            MtzPtr newManager = MtzPtr(new MtzManager());
+            
+            newManager->setFilename(imgName.c_str());
+            newManager->setMatrix(newMatrix);
+            newManager->loadReflections(1);
+            newManager->setSigmaToUnity();
+            newManager->loadParametersMap();
+            
+            if (newManager->reflectionCount() > 0)
+            {
+                if (checkingUnitCell && newManager->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
+                {
+                    newMtzs->push_back(newManager);
+                }
+                else if (!checkingUnitCell)
+                {
+                    newMtzs->push_back(newManager);
+                }
+                else
+                {
+                    logged << "Skipping file " << filename << " due to poor unit cell" << std::endl;
+                }
+            }
+        }
     }
     
 }
 
-void MtzRefiner::readMatricesAndImages(string *filename)
+void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages)
 {
     if (images.size() > 0)
         return;
     
     if (filename == NULL)
     {
-        std::string aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", string(""));
+        std::string aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
         filename = &aFilename;
         
         if (filename->length() == 0)
@@ -627,8 +710,10 @@ void MtzRefiner::readMatricesAndImages(string *filename)
     
     int maxThreads = FileParser::getMaxThreads();
     
-    std::vector<std::vector<Image *> > imageSubsets;
+    vector<vector<Image *> > imageSubsets;
+    vector<vector<MtzPtr> > mtzSubsets;
     imageSubsets.resize(maxThreads);
+    mtzSubsets.resize(maxThreads);
     
     for (int i = 0; i < maxThreads; i++)
     {
@@ -640,8 +725,10 @@ void MtzRefiner::readMatricesAndImages(string *filename)
         }
         else if (version == 2.0)
         {
+            vector<MtzPtr> *chosenMtzs = areImages ? NULL : &mtzSubsets[i];
+            vector<Image *> *chosenImages = areImages ? &imageSubsets[i] : NULL;
             boost::thread *thr = new boost::thread(readSingleImageV2, filename,
-                                                   &imageSubsets[i], i);
+                                                   chosenImages, chosenMtzs, i);
             threads.add_thread(thr);
         }
     }
@@ -653,29 +740,43 @@ void MtzRefiner::readMatricesAndImages(string *filename)
    
     for (int i = 0; i < maxThreads; i++)
     {
-        total += imageSubsets[i].size();
+        if (areImages)
+            total += imageSubsets[i].size();
+        
+        if (!areImages)
+            total += mtzSubsets[i].size();
     }
     
     mtzManagers.reserve(total);
+    images.reserve(total);
     int lastPos = 0;
     
     for (int i = 0; i < maxThreads; i++)
     {
-        images.insert(images.begin() + lastPos,
-                           imageSubsets[i].begin(), imageSubsets[i].end());
-        lastPos += imageSubsets[i].size();
+        if (areImages)
+        {
+            images.insert(images.begin() + lastPos,
+                          imageSubsets[i].begin(), imageSubsets[i].end());
+            lastPos += imageSubsets[i].size();
+        }
+        else
+        {
+            mtzManagers.insert(mtzManagers.begin() + lastPos,
+                               mtzSubsets[i].begin(), mtzSubsets[i].end());
+            lastPos += mtzSubsets[i].size();
+        }
     }
     
-    if (version == 2.0)
+    if (version == 2.0 && areImages)
         applyParametersToImages();
 }
 
-void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newImages, int offset)
+void MtzRefiner::singleLoadImages(std::string *filename, vector<Image *> *newImages, int offset)
 {
     const std::string contents = FileReader::get_file_contents(
                                                                filename->c_str());
     
-    std::vector<std::string> lines = FileReader::split(contents, '\n');
+    vector<std::string> lines = FileReader::split(contents, '\n');
     
     int spg_num = FileParser::getKey("SPACE_GROUP", -1);
     
@@ -757,12 +858,12 @@ void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newIma
     
     for (int i = offset + skip; i < end + skip; i += maxThreads)
     {
-        std::vector<std::string> components = FileReader::split(lines[i], ' ');
+        vector<std::string> components = FileReader::split(lines[i], ' ');
         
         if (components.size() == 0)
             continue;
         
-        string imgName = components[0] + ".img";
+        std::string imgName = components[0] + ".img";
         if (!FileReader::exists(imgName))
         {
             continue;
@@ -825,7 +926,17 @@ void MtzRefiner::singleLoadImages(string *filename, std::vector<Image *> *newIma
 void MtzRefiner::readMatricesAndMtzs()
 {
     std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
-                                              string(""));
+                                              std::string(""));
+    
+    double version = FileParser::getKey("MATRIX_LIST_VERSION", 1.0);
+    
+    if (version == 2.0)
+    {
+        readMatricesAndImages(NULL, false);
+        
+        return;
+    }
+    
     
     if (filename == "")
     {
@@ -835,7 +946,7 @@ void MtzRefiner::readMatricesAndMtzs()
         exit(1);
     }
     
-    ostringstream logged;
+    std::ostringstream logged;
     
     if (mtzManagers.size() > 0)
     {
@@ -849,13 +960,13 @@ void MtzRefiner::readMatricesAndMtzs()
     const std::string contents = FileReader::get_file_contents(
                                                                filename.c_str());
     
-    std::vector<std::string> lines = FileReader::split(contents, '\n');
+    vector<std::string> lines = FileReader::split(contents, '\n');
     
     int maxThreads = FileParser::getMaxThreads();
     
     boost::thread_group threads;
     
-    std::vector<std::vector<MtzPtr> > managerSubsets;
+    vector<vector<MtzPtr> > managerSubsets;
     managerSubsets.resize(maxThreads);
     
     for (int i = 0; i < maxThreads; i++)
@@ -888,7 +999,7 @@ void MtzRefiner::readMatricesAndMtzs()
     Logger::mainLogger->addStream(&logged);
 }
 
-void MtzRefiner::singleThreadRead(std::vector<std::string> lines,
+void MtzRefiner::singleThreadRead(vector<std::string> lines,
                                   vector<MtzPtr> *mtzManagers, int offset)
 {
     int maxThreads = FileParser::getMaxThreads();
@@ -919,19 +1030,19 @@ void MtzRefiner::singleThreadRead(std::vector<std::string> lines,
     {
         std::ostringstream log;
         
-        std::vector<std::string> components = FileReader::split(lines[i], ' ');
+        vector<std::string> components = FileReader::split(lines[i], ' ');
         
         if (components.size() < 10)
             continue;
         
-        string mtzName = components[0] + ".mtz";
+        std::string mtzName = components[0] + ".mtz";
         if (!FileReader::exists(mtzName))
         {
-            log << "Skipping file " << mtzName << endl;
+            log << "Skipping file " << mtzName << std::endl;
             continue;
         }
         
-        log << "Loading file " << mtzName << endl;
+        log << "Loading file " << mtzName << std::endl;
         
         double matrix[9];
         
@@ -945,7 +1056,7 @@ void MtzRefiner::singleThreadRead(std::vector<std::string> lines,
         newManager->setSigmaToUnity();
         newManager->loadParametersMap();
         
-        if (newManager->holderCount() > 0)
+        if (newManager->reflectionCount() > 0)
         {
             if (checkingUnitCell && newManager->checkUnitCell(unitCell[0], unitCell[1], unitCell[2], tolerance))
             {
@@ -967,17 +1078,17 @@ void MtzRefiner::singleThreadRead(std::vector<std::string> lines,
 
 void MtzRefiner::readMatrix(double (&matrix)[9], std::string line)
 {
-    std::vector<std::string> components = FileReader::split(line, ' ');
+    vector<std::string> components = FileReader::split(line, ' ');
     
     for (int j = 1; j <= 9; j++)
     {
-        string component = components[j];
+        std::string component = components[j];
         
         /* Locate the substring to replace. */
-        int index = (int)component.find(string("*^"), 0);
-        if (index != string::npos)
+        int index = (int)component.find(std::string("*^"), 0);
+        if (index != std::string::npos)
         {
-            component.replace(index, 2, string("e"));
+            component.replace(index, 2, std::string("e"));
         }
         
         double matVar = atof(component.c_str());
@@ -1081,12 +1192,12 @@ void MtzRefiner::merge()
 // MARK: Integrating images
 
 void MtzRefiner::integrateImagesWrapper(MtzRefiner *object,
-                                        std::vector<MtzPtr> *&mtzSubset, int offset, bool orientation)
+                                        vector<MtzPtr> *&mtzSubset, int offset, bool orientation)
 {
     object->integrateImages(mtzSubset, offset, orientation);
 }
 
-void MtzRefiner::integrateImages(std::vector<MtzPtr> *&mtzSubset,
+void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
                                  int offset, bool orientation)
 {
     int maxThreads = FileParser::getMaxThreads();
@@ -1095,7 +1206,7 @@ void MtzRefiner::integrateImages(std::vector<MtzPtr> *&mtzSubset,
     
     for (int i = offset; i < images.size(); i += maxThreads)
     {
-        ostringstream logged;
+        std::ostringstream logged;
         logged << "Integrating image " << i << std::endl;
         Logger::mainLogger->addStream(&logged);
         
@@ -1105,7 +1216,7 @@ void MtzRefiner::integrateImages(std::vector<MtzPtr> *&mtzSubset,
         if (orientation)
             images[i]->refineOrientations();
         
-        std::vector<MtzPtr> mtzs = images[i]->currentMtzs();
+        vector<MtzPtr> mtzs = images[i]->currentMtzs();
         mtzSubset->insert(mtzSubset->end(), mtzs.begin(), mtzs.end());
         images[i]->dropImage();
     }
@@ -1118,7 +1229,7 @@ void MtzRefiner::integrate(bool orientation)
     loadPanels();
     
     std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
-                                              string(""));
+                                              std::string(""));
     if (filename == "")
     {
         std::cout
@@ -1143,7 +1254,7 @@ void MtzRefiner::integrate(bool orientation)
     int maxThreads = FileParser::getMaxThreads();
     
     boost::thread_group threads;
-    std::vector<std::vector<MtzPtr> > managerSubsets;
+    vector<vector<MtzPtr> > managerSubsets;
     managerSubsets.resize(maxThreads);
     
     for (int i = 0; i < maxThreads; i++)
@@ -1176,7 +1287,7 @@ void MtzRefiner::integrate(bool orientation)
         lastPos += managerSubsets[i].size();
     }
     
-    writeNewOrientations();
+    writeNewOrientations(false, true);
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
@@ -1188,14 +1299,20 @@ void MtzRefiner::integrate(bool orientation)
         for (int j = 0; j < images[i]->indexerCount(); j++)
         {
             std::string filename = images[i]->getFilename();
-            int totalReflections = images[i]->getIndexer(j)->getTotalReflectionsWithinBandwidth();
+            int totalReflections = images[i]->getIndexer(j)->getTotalReflections();
             double lastScore = images[i]->getIndexer(j)->getLastScore();
             double bestHRot = 0;
             double bestKRot = 0;
+            double wavelength = images[i]->getIndexer(j)->getWavelength();
+            MatrixPtr matrix = images[i]->getIndexer(j)->getMatrix();
+            double *lengths = new double[3];
+            matrix->unitCellLengths(&lengths);
             images[i]->getIndexer(j)->getBestRots(&bestHRot, &bestKRot);
             
             std::cout << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
-                      << bestHRot << "\t" << bestKRot << std::endl;
+                      << bestHRot << "\t" << bestKRot << "\t" << wavelength << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << std::endl;
+            
+            delete [] lengths;
         }
     }
 }
@@ -1203,7 +1320,7 @@ void MtzRefiner::integrate(bool orientation)
 
 void MtzRefiner::loadPanels()
 {
-    std::string panelList = FileParser::getKey("PANEL_LIST", string(""));
+    std::string panelList = FileParser::getKey("PANEL_LIST", std::string(""));
     
     panelParser = new PanelParser(panelList);
     
@@ -1280,11 +1397,11 @@ void MtzRefiner::loadMillersIntoPanels()
         double hRot = mtz->getHRot();
         double kRot = mtz->getKRot();
         
-        for (int j = 0; j < mtz->holderCount(); j++)
+        for (int j = 0; j < mtz->reflectionCount(); j++)
         {
-            for (int k = 0; k < mtz->holder(j)->millerCount(); k++)
+            for (int k = 0; k < mtz->reflection(j)->millerCount(); k++)
             {
-                MillerPtr miller = mtz->holder(j)->miller(k);
+                MillerPtr miller = mtz->reflection(j)->miller(k);
                 
                 double x, y;
                 
@@ -1303,11 +1420,11 @@ void MtzRefiner::loadMillersIntoPanels()
 
 // MARK: indexing
 
-void MtzRefiner::writeNewOrientations(bool includeRots)
+void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
 {
-    ofstream newMats;
+    std::ofstream newMats;
     
-    std::string filename = FileParser::getKey("NEW_MATRIX_LIST", string("new_orientations.dat"));
+    std::string filename = FileParser::getKey("NEW_MATRIX_LIST", std::string("new_orientations.dat"));
     
     newMats.open(filename);
     
@@ -1316,8 +1433,7 @@ void MtzRefiner::writeNewOrientations(bool includeRots)
         MtzPtr manager = mtzManagers[i];
         
         // write out matrices etc.
-        string imgFilename = manager->filenameRoot();
-        newMats << imgFilename << " ";
+        std::string imgFilename = manager->filenameRoot();
         
         MatrixPtr matrix = manager->getMatrix()->copy();
         
@@ -1329,8 +1445,18 @@ void MtzRefiner::writeNewOrientations(bool includeRots)
             matrix->rotate(hRad, kRad, 0);
         }
         
-        string description = matrix->description();
-        newMats << description << std::endl;
+        if (!detailed)
+        {
+            newMats << "img-" << imgFilename << " ";
+            std::string description = matrix->description();
+            newMats << description << std::endl;
+        }
+        else
+        {
+            newMats << "image img-" << imgFilename << std::endl;
+            std::string description = matrix->description(true);
+            newMats << description << std::endl;
+        }
     }
     
     Logger::mainLogger->addString("Written to " + filename);
@@ -1356,7 +1482,7 @@ void MtzRefiner::indexImage(int offset, vector<MtzPtr> *mtzSubset)
         indexer->matchMatrixToSpots();
         
         indexer->refineRoundBeamAxis();
-        std::vector<MtzPtr> managers = newImage->currentMtzs();
+        vector<MtzPtr> managers = newImage->currentMtzs();
         MtzPtr manager = managers[0];
         
         manager->description();
@@ -1378,7 +1504,7 @@ void MtzRefiner::index()
 {
     this->readMatricesAndImages();
     loadPanels();
-    std::vector<std::vector<MtzPtr> > mtzSubsets;
+    vector<vector<MtzPtr> > mtzSubsets;
     mtzSubsets.resize(MAX_THREADS);
     
     boost::thread_group threads;
@@ -1446,7 +1572,7 @@ void MtzRefiner::plotDetectorGains()
 void MtzRefiner::xFiles()
 {
     std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
-                                              string(""));
+                                              std::string(""));
     
     if (filename == "")
     {
@@ -1459,7 +1585,7 @@ void MtzRefiner::xFiles()
     loadInitialMtz();
 }
 
-void MtzRefiner::readXFiles(string filename)
+void MtzRefiner::readXFiles(std::string filename)
 {
     if (mtzManagers.size() > 0)
     {
@@ -1468,11 +1594,11 @@ void MtzRefiner::readXFiles(string filename)
     
     const std::string contents = FileReader::get_file_contents(filename.c_str());
     
-    std::vector<std::string> lines = FileReader::split(contents, '\n');
+    vector<std::string> lines = FileReader::split(contents, '\n');
     
     for (int i = 0; i < lines.size(); i++)
     {
-        std::vector<std::string> filenames = FileReader::split(lines[i], ' ');
+        vector<std::string> filenames = FileReader::split(lines[i], ' ');
         
         XManager *xManager = new XManager();
         xManager->setFilenames(filenames);
@@ -1485,7 +1611,7 @@ void MtzRefiner::readXFiles(string filename)
         mtzManagers.push_back(mtz);
     }
     
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "Mtz count: " << mtzManagers.size() << std::endl;
     Logger::mainLogger->addStream(&logged);
 }
@@ -1529,11 +1655,11 @@ void MtzRefiner::removeSigmaValues()
 
 void MtzRefiner::displayIndexingHands()
 {
-    ostringstream idxLogged, invLogged;
+    std::ostringstream idxLogged, invLogged;
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
-        ostringstream &which = mtzManagers[i]->getActiveAmbiguity() == 0 ? idxLogged : invLogged;
+        std::ostringstream &which = mtzManagers[i]->getActiveAmbiguity() == 0 ? idxLogged : invLogged;
         
         which << mtzManagers[i]->getFilename() << std::endl;
     }

@@ -93,7 +93,7 @@ void indexThread(int offset, vector<MtzPtr>**mtzList,
             
             indexer->refineRoundBeamAxis();
             
-            std::vector<MtzPtr> managers = newImage->currentMtzs();
+            vector<MtzPtr> managers = newImage->currentMtzs();
             
             for (int i = 0; i < managers.size(); i++)
             {
@@ -146,7 +146,7 @@ void index(char **argv, int argc)
 		}
 	}
 
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "Image count: " << images.size() << std::endl;
     Logger::mainLogger->addStream(&logged);
 
@@ -174,7 +174,7 @@ void index(char **argv, int argc)
 
 	secondThread.join_all();
 
-	ofstream newMats;
+	std::ofstream newMats;
 	newMats.open("new_orientations.dat");
 
 	for (int i = 0; i < mtzs.size(); i++)
@@ -184,10 +184,10 @@ void index(char **argv, int argc)
 			MtzManager *manager = &(*(*mtzs[i])[j]);
 
 			// write out matrices etc.
-			string imgFilename = manager->filenameRoot();
+            std::string imgFilename = manager->filenameRoot();
 			newMats << imgFilename << " ";
 
-			string description = manager->getMatrix()->description();
+			std::string description = manager->getMatrix()->description();
 			newMats << description;
 		}
 	}

@@ -9,6 +9,7 @@
 #include "PythonExt.h"
 #include "InputFileParser.h"
 #include "Logger.h"
+#include "MtzRefiner.h"
 
 int main(int argc, char *argv[]);
 
@@ -28,14 +29,15 @@ void runScriptFromPython(std::string scriptName)
     setupCppxfel();
     
     InputFileParser *parser = new InputFileParser(scriptName);
+    
     parser->parse();
     
     delete parser;
 }
 
-void runCommandLineArgs(int argc, std::vector<std::string> stringArgv)
+void runCommandLineArgs(int argc, vector<std::string> stringArgv)
 {
-    std::vector<char *> charVector;
+    vector<char *> charVector;
     
     for (int i = 0; i < stringArgv.size(); i++)
     {

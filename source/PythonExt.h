@@ -11,8 +11,11 @@
 
 #include <string>
 #include <vector>
+#include "parameters.h"
+
+class MtzRefiner;
 
 void runScriptFromPython(std::string scriptName);
-void runCommandLineArgs(int argc, std::vector<std::string> argv[]);
+void runCommandLineArgs(int argc, vector<std::string> argv);
 
 #endif /* defined(__cppxfel__PythonExt__) */

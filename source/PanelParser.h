@@ -13,7 +13,7 @@
 class PanelParser : public FileParser
 {
 private:
-	std::vector<PanelPtr> panels;
+	vector<PanelPtr> panels;
 
 public:
 	virtual void parse();

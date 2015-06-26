@@ -15,17 +15,16 @@
 #include "headers/csymlib.h"
 
 class Indexer;
-class MtzManager;
 
 class Image
 {
 private:
     int pixelCountCutoff;
 	std::string filename;
-	std::vector<int> data;
-    std::vector<unsigned char> overlapMask;
+	vector<int> data;
+    vector<unsigned char> overlapMask;
 	void loadImage();
-    std::vector<IndexerPtr> indexers;
+    vector<IndexerPtr> indexers;
     bool shouldMaskValue;
     bool maskedValue;
     
@@ -46,8 +45,8 @@ private:
 	double wavelength;
 	bool pinPoint;
 
-	std::vector<std::vector<int> > masks;
-	std::vector<std::vector<int> > spotCovers;
+	vector<vector<int> > masks;
+	vector<vector<int> > spotCovers;
 
 	int shoeboxLength();
 	Mask flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
@@ -67,12 +66,13 @@ public:
 	void dropImage();
 	virtual ~Image();
 	void setUpIndexer(MatrixPtr matrix);
+    void setUpIndexer(MatrixPtr unitcell, MatrixPtr rotation);
 	std::string filenameRoot();
 	void printBox(int x, int y, int tolerance);
 	void addMask(int startX, int startY, int endX, int endY);
 	void addSpotCover(int startX, int startY, int endX, int endY);
 	bool coveredBySpot(int x, int y);
-	static void applyMaskToImages(std::vector<Image *> images, int startX,
+	static void applyMaskToImages(vector<Image *> images, int startX,
 			int startY, int endX, int endY);
     void refineDistances();
     
@@ -93,14 +93,14 @@ public:
 	void index();
 	void refineIndexing(MtzManager *reference);
 	void refineOrientations();
-	std::vector<MtzPtr> currentMtzs();
+	vector<MtzPtr> currentMtzs();
 	bool isLoaded();
     
     void setSpaceGroup(CSym::CCP4SPG *spg);
     void setMaxResolution(double res);
     void setSearchSize(int searchSize);
     void setIntensityThreshold(double threshold);
-    void setUnitCell(std::vector<double> dims);
+    void setUnitCell(vector<double> dims);
     void setInitialStep(double step);
     void setTestSpotSize(double spotSize);
     void setTestBandwidth(double bandwidth);

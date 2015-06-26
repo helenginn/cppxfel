@@ -15,12 +15,13 @@
 #include "GraphDrawer.h"
 #include "Vector.h"
 
-boost::container::vector<PanelPtr> Panel::panels;
+vector<PanelPtr> Panel::panels;
 bool Panel::usePanelInfo;
 double Panel::distanceMultiplier;
 Coord Panel::beamCentre;
 
-Panel::Panel(std::vector<double> dimensions)
+
+Panel::Panel(vector<double> dimensions)
 {
     if (panels.size() == 0)
         usePanelInfo = true;
@@ -29,10 +30,10 @@ Panel::Panel(std::vector<double> dimensions)
     // TODO Auto-generated constructor stub
     defaultShift = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                       METROLOGY_SEARCH_SIZE);
-    bestShift = make_pair(0, 0);
+    bestShift = std::make_pair(0, 0);
     allowedSearchSpace = 0;
     swivel = 0;
-    tilt = make_pair(0, 0);
+    tilt = std::make_pair(0, 0);
     gainScale = 1;
     
     topLeft = std::make_pair(dimensions[0], dimensions[1]);
@@ -102,7 +103,7 @@ Coord Panel::midPoint()
     double x = topLeft.first + width() / 2;
     double y = topLeft.second + height() / 2;
     
-    return make_pair(x, y);
+    return std::make_pair(x, y);
 }
 
 bool Panel::addMiller(MillerPtr miller)
@@ -115,7 +116,7 @@ bool Panel::addMiller(MillerPtr miller)
     boost::thread::id thread_id = boost::this_thread::get_id();
     
     if (tempMillers.count(thread_id) == 0)
-        tempMillers[thread_id] = std::vector<MillerPtr>();
+        tempMillers[thread_id] = vector<MillerPtr>();
     
     tempMillers[thread_id].push_back(miller);
     
@@ -143,7 +144,7 @@ void Panel::finaliseMillerArray()
 {
     unsigned int total = 0;
     
-    for (map<boost::thread::id, vector<MillerPtr> >::iterator it = tempMillers.begin();
+    for (std::map<boost::thread::id, vector<MillerPtr> >::iterator it = tempMillers.begin();
          it != tempMillers.end(); ++it)
     {
         total += tempMillers[it->first].size();
@@ -153,7 +154,7 @@ void Panel::finaliseMillerArray()
     
     int offset = 0;
     
-    for (map<boost::thread::id, vector<MillerPtr> >::iterator it = tempMillers.begin();
+    for (std::map<boost::thread::id, vector<MillerPtr> >::iterator it = tempMillers.begin();
          it != tempMillers.end(); ++it)
     {
         millers.insert(millers.begin() + offset, tempMillers[it->first].begin(), tempMillers[it->first].end());
@@ -167,7 +168,7 @@ void Panel::calculateMetrology(PanelPtr thisPanel)
     thisPanel->findAllParameters();
 }
 
-void Panel::print(ostringstream *stream)
+void Panel::print(std::ostringstream *stream)
 {
     *stream << "PANEL ";
     *stream << topLeft.first << " " << topLeft.second << " " << bottomRight.first
@@ -184,7 +185,7 @@ void Panel::printToFile(std::string filename)
 {
     std::string info = printAllThreaded();
     
-    ofstream file;
+    std::ofstream file;
     file.open(filename);
     file << info;
     file.close();
@@ -215,7 +216,7 @@ std::string Panel::printAllThreaded()
 
 std::string Panel::printAll()
 {
-    ostringstream stream;
+    std::ostringstream stream;
     
     for (int i = 0; i < panels.size(); i++)
     {
@@ -244,14 +245,14 @@ int Panel::panelCount()
     return (int)panels.size();
 }
 
-bool scoreComparison(pair<Coord, double> score1,
-                     pair<Coord, double> score2)
+bool scoreComparison(std::pair<Coord, double> score1,
+                     std::pair<Coord, double> score2)
 {
     return (score1.second > score2.second);
 }
 
-bool scoreComparisonDescending(pair<double, double> score1,
-                               pair<double, double> score2)
+bool scoreComparisonDescending(std::pair<double, double> score1,
+                               std::pair<double, double> score2)
 {
     return (score1.second > score2.second);
 }
@@ -319,17 +320,17 @@ Coord Panel::getSwivelCoords(Miller *miller)
     double xReal = (x + 0.5) * width() + topLeft.first;
     double yReal = (y + 0.5) * height() + topLeft.second;
     
-    return make_pair(xReal, yReal);*/
+    return std::make_pair(xReal, yReal);*/
 }
 
 Coord Panel::getSwivelShift(Miller *miller)
 {
-    return make_pair(0, 0);
+    return std::make_pair(0, 0);
     /*
     Coord swivelCoords = getSwivelCoords(miller);
     Coord position = miller->position();
     
-    Coord shift = make_pair(swivelCoords.first - position.first,
+    Coord shift = std::make_pair(swivelCoords.first - position.first,
                             swivelCoords.second - position.second);
     
     return shift;*/
@@ -345,7 +346,7 @@ Coord Panel::getTiltShift(Miller *miller)
     double xShift = tilt.first * (fracCoords.first - 0.5);
     double yShift = tilt.second * (fracCoords.second - 0.5);
     
-    return make_pair(xShift, yShift);
+    return std::make_pair(xShift, yShift);
 }
 
 Coord Panel::getTotalShift(Miller *miller)
@@ -356,7 +357,7 @@ Coord Panel::getTotalShift(Miller *miller)
     double x = bestShift.first + tiltShift.first + swivelShift.first;
     double y = bestShift.second + tiltShift.second + swivelShift.second;
     
-    return make_pair(x, y);
+    return std::make_pair(x, y);
 }
 
 Coord Panel::shiftForMiller(Miller *miller)
@@ -364,7 +365,7 @@ Coord Panel::shiftForMiller(Miller *miller)
     PanelPtr panel = panelForMiller(miller);
     
     if (!panel)
-        return make_pair(FLT_MAX, FLT_MAX);
+        return std::make_pair(FLT_MAX, FLT_MAX);
     
     return panel->getTotalShift(miller);
 }
@@ -432,7 +433,7 @@ void Panel::plotVectors(int i, PlotType plotType)
     GraphDrawer drawer = GraphDrawer(MtzManager::getReferenceManager());
     GraphMap map = GraphMap();
     
-    ostringstream title_stream;
+    std::ostringstream title_stream;
     title_stream << "Panel plot ";
     title_stream << topLeft.first << " " << topLeft.second << " "
     << bottomRight.first << " " << bottomRight.second;
@@ -453,8 +454,8 @@ void Panel::plotVectors(int i, PlotType plotType)
     map["colour_0"] = 3;
     map["colour_1"] = 9;
     
-    ostringstream filename_stream;
-    filename_stream << string("panel_plot_") << i;
+    std::ostringstream filename_stream;
+    filename_stream << std::string("panel_plot_") << i;
     std::string filename = filename_stream.str();
     
     drawer.plot(filename, map, xs, ys);
@@ -476,12 +477,12 @@ double Panel::scoreDetectorDistance(void *object)
         oldBeamCentre.push_back(BEAM_CENTRE_Y);
     }
     
-//    Coord beamShift = make_pair(beamCentre.first - oldBeamCentre[0], beamCentre.second - oldBeamCentre[1]);
+//    Coord beamShift = std::make_pair(beamCentre.first - oldBeamCentre[0], beamCentre.second - oldBeamCentre[1]);
     
     for (int i = 0; i < panels.size(); i++)
     {
         Coord bestShift = panels[i]->getBestShift();
-        bestShift = make_pair(-bestShift.first, -bestShift.second);
+        bestShift = std::make_pair(-bestShift.first, -bestShift.second);
         Coord midPoint = panels[i]->midPoint();
         bestShift.first += midPoint.first;
         bestShift.second += midPoint.second;
@@ -525,7 +526,7 @@ void Panel::refineDetectorDistance()
         count++;
     }
     
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "New detector distance multiplier: " << distanceMultiplier << std::endl;
     
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
@@ -559,7 +560,7 @@ void Panel::expectedBeamCentre()
         if (panels[i]->millers.size() == 0)
             continue;
         
-        ostringstream progress;
+        std::ostringstream progress;
         progress << "Calculating position for Panel " << i << std::endl;
         Logger::mainLogger->addStream(&progress);
         
@@ -575,7 +576,7 @@ void Panel::expectedBeamCentre()
     totalShiftX /= num;
     totalShiftY /= num;
     
-    ostringstream logged;
+    std::ostringstream logged;
     logged << "Original beam centre: " << newBeamCentre[0] <<
     "\t" << newBeamCentre[1] << std::endl;
     
@@ -585,9 +586,9 @@ void Panel::expectedBeamCentre()
     logged << "New beam centre: " << newBeamCentre[0] << "\t"
     << newBeamCentre[1] << std::endl;
     
-    beamCentre = make_pair(newBeamCentre[0], newBeamCentre[1]);
+    beamCentre = std::make_pair(newBeamCentre[0], newBeamCentre[1]);
   
-    vector<double> centreVector = std::vector<double>();
+    vector<double> centreVector = vector<double>();
     centreVector.push_back(beamCentre.first);
     centreVector.push_back(beamCentre.second);
     
@@ -602,7 +603,7 @@ void Panel::expectedBeamCentre()
 
 void Panel::fractionalCoordinates(Miller *miller, Coord *frac)
 {
-    Coord position = make_pair(miller->getLastX(),
+    Coord position = std::make_pair(miller->getLastX(),
                                miller->getLastY());
     
     fractionalCoordinates(position, frac);
@@ -616,7 +617,7 @@ void Panel::fractionalCoordinates(Coord coord, Coord *frac)
     double fractionY = (coord.second - topLeft.second)
     / height();
     
-    *frac = make_pair(fractionX, fractionY);
+    *frac = std::make_pair(fractionX, fractionY);
 }
 
 void Panel::findAllParameters()
@@ -634,7 +635,7 @@ void Panel::findAllParameters()
 
 void Panel::findShift(double windowSize, double step, double x, double y)
 {
-    vector<pair<Coord, double> > scores;
+    vector<std::pair<Coord, double> > scores;
     
     int minX = -defaultShift + x - windowSize;
     int maxX = defaultShift + x + windowSize;
@@ -645,10 +646,10 @@ void Panel::findShift(double windowSize, double step, double x, double y)
     {
         for (double j = minY; j < maxY; j += step)
         {
-            Coord windowTopLeft = make_pair(i, j);
-            Coord windowBottomRight = make_pair(i + windowSize, j + windowSize);
+            Coord windowTopLeft = std::make_pair(i, j);
+            Coord windowBottomRight = std::make_pair(i + windowSize, j + windowSize);
             
-            Coord windowMidPoint = make_pair(i + windowSize / 2,
+            Coord windowMidPoint = std::make_pair(i + windowSize / 2,
                                              j + windowSize / 2);
             
             double score = 0;
@@ -812,7 +813,7 @@ double Panel::detectorGain(double *error)
         if (observed == observed && isfinite(observed) && intensity == intensity)
         {
             observedPartialities.push_back(observed);
-            observedWeights.push_back(abs(intensity));
+            observedWeights.push_back(fabs(intensity));
         }
     }
     
@@ -826,7 +827,7 @@ double Panel::detectorGain(double *error)
 
 void Panel::checkDetectorGains()
 {
-    ostringstream logged;
+    std::ostringstream logged;
     
     for (int i = 0; i < panels.size(); i++)
     {

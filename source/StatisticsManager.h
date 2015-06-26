@@ -6,8 +6,6 @@
 #include <iostream>
 #include "MtzManager.h"
 
-using namespace std;
-
 struct Partial
 {
 	double partiality;
@@ -24,7 +22,7 @@ public:
 	StatisticsManager(void);
 	~StatisticsManager(void);
 
-	vector<MtzPtr> mtzs;
+    vector<MtzPtr> mtzs;
 	void loadFiles(char **filenames, int filenum, int partiality);
     void generate_cc_grid();
     void ccGridThreaded(int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc);

@@ -13,19 +13,20 @@
 #include <vector>
 #include "MtzManager.h"
 
-typedef std::map<MtzPtr, std::vector<Holder *> > MtzDataMap;
+
+typedef std::map<MtzPtr, vector<Reflection *> > MtzDataMap;
 
 class Scaler
 {
 private:
     MtzDataMap mtzData;
-    MtzManager **groupedMtz;
+    MtzPtr groupedMtz;
     double evaluate();
-    double evaluateForImage(MtzPtr mtz);
     double gradientForImageParameter(MtzPtr mtz, int paramNum);
     double hessianGradientForParamType(int paramNum);
     bool isRefiningParameter(int paramNum);
     double stepForParam(int paramNum);
+    MtzPtr pointerForMtz(MtzManager *pointer);
     
     double xStepNorm(double step, int paramNum);
     double gNorm(int paramNum);
@@ -40,9 +41,17 @@ private:
     scitbx::af::shared<double> g;
     scitbx::af::shared<double> diag;
     scitbx::af::shared<double> x;
+    static Scaler *publicScaler;
 public:
-    Scaler(std::vector<MtzPtr> mtzs, MtzManager **grouped);
+    
+    static Scaler *getScaler(vector<MtzPtr> mtzs = vector<MtzPtr>(), MtzManager **grouped = NULL);
+    
+    Scaler(vector<MtzPtr> mtzs, MtzManager **grouped);
     void minimizeRMerge();
+    
+    bool mtzIsBeneficial(MtzPtr mtz);
+    double evaluateForImage(MtzManager *mtz);
+    double evaluateForImage(MtzPtr mtz);
 };
 
 #endif /* defined(__cppxfel__Scaler__) */

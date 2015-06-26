@@ -24,8 +24,6 @@ typedef enum
 	ScalingTypeResolutionShells = 5
 } ScalingType;
 
-class MtzManager;
-
 class MtzGrouper
 {
 private:
@@ -39,14 +37,16 @@ private:
 	bool cutResolution;
 	double expectedResolution;
     bool isMtzAccepted(MtzPtr mtz);
+    bool exclusionByCCHalf;
 
+    static void checkCCHalf(vector<MtzPtr> *managers, int offset, int *total);
 	void merge(MtzManager **mergeMtz, MtzManager **unmergedMtz, bool firstHalf,
 			bool all, std::string *unmergedName = NULL);
 public:
 	MtzGrouper();
 	virtual ~MtzGrouper();
 
-	std::vector<MtzPtr> mtzManagers;
+	vector<MtzPtr> mtzManagers;
 
     void merge(MtzManager **mergeMtz, MtzManager **unmergedMtz = NULL, int cycle = -1, bool anom = false);
 
@@ -78,12 +78,12 @@ public:
 		this->correlationThreshold = correlationThreshold;
 	}
 
-	const std::vector<MtzPtr>& getMtzManagers() const
+	const vector<MtzPtr>& getMtzManagers() const
 	{
 		return mtzManagers;
 	}
 
-	void setMtzManagers(const std::vector<MtzPtr>& mtzManagers);
+	void setMtzManagers(const vector<MtzPtr>& mtzManagers);
 
 	bool isExcludeWorst() const
 	{

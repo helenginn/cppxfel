@@ -22,6 +22,8 @@
 #include "FileParser.h"
 #include "GraphDrawer.h"
 
+
+
 MtzGrouper::MtzGrouper()
 {
 	correlationThreshold = 0;
@@ -32,6 +34,13 @@ MtzGrouper::MtzGrouper()
 	cutResolution = false;
     expectedResolution = FileParser::getKey("MAX_RESOLUTION_ALL", 1.6);
     usingNewRefinement = FileParser::getKey("SCALE_AND_B_FACTORS", false);
+    
+    int defaultScoreInt = FileParser::getKey("DEFAULT_TARGET_FUNCTION",
+                                             (int) DEFAULT_SCORE_TYPE);
+    ScoreType defaultScoreType = (ScoreType) defaultScoreInt;
+    
+    exclusionByCCHalf = (defaultScoreType == ScoreTypeMinimizeRMeas);
+        
 }
 
 MtzGrouper::~MtzGrouper()
@@ -45,9 +54,16 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
                                                      "MINIMUM_REFLECTION_CUTOFF",
                                                      MINIMUM_REFLECTION_CUTOFF);
 
-    double minimumRSplit = FileParser::getKey("R_SPLIT_THRESHOLD", 0.0);
+    if (mtz->accepted() < minimumReflectionCutoff)
+        return false;
     
     double refCorrelation = mtz->getRefCorrelation();
+    
+    if (refCorrelation < 0 || refCorrelation == 1)
+        return false;
+    
+    double minimumRSplit = FileParser::getKey("R_SPLIT_THRESHOLD", 0.0);
+    
     bool needsRSplit = mtz->getReferenceManager() != NULL;
     double rSplit = 0;
     
@@ -62,16 +78,11 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     if (needsRSplit && minimumRSplit > 0 && rSplit > minimumRSplit)
         return false;
     
-    if (refCorrelation < 0 || refCorrelation == 1)
-        return false;
-    
-    if (mtz->accepted() < minimumReflectionCutoff)
-        return false;
     
     return true;
 }
 
-void MtzGrouper::setMtzManagers(const std::vector<MtzPtr>& mtzManagers)
+void MtzGrouper::setMtzManagers(const vector<MtzPtr>& mtzManagers)
 {
 	this->mtzManagers = mtzManagers;
 
@@ -226,7 +237,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 	if (scalingType == ScalingTypeMinimizeRMerge)
 	{
-        std::vector<MtzPtr> acceptedMtzs;
+        vector<MtzPtr> acceptedMtzs;
         
         for (int i = 0; i < mtzManagers.size(); i++)
         {
@@ -244,15 +255,15 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	MtzManager **unmerged = NULL;
 	MtzManager *invMerge = NULL;
 
-    string idxName = string("idxMerge.mtz");
-    string invName = string("invMerge.mtz");
-    string unmergedName = string("unmerged.mtz");
+    std::string idxName = std::string("idxMerge.mtz");
+    std::string invName = std::string("invMerge.mtz");
+    std::string unmergedName = std::string("unmerged.mtz");
     
     if (cycle >= 0)
     {
-        unmergedName = string("unmerged") + i_to_str(cycle) + string(".mtz");
-        idxName = string("idxMerge") + i_to_str(cycle) + string(".mtz");
-        invName = string("invMerge") + i_to_str(cycle) + string(".mtz");
+        unmergedName = std::string("unmerged") + i_to_str(cycle) + std::string(".mtz");
+        idxName = std::string("idxMerge") + i_to_str(cycle) + std::string(".mtz");
+        invName = std::string("invMerge") + i_to_str(cycle) + std::string(".mtz");
     }
     
 	if (anom == false)
@@ -316,12 +327,29 @@ void MtzGrouper::mergeWrapper(void *object, MtzManager **mergeMtz,
 	}
 }
 
+void MtzGrouper::checkCCHalf(vector<MtzPtr> *managers, int offset, int *total)
+{
+    Scaler *scaler = Scaler::getScaler();
+    int accepted = 0;
+    int maxThreads = FileParser::getMaxThreads();
+    
+    if (scaler != NULL)
+    {
+        for (int i = offset; i < managers->size(); i += maxThreads)
+        {
+            accepted += scaler->mtzIsBeneficial((*managers)[i]);
+        }
+    }
+    
+    *total += accepted;
+}
+
 void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
                        bool firstHalf, bool all, std::string *unmergedName)
 {
 	*mergeMtz = new MtzManager();
     
-    std::string filename = string("merged_") + (all ? string("all_") : string("half_")) + (firstHalf ? string("0") : string("1"));
+    std::string filename = std::string("merged_") + (all ? std::string("all_") : std::string("half_")) + (firstHalf ? std::string("0") : std::string("1"));
     
 	(*mergeMtz)->setFilename(filename);
 	(*mergeMtz)->copySymmetryInformationFromManager(mtzManagers[0]);
@@ -337,15 +365,30 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 	int mtzCount = groupMillers(mergeMtz, unmergedMtz, start, end);
 
-    if (all && usingNewRefinement)
+    Scaler::getScaler(mtzManagers, mergeMtz);
+    int total = 0;
+    
+    if (exclusionByCCHalf && all)
     {
-        Scaler scaler = Scaler(mtzManagers, mergeMtz);
-        scaler.minimizeRMerge();
+        boost::thread_group threads;
+        
+        int maxThreads = FileParser::getMaxThreads();
+        
+        for (int i = 0; i < maxThreads; i++)
+        {
+            boost::thread *thr = new boost::thread(checkCCHalf, &mtzManagers, i, &total);
+            threads.add_thread(thr);
+                    }
+        
+        threads.join_all();
     }
+
+    std::cout << "N: Accepted " << total << " due to increase in CC half" << std::endl;
+
     
 	if (unmergedMtz != NULL)
 	{
-		(*unmergedMtz) = (*mergeMtz)->copy();
+		(*unmergedMtz) = &*(*mergeMtz)->copy();
 	}
     
     if (unmergedName != NULL)
@@ -424,8 +467,14 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
 	for (int i = start; i < end; i++)
 	{
-		if (!isMtzAccepted(mtzManagers[i]))
+        if (!exclusionByCCHalf && !isMtzAccepted(mtzManagers[i]))
+        {
+            mtzManagers[i]->incrementFailedCount();
             continue;
+        }
+        
+        if (!exclusionByCCHalf)
+            mtzManagers[i]->resetFailedCount();
         
         mtzManagers[i]->flipToActiveAmbiguity();
         int ambiguity = mtzManagers[i]->getActiveAmbiguity();
@@ -440,29 +489,29 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 			std::cout << "Cutoff res not supported anymore!" << std::endl;
 		}
 
-		for (int j = 0; j < mtzManagers[i]->holderCount(); j++)
+		for (int j = 0; j < mtzManagers[i]->reflectionCount(); j++)
 		{
-			if (mtzManagers[i]->holder(j)->getResolution() > cutoffRes)
+			if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
 				continue;
 
-			int refl_id = mtzManagers[i]->holder(j)->getReflId();
+			int refl_id = mtzManagers[i]->reflection(j)->getReflId();
 
-			Holder *holder = NULL;
-			(*mergeMtz)->findHolderWithId(refl_id, &holder);
+			Reflection *reflection = NULL;
+			(*mergeMtz)->findReflectionWithId(refl_id, &reflection);
 
-			if (holder == NULL)
+			if (reflection == NULL)
 			{
-				Holder *newHolder = mtzManagers[i]->holder(j)->copy(false);
-				(*mergeMtz)->addHolder(newHolder);
+				Reflection *newReflection = mtzManagers[i]->reflection(j)->copy(false);
+				(*mergeMtz)->addReflection(newReflection);
 			}
 			else
 			{
-				for (int k = 0; k < mtzManagers[i]->holder(j)->millerCount();
+				for (int k = 0; k < mtzManagers[i]->reflection(j)->millerCount();
 						k++)
 				{
-                    MillerPtr newMiller = mtzManagers[i]->holder(j)->miller(k);
+                    MillerPtr newMiller = mtzManagers[i]->reflection(j)->miller(k);
                     
-					holder->addMiller(newMiller);
+					reflection->addMiller(newMiller);
                 }
 			}
 		}
@@ -470,20 +519,20 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 	int last_refl_id = 0;
 
-	for (int i = 0; i < (*mergeMtz)->holderCount(); i++)
+	for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
 	{
-		Holder *holder = (*mergeMtz)->holder(i);
+		Reflection *reflection = (*mergeMtz)->reflection(i);
 
-		if (holder->getReflId() == last_refl_id)
+		if (reflection->getReflId() == last_refl_id)
 		{
 			std::cout << "Same" << std::endl;
 		}
-		if (holder->getReflId() < last_refl_id)
+		if (reflection->getReflId() < last_refl_id)
 		{
 			std::cout << "Less" << std::endl;
 		}
 
-		last_refl_id = holder->getReflId();
+		last_refl_id = reflection->getReflId();
 	}
 
 	std::cout << "N: MTZs used in merge: " << mtzCount << std::endl;
@@ -496,7 +545,7 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
     std::cout << std::endl;
     
-	std::cout << "N: Holders used: " << (*mergeMtz)->holderCount() << std::endl;
+	std::cout << "N: Reflections used: " << (*mergeMtz)->reflectionCount() << std::endl;
 
 	return mtzCount;
 }
@@ -526,43 +575,43 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 			std::cout << "Cutoff res not supported anymore!" << std::endl;
 		}
 
-		for (int j = 0; j < mtzManagers[i]->holderCount(); j++)
+		for (int j = 0; j < mtzManagers[i]->reflectionCount(); j++)
 		{
-			for (int k = 0; k < mtzManagers[i]->holder(j)->millerCount(); k++)
+			for (int k = 0; k < mtzManagers[i]->reflection(j)->millerCount(); k++)
 			{
                 bool friedel = false;
-				mtzManagers[i]->holder(j)->miller(k)->positiveFriedel(&friedel);
+				mtzManagers[i]->reflection(j)->miller(k)->positiveFriedel(&friedel);
                 
                 logged << "Acquired Friedel " << friedel << std::endl;
                 sendLog(LogLevelDebug);
                 
 				MtzManager *friedelMtz = (friedel ? *positive : *negative);
 
-				if (mtzManagers[i]->holder(j)->getResolution() > cutoffRes)
+				if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
 					continue;
 
-				Holder *holder = NULL;
-				friedelMtz->findHolderWithId(
-						mtzManagers[i]->holder(j)->getReflId(), &holder);
+				Reflection *reflection = NULL;
+				friedelMtz->findReflectionWithId(
+						mtzManagers[i]->reflection(j)->getReflId(), &reflection);
 
 				// there is a bug here which would mis-sort friedel pairs if
 				// there were opposing ones of the same symmetry in the same image
 
-				if (holder == NULL)
+				if (reflection == NULL)
 				{
-					Holder *newHolder = mtzManagers[i]->holder(j)->copy(true);
-					newHolder->clearMillers();
-					MillerPtr newMiller = mtzManagers[i]->holder(j)->miller(k);
-					newHolder->addMiller(newMiller);
-					friedelMtz->addHolder(newHolder);
-					friedelMtz->sortLastHolder();
+					Reflection *newReflection = mtzManagers[i]->reflection(j)->copy(true);
+					newReflection->clearMillers();
+					MillerPtr newMiller = mtzManagers[i]->reflection(j)->miller(k);
+					newReflection->addMiller(newMiller);
+					friedelMtz->addReflection(newReflection);
+					friedelMtz->sortLastReflection();
 				}
 				else
 				{
 					{
-						MillerPtr newMiller = mtzManagers[i]->holder(j)->miller(
+						MillerPtr newMiller = mtzManagers[i]->reflection(j)->miller(
 								k);
-						holder->addMiller(newMiller);
+						reflection->addMiller(newMiller);
 					}
 				}
 			}
@@ -577,7 +626,7 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 
 void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 {
-	int holderCount = 0;
+	int reflectionCount = 0;
 	int millerCount = 0;
 	int rejectCount = 0;
 	double aveStdErr = 0;
@@ -585,13 +634,15 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
     
     bool recalculateSigma = FileParser::getKey("RECALCULATE_SIGMA", false);
 
-	for (int i = 0; i < (*mergeMtz)->holderCount(); i++)
+    // exclusionByCCHalf
+    
+    for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
 	{
-		Holder *holder = (*mergeMtz)->holder(i);
+		Reflection *reflection = (*mergeMtz)->reflection(i);
 
-		if (!holder->anyAccepted())
+		if (!reflection->anyAccepted())
 		{
-			(*mergeMtz)->removeHolder(i);
+			(*mergeMtz)->removeReflection(i);
 			i--;
 			continue;
 		}
@@ -599,46 +650,46 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 		double totalIntensity = 0;
 		double totalStdev = 0;
 
-		holder->merge(weighting, &totalIntensity, &totalStdev, reject);
+		reflection->merge(weighting, &totalIntensity, &totalStdev, reject);
 
 		double error = totalStdev / totalIntensity;
 
 		if (error == error && totalStdev != 100)
 		{
-			aveStdErr += abs(error);
+			aveStdErr += fabs(error);
 			aveStdErrCount++;
 
 		}
 
-        double totalSigma = holder->meanSigma() / holder->meanPartiality();
+        double totalSigma = reflection->meanSigma() / reflection->meanPartiality();
         
         if (recalculateSigma)
         {
-            totalSigma = holder->mergeSigma();
+            totalSigma = reflection->mergeSigma();
         }
         
-		millerCount += holder->acceptedCount();
-		rejectCount += holder->rejectCount();
-		holderCount++;
+		millerCount += reflection->acceptedCount();
+		rejectCount += reflection->rejectCount();
+		reflectionCount++;
 
 		int h, k, l = 0;
-		MillerPtr firstMiller = (*mergeMtz)->holder(i)->miller(0);
+		MillerPtr firstMiller = (*mergeMtz)->reflection(i)->miller(0);
 		ccp4spg_put_in_asu((*mergeMtz)->getLowGroup(), firstMiller->getH(),
 				firstMiller->getK(), firstMiller->getL(), &h, &k, &l);
 
 		MillerPtr newMiller = MillerPtr(new Miller((*mergeMtz), h, k, l));
 
 		newMiller->setData(totalIntensity, totalSigma, 1, 0);
-		newMiller->setParent((*mergeMtz)->holder(i));
-		(*mergeMtz)->holder(i)->calculateResolution(*mergeMtz);
+		newMiller->setParent((*mergeMtz)->reflection(i));
+		(*mergeMtz)->reflection(i)->calculateResolution(*mergeMtz);
 
-		(*mergeMtz)->holder(i)->clearMillers();
-		(*mergeMtz)->holder(i)->addMiller(newMiller);
+		(*mergeMtz)->reflection(i)->clearMillers();
+		(*mergeMtz)->reflection(i)->addMiller(newMiller);
 	}
 
 	aveStdErr /= aveStdErrCount;
 
-	double multiplicity = (double) millerCount / (double) holderCount;
+	double multiplicity = (double) millerCount / (double) reflectionCount;
 	double aveRejection = (double) rejectCount / (double) mtzCount;
 
 	std::cout << "N: Total MTZs: " << mtzManagers.size() << std::endl;
@@ -646,7 +697,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 	std::cout << "N: Rejects per image: " << aveRejection << std::endl;
 	std::cout << "N: Average error per reflection: " << aveStdErr << std::endl;
 
-	(*mergeMtz)->insertionSortHolders();
+	(*mergeMtz)->insertionSortReflections();
 }
 
 void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
@@ -706,18 +757,18 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 	int num = 0;
 
 	int hits = 0;
-	vector<Holder *> posHolders;
-	vector<Holder *> negHolders;
+	vector<Reflection *> posReflections;
+	vector<Reflection *> negReflections;
 
-	(*positive)->findCommonReflections(*negative, posHolders, negHolders, &hits);
+	(*positive)->findCommonReflections(*negative, posReflections, negReflections, &hits);
 
-	for (int i = 0; i < posHolders.size(); i++)
+	for (int i = 0; i < posReflections.size(); i++)
 	{
-		double intensityPlus = posHolders[i]->meanIntensity();
-		double sigmaPlus = posHolders[i]->meanSigma();
+		double intensityPlus = posReflections[i]->meanIntensity();
+		double sigmaPlus = posReflections[i]->meanSigma();
 
-		double intensityMinus = negHolders[i]->meanIntensity();
-		double sigmaMinus = negHolders[i]->meanSigma();
+		double intensityMinus = negReflections[i]->meanIntensity();
+		double sigmaMinus = negReflections[i]->meanSigma();
 
 		double intensity = (intensityPlus + intensityMinus) / 2;
 		double sigma = (sigmaPlus + sigmaMinus) / 2;
@@ -729,9 +780,9 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 
 		num++;
 
-		int h = negHolders[i]->miller(0)->getH();
-		int k = negHolders[i]->miller(0)->getK();
-		int l = negHolders[i]->miller(0)->getL();
+		int h = negReflections[i]->miller(0)->getH();
+		int k = negReflections[i]->miller(0)->getK();
+		int l = negReflections[i]->miller(0)->getL();
 		int _h, _k, _l;
 		ccp4spg_put_in_asu(mtzspg, h, k, l, &_h, &_k, &_l);
 
@@ -757,28 +808,28 @@ void MtzGrouper::differenceBetweenMtzs(MtzManager **mergeMtz,
 		MtzManager **positive, MtzManager **negative)
 {
 	int hits = 0;
-	vector<Holder *> posHolders;
-	vector<Holder *> negHolders;
+	vector<Reflection *> posReflections;
+	vector<Reflection *> negReflections;
 
-	(*positive)->findCommonReflections(*negative, posHolders, negHolders, &hits);
+	(*positive)->findCommonReflections(*negative, posReflections, negReflections, &hits);
 
-	for (int i = 0; i < posHolders.size(); i++)
+	for (int i = 0; i < posReflections.size(); i++)
 	{
-		Holder *newHolder = posHolders[i]->copy(true);
-		double posInt = posHolders[i]->meanIntensity();
-		double negInt = negHolders[i]->meanIntensity();
+		Reflection *newReflection = posReflections[i]->copy(true);
+		double posInt = posReflections[i]->meanIntensity();
+		double negInt = negReflections[i]->meanIntensity();
 
-		double posSigma = posHolders[i]->meanSigma();
-		double negSigma = negHolders[i]->meanSigma();
+		double posSigma = posReflections[i]->meanSigma();
+		double negSigma = negReflections[i]->meanSigma();
 
-		newHolder->miller(0)->setRawIntensity(posInt - negInt);
-		newHolder->miller(0)->setPartiality(1);
-		newHolder->miller(0)->setSigma(posSigma + negSigma);
+		newReflection->miller(0)->setRawIntensity(posInt - negInt);
+		newReflection->miller(0)->setPartiality(1);
+		newReflection->miller(0)->setSigma(posSigma + negSigma);
 
-		(*mergeMtz)->addHolder(newHolder);
+		(*mergeMtz)->addReflection(newReflection);
 	}
 
-	(*mergeMtz)->insertionSortHolders();
+	(*mergeMtz)->insertionSortReflections();
 }
 
 void MtzGrouper::unflipMtzs()

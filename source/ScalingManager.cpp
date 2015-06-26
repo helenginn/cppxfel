@@ -13,7 +13,8 @@
 #define MULT_G 1
 #define MULT_WAVELENGTH 1
 
-using namespace std;
+
+
 
 double ScalingManager::evaluate_psi()
 {
@@ -43,16 +44,16 @@ void ScalingManager::evaluate_gradient_at_l(int l)
             j++;
     }
     
-    //	cout << "G for (l=" << l << ") = " << total << " using "
-    //			<< j << " reflections." << endl;
+    //	std::cout << "G for (l=" << l << ") = " << total << " using "
+    //			<< j << " reflections." << std::endl;
     
     /*if ((*Gs[l].reflections).size() > 0) {
-     cout << "Reflections ";
+     std::cout << "Reflections ";
      for (int i = 0; i < (*Gs[l].reflections).size(); i++) {
-     //	cout << (*Gs[l].reflections)[i] << ", ";
+     //	std::cout << (*Gs[l].reflections)[i] << ", ";
      }
      
-     cout << endl;
+     std::cout << std::endl;
      }
      */
     gradients[l] = total;
@@ -190,7 +191,7 @@ void ScalingManager::processReflections(void)
 {
     if (mtz_num == 0)
     {
-        cout << "No images for processing." << endl;
+        std::cout << "No images for processing." << std::endl;
         return;
     }
     
@@ -206,14 +207,14 @@ void ScalingManager::processReflections(void)
     
     for (int i = 0; i < mtzs.size(); i++) // image
     {
-        for (int j = 0; j < mtzs[i]->holderCount(); j++) // reflection in image
+        for (int j = 0; j < mtzs[i]->reflectionCount(); j++) // reflection in image
         {
-            if (!mtzs[i]->holder(j)->anyAccepted())
+            if (!mtzs[i]->reflection(j)->anyAccepted())
                 continue;
             
-            int refl_id = mtzs[i]->holder(j)->getReflId();
+            int refl_id = mtzs[i]->reflection(j)->getReflId();
             
-            if (mtzs[i]->holder(j)->getResolution() > 1 / 2.0)
+            if (mtzs[i]->reflection(j)->getResolution() > 1 / 2.0)
             		continue;
             
             int l = 0;
@@ -222,7 +223,7 @@ void ScalingManager::processReflections(void)
             
             if (matching_ref != NULL)
             {
-                matching_ref->addHolderForImage(mtzs[i]->holder(j), &*mtzs[i],
+                matching_ref->addReflectionForImage(mtzs[i]->reflection(j), &*mtzs[i],
                                                 i);
             }
             else
@@ -235,8 +236,8 @@ void ScalingManager::processReflections(void)
                 
                 ((*refs)[unique_refl_num]).refl_id = refl_id;
                 
-                ((*refs)[unique_refl_num]).addHolderForImage(
-                                                             mtzs[i]->holder(j), &*mtzs[i], i);
+                ((*refs)[unique_refl_num]).addReflectionForImage(
+                                                             mtzs[i]->reflection(j), &*mtzs[i], i);
                 
                 orderFinalReflection();
                 unique_refl_num++;
@@ -267,7 +268,7 @@ void ScalingManager::processReflections(void)
     
     totalRefl /= count;
     
-    cout << "Average reflection count: " << totalRefl << std::endl;
+    std::cout << "Average reflection count: " << totalRefl << std::endl;
 }
 
 ScalingManager::ScalingManager(vector<MtzPtr> mtzs)
@@ -310,8 +311,8 @@ ScalingManager::ScalingManager(char **filenames, int filenum, int partiality)
     
     for (int i = 0; i < filenum; i++)
     {
-        cout << "Loading file " << filenames[i] << endl;
-        string filename_string = filenames[i];
+        std::cout << "Loading file " << filenames[i] << std::endl;
+        std::string filename_string = filenames[i];
         
         mtzs[i]->setFilename(filename_string);
         mtzs[i]->loadReflections(partiality);
@@ -328,11 +329,11 @@ void ScalingManager::outputSimpleScaling(lbfgsfloatval_t **scales)
         double total_intensities = 0;
         int total = 0;
         
-        for (int j = 0; j < mtzs[i]->holderCount(); j++)
+        for (int j = 0; j < mtzs[i]->reflectionCount(); j++)
         {
-            //	if (mtzs[i].holders[j].resolution < 45)
+            //	if (mtzs[i].reflections[j].resolution < 45)
             //{
-            double intensity = mtzs[i]->holder(j)->meanIntensity();
+            double intensity = mtzs[i]->reflection(j)->meanIntensity();
             
             if (intensity != intensity)
                 continue;
@@ -358,7 +359,7 @@ void ScalingManager::outputSimpleScaling(lbfgsfloatval_t **scales)
         
         mtzs[i]->applyScaleFactor(1000 / total_intensities);
         
-        cout << mtzs[i]->getFilename() << " " << scale << endl;
+        std::cout << mtzs[i]->getFilename() << " " << scale << std::endl;
     }
 }
 
@@ -367,17 +368,17 @@ double ScalingManager::residualsForImage(MtzManager *reference,
 {
     double total_residual = 0;
     
-    for (int j = 0; j < image->holderCount(); j++)
+    for (int j = 0; j < image->reflectionCount(); j++)
     {
-        int refl_id = image->holder(j)->getReflId();
+        int refl_id = image->reflection(j)->getReflId();
         
-        Holder *mainImage;
-        reference->findHolderWithId(refl_id, &mainImage);
+        Reflection *mainImage;
+        reference->findReflectionWithId(refl_id, &mainImage);
         
         if (mainImage == NULL)
             continue;
         
-        double residual = image->holder(j)->meanIntensity() * scale
+        double residual = image->reflection(j)->meanIntensity() * scale
         - mainImage->meanIntensity();
         
         residual *= residual;
@@ -422,7 +423,7 @@ void ScalingManager::referenceScaling(MtzManager *reference)
             printf("Residual = %.2f, scale = %.4f\n", bestResidual, bestScale);
         }
         
-        std::cout << mtzs[i]->getFilename() << " " << 1 / scale << endl;
+        std::cout << mtzs[i]->getFilename() << " " << 1 / scale << std::endl;
     }
 }
 
@@ -474,7 +475,7 @@ double ScalingManager::multiplierForParam(int l, int paramNum, double currentR,
     if (secondDerivative == 0)
         secondDerivative = 1;
     
-    return abs(secondDerivative);
+    return fabs(secondDerivative);
 }
 
 double ScalingManager::gradientForParam(int l, int paramNum, double currentR)
@@ -523,7 +524,7 @@ double ScalingManager::multiplierForL(int l, double currentR)
     if (final == 0)
         final = 1;
     
-    return abs(final);
+    return fabs(final);
 }
 
 double ScalingManager::gradientForL(int l, double currentR)
@@ -548,14 +549,14 @@ double ScalingManager::gradientForL(int l, double currentR)
     return grad;
 }
 
-void ScalingManager::mergedHolders(MtzManager *templateMtz, vector<Holder *> &holders, bool half, bool all)
+void ScalingManager::mergedReflections(MtzManager *templateMtz, vector<Reflection *> &reflections, bool half, bool all)
 {
     for (int i = 0; i < refs->size(); i++)
     {
-        Holder *holder = (*refs)[i].mergedHolder(&Gs, half, all);
-        holder->calculateResolution(templateMtz);
+        Reflection *reflection = (*refs)[i].mergedReflection(&Gs, half, all);
+        reflection->calculateResolution(templateMtz);
         
-        holders.push_back(holder);
+        reflections.push_back(reflection);
     }
 }
 
@@ -641,7 +642,7 @@ double ScalingManager::rSplit(void)
         
         double mean = (int1 + int2) / 2;
         
-        numerator += abs(int1 - int2);
+        numerator += fabs(int1 - int2);
         denominator += mean;
     }
     
@@ -673,7 +674,7 @@ void ScalingManager::gridSearch(void)
 }
 ScalingManager::~ScalingManager(void)
 {
-    cout << "Deallocating scaling manager" << endl;
+    std::cout << "Deallocating scaling manager" << std::endl;
     
     delete refs;
     

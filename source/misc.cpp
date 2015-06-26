@@ -5,20 +5,20 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-string f_to_str(double val)
+std::string f_to_str(double val)
 {
-	ostringstream ss;
+	std::ostringstream ss;
 	ss << val;
-	string temp = ss.str();
+	std::string temp = ss.str();
 
 	return temp;
 }
 
-string i_to_str(int val)
+std::string i_to_str(int val)
 {
-	ostringstream ss;
+	std::ostringstream ss;
 	ss << val;
-	string temp = ss.str();
+	std::string temp = ss.str();
 	
 	return temp;
 }

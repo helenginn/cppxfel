@@ -15,7 +15,7 @@
 Spot::Spot()
 {
 	// TODO Auto-generated constructor stub
-	probe = std::vector<std::vector<double> >();
+	probe = vector<vector<double> >();
 
 	makeProbe(180, 6);
 }
@@ -23,7 +23,7 @@ Spot::Spot()
 Spot::Spot(Image *image)
 {
 	// TODO Auto-generated constructor stub
-	probe = std::vector<std::vector<double> >();
+	probe = vector<vector<double> >();
 	parentImage = image;
 
 	makeProbe(180, 6);
@@ -116,7 +116,7 @@ void Spot::makeProbe(int height, int length)
 
 	for (int i = 0; i < length; i++)
 	{
-		probe.push_back(std::vector<double>());
+		probe.push_back(vector<double>());
 
 		for (int j = 0; j < length; j++)
 		{
@@ -167,7 +167,7 @@ double Spot::scatteringAngle(Image *image)
 	return sinTwoTheta;
 }
 
-void Spot::sortSpots(std::vector<Spot *> *spots)
+void Spot::sortSpots(vector<Spot *> *spots)
 {
 	std::cout << "Sorting spots" << std::endl;
 	std::sort(spots->begin(), spots->end(), spotComparison);

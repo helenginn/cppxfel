@@ -28,8 +28,6 @@ lbfgsfloatval_t Lbfgs_Scaling::evaluate(void *instance,
 //	for (int i=0; i < n; i++)
 //		std::cout << g[i] << std::endl;
 
-	cout << "R-merge: " << fx << endl;
-
 	return fx;
 }
 
@@ -75,7 +73,7 @@ void Lbfgs_Scaling::run(void)
 		return;
 	}
 
-	cout << "n = " << n << endl;
+	std::cout << "n = " << n << std::endl;
 
 //	int count = 0;
 
@@ -87,7 +85,7 @@ void Lbfgs_Scaling::run(void)
 //	scaling->outputSimpleScaling(&x);
 
 	fx = scaling->rMerge();
-	cout << "R meas after gradient scaling: " << fx << endl;
+	std::cout << "R meas after gradient scaling: " << fx << std::endl;
 
 	lbfgs_parameter_init(&param);
 	param.max_iterations = 50;
@@ -148,9 +146,9 @@ void Lbfgs_Scaling::run(void)
 
 	for (int i = 0; i < n; i++)
 	{
-		string filename = scaling->mtzs[i]->getFilename();
+        std::string filename = scaling->mtzs[i]->getFilename();
 
-	//	cout << filename << " " << scaling->Gs[i].G << endl;
+	//	std::cout << filename << " " << scaling->Gs[i].G << std::endl;
 
 		if (scaling->Gs[i].G > 0.5)
 			scaling->mtzs[i]->applyScaleFactor(scaling->Gs[i].G);
@@ -160,13 +158,13 @@ void Lbfgs_Scaling::run(void)
         x[i] = 1;
 	}
     
+    fx = scaling->rMerge();
     scaling->set_Gs(&x);
     
-    fx = scaling->rMerge();
-    cout << "R meas after correcting scales: " << fx << endl;
+    std::cout << "R meas after correcting scales: " << fx << std::endl;
 
     double rsplit = scaling->rSplit();
-    cout << "Estimated R split: " << rsplit << endl;
+    std::cout << "Estimated R split: " << rsplit << std::endl;
 
 
 	lbfgs_free(x);
