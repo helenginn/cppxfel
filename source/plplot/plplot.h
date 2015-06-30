@@ -2310,7 +2310,7 @@ plTranslateCursor( PLGraphicsIn *gin );
 // These functions are depreciated and only retained for backwards
 // compatibility - do not use in new code.
 
-// Set current color (map 0) by hue, lightness, and saturation.
+// Set current color (std::map 0) by hue, lightness, and saturation.
 
 PLDLLIMPEXP void
 c_plhls( PLFLT h, PLFLT l, PLFLT s );

@@ -73,6 +73,7 @@ protected:
 	double bandwidth;
 	double exponent;
 	double refCorrelation;
+    double refPartCorrel;
 	double scale;
 	double cellDim[3];
 	double cellAngles[3];
@@ -406,6 +407,16 @@ public:
 	{
 		this->refCorrelation = refCorrelation;
 	}
+    
+    double getRefPartCorrel() const
+    {
+        return refPartCorrel;
+    }
+    
+    void setRefPartCorrel(double refPartCorrel)
+    {
+        this->refPartCorrel = refPartCorrel;
+    }
 
 	double getExponent() const
 	{

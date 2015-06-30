@@ -446,6 +446,9 @@ double Reflection::mergeSigma()
     
     double error = stdev / sqrt(count);
     
+    if (count == 0)
+        return nan(" ");
+    
     return error;
 }
 
@@ -475,7 +478,8 @@ double Reflection::meanSigma(bool friedel)
     
     total_sigi /= count;
     
-    return total_sigi;
+    if (total_sigi == 0)
+        return nan(" ");
     
     return total_sigi;
 }

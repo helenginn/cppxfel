@@ -318,6 +318,7 @@ MtzManager::MtzManager(void)
     previousAmbiguity = -1;
     activeAmbiguity = 0;
     bFactor = 0;
+    refPartCorrel = 0;
     
     optimisingWavelength = !OPTIMISED_WAVELENGTH;
     optimisingBandwidth = !OPTIMISED_BANDWIDTH;

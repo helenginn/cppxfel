@@ -482,7 +482,7 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
                 
                 if (value > pixelCountCutoff && pixelCountCutoff > 0)
                 {
-                    return isnan(' ');
+              //      return isnan(' ');
                 }
 			}
 			else if (flag == MaskBackground)
@@ -506,7 +506,7 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
     
 	double intensity = (foreground - backgroundInForeground);
 	
-    if (!isfinite(intensity))
+    if (!std::isfinite(intensity))
 	{
         Logger::mainLogger->addString("Infinite intensity", LogLevelDebug);
 	}
@@ -683,6 +683,14 @@ void Image::setTestSpotSize(double spotSize)
     for (int i = 0; i < indexers.size(); i++)
     {
         indexers[i]->setTestSpotSize(spotSize);
+    }
+}
+
+void Image::setOrientationTolerance(double newTolerance)
+{
+    for (int i = 0; i < indexers.size(); i++)
+    {
+        indexers[i]->setOrientationTolerance(newTolerance);
     }
 }
 

@@ -104,6 +104,7 @@ public:
     void setInitialStep(double step);
     void setTestSpotSize(double spotSize);
     void setTestBandwidth(double bandwidth);
+    void setOrientationTolerance(double newTolerance);
     
     int indexerCount()
     {

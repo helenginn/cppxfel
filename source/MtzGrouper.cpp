@@ -39,7 +39,7 @@ MtzGrouper::MtzGrouper()
                                              (int) DEFAULT_SCORE_TYPE);
     ScoreType defaultScoreType = (ScoreType) defaultScoreInt;
     
-    exclusionByCCHalf = (defaultScoreType == ScoreTypeMinimizeRMeas);
+    exclusionByCCHalf = FileParser::getKey("EXCLUSION_BY_CC_HALF", false);
         
 }
 
@@ -54,6 +54,18 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
                                                      "MINIMUM_REFLECTION_CUTOFF",
                                                      MINIMUM_REFLECTION_CUTOFF);
 
+    double refPartCorrelThreshold = FileParser::getKey(
+                                                     "PARTIALITY_CORRELATION_THRESHOLD",
+                                                     0.0);
+
+    if (refPartCorrelThreshold > 0)
+    {
+        if (mtz->getRefPartCorrel() < refPartCorrelThreshold)
+        {
+            return false;
+        }
+    }
+    
     if (mtz->accepted() < minimumReflectionCutoff)
         return false;
     
@@ -634,8 +646,6 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
     
     bool recalculateSigma = FileParser::getKey("RECALCULATE_SIGMA", false);
 
-    // exclusionByCCHalf
-    
     for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
 	{
 		Reflection *reflection = (*mergeMtz)->reflection(i);
@@ -666,6 +676,12 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
         if (recalculateSigma)
         {
             totalSigma = reflection->mergeSigma();
+            
+            if (totalSigma == 0)
+            {
+                totalIntensity = std::nan(" ");
+                totalSigma = std::nan(" ");
+            }
         }
         
 		millerCount += reflection->acceptedCount();
@@ -679,6 +695,11 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 
 		MillerPtr newMiller = MillerPtr(new Miller((*mergeMtz), h, k, l));
 
+        if (totalSigma == 0)
+        {
+            std::cout << "Error!" << std::endl;
+        }
+        
 		newMiller->setData(totalIntensity, totalSigma, 1, 0);
 		newMiller->setParent((*mergeMtz)->reflection(i));
 		(*mergeMtz)->reflection(i)->calculateResolution(*mergeMtz);
@@ -770,13 +791,29 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 		double intensityMinus = negReflections[i]->meanIntensity();
 		double sigmaMinus = negReflections[i]->meanSigma();
 
-		double intensity = (intensityPlus + intensityMinus) / 2;
+        double intensity = (intensityPlus + intensityMinus) / 2;
 		double sigma = (sigmaPlus + sigmaMinus) / 2;
+        
+        if (intensityPlus != intensityPlus && intensityMinus != intensityMinus)
+            continue;
+        
+        if (sigmaPlus < 0.0001)
+            sigmaPlus = nan(" ");
 
-		if (intensity != intensity)
-		{
-			continue;
-		}
+        if (sigmaMinus < 0.0001)
+            sigmaMinus = nan(" ");
+
+        if (intensityPlus != intensityPlus)
+        {
+            intensity = intensityMinus;
+            sigma = sigmaMinus;
+        }
+        
+        if (intensityMinus != intensityMinus)
+        {
+            intensity = intensityPlus;
+            sigma = sigmaPlus;
+        }
 
 		num++;
 

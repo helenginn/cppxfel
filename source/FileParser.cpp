@@ -157,6 +157,9 @@ void FileParser::generateFunctionList()
     parserMap["MAXIMUM_CYCLES"] = simpleInt;
     parserMap["STOP_REFINEMENT"] = simpleBool;
 
+    parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
+    parserMap["WAVELENGTH_RANGE"] = doubleVector;
+    parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
     parserMap["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = simpleFloat;
     parserMap["ALLOW_TRUST"] = simpleBool;
     parserMap["EXCLUDE_OWN_REFLECTIONS"] = simpleBool;
@@ -164,9 +167,11 @@ void FileParser::generateFunctionList()
 	parserMap["DEFAULT_TARGET_FUNCTION"] = simpleInt;
 	parserMap["USE_PARTIALITY_FUNCTION"] = simpleBool;
 	parserMap["CORRELATION_THRESHOLD"] = simpleFloat;
+    parserMap["PARTIALITY_CORRELATION_THRESHOLD"] = simpleFloat;
 	parserMap["MAX_RESOLUTION_ALL"] = simpleFloat;
 	parserMap["MAX_RESOLUTION_RLP_SIZE"] = simpleFloat;
-	parserMap["INITIAL_CORRELATION_THRESHOLD"] = simpleFloat;
+    parserMap["MIN_REFINED_RESOLUTION"] = simpleFloat;
+    parserMap["INITIAL_CORRELATION_THRESHOLD"] = simpleFloat;
 	parserMap["THRESHOLD_SWAP"] = simpleInt;
 	parserMap["OUTLIER_REJECTION_SIGMA"] = simpleFloat;
 	parserMap["OUTLIER_REJECTION"] = simpleBool;
@@ -194,6 +199,9 @@ void FileParser::generateFunctionList()
 	parserMap["STEP_SIZE_EXPONENT"] = simpleFloat;
 	parserMap["STEP_SIZE_ORIENTATION"] = simpleFloat;
 	parserMap["STEP_SIZE_RLP_SIZE"] = simpleFloat;
+    parserMap["STEP_SIZE_UNIT_CELL_A"] = simpleFloat;
+    parserMap["STEP_SIZE_UNIT_CELL_B"] = simpleFloat;
+    parserMap["STEP_SIZE_UNIT_CELL_C"] = simpleFloat;
 
 	parserMap["TOLERANCE_WAVELENGTH"] = simpleFloat;
 	parserMap["TOLERANCE_BANDWIDTH"] = simpleFloat;
@@ -256,6 +264,7 @@ void FileParser::generateFunctionList()
     parserMap["SHOEBOX_BANDWIDTH_MULTIPLIER"] = simpleFloat;
     parserMap["PIXEL_LEAK"] = simpleFloat;
     parserMap["ORIENTATION_SCORE"] = simpleInt;
+    parserMap["ORIENTATION_CORRECTION"] = doubleVector;
     parserMap["IMAGE_MASKED_VALUE"] = simpleInt;
     parserMap["SPHERE_THICKNESS"] = simpleFloat;
     parserMap["SIGMA_RESOLUTION_CUTOFF"] = simpleFloat;

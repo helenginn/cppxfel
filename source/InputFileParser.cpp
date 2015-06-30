@@ -175,7 +175,7 @@ void InputFileParser::parse()
             if (line == "WRITE_NEW_MATRICES")
             {
                 understood = true;
-                refiner->writeNewOrientations(true);
+                refiner->writeNewOrientations(true, true);
             }
             
             if (line == "REFINE_WITH_SYMMETRY")

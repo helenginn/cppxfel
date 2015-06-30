@@ -75,6 +75,7 @@ private:
     double lastScore;
 	vector<vector<double> > solutions;
     
+    double orientationTolerance;
     std::ostringstream logged;
     void sendLog(LogLevel priority);
 
@@ -292,6 +293,11 @@ public:
 	{
 		this->unitCell = unitCell;
 	}
+    
+    void setOrientationTolerance(double newTolerance)
+    {
+        orientationTolerance = newTolerance;
+    }
 };
 
 #endif /* INDEXER_H_ */

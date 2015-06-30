@@ -791,7 +791,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 1.6, 3, &resolutions);
+	StatisticsManager::generateResolutionBins(0, 1.7, 4, &resolutions);
 
 	double scatterRes = 1 / 5.0;
 
@@ -808,7 +808,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
 	maxPercentage = partials[partials.size() - 10].percentage;
 
-	if (maxPercentage < 250 || !isfinite(maxPercentage))
+    if (maxPercentage < 250 || !std::isfinite(maxPercentage))
 		maxPercentage = 250;
 
 	maxPercentage = 200;
@@ -921,7 +921,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
 void GraphDrawer::plotPartialityStats()
 {
-    double threshold = 0;
+    double threshold = 800;
     GraphMap map;
     map["xMin"] = 0.0;
     map["xMax"] = 1;
@@ -943,7 +943,7 @@ void GraphDrawer::plotPartialityStats()
         if (mtz->reflection(i)->meanIntensity() < threshold)
             continue;
         
-        if (!mtz->reflection(i)->betweenResolutions(0, 2.5))
+        if (!mtz->reflection(i)->betweenResolutions(0, 3.0))
             continue;
         
         double max_intensity = mtz->reflection(i)->meanIntensity();
@@ -952,7 +952,7 @@ void GraphDrawer::plotPartialityStats()
         {
             double partiality = mtz->reflection(i)->miller(j)->getPartiality();
             
-            if (partiality < 0.05 || partiality > 1)
+            if (partiality < 0.2 || partiality > 1)
             	continue;
             
             double percentage = mtz->reflection(i)->miller(j)->getRawIntensity()
@@ -971,6 +971,8 @@ void GraphDrawer::plotPartialityStats()
     plot("partialityStats", map, xs, ys);
 }
 
+#endif
+
 void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 {
     cctbx::miller::index<> genericIndex = cctbx::miller::index<>(0, 0, 1);
@@ -984,6 +986,11 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
         
         cctbx::miller::sym_equiv_indices indices = cctbx::miller::sym_equiv_indices(*spaceGroup, genericIndex);
         
+        cctbx::miller::index<double> position = matrix->multiplyIndex(&genericIndex);
+        
+        std::cout << mtzs[i]->getFilename() << "\t" << position[0] << "\t" << position[1] << "\t" << position[2] << std::endl;
+        
+        /*
         for (int i = 0; i < indices.indices().size(); i++)
         {
             cctbx::miller::index<> asymIndex = indices.indices()[i].h();
@@ -994,11 +1001,9 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
             zs.push_back(position[2]);
             
             std::cout << position[0] << "\t" << position[1] << "\t" << position[2] << std::endl;
-        }
+        }*/
     }
 }
-
-#endif
 
 GraphDrawer::~GraphDrawer()
 {

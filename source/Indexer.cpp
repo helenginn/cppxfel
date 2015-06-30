@@ -24,8 +24,6 @@
 #define DISTANCE_TOLERANCE 0.02
 #define WAVELENGTH_TOLERANCE 0.0001
 
-#define HROT_TOLERANCE 0.001
-#define KROT_TOLERANCE 0.001
 #define ANGLE_TOLERANCE 0.0001
 #define SPOT_DISTANCE_TOLERANCE 5
 
@@ -60,7 +58,7 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     refineB = FileParser::getKey("REFINE_UNIT_CELL_B", false);;
     refineC = FileParser::getKey("REFINE_UNIT_CELL_C", false);;
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-    
+    orientationTolerance = INDEXING_ORIENTATION_TOLERANCE;
     
     complexUnitCell = false;
     
@@ -528,7 +526,7 @@ double Indexer::getTotalIntegratedSignal()
     
     for (int i = 0; i < millers.size(); i++)
     {
-        if (!isfinite(millers[i]->getRawIntensity()))
+        if (!std::isfinite(millers[i]->getRawIntensity()))
             continue;
         
         if (millers[i]->getRawIntensity() <= 0)
@@ -808,7 +806,7 @@ double Indexer::score()
         
         double sum = 0;
         for (int i = 0; i < 3; i++)
-            sum += highest[i];
+            sum += highest[0];
         
         return 1 / sum;
     }
@@ -1195,7 +1193,7 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     
     bool recalculated = false;
     
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 1; i++)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
@@ -1211,10 +1209,17 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
         
         int count = 0;
         
-        while (!(refinedH && refinedK) && count < 50)
+        while (!(refinedH && refinedK && (refinedA && refinedB && refinedC)) && count < 50)
         {
             this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
             
+            if (!refinedA)
+                minimizeParameter(&aStep, &unitCell[0]);
+            if (!refinedB)
+                minimizeParameter(&bStep, &unitCell[1]);
+            if (!refinedC)
+                minimizeParameter(&cStep, &unitCell[2]);
+
             
             checkAllMillers(maxResolution, testBandwidth);
             
@@ -1238,29 +1243,29 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
                     this->calculateNearbyMillers(true);
                 }
                 
-                //      refinement = RefinementTypeOrientationMatrixHighestPeak;
+         //       refinement = RefinementTypeOrientationMatrixHighestPeak;
             }
             
-            if (hRotStep < HROT_TOLERANCE)
+            if (hRotStep < orientationTolerance)
                 refinedH = true;
-            if (kRotStep < KROT_TOLERANCE)
+            if (kRotStep < orientationTolerance)
                 refinedK = true;
-           
+            
+            if (aStep < 0.01)
+                refinedA = true;
+            if (bStep < 0.01)
+                refinedB = true;
+            if (cStep < 0.01)
+                refinedC = true;
             
             count++;
         }
         
         count = 0;
         
-        while (refinedA && refinedB && refinedC && count < 50) {
+        while (!(refinedA && refinedB && refinedC) && count < 50) {
             
-            if (!refinedA)
-                minimizeParameter(&aStep, &unitCell[0]);
-            if (!refinedB)
-                minimizeParameter(&bStep, &unitCell[1]);
-            if (!refinedC)
-                minimizeParameter(&cStep, &unitCell[2]);
-
+            
             
             if (aStep < 0.01)
                 refinedA = true;
@@ -1337,11 +1342,10 @@ MtzPtr Indexer::newMtz(int index)
     
     checkAllMillers(maxResolution, testBandwidth, complexShoebox);
     
-    double hRad = hRot * M_PI / 180;
-    double kRad = kRot * M_PI / 180;
-    
     MatrixPtr newMat = getMatrix()->copy();
     
+    double hRad = hRot * M_PI / 180;
+    double kRad = kRot * M_PI / 180;
     newMat->rotate(hRad, kRad, 0);
     
     MtzPtr mtz = MtzPtr(new MtzManager());
@@ -1363,6 +1367,9 @@ MtzPtr Indexer::newMtz(int index)
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
+        if (miller->getRawestIntensity() > 60000)
+            continue;
+        
         miller->incrementOverlapMask();
         miller->setMtzParent(&*mtz);
         

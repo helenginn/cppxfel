@@ -326,6 +326,7 @@ MatrixPtr Matrix::copy(void)
         newMat->unitCell = unitCell->copy();
         newMat->rotation = rotation->copy();
     }
+    
 	return newMat;
 }
 

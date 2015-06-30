@@ -220,7 +220,7 @@ double MtzManager::exclusionScore(double lowRes, double highRes,
 
 double MtzManager::leastSquaresPartiality(ScoreType typeOfScore)
 {
-    double score = leastSquaresPartiality(0, 1.5, typeOfScore);
+    double score = leastSquaresPartiality(0, 2.5, typeOfScore);
     
     return score;
 }
@@ -237,8 +237,6 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     vector<double> partialities;
     vector<double> percentages;
     
-    double lowCut = low == 0 ? 0 : 1 / low;
-    double highCut = 1 / 2.0;
     
     for (int i = 0; i < reflections.size(); i++)
     {
@@ -251,6 +249,9 @@ double MtzManager::leastSquaresPartiality(double low, double high,
         if (refReflection != NULL)
         {
             if (refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
+                continue;
+            
+            if (!refReflection->betweenResolutions(low, high))
                 continue;
             
             Partial partial;
@@ -272,9 +273,6 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     for (int i = 0; i < partials.size(); i++)
     {
         if (partials[i].percentage > maxPercentage || partials[i].percentage < 0)
-            continue;
-        
-        if (partials[i].resolution > highCut || partials[i].resolution < lowCut)
             continue;
         
         if (partials[i].partiality != partials[i].partiality
@@ -412,6 +410,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     double wavelength = 0;
     
     bool reinitialiseWavelength = FileParser::getKey("REINITIALISE_WAVELENGTH", false);
+    double minResolution = FileParser::getKey("MIN_REFINED_RESOLUTION", 0.0);
     
     if (isUsingFixedWavelength())
     {
@@ -455,10 +454,9 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     double mosStep = stepSizeMosaicity;
     double hStep = stepSizeOrientation;
     double kStep = stepSizeOrientation;
-    double aStep = 0.5;
-    double bStep = 0.5;
-    double cStep = 0.5;
-    
+    double aStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
+    double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
+    double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
   
     params = new double[PARAM_NUM];
     
@@ -474,6 +472,10 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     params[PARAM_UNIT_CELL_A] = this->cellDim[0];
     params[PARAM_UNIT_CELL_B] = this->cellDim[1];
     params[PARAM_UNIT_CELL_C] = this->cellDim[2];
+    
+    bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+    bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+    bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
     
     int count = 0;
     
@@ -491,30 +493,30 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         {
             if (!optimisedMean)
                 minimizeParameter(&meanStep, &params, PARAM_WAVELENGTH, score,
-                                  object, 0, maxResolutionAll);
+                                  object, minResolution, maxResolutionAll);
             
             if (!optimisedBandwidth)
                 minimizeParameter(&bandStep, &params, PARAM_BANDWIDTH, score,
-                                  object, 0, maxResolutionAll);
+                                  object, minResolution, maxResolutionAll);
         }
         
         if (!optimisedHRot && !optimisedKRot)
             minimizeTwoParameters(&hStep, &kStep, &params, PARAM_HROT,
-                                  PARAM_KROT, score, object, 0, maxResolutionAll, FLT_MAX);
+                                  PARAM_KROT, score, object, minResolution, maxResolutionAll, FLT_MAX);
         
         if (scoreType != ScoreTypeStandardDeviation)
         {
             if (!optimisedSpotSize)
                 minimizeParameter(&spotStep, &params, PARAM_SPOT_SIZE, score,
-                                  object, 0, maxResolutionRlpSize);
+                                  object, minResolution, maxResolutionAll);
             
             if (!optimisedExponent)
                 minimizeParameter(&expoStep, &params, PARAM_EXPONENT, score, object,
-                                  0, maxResolutionAll);
+                                  minResolution, maxResolutionAll);
             
             if (!optimisedMos)
                 minimizeParameter(&mosStep, &params, PARAM_MOS, score, object,
-                                  0, maxResolutionAll);
+                                  minResolution, maxResolutionAll);
         }
         
         if (hStep < toleranceOrientation)
@@ -542,11 +544,24 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         {
             std::cout << "stdev" << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << (*score)(object, 0, 0) << std::endl;
         }
+        /*
+        if (!optimisedUnitCellA && count > 5)
+        {
+            minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, 0, maxResolutionAll);
+        }
+        
+        if (!optimisedUnitCellB && count > 5)
+        {
+            minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, 0, maxResolutionAll);
+        }
+        
+        if (!optimisedUnitCellC && count > 5)
+        {
+            minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
+        }*/
+        
     }
     
-    bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
-    bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
-    bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
     
     
     bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);
@@ -574,6 +589,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     this->refreshPartialities(params);
     this->applyBFactor(bFactor);
     
+    count = 0;
     
     while (!(optimisedUnitCellA && optimisedUnitCellB
              && optimisedUnitCellC) && count < 50)
@@ -593,7 +609,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
         }
         
-        std::cout << (*score)(object, 0, maxResolutionAll) << ", " << correlation() << std::endl;
+    //    std::cout << (*score)(object, 0, maxResolutionAll) << ", " << correlation() << std::endl;
         
         if (aStep < 0.005)
             optimisedUnitCellA = true;
@@ -730,6 +746,8 @@ void MtzManager::gridSearch()
     double partCorrel =  (scoreType == ScoreTypeSymmetry) ? 0 : leastSquaresPartiality(ScoreTypePartialityCorrelation);
     double rSplitValue = (scoreType == ScoreTypeSymmetry) ? 0 : rSplit(0, maxResolutionAll);
     
+    this->setRefPartCorrel(partCorrel);
+    
     this->setRefCorrelation(newerCorrel);
     
     if (scoreType == ScoreTypeSymmetry)
@@ -798,7 +816,7 @@ void MtzManager::excludeFromLogCorrelation()
         if (int1 != int1 || int2 != int2 || weight != weight)
             continue;
         
-        if (!isfinite(int1) || !isfinite(int2))
+        if (!std::isfinite(int1) || !std::isfinite(int2))
             continue;
         
         imgReflections.push_back(reflection);
@@ -858,7 +876,7 @@ double MtzManager::partialityRatio(Reflection *imgReflection, Reflection *refRef
     
     double ratio = percentage / partiality;
     
-    if (ratio != ratio || !isfinite(ratio))
+    if (ratio != ratio || !std::isfinite(ratio))
         return 10;
     
     return ratio;
@@ -969,8 +987,8 @@ void MtzManager::findSteps()
     double jStep = (jMaxParam - jMinParam) / 2;
     double jParam = 0;
     
-    double kMinParam = wavelength - 0.03;
-    double kMaxParam = wavelength + 0.03;
+    double kMinParam = wavelength - 0.02;
+    double kMaxParam = wavelength + 0.02;
     double kStep = (kMaxParam - kMinParam) / 100;
     
     double lMinParam = 0.00079;

@@ -48,8 +48,6 @@ public:
 	void resolutionStatsPlot(vector<MtzManager *>& managers, std::string filename = "resolution_stats",
 			GraphMap properties = GraphMap(), bool intensityBins = false, bool image = false);
 
-    void plotOrientationStats(vector<MtzPtr> mtzs);
-    void plotPartialityStats();
     void plotPolarisation(vector<MtzPtr> mtzs);
 	void correlationPlot(std::string filename, double xMax = 0, double yMax = 0);
 	void partialityPlot(std::string filename, GraphMap properties = GraphMap());
@@ -57,7 +55,9 @@ public:
                      std::string filename = "all_gradients", GraphMap properties = GraphMap());
 #endif
 
-	MtzManager*& getMtz()
+    void plotOrientationStats(vector<MtzPtr> mtzs);
+    void plotPartialityStats();
+    MtzManager*& getMtz()
 	{
 		return mtz;
 	}

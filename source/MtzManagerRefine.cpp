@@ -109,11 +109,20 @@ double MtzManager::medianWavelength(double lowRes, double highRes)
     vector<double> wavelengths;
     double refinementIntensityThreshold = FileParser::getKey("REFINEMENT_INTENSITY_THRESHOLD", 200.0);
     
+    vector<double> wavelengthRange = FileParser::getKey("WAVELENGTH_RANGE", vector<double>());
+    
     for (int i = 0; i < reflectionCount(); i++)
     {
         for (int j = 0; j < reflection(i)->millerCount(); j++)
         {
             double wavelength = reflection(i)->miller(0)->getWavelength();
+            
+            if (wavelengthRange.size())
+            {
+                if (wavelength < wavelengthRange[0] || wavelength > wavelengthRange[1])
+                    continue;
+            }
+            
             double isigi = reflection(i)->miller(j)->getRawestIntensity();
             
             if (isigi > refinementIntensityThreshold && isigi == isigi)
@@ -130,12 +139,20 @@ double MtzManager::medianWavelength(double lowRes, double highRes)
  //       std::cout << wavelengths[i] << std::endl;
     }
     
+    if (wavelengths.size() < 2)
+        return 1.29;
+    
     return wavelengths[int(wavelengths.size() / 2)];
 }
 
 double MtzManager::bestWavelength(double lowRes, double highRes, bool usingReference)
 {
-    return medianWavelength(lowRes, highRes);
+    bool median = FileParser::getKey("MEDIAN_WAVELENGTH", false);
+    
+    if (median)
+        return medianWavelength(lowRes, highRes);
+    
+    vector<double> wavelengthRange = FileParser::getKey("WAVELENGTH_RANGE", vector<double>());
     
 	double totalWavelength = 0;
 	double count = 0;
@@ -159,6 +176,12 @@ double MtzManager::bestWavelength(double lowRes, double highRes, bool usingRefer
 				continue;
             
             double wavelength = reflection(i)->miller(0)->getWavelength();
+            
+            if (wavelengthRange.size())
+            {
+                if (wavelength < wavelengthRange[0] || wavelength > wavelengthRange[1])
+                    continue;
+            }
             
 			double weight = 1;
 			double isigi = reflection(i)->miller(j)->getRawestIntensity();
@@ -271,7 +294,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 	for (int i = 0; i < reflectionCount(); i++)
 	{
 		if (reflection(i)->getResolution() > maxResolution
-				&& reflection(i)->getResolution() < 1 / 1.4)
+				&& reflection(i)->getResolution() < 1 / 1.2)
 		{
             Reflection *bestReflection = reflection(i);
             

@@ -810,7 +810,7 @@ double Panel::detectorGain(double *error)
         double observed = millers[i]->observedPartiality(reference);
         double intensity = millers[i]->intensity();
         
-        if (observed == observed && isfinite(observed) && intensity == intensity)
+        if (observed == observed && std::isfinite(observed) && intensity == intensity)
         {
             observedPartialities.push_back(observed);
             observedWeights.push_back(fabs(intensity));

@@ -130,11 +130,30 @@ void MtzRefiner::cycleThread(int offset)
         {
             logged << "Refining image " << i << " " << image->getFilename() << std::endl;
             Logger::mainLogger->addStream(&logged);
-            if (initialGridSearch && cycleNum == 0)
-                image->findSteps();
             
-            for (int i = 0; i < 5; i++)
+            if (initialGridSearch && cycleNum == 0)
+            {
                 image->gridSearch();
+                image->findSteps();
+            }
+            
+   /*         if (cycleNum == 0)
+            {
+                image->setBandwidth(0.025);
+         //       image->setMosaicity(0.08);
+         //       image->setExponent(1.5);
+            }
+            
+            if (cycleNum == 0)
+            {
+                for (int i = 0; i < 2; i++)
+                    image->gridSearch();
+                image->setBandwidth(FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH));
+                image->setMosaicity(FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY));
+                image->setExponent(FileParser::getKey("INITIAL_EXPONENT", INITIAL_MOSAICITY));
+            }*/
+
+            image->gridSearch();
             
             if (image->getScoreType() == ScoreTypeStandardDeviation)
             {
@@ -499,6 +518,7 @@ void MtzRefiner::applyParametersToImages()
         newImage->setMaxResolution(maxIntegratedResolution);
         newImage->setSearchSize(metrologySearchSize);
         newImage->setIntensityThreshold(intensityThreshold);
+        newImage->setOrientationTolerance(orientationTolerance);
         if (fixUnitCell)
             newImage->setUnitCell(unitCell);
         
@@ -633,13 +653,25 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 
                 if (unitCell)
                 {
-                    double rightRot = 0.5 * M_PI / 180;
-                    double upRot = 0.1 * M_PI / 180;
                     if (newImages)
+                    {
+                        vector<double> correction = FileParser::getKey("ORIENTATION_CORRECTION", vector<double>());
                         rotation->rotate(0, 0, M_PI / 2);
-                    rotation->rotate(rightRot, upRot, 0);
+                        if (correction.size() > 2)
+                        {
+                            double rightRot = correction[0] * M_PI / 180;
+                            double upRot = correction[1] * M_PI / 180;
+                            rotation->rotate(rightRot, upRot, 0);
+                        }
+                    }
+                    
                     newMatrix = MatrixPtr(new Matrix);
                     newMatrix->setComplexMatrix(unitCell, rotation);
+                    
+                    if (newImages)
+                    {
+                        newImage->setUpIndexer(newMatrix);
+                    }
                     
                     unitCell = MatrixPtr();
                 }
@@ -651,7 +683,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
         }
         if (newImages)
         {
-            newImage->setUpIndexer(newMatrix);
             newImages->push_back(newImage);
         }
         
@@ -1330,7 +1361,7 @@ void MtzRefiner::loadPanels()
         panelParser->parse();
         hasPanelParser = true;
     }
-    else if (panelList != "")
+    else if (panelList == "")
     {
         std::cout << "No panel list provided. Continuing regardless..."
         << std::endl;
@@ -1422,11 +1453,15 @@ void MtzRefiner::loadMillersIntoPanels()
 
 void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
 {
-    std::ofstream newMats;
+    std::ofstream mergeMats;
+    std::ofstream refineMats;
+    std::ofstream integrateMats;
     
     std::string filename = FileParser::getKey("NEW_MATRIX_LIST", std::string("new_orientations.dat"));
     
-    newMats.open(filename);
+    mergeMats.open("merge-" + filename);
+    refineMats.open("refine-" + filename);
+    integrateMats.open("integrate-" + filename);
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
@@ -1445,23 +1480,39 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
             matrix->rotate(hRad, kRad, 0);
         }
         
+        std::string prefix = "img-";
+        
+        if (imgFilename.substr(0, 3) == "img")
+            prefix = "";
+        
+        
         if (!detailed)
         {
-            newMats << "img-" << imgFilename << " ";
+            refineMats << prefix << imgFilename << " ";
             std::string description = matrix->description();
-            newMats << description << std::endl;
+            refineMats << description << std::endl;
         }
         else
         {
-            newMats << "image img-" << imgFilename << std::endl;
+            std::string cutName = imgFilename.substr(0, imgFilename.length() - 2);
+            
+            mergeMats << "image ref-" << prefix << imgFilename << std::endl;
+            integrateMats << "image " << cutName << std::endl;
+            refineMats << "image " << prefix << imgFilename << std::endl;
             std::string description = matrix->description(true);
-            newMats << description << std::endl;
+            matrix->rotate(0, 0, -M_PI / 2);
+            std::string desc90 = matrix->description(true);
+            refineMats << description << std::endl;
+            mergeMats << description << std::endl;
+            integrateMats << desc90 << std::endl;
         }
     }
     
-    Logger::mainLogger->addString("Written to " + filename);
+    Logger::mainLogger->addString("Written to filename set: " + filename);
     
-    newMats.close();
+    refineMats.close();
+    mergeMats.close();
+    integrateMats.close();
 }
 
 
@@ -1692,8 +1743,6 @@ void MtzRefiner::refineDistances()
 
 void MtzRefiner::orientationPlot()
 {
-#ifdef MAC
     GraphDrawer drawer = GraphDrawer(reference);
     drawer.plotOrientationStats(mtzManagers);
-#endif
 }

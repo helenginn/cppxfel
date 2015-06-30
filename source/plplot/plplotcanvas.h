@@ -322,7 +322,7 @@ PLDLLIMPEXP_GNOME2 void plplot_canvas_gzax( PlplotCanvas* self, PLINT *p_digmax,
 
 PLDLLIMPEXP_GNOME2 void plplot_canvas_hist( PlplotCanvas* self, PLINT n, PLFLT *data, PLFLT datmin, PLFLT datmax, PLINT nbin, PLINT oldwin );
 
-// Set current color (map 0) by hue, lightness, and saturation.
+// Set current color (std::map 0) by hue, lightness, and saturation.
 
 PLDLLIMPEXP_GNOME2 void plplot_canvas_hls( PlplotCanvas* self, PLFLT h, PLFLT l, PLFLT s );
 

@@ -408,7 +408,7 @@ public:
     void hist( PLINT n, const PLFLT *data, PLFLT datmin, PLFLT datmax,
                PLINT nbin, PLINT oldwin );
 
-// Set current color (map 0) by hue, lightness, and saturation.
+// Set current color (std::map 0) by hue, lightness, and saturation.
 
 #ifdef PL_DEPRECATED
     void hls( PLFLT h, PLFLT l, PLFLT s );

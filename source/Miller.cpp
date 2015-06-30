@@ -34,18 +34,9 @@ double Miller::integrate_sphere(double p, double q, double radius)
     
     double proportion = partiality_add - partiality_remove;
     
-    double sphere_volume = lastVolume;
-    double circle_surface_area = lastSurfaceArea;
-    
-    if (sizeChanged)
-    {
-        sphere_volume = (4 * M_PI / 3) * pow(radius, 3);
-        circle_surface_area = pow(radius, 2) * M_PI;
+    double sphere_volume = (4 * M_PI / 3) * pow(radius, 3);
+    double circle_surface_area = pow(radius, 2) * M_PI;
         
-        lastVolume = sphere_volume;
-        lastSurfaceArea = circle_surface_area;
-    }
-    
     double distance_total = radius * 2;
     double distance_fraction = distance_total * (q - p);
     
@@ -489,12 +480,7 @@ double Miller::partialityForHKL(vec hkl, double hRot, double kRot, double mosaic
     bandwidth = fabs(bandwidth);
     
     
-    double radius = 0;
-    
-    if (!sizeChanged)
-        radius = lastRadius;
-    else
-        radius = expectedRadius(spotSize, mosaicity, &hkl);
+    double radius = expectedRadius(spotSize, mosaicity, &hkl);
     
     vec mean_wavelength_ewald_centre = new_vector(0, 0, -1 / wavelength);
     
@@ -602,8 +588,6 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
     {
         return;
     }
-    
-    sizeChanged = !(spotSize == lastRlpSize && mosaicity == lastMosaicity);
     
     MatrixPtr newMatrix = MatrixPtr();
     rotateMatrix(hRot, kRot, &newMatrix);
@@ -773,7 +757,7 @@ void Miller::applyPolarisation(double wavelength)
     
     double l = sin(0.5 * theta);
     
-    if (l == l && l != 0 && isfinite(l))
+    if (l == l && l != 0 && std::isfinite(l))
         rawIntensity *= l + 1;
 }
 
