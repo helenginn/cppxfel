@@ -34,6 +34,7 @@ typedef enum
 	RefinementTypeOrientationMatrixMedian = 7,
     RefinementTypeOrientationMatrixTotalSignal = 8,
     RefinementTypeOrientationMatrixHighestPeak = 9,
+    RefinementTypeOrientationMatrixEarlySeparated = 10,
 } RefinementType;
 
 class Indexer
@@ -87,8 +88,8 @@ public:
 	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false);
 	MtzPtr newMtz(int i);
 	void getWavelengthHistogram(vector<double> &wavelengths,
-			vector<int> &frequencies, LogLevel level = LogLevelDetailed);
-	double score();
+			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
+	double score(int whichAxis = 0);
 
 	static bool millerReachesThreshold(MillerPtr miller);
 	void findSpots();
@@ -98,7 +99,7 @@ public:
 
 	void matchMatrixToSpots();
 	void matchMatrixToSpots(RefinementType refinement);
-	void minimizeParameter(double *meanStep, double *param);
+	double minimizeParameter(double *meanStep, double *param, int whichAxis = 0);
 	void minimizeTwoParameters(double *meanStep1, double *meanStep2,
 			double *param1, double *param2);
 

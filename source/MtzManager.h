@@ -64,6 +64,7 @@ protected:
     MtzManager *previousReference;
     int previousAmbiguity;
     bool allowTrust;
+    bool setInitialValues;
     
 	double hRot;
 	double kRot;
@@ -271,8 +272,10 @@ public:
 
 // more grid search
 
-    void findSteps();
-	void gridSearch();
+    void setParamLine(std::string line);
+    std::string getParamLine();
+    void findSteps(int param1 = PARAM_UNIT_CELL_A, int param2 = PARAM_UNIT_CELL_B, int param3 = PARAM_UNIT_CELL_C);
+	void gridSearch(bool silent = false);
 	double leastSquaresPartiality(ScoreType typeOfScore);
     double minimize();
 	double minimize(double (*score)(void *object, double lowRes, double highRes),

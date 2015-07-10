@@ -318,6 +318,7 @@ MtzManager::MtzManager(void)
     previousAmbiguity = -1;
     activeAmbiguity = 0;
     bFactor = 0;
+    setInitialValues = false;
     refPartCorrel = 0;
     
     optimisingWavelength = !OPTIMISED_WAVELENGTH;
@@ -1734,4 +1735,50 @@ void MtzManager::incrementFailedCount()
 void MtzManager::resetFailedCount()
 {
     failedCount = 0;
+}
+
+#define PARAM_HROT 0
+#define PARAM_KROT 1
+#define PARAM_MOS 2
+#define PARAM_SPOT_SIZE 3
+#define PARAM_WAVELENGTH 4
+#define PARAM_BANDWIDTH 5
+#define PARAM_EXPONENT 6
+#define PARAM_B_FACTOR 7
+#define PARAM_SCALE_FACTOR 8
+#define PARAM_UNIT_CELL_A 9
+#define PARAM_UNIT_CELL_B 10
+#define PARAM_UNIT_CELL_C 11
+#define PARAM_NUM 12
+
+std::string MtzManager::getParamLine()
+{
+    std::ostringstream line;
+    line << "params ";
+    
+    line << mosaicity << " " << spotSize << " ";
+    line << bFactor << " " << scale << " " << cellDim[0] << " " << cellDim[1] << " " << cellDim[2];
+    
+    return line.str();
+}
+
+void MtzManager::setParamLine(std::string line)
+{
+    std::vector<std::string> components = FileReader::split(line, ' ');
+    
+    if (components.size() < 8)
+    {
+        Logger::mainLogger->addString("Not enough components on params line");
+        return;
+    }
+    
+    mosaicity = atof(components[1].c_str());
+    spotSize = atof(components[2].c_str());
+    bFactor = atof(components[3].c_str());
+    scale = atof(components[4].c_str());
+    cellDim[0] = atof(components[5].c_str());
+    cellDim[1] = atof(components[6].c_str());
+    cellDim[2] = atof(components[7].c_str());
+    
+    setInitialValues = true;
 }

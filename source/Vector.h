@@ -29,6 +29,7 @@ vec vector_between_vectors(vec vec1, vec vec2);
 void take_vector_away_from_vector(vec vec1, vec *vec2);
 void scale_vector_to_distance(vec *vec, double new_distance);
 double getEwaldSphereNoMatrix(vec index);
+double getEwaldWeightForAxis(vec index, bool isH);
 double cdf(double x, double mean, double sigma);
 double _cdf(double x);
 double normal_distribution(double x, double mean, double sigma);

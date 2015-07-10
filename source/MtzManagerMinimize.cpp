@@ -652,7 +652,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
 }
 
 
-void MtzManager::gridSearch()
+void MtzManager::gridSearch(bool silent)
 {
     scoreType = defaultScoreType;
     chooseAppropriateTarget();
@@ -771,7 +771,7 @@ void MtzManager::gridSearch()
     << newerCorrel << "\t" << rSplitValue << "\t"
     << partCorrel << "\t" << rMerge << "\t" << hits << std::endl;
     
-    this->sendLog(LogLevelNormal);
+    this->sendLog(silent ? LogLevelDebug : LogLevelNormal);
     
     delete[] firstParams;
     
@@ -954,11 +954,9 @@ bool compareResult(ResultTuple one, ResultTuple two)
     return boost::get<4>(two) > boost::get<4>(one);
 }
 
-void MtzManager::findSteps()
+void MtzManager::findSteps(int param1, int param2, int param3)
 {
     params = new double[PARAM_NUM];
-    
-    wavelength = 1.295;//bestWavelength();
     
     if (isnan(wavelength))
         return;
@@ -970,6 +968,8 @@ void MtzManager::findSteps()
     params[PARAM_WAVELENGTH] = wavelength;
     params[PARAM_BANDWIDTH] = bandwidth;
     params[PARAM_EXPONENT] = this->getExponent();
+    params[PARAM_B_FACTOR] = this->bFactor;
+    params[PARAM_SCALE_FACTOR] = this->getScale();
     params[PARAM_UNIT_CELL_A] = this->cellDim[0];
     params[PARAM_UNIT_CELL_B] = this->cellDim[1];
     params[PARAM_UNIT_CELL_C] = this->cellDim[2];
@@ -977,82 +977,124 @@ void MtzManager::findSteps()
     
     refreshPartialities(params);
     
-    double iMinParam = -0.005;
-    double iMaxParam = 0.005;
-    double iStep = (iMaxParam - iMinParam) / 2;
-    double iParam = 0;
+    double *ranges = new double[3];
+    double divisions = 9;
     
-    double jMinParam = -0.005;
-    double jMaxParam = 0.005;
-    double jStep = (jMaxParam - jMinParam) / 2;
-    double jParam = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        int chosen = (i == 0) ? param1 : ((i == 1) ? param2 : param3);
+        
+        if (chosen == PARAM_HROT || chosen == PARAM_KROT)
+                ranges[i] = 0.08;
+        else if (chosen == PARAM_WAVELENGTH)
+            ranges[i] = 0.03;
+        else if (chosen == PARAM_BANDWIDTH)
+            ranges[i] = 0.0005;
+        else if (chosen == PARAM_SPOT_SIZE)
+            ranges[i] = 0.0006;
+        else if (chosen == PARAM_MOS)
+            ranges[i] = 0.05;
+        else if (chosen == PARAM_EXPONENT)
+            ranges[i] = 0.8;
+        else if (chosen == PARAM_UNIT_CELL_A || chosen == PARAM_UNIT_CELL_B || chosen == PARAM_UNIT_CELL_C)
+            ranges[i] = 0.5;
+        else if (chosen == PARAM_SCALE_FACTOR || chosen == PARAM_B_FACTOR)
+            ranges[i] = 2.0;
+        else if (chosen == -1)
+            ranges[i] = 0.0;
+    }
     
-    double kMinParam = wavelength - 0.02;
-    double kMaxParam = wavelength + 0.02;
-    double kStep = (kMaxParam - kMinParam) / 100;
+    double iMinParam = 0;
+    double iMaxParam = 0;
+    double iStep = 1;
     
-    double lMinParam = 0.00079;
-    double lMaxParam = 0.00081;
-    double lStep = (lMaxParam - lMinParam) / 50;
-    double lParam = 0.0004;
+    double jMinParam = 0;
+    double jMaxParam = 0;
+    double jStep = 1;
+    
+    double kMinParam = 0;
+    double kMaxParam = 0;
+    double kStep = 1;
+    
+    if (param1 >= 0)
+    {
+        iMinParam = params[param1] - ranges[0];
+        iMaxParam = params[param1] + ranges[0];
+        iStep = (iMaxParam - iMinParam) / divisions;
+    }
+    
+    if (param2 >= 0)
+    {
+        jMinParam = params[param2] - ranges[1];
+        jMaxParam = params[param2] + ranges[1];
+        jStep = (jMaxParam - jMinParam) / divisions;
+    }
+    
+    if (param3 >= 0)
+    {
+        kMinParam = params[param3] - ranges[2];
+        kMaxParam = params[param3] + ranges[2];
+        kStep = (kMaxParam - kMinParam) / divisions;
+    }
     
     vector<ResultTuple> results;
-    double bestResult = FLT_MAX;
+    double bestResult = rSplit(0, maxResolutionAll);
     
-   /* for (double iParam = iMinParam; iParam < iMaxParam; iParam += iStep)
+    for (double iParam = iMinParam; iParam <= iMaxParam; iParam += iStep)
     {
-        for (double jParam = jMinParam; jParam < jMaxParam; jParam += jStep)
-        {*/
-            for (double kParam = kMinParam; kParam < kMaxParam; kParam += kStep)
+        for (double jParam = jMinParam; jParam <= jMaxParam; jParam += jStep)
+        {
+            for (double kParam = kMinParam; kParam <= kMaxParam; kParam += kStep)
             {
-     /*           for (double lParam = lMinParam; lParam < lMaxParam; lParam += lStep)
-                {*/
-                    params[PARAM_HROT] = iParam;
-                    params[PARAM_KROT] = jParam;
-                    params[PARAM_WAVELENGTH] = kParam;
-                    params[PARAM_SPOT_SIZE] = lParam;
-                    this->refreshPartialities(params);
-                    double score = rSplit(0, 0);
-                    
-                    ResultTuple result = boost::make_tuple<>(iParam, jParam, kParam, lParam, score);
-                    results.push_back(result);
-                 
-          //          std::cout << iParam << "\t" << jParam << "\t" << kParam << "\t" << lParam << "\t" << score << std::endl;
-                    
-                    if (bestResult > score)
-                    {
-                        bestResult = score;
-                    }
-          //      }
+                if (ranges[0] > 0)
+                    params[param1] = iParam;
+                if (ranges[1] > 0)
+                    params[param2] = jParam;
+                if (ranges[2] > 0)
+                    params[param3] = kParam;
+                this->refreshPartialities(params);
+                double score = rSplit(0, maxResolutionAll);
+                double rSplitValue = rSplit(0, maxResolutionAll);
+                
+                ResultTuple result = boost::make_tuple<>(iParam, jParam, kParam, rSplitValue, score);
+                results.push_back(result);
+                
+                if (bestResult > score)
+                {
+                    logged << "newmin\t" << iParam << "\t" << jParam << "\t" << kParam << "\t" << rSplitValue << std::endl;
+                    sendLog(LogLevelDetailed);
+                    bestResult = score;
+                }
+                //      }
             }
-/*        }
+        }
     }
-*/
+    
+    if (results.size() == 0)
+        return;
+    
     std::sort(results.begin(), results.end(), compareResult);
     
-    double newHRot = (boost::get<0>(results[0]));
-    double newKRot = (boost::get<1>(results[0]));
-    double newWavelength = (boost::get<2>(results[0]));
-    double newSpotSize = (boost::get<3>(results[0]));
+    double paramA = (boost::get<0>(results[0]));
+    double paramB = (boost::get<1>(results[0]));
+    double paramC = (boost::get<2>(results[0]));
     
-    params[PARAM_HROT] = newHRot;
-    params[PARAM_KROT] = newKRot;
-    params[PARAM_WAVELENGTH] = newWavelength;
-    params[PARAM_SPOT_SIZE] = newSpotSize;
-    
-    setHRot(newHRot);
-    setKRot(newKRot);
-    setWavelength(newWavelength);
-    setSpotSize(newSpotSize);
-    
+    if (ranges[0] > 0)
+        params[param1] = paramA;
+    if (ranges[1] > 0)
+        params[param2] = paramB;
+    if (ranges[2] > 0)
+        params[param3] = paramC;
+
+    setParams(params);
     double rSplit = boost::get<4>(results[0]);
     
-    std::cout << getFilename() << "grid" << "\t" << hRot << "\t" << kRot << "\t" << wavelength << "\t" << newSpotSize << "\t" << rSplit << std::endl;
-
     this->refreshPartialities(params);
     
     this->setRefCorrelation(correlation());
     this->setFinalised(true);
+    
+    delete [] ranges;
     
     this->writeToFile("ref-" + getFilename());
 }
@@ -1084,15 +1126,18 @@ void MtzManager::chooseAppropriateTarget()
 
 void MtzManager::resetDefaultParameters()
 {
-    wavelength = FileParser::getKey("INITIAL_WAVELENGTH", 0.0);
+    if (!setInitialValues)
+    {
+        wavelength = FileParser::getKey("INITIAL_WAVELENGTH", 0.0);
+        bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
+        mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
+        spotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
+        exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
+    }
+    
     usingFixedWavelength = (wavelength != 0);
-    bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
-    mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
-    spotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
     hRot = 0;
     kRot = 0;
-    exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
-    
     allowTrust = FileParser::getKey("ALLOW_TRUST", true);
     bool alwaysTrust = FileParser::getKey("TRUST_INDEXING_SOLUTION", false);
     

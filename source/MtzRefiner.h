@@ -28,6 +28,7 @@ private:
     static void indexImageWrapper(MtzRefiner *object, int offset, vector<MtzPtr> *mtzSubset);
     void applyParametersToImages();
     static int cycleNum;
+    bool hasRefined;
 public:
 	MtzRefiner();
 	virtual ~MtzRefiner();

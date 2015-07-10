@@ -870,7 +870,7 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 					imageReflection->miller(j)->getPartiality();
 
 			double rawIntensity =
-					imageReflection->miller(j)->getRawestIntensity();
+					imageReflection->miller(j)->getRawIntensity();
 
 			double percentage = rawIntensity / max_intensity * 100;
 			if (percentage < 0)

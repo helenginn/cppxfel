@@ -72,21 +72,20 @@ int main(int argc, char *argv[])
 		index(argv, argc);
 	}
 
-	if (strcmp(argv[1], "-allcc") == 0)
-	{
-		if (argc <= 2)
-		{
-			std::cout << "arguments: -allcc <file1> <file2> ... <filen>." << std::endl;
-			exit(1);
-		}
+    if (strcmp(argv[1], "-b") == 0)
+    {
+        float bFactor = atof(argv[2]);
+        
+        MtzManager *mtz1 = new MtzManager();
+        mtz1->setFilename(std::string(argv[3]));
+        mtz1->loadReflections(0);
+        
+        mtz1->applyBFactor(bFactor);
+        
+        mtz1->writeToFile("b-" + std::string(argv[3]));
 
-		Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
-
-		(*lbfgs).initialise_cluster_lbfgs(&argv[2], argc - 2, NULL);
-
-		delete lbfgs;
-	}
-
+    }
+    
 	if (strcmp(argv[1], "-rmerge") == 0 || strcmp(argv[1], "-rpim") == 0
 			|| strcmp(argv[1], "-rmeas") == 0)
 	{

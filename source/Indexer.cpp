@@ -46,6 +46,8 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     reference = NULL;
     hRot = 0;
     kRot = 0;
+    bestHRot = 0;
+    bestKRot = 0;
     lastTotal = 0;
     lastStdev = 0;
     expectedSpots = FileParser::getKey("EXPECTED_SPOTS", 30);
@@ -103,7 +105,7 @@ bool Indexer::millerReachesThreshold(MillerPtr miller)
 }
 
 void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
-                                     vector<int> &frequencies, LogLevel level)
+                                     vector<int> &frequencies, LogLevel level, int whichAxis)
 {
     wavelengths.clear();
     frequencies.clear();
@@ -120,8 +122,8 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
          i < wavelength * (1 + testBandwidth); i += interval)
     {
         wavelengths.push_back(i);
-        int frequency = 0;
-        int total = 0;
+        double frequency = 0;
+        double total = 0;
         
         for (int j = 0; j < millers.size(); j++)
         {
@@ -132,9 +134,11 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
             
             bool strong = millerReachesThreshold(millers[j]);
             
-            total++;
+            double weight = whichAxis == 0 ? 1 : millers[j]->getEwaldWeight(hRot, kRot, whichAxis == 1);
+            
+            total += weight;
             if (strong)
-                frequency++;
+                frequency += weight;
         }
         
         logged << i << "\t";
@@ -297,7 +301,7 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
     
     double averageEwald = 0;
     
-    logged << "Testing " << nearbyMillers.size() << " reflections close to the Ewald sphere." << std::endl;
+    logged << "Testing " << nearbyMillers.size() << " reflections close to the Ewald sphere with wavelength " << wavelength << std::endl;
     
     int cutResolution = 0;
     int partialityTooLow = 0;
@@ -369,6 +373,7 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
         this->millers.push_back(miller);
     }
     
+    logged << "Using wavelength: " << wavelength << std::endl;
     logged << "Beyond resolution cutoff: " << cutResolution << std::endl;
     logged << "Partiality equal to 0: " << partialityTooLow << std::endl;
     logged << "Image pixels were masked/flagged: " << unacceptableIntensity << std::endl;
@@ -377,7 +382,7 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
     sendLog(LogLevelDetailed);
 }
 
-void Indexer::minimizeParameter(double *meanStep, double *param)
+double Indexer::minimizeParameter(double *meanStep, double *param, int whichAxis)
 {
     double param_trials[3];
     double param_scores[3];
@@ -395,7 +400,7 @@ void Indexer::minimizeParameter(double *meanStep, double *param)
     {
         *param = i;
         this->checkAllMillers(maxResolution, testBandwidth);
-        param_scores[j] = score();
+        param_scores[j] = score(whichAxis);
         logged << param_scores[j] << ", ";
         param_trials[j] = i;
         j++;
@@ -415,10 +420,12 @@ void Indexer::minimizeParameter(double *meanStep, double *param)
     
     logged << "chosen no. " << param_min_num << std::endl;
     
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
     
     if (param_min_num == 1)
         *meanStep /= 2;
+    
+    return param_min_score;
 }
 
 void Indexer::minimizeTwoParameters(double *meanStep1, double *meanStep2,
@@ -749,17 +756,30 @@ double Indexer::medianIntensity()
     
 }
 
-double Indexer::score()
+double Indexer::score(int whichAxis)
 {
     if (refinement == RefinementTypeDetectorWavelength)
         return 0 - getTotalReflections();
     
-    if (refinement == RefinementTypeOrientationMatrixEarly)
+    if (refinement == RefinementTypeOrientationMatrixEarly || refinement == RefinementTypeOrientationMatrixEarlySeparated)
     {
         vector<double> wavelengths;
         vector<int> frequencies;
         
-        getWavelengthHistogram(wavelengths, frequencies);
+        switch (whichAxis)
+        {
+            case 0:
+                Logger::mainLogger->addString("Optimising both axes", LogLevelDetailed);
+                break;
+            case 1:
+                Logger::mainLogger->addString("Optimising H axis", LogLevelDetailed);
+                break;
+            case 2:
+                Logger::mainLogger->addString("Optimising K axis", LogLevelDetailed);
+                break;
+        }
+        
+        getWavelengthHistogram(wavelengths, frequencies, whichAxis == 0 ? LogLevelDetailed : LogLevelDebug, whichAxis);
         
         double mean = 0;
         double stdev = 0;
@@ -768,7 +788,7 @@ double Indexer::score()
         double total = getTotalReflectionsWithinBandwidth();
         //	double totalIntensity = getTotalIntegratedSignal();
         
-        double totalWeight = 19;
+        double totalWeight = 10;
         double stdevWeight = 15;
         
         double totalChange = total / lastTotal - 1;
@@ -1178,7 +1198,8 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     
     checkAllMillers(maxResolution, testBandwidth);
     sendLog(LogLevelDetailed);
-    getWavelengthHistogram(wavelengths, frequencies);
+    Logger::mainLogger->addString("Wavelength histogram before refinement");
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     
     double mean = 0;
     double stdev = 0;
@@ -1209,9 +1230,15 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
         
         int count = 0;
         
-        while (!(refinedH && refinedK && (refinedA && refinedB && refinedC)) && count < 50)
+        while (!(refinedH && refinedK && (refinedA && refinedB && refinedC)) && count < 20)
         {
-            this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
+            if (refinementType != RefinementTypeOrientationMatrixEarlySeparated)
+                this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
+            else
+            {
+                this->minimizeParameter(&kRotStep, &kRot, 2);
+                this->minimizeParameter(&hRotStep, &hRot, 1);
+            }
             
             if (!refinedA)
                 minimizeParameter(&aStep, &unitCell[0]);
@@ -1235,10 +1262,9 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
             
             if (hRotStep < 0.25 && kRotStep < 0.25)
             {
-                image->setWavelength(mean);
-                
                 if (!recalculated)
                 {
+            //        testWavelength = mean;
                     recalculated = true;
                     this->calculateNearbyMillers(true);
                 }
@@ -1278,6 +1304,7 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
         }
     }
     
+    logged << "Current wavelength: " << testWavelength << " Å." << std::endl;
     logged << "Rotation result:\t" << image->getFilename() << "\t" << hRot
     << "\t" << kRot << "\t" << getTotalReflections() << "\t" << getLastScore() << std::endl;
     
@@ -1298,12 +1325,6 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     lengths[1] *= aveRatio;
     lengths[2] *= aveRatio;
     
- /*   unitCell[0] = lengths[0] * aveRatio;
-    unitCell[1] = lengths[1] * aveRatio;
-    unitCell[2] = lengths[2] * aveRatio;
-
-    testWavelength *= aveRatio;
-*/
     delete [] lengths;
     
     getMatrix()->rotate(hRad, kRad, 0);
@@ -1334,7 +1355,9 @@ MtzPtr Indexer::newMtz(int index)
     double stdev = 0;
     double theScore = 0;
     
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal);
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 1);
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 2);
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 0);
     gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
                  &theScore, true);
     

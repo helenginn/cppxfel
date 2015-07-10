@@ -388,7 +388,7 @@ double Miller::getWavelength()
     return wavelength;
 }
 
-double Miller::getWavelength(double hRot, double kRot)
+vec Miller::getTransformedHKL(double hRot, double kRot)
 {
     MatrixPtr newMatrix = MatrixPtr();
     rotateMatrix(hRot, kRot, &newMatrix);
@@ -396,10 +396,26 @@ double Miller::getWavelength(double hRot, double kRot)
     vec hkl = new_vector(h, k, l);
     
     newMatrix->multiplyVector(&hkl);
+
+    return hkl;
+}
+
+double Miller::getWavelength(double hRot, double kRot)
+{
+    vec hkl = getTransformedHKL(hRot, kRot);
     
     wavelength = getEwaldSphereNoMatrix(hkl);
     
     return wavelength;
+}
+
+double Miller::getEwaldWeight(double hRot, double kRot, bool isH)
+{
+    double weight = 0;
+    vec hkl = getTransformedHKL(hRot, kRot);
+    weight = getEwaldWeightForAxis(hkl, isH);
+    
+    return weight;
 }
 
 double Miller::getWeight(WeightType weighting)

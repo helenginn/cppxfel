@@ -766,3 +766,29 @@ unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
     
     return max;
 }
+
+bool Image::checkUnitCell(double trueA, double trueB, double trueC, double tolerance)
+{
+    for (int i = 0; i < indexerCount(); i++)
+    {
+        bool isOk = true;
+        double *cellDims = new double[3];
+        getIndexer(i)->getMatrix()->unitCellLengths(&cellDims);
+        
+        if (cellDims[0] < trueA - tolerance || cellDims[0] > trueA + tolerance)
+            isOk = false;
+        if (cellDims[1] < trueB - tolerance || cellDims[1] > trueB + tolerance)
+            isOk = false;
+        if (cellDims[2] < trueC - tolerance || cellDims[2] > trueC + tolerance)
+            isOk = false;
+        
+        if (!isOk)
+        {
+            indexers.erase(indexers.begin() + i);
+            i--;
+        }
+    }
+    
+    return indexerCount() > 0;
+}
+

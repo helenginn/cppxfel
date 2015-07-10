@@ -106,6 +106,8 @@ public:
     void setTestBandwidth(double bandwidth);
     void setOrientationTolerance(double newTolerance);
     
+    bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
+    
     int indexerCount()
     {
         return (int)indexers.size();

@@ -55,13 +55,20 @@ vec copy_vector(vec old_vec)
 	return vec;
 }
 
+double cosineBetweenVectors(vec vec1, vec vec2)
+{
+    double dotProduct = vec1.h * vec2.h + vec1.k * vec2.k + vec1.l * vec2.l;
+    double vec1_length = length_of_vector(vec1);
+    double vec2_length = length_of_vector(vec2);
+    
+    double cosTheta = dotProduct / (vec1_length * vec2_length);
+    
+    return cosTheta;
+}
+
 double angleBetweenVectors(vec vec1, vec vec2)
 {
-	double dotProduct = vec1.h * vec2.h + vec1.k * vec2.k + vec1.l * vec2.l;
-	double vec1_length = length_of_vector(vec1);
-	double vec2_length = length_of_vector(vec2);
-
-	double cosTheta = dotProduct / (vec1_length * vec2_length);
+    double cosTheta = cosineBetweenVectors(vec1, vec2);
 
 	double angle = acos(cosTheta);
 
@@ -97,8 +104,7 @@ void scale_vector_to_distance(vec *vector, double new_distance)
 
 double getEwaldSphereNoMatrix(vec index)
 {
-
-	double ewald_radius = index.h * index.h + index.k * index.k
+    double ewald_radius = index.h * index.h + index.k * index.k
 			+ index.l * index.l;
 	if (index.l == 0)
 		return 0;
@@ -107,6 +113,16 @@ double getEwaldSphereNoMatrix(vec index)
 	double ewald_wavelength = 1 / ewald_radius;
 
 	return ewald_wavelength;
+}
+
+double getEwaldWeightForAxis(vec index, bool isH)
+{
+    vec axisVec = isH ? new_vector(1, 0, 0) : new_vector(0, 1, 0);
+    vec indexVec = new_vector(index.h, index.k, 0);
+    
+    double cos = cosineBetweenVectors(axisVec, indexVec);
+    
+    return 1 - fabs(cos);
 }
 
 double cartesian_to_distance(double x, double y)

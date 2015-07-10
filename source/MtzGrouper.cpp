@@ -62,17 +62,25 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     {
         if (mtz->getRefPartCorrel() < refPartCorrelThreshold)
         {
+            Logger::mainLogger->addString("Rejecting due to low partiality correlation", LogLevelDetailed);
             return false;
         }
     }
     
     if (mtz->accepted() < minimumReflectionCutoff)
+    {
+        Logger::mainLogger->addString("Rejecting due to not reaching minimum number of reflections", LogLevelDetailed);
         return false;
+    }
     
     double refCorrelation = mtz->getRefCorrelation();
     
     if (refCorrelation < 0 || refCorrelation == 1)
+    {
+        Logger::mainLogger->addString("Rejecting due to suspicious correlation with reference", LogLevelDetailed);
+        
         return false;
+    }
     
     double minimumRSplit = FileParser::getKey("R_SPLIT_THRESHOLD", 0.0);
     
@@ -83,13 +91,26 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
         rSplit = mtz->rSplit(0, 0);
     
     if ((refCorrelation < correlationThreshold && excludeWorst
-         && !mtz->isFreePass())
-        || mtz->isRejected())
+         && !mtz->isFreePass()))
+    {
+        Logger::mainLogger->addString("Rejecting due to poor correlation with reference", LogLevelDetailed);
+        
         return false;
+    }
+    
+    if (mtz->isRejected())
+    {
+        Logger::mainLogger->addString("Rejecting due to true rejection flag", LogLevelDetailed);
+        
+        return false;
+    }
     
     if (needsRSplit && minimumRSplit > 0 && rSplit > minimumRSplit)
+    {
+        Logger::mainLogger->addString("Rejecting due to R split being too high", LogLevelDetailed);
+        
         return false;
-    
+    }
     
     return true;
 }
@@ -149,12 +170,14 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	for (int i = 0; i < mtzManagers.size(); i++)
 	{
 		double correl = mtzManagers[i]->getRefCorrelation();
-		averageCorrelation += correl;
+        if (correl != -1)
+            averageCorrelation += correl;
 
 		double hRot = mtzManagers[i]->getHRot();
 		double kRot = mtzManagers[i]->getKRot();
 
 		double correction = sqrt(hRot * hRot + kRot * kRot);
+        
 		rotationCorrection += correction;
 
 		if (correl > correlationThreshold)

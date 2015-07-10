@@ -118,7 +118,9 @@ public:
 	bool isRejected(std::string reason);
 	void makeScalesPermanent();
     void integrateIntensity(double hRot, double kRot);
-
+    vec getTransformedHKL(double hRot, double kRot);
+    double getEwaldWeight(double hRot, double kRot, bool isH);
+    
 	bool accepted(void);
 	bool free(void);
 	void flip(void);

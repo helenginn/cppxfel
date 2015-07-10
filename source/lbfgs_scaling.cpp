@@ -75,20 +75,19 @@ void Lbfgs_Scaling::run(void)
 
 	std::cout << "n = " << n << std::endl;
 
-//	int count = 0;
-
     for (int i = 0; i < n; i++)
     {
         x[i] = 1;
     }
     
-//	scaling->outputSimpleScaling(&x);
-
 	fx = scaling->rMerge();
 	std::cout << "R meas after gradient scaling: " << fx << std::endl;
 
 	lbfgs_parameter_init(&param);
 	param.max_iterations = 50;
+    
+    
+    
 
 	ret = lbfgs(n, x, &fx, evaluate, progress, NULL, &param);
 
