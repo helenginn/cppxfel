@@ -143,7 +143,7 @@ typedef boost::shared_ptr<std::ostringstream> StreamPtr;
 typedef boost::shared_ptr<Logger>LoggerPtr;
 typedef boost::shared_ptr<Image>ImagePtr;
 typedef boost::shared_ptr<ImageCluster>ImageClusterPtr;
-typedef std::shared_ptr<Matrix>MatrixPtr;
+typedef boost::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<Indexer>IndexerPtr;
 
 typedef boost::variant<double, double, std::string, bool, int,
