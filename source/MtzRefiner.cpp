@@ -7,7 +7,6 @@
 
 #include "MtzRefiner.h"
 #include <vector>
-#include "lbfgs_cluster.h"
 #include "misc.h"
 #include "Vector.h"
 #include <boost/thread/thread.hpp>
@@ -24,6 +23,8 @@
 #include "Panel.h"
 #include "Logger.h"
 #include "XManager.h"
+#include <boost/python.hpp>
+#include "ImageCluster.h"
 
 bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
@@ -44,6 +45,7 @@ MtzRefiner::MtzRefiner()
     imageLimit = FileParser::getKey("IMAGE_LIMIT", 0);
     
     hasRefined = false;
+    isPython = false;
 }
 
 void print_parameters()
@@ -200,6 +202,7 @@ void MtzRefiner::initialMerge()
      
      reference->writeToFile("initialMerge.mtz");
      */
+    
     AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
     breaker.run();
     originalMerge = breaker.getMergedMtz();
@@ -469,10 +472,24 @@ void MtzRefiner::applyParametersToImages()
     
     int spg_num = FileParser::getKey("SPACE_GROUP", -1);
     
+    double distance = 0;
+    double wavelength = 0;
+    
     if (spg_num == -1)
     {
         std::cout << "Please set space group number under keyword SPACE_GROUP"
         << std::endl;
+    }
+    
+    if (isFromPython())
+    {
+        distance = FileParser::getKey("DETECTOR_DISTANCE", 0.);
+        wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.);
+        
+        if (distance != 0 || wavelength != 0)
+        {
+            std::cout << "Overriding image parameters with distance and/or wavelength specified in input file." << std::endl;
+        }
     }
     
     double overPredSpotSize = FileParser::getKey("OVER_PRED_RLP_SIZE",
@@ -512,6 +529,20 @@ void MtzRefiner::applyParametersToImages()
         newImage->setSearchSize(metrologySearchSize);
         newImage->setIntensityThreshold(intensityThreshold);
         newImage->setOrientationTolerance(orientationTolerance);
+        
+  //      newImage->addMask(688, 1025, 722, 980);
+  //      newImage->addMask(0, 735, 761, 893);
+        
+        if (distance != 0)
+        {
+            newImage->setDetectorDistance(distance);
+        }
+        
+        if (wavelength != 0)
+        {
+            newImage->setWavelength(wavelength);
+        }
+        
         if (fixUnitCell)
             newImage->setUnitCell(unitCell);
         
@@ -599,6 +630,8 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
         double usedWavelength = wavelength;
         double usedDistance = detectorDistance;
         
+        bool fromDials = FileParser::getKey("FROM_DIALS", true);
+        
         if (components.size() >= 3)
         {
             usedWavelength = atof(components[1].c_str());
@@ -615,6 +648,15 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
         for (int i = 1; i < lines.size(); i++)
         {
             vector<std::string> components = FileReader::split(lines[i], ' ');
+            
+            if (components.size() == 0)
+                continue;
+            
+            if (components[0] == "spots")
+            {
+                std::string spotsFile = components[1];
+                newImage->setSpotsFile(spotsFile);
+            }
             
             if (components[0] == "matrix")
             {
@@ -650,12 +692,23 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                     if (newImages)
                     {
                         vector<double> correction = FileParser::getKey("ORIENTATION_CORRECTION", vector<double>());
-                        rotation->rotate(0, 0, M_PI / 2);
-                        if (correction.size() > 2)
+                        
+                        if (fromDials)
+                        {
+                            std::cout << "Rotating by 90º" << std::endl;
+                            rotation->rotate(0, 0, M_PI / 2);
+                        }
+                        
+                        if (correction.size() >= 2)
                         {
                             double rightRot = correction[0] * M_PI / 180;
                             double upRot = correction[1] * M_PI / 180;
-                            rotation->rotate(rightRot, upRot, 0);
+                            double swivelRot = 0;
+                            
+                            if (correction.size() > 2)
+                                swivelRot = correction[2] * M_PI / 180;
+                            
+                            rotation->rotate(rightRot, upRot, swivelRot);
                         }
                     }
                     
@@ -714,7 +767,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 }
                 else
                 {
-                    logged << "Skipping file " << filename << " due to poor unit cell" << std::endl;
+                    Logger::mainLogger->addString("Skipping file " + *filename + " due to poor unit cell");
                 }
             }
         }
@@ -1261,23 +1314,44 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
     }
 }
 
-void MtzRefiner::integrate(bool orientation)
+void MtzRefiner::loadImageFiles()
 {
-    orientation = FileParser::getKey("REFINE_ORIENTATIONS", false);
-    
     loadPanels();
     
-    std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
-                                              std::string(""));
-    if (filename == "")
+    if (!isFromPython())
     {
-        std::cout
-        << "Filename list has not been provided for integration. Please provide under keyword ORIENTATION_MATRIX_LIST."
-        << std::endl;
-        exit(1);
+        std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
+                                                  std::string(""));
+        if (filename == "")
+        {
+            std::cout
+            << "Filename list has not been provided for integration. Please provide under keyword ORIENTATION_MATRIX_LIST."
+            << std::endl;
+            exit(1);
+        }
+        
+        readMatricesAndImages(&filename);
     }
-    
-    readMatricesAndImages(&filename);
+    else
+    {
+        int num = (int)images.size();
+        std::cout << "There have been " << num << " images loaded before starting integration command." << std::endl;
+        
+        if (num == 0)
+        {
+            std::cout << "WARNING! You have not loaded any images from Python! Please load at least one image from the python command line. Aborting integration." << std::endl;
+            return;
+        }
+        
+        applyParametersToImages();
+    }
+}
+
+void MtzRefiner::integrate()
+{
+    bool orientation = FileParser::getKey("REFINE_ORIENTATIONS", false);
+   
+    loadImageFiles();
     
     int crystals = 0;
     
@@ -1342,18 +1416,28 @@ void MtzRefiner::integrate(bool orientation)
             double lastScore = images[i]->getIndexer(j)->getLastScore();
             double bestHRot = 0;
             double bestKRot = 0;
+            double bestLRot = images[i]->getIndexer(j)->getBestLRot();
             double wavelength = images[i]->getIndexer(j)->getWavelength();
+            double distance = images[i]->getIndexer(j)->getDetectorDistance();
             MatrixPtr matrix = images[i]->getIndexer(j)->getMatrix();
             double *lengths = new double[3];
             matrix->unitCellLengths(&lengths);
             images[i]->getIndexer(j)->getBestRots(&bestHRot, &bestKRot);
             
             std::cout << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
-            << bestHRot << "\t" << bestKRot << "\t" << wavelength << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << std::endl;
+            << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << std::endl;
             
             delete [] lengths;
         }
     }
+}
+
+void MtzRefiner::clusterIndexing()
+{
+    loadImageFiles();
+    
+    ImageCluster cluster = ImageCluster(images);
+    cluster.process();
 }
 
 
@@ -1399,7 +1483,7 @@ void MtzRefiner::refineDetectorGeometry()
             Panel::refineDetectorDistance();
             
             Panel::clearAllMillers();
-            integrate(false);
+            integrate();
         }
     }
     else
@@ -1639,7 +1723,7 @@ void MtzRefiner::plotDetectorGains()
     {
         MtzManager *ref = MtzManager::getReferenceManager();
         
-        double scale = mtzManagers[i]->gradientAgainstManager(*ref);
+        double scale = mtzManagers[i]->gradientAgainstManager(ref);
         mtzManagers[i]->applyScaleFactor(scale);
     }
     
@@ -1771,4 +1855,28 @@ void MtzRefiner::orientationPlot()
 {
     GraphDrawer drawer = GraphDrawer(reference);
     drawer.plotOrientationStats(mtzManagers);
+}
+
+void MtzRefiner::addMatrixToLastImage(scitbx::mat3<double> unit_cell, scitbx::mat3<double> rotation)
+{
+    Image *lastImage = images.back();
+    MatrixPtr newMat = MatrixPtr(new Matrix(unit_cell, rotation));
+    lastImage->setUpIndexer(newMat);
+    
+    double *lengths = new double[3];
+    newMat->unitCellLengths(&lengths);
+    
+    std::cout << "Added crystal of unit cell dimensions " << lengths[0] << ", " << lengths[1] << ", " << lengths[2] << " Å." << std::endl;
+    
+    delete [] lengths;
+}
+
+void MtzRefiner::loadDxtbxImage(std::string imageName, vector<int> imageData, double distance, double wavelength)
+{
+    Image *newImage = new Image(imageName, wavelength, distance);
+    newImage->setImageData(imageData);
+    
+    
+    images.push_back(newImage);
+    std::cout << "Loaded image " << imageName << std::endl;
 }

@@ -12,8 +12,9 @@
 #include "Indexer.h"
 #include "parameters.h"
 #include "Logger.h"
-#include "headers/csymlib.h"
+#include "csymlib.h"
 
+class CommonLine;
 class Indexer;
 
 class Image
@@ -27,12 +28,11 @@ private:
     vector<IndexerPtr> indexers;
     bool shouldMaskValue;
     bool maskedValue;
+    std::string spotsFile;
+    std::ostringstream logged;
     
 	/* Shoebox must be n by n where n is an odd number */
 	int shoebox[7][7];
-
-//	int customShoeboxLength;
-//	ShoeboxPtr customShoebox;
 
 	int xDim;
 	int yDim;
@@ -45,6 +45,11 @@ private:
 	double wavelength;
 	bool pinPoint;
 
+    vector<SpotPtr> spots;
+    vector<CommonLinePtr> commonLines;
+    vector<CommonLinePair> commonLinePairs;
+    bool _hasSeeded;
+    
 	vector<vector<int> > masks;
 	vector<vector<int> > spotCovers;
 
@@ -56,6 +61,7 @@ private:
 public:
     void incrementOverlapMask(int x, int y, ShoeboxPtr shoebox);
     void incrementOverlapMask(int x, int y);
+    void processSpotList();
     unsigned char overlapAt(int x, int y);
     unsigned char maximumOverlapMask(int x, int y, ShoeboxPtr shoebox);
 	Image(std::string filename = "", double wavelength = 0,
@@ -75,6 +81,16 @@ public:
 	static void applyMaskToImages(vector<Image *> images, int startX,
 			int startY, int endX, int endY);
     void refineDistances();
+    void findCommonLines();
+    double commonLinesWithImage(Image *otherImage);
+    void commonLinesWithImages(std::vector<Image *>images);
+    bool hasCommonLinesWithImage(Image *otherImage);
+    void addCommonLinePair(CommonLinePtr thisLine, CommonLinePtr otherLine);
+
+    unsigned long linePairCount()
+    {
+        return commonLinePairs.size();
+    }
     
 	const std::string& getFilename() const
 	{
@@ -85,6 +101,17 @@ public:
 	{
 		this->filename = filename;
 	}
+    
+    std::string getSpotsFile()
+    {
+        return spotsFile;
+    }
+    
+    void setSpotsFile(std::string newFile)
+    {
+        spotsFile = newFile;
+        processSpotList();
+    }
 
 	int valueAt(int x, int y);
 	bool accepted(int x, int y);
@@ -107,6 +134,16 @@ public:
     void setOrientationTolerance(double newTolerance);
     
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
+    
+    bool hasSeeded()
+    {
+        return _hasSeeded;
+    }
+    
+    void setSeeded(bool seed = true)
+    {
+        _hasSeeded = seed;
+    }
     
     int indexerCount()
     {
@@ -146,6 +183,8 @@ public:
 	void setDetectorDistance(double detectorDistance)
 	{
 		this->detectorDistance = detectorDistance;
+        
+        
 	}
 
 	double getWavelength() const
@@ -197,6 +236,11 @@ public:
 	{
 		this->pinPoint = pinPoint;
 	}
+   
+    void setImageData(vector<int> newData);
+    
+    void sendLog(LogLevel priority = LogLevelNormal);
+
 };
 
 #endif /* IMAGE_H_ */

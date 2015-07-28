@@ -5,6 +5,7 @@
  *      Author: helenginn
  */
 
+#include "parameters.h"
 #include "Image.h"
 #include <cmath>
 #include <iostream>
@@ -13,7 +14,10 @@
 #include "Logger.h"
 #include "FileParser.h"
 #include "Panel.h"
+#include "misc.h"
 #include "Shoebox.h"
+#include "Spot.h"
+#include "CommonLine.h"
 
 Image::Image(std::string filename, double wavelength,
 		double distance)
@@ -23,6 +27,8 @@ Image::Image(std::string filename, double wavelength,
 	xDim = 1765;
 	yDim = 1765;
 
+    spotsFile = "";
+    
     if (dims.size())
     {
         xDim = dims[0];
@@ -46,6 +52,7 @@ Image::Image(std::string filename, double wavelength,
     
     beamX = beam[0];
     beamY = beam[1];
+    _hasSeeded = false;
     
 	pinPoint = true;
 	int tempShoebox[7][7] =
@@ -144,6 +151,16 @@ bool Image::isLoaded()
 	return (data.size() > 0);
 }
 
+void Image::setImageData(vector<int> newData)
+{
+    data.resize(newData.size());
+    
+    memcpy(&data[0], &newData[0], newData.size() * sizeof(int));
+    
+    logged << "Image with wavelength " << this->wavelength << ", distance " << detectorDistance << std::endl;
+    sendLog();
+}
+
 void Image::loadImage()
 {
 	std::streampos size;
@@ -173,10 +190,9 @@ void Image::loadImage()
         
         overlapMask = vector<unsigned char>(memblock.size(), 0);
 
-        std::ostringstream logged;
 		logged << "Image size: " << memblock.size() << " for image: "
 				<< filename << std::endl;
-        Logger::mainLogger->addStream(&logged);
+        sendLog();
         
         if (!shortInt)
             memcpy(&data[0], &memblock[0], memblock.size());
@@ -414,9 +430,8 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
     
     if (double(zeroCount) / double(count) > 0.4)
     {
-        std::ostringstream logged;
         logged << "Rejecting miller - too many zeros" << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelDebug);
+        sendLog(LogLevelDebug);
         return false;
     }
 
@@ -501,7 +516,7 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 
     
     std::ostringstream logged;
- //   logged << "Photons (back/fore/back-in-fore): " << background << "\t" << foreground << "\t" << "; weights: " << backNum << "\t" << foreNum << std::endl;
+    logged << "Photons (back/fore/back-in-fore): " << background << "\t" << foreground << "\t" << "; weights: " << backNum << "\t" << foreNum << std::endl;
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
     
 	double intensity = (foreground - backgroundInForeground);
@@ -558,7 +573,8 @@ void Image::index()
 {
 	if (indexers.size() == 0)
     {
-        std::cout << "No orientation matrices, cannot index/integrate." << std::endl;
+        logged << "No orientation matrices, cannot index/integrate." << std::endl;
+        sendLog();
         return;
     }
 
@@ -573,7 +589,8 @@ void Image::refineIndexing(MtzManager *reference)
 {
     if (indexers.size() == 0)
     {
-        std::cout << "No orientation matrices, cannot index/integrate." << std::endl;
+        logged << "No orientation matrices, cannot index/integrate." << std::endl;
+        sendLog();
         return;
     }
     
@@ -587,7 +604,8 @@ void Image::refineOrientations()
 {
     if (indexers.size() == 0)
     {
-        std::cout << "No orientation matrices, cannot index/integrate." << std::endl;
+        logged << "No orientation matrices, cannot index/integrate." << std::endl;
+        sendLog();
         return;
     }
     
@@ -601,7 +619,8 @@ void Image::refineDistances()
 {
     if (indexers.size() == 0)
     {
-        std::cout << "No orientation matrices, cannot refine distance." << std::endl;
+        logged << "No orientation matrices, cannot refine distance." << std::endl;
+        sendLog();
         return;
     }
     
@@ -615,16 +634,20 @@ vector<MtzPtr> Image::currentMtzs()
 {
     vector<MtzPtr> mtzs;
     int count = 0;
+    bool rejecting = !FileParser::getKey("DO_NOT_REJECT_REFLECTIONS", false);
     
     for (int i = 0; i < indexerCount(); i++)
     {
         MtzPtr newMtz = indexers[i]->newMtz(i);
-        count += newMtz->rejectOverlaps();
+        
+        if (rejecting)
+            count += newMtz->rejectOverlaps();
         mtzs.push_back(newMtz);
     }
     
-    std::cout << "Generated " << mtzs.size() << " mtzs with " << count << " rejected reflections." << std::endl;
-
+    logged << "Generated " << mtzs.size() << " mtzs with " << count << " rejected reflections." << std::endl;
+    sendLog();
+    
     // fix me
     
 	return mtzs;
@@ -790,5 +813,177 @@ bool Image::checkUnitCell(double trueA, double trueB, double trueC, double toler
     }
     
     return indexerCount() > 0;
+}
+
+void Image::processSpotList()
+{
+    std::string spotContents = FileReader::get_file_contents(spotsFile.c_str());
+    vector<std::string> spotLines = FileReader::split(spotContents, '\n');
+    
+    for (int i = 0; i < spotLines.size(); i++)
+    {
+        std::string line = spotLines[i];
+        vector<std::string> components = FileReader::split(line, '\t');
+        double x = atof(components[0].c_str());
+        double y = atof(components[1].c_str());
+        vec beamXY = new_vector(beamX, beamY, 1);
+        vec newXY = new_vector(x, y, 1);
+        vec xyVec = vector_between_vectors(beamXY, newXY);
+        MatrixPtr rotateMat = MatrixPtr(new Matrix());
+        rotateMat->rotate(0, 0, M_PI);
+        rotateMat->multiplyVector(&xyVec);
+        
+        SpotPtr newSpot = SpotPtr(new Spot(this));
+        newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
+        
+        spots.push_back(newSpot);
+    }
+    
+    logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;
+    sendLog(LogLevelNormal);
+    
+    findCommonLines();
+}
+
+void Image::findCommonLines()
+{
+    double totalSpots = 0;
+    
+    for (int i = 0; i < spots.size(); i++)
+    {
+        SpotPtr spot = spots[i];
+        
+        if (spot->isChecked())
+            continue;
+        
+        std::vector<SpotPtr> commonSpots;
+        commonSpots.push_back(spot);
+        
+        for (int j = 0; j < spots.size(); j++)
+        {
+            if (i == j)
+                continue;
+            
+            SpotPtr testSpot = spots[j];
+            
+            if (testSpot->isChecked())
+                continue;
+            
+            if (spot->isOnSameLineAsSpot(testSpot, 0.2))
+            {
+                commonSpots.push_back(testSpot);
+                testSpot->setChecked();
+            }
+        }
+        
+        if (commonSpots.size() < 3)
+            continue;
+        
+        totalSpots += (int)commonSpots.size();
+        
+        CommonLinePtr commonLine = CommonLinePtr(new CommonLine(commonSpots, this));
+        commonLines.push_back(commonLine);
+    }
+    
+    totalSpots /= commonLines.size();
+    
+    logged << "Generated " << commonLines.size() <<
+              " common lines with an average of " << totalSpots << std::endl;
+    sendLog();
+}
+
+bool Image::hasCommonLinesWithImage(Image *otherImage)
+{
+    for (int i = 0; i < commonLinePairs.size(); i++)
+    {
+        if (commonLinePairs[i].first->getParentImage() == this &&
+            commonLinePairs[i].second->getParentImage() == otherImage)
+            return true;
+
+        if (commonLinePairs[i].second->getParentImage() == this &&
+            commonLinePairs[i].first->getParentImage() == otherImage)
+            return true;
+    }
+    
+    return false;
+}
+
+void Image::commonLinesWithImages(std::vector<Image *>images)
+{
+    for (int i = 0; i < images.size(); i++)
+    {
+        if (images[i] == this)
+            continue;
+        
+        if (hasCommonLinesWithImage(images[i]))
+            continue;
+        
+        commonLinesWithImage(images[i]);
+    }
+}
+
+void Image::addCommonLinePair(CommonLinePtr thisLine, CommonLinePtr otherLine)
+{
+    CommonLinePair pair = std::make_pair(thisLine, otherLine);
+    commonLinePairs.push_back(pair);
+}
+
+double Image::commonLinesWithImage(Image *otherImage)
+{
+    double min = 1000;
+    CommonLinePtr thisLine;
+    CommonLinePtr otherLine;
+    
+    if (hasCommonLinesWithImage(otherImage))
+        return 1000;
+    
+    for (int i = 0; i < commonLines.size(); i++)
+    {
+        for (int j = 0; j < otherImage->commonLines.size(); j++)
+        {
+            double score = commonLines[i]->similarityToCommonLine(otherImage->commonLines[j]);
+            
+            if (score < min)
+            {
+                min = score;
+                thisLine = commonLines[i];
+                otherLine = otherImage->commonLines[j];
+            }
+        }
+    }
+    
+    if (min > 0.002)
+        return 1000;
+    
+    for (int i = 0; i < thisLine->spotCount(); i++)
+    {
+   //     std::cout << 1 / thisLine->spot(i)->resolution() << "\t" << 1 / otherLine->spot(i)->resolution() << std::endl;
+    }
+    
+    this->addCommonLinePair(thisLine, otherLine);
+    otherImage->addCommonLinePair(otherLine, thisLine);
+    
+    /*
+    std::string filename = this->getFilename();
+    replace(filename, "img", "dat");
+    std::string newName = "spots-" + filename;
+    
+    std::string partner = otherImage->getFilename();
+    replace(partner, "img", "dat");
+    std::string partnerName = "spots-" + partner;
+    
+    Spot::writeDatFromSpots(newName, thisLine->spots());
+    Spot::writeDatFromSpots(partnerName, otherLine->spots());
+    
+    std::cout << min << std::endl;*/
+    
+    return min;
+}
+
+void Image::sendLog(LogLevel priority)
+{
+    Logger::mainLogger->addStream(&logged, priority);
+    logged.str("");
+    logged.clear();
 }
 

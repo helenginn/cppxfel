@@ -20,19 +20,25 @@
 #include <scitbx/vec3.h>
 #include <cctbx/crystal_orientation.h>
 #include "Logger.h"
+#include <boost/python.hpp>
 #include "FileParser.h"
-
-/*+(void) populate: (GLdouble*) aGLMatrix
- fromFrustumLeft: (GLdouble) left
- andRight: (GLdouble) right
- andBottom: (GLdouble) bottom
- andTop: (GLdouble) top
- andNear: (GLdouble) near
- andFar: (GLdouble) far */
 
 double *Matrix::array()
 {
 	return components;
+}
+
+Matrix::Matrix(scitbx::mat3<double> newUnitCell, scitbx::mat3<double> newRotation)
+{
+    unitCell = MatrixPtr(new Matrix());
+    rotation = MatrixPtr(new Matrix());
+    
+    unitCell->assignFromCctbxMatrix(newUnitCell);
+    rotation->assignFromCctbxMatrix(newRotation);
+    
+    rotation->rotate(0, 0, M_PI / 2);
+
+    this->recalculateOrientationMatrix();
 }
 
 Matrix::Matrix(void)
@@ -229,6 +235,13 @@ void Matrix::assignFromCctbxMatrix(Matrix *changeMat, scitbx::mat3<double> newMa
 void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma)
 {
     std::ostringstream logged;
+
+    if (!unitCell || !rotation)
+    {
+        logged << "Not changing unit cell dimensions due to lack of unitcell/rotation distinction" << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelDetailed);
+        return;
+    }
     
     double *lengths = new double[3];
     unitCellLengths(&lengths);
@@ -247,7 +260,7 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     
     delete [] lengths;
     
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
 }
 
 Matrix Matrix::operator*=(Matrix &b)

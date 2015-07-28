@@ -5,7 +5,6 @@
 #include "MtzManager.h"
 #include "StatisticsManager.h"
 #include "misc.h"
-#include "lbfgs_cluster.h"
 #include "GraphDrawer.h"
 #include "Wiki.h"
 #include "Index.h"
@@ -57,7 +56,7 @@ int main(int argc, char *argv[])
 		}
 
         InputFileParser *parser = new InputFileParser(std::string(argv[2]));
-		parser->parse();
+		parser->parse(false);
         
         delete parser;
 	}
@@ -205,7 +204,7 @@ int main(int argc, char *argv[])
 			image->setFilename(argv[i]);
 			image->loadReflections(1);
 
-			double gradientOld = image->gradientAgainstManager(*reference);
+			double gradientOld = image->gradientAgainstManager(reference);
 			double gradientBefore = image->minimizeRFactor(reference);
 
 			std::cout << image->getFilename() << "\t" << gradientOld << "\t"

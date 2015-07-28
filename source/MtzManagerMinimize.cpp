@@ -91,7 +91,11 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     }
     else if (scoreType == ScoreTypeMinimizeRSplit)
     {
-        return static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
+        double rSplit = static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
+        double penalty = static_cast<MtzManager *>(object)->belowPartialityPenalty(0, static_cast<MtzManager *>(object)->penaltyResolution);
+        double penaltyWeight = static_cast<MtzManager *>(object)->penaltyWeight;
+        
+        return rSplit - penaltyWeight * penalty;
     }
     else if (scoreType == ScoreTypeMinimizeRSplitLog)
     {
@@ -131,9 +135,52 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
                                                                  highRes, ScoreTypeCorrelation);
 }
 
+double MtzManager::belowPartialityPenalty(double low, double high)
+{
+    double partialPenalty = 0;
+    double weights = 0;
+    
+    for (int i = 0; i < reflections.size(); i++)
+    {
+        Reflection *imageReflection = reflections[i];
+        
+        if (imageReflection->anyAccepted())
+            continue;
+        
+        if (!imageReflection->betweenResolutions(low, high))
+            continue;
+        
+        Reflection *refReflection = NULL;
+        int reflid = imageReflection->getReflId();
+        
+        referenceManager->findReflectionWithId(reflid, &refReflection);
+        
+        if (refReflection != NULL)
+        {
+            double rawIntensity = imageReflection->miller(0)->getRawIntensity();
+            double meanIntensity = refReflection->meanIntensity();
+            
+            if (rawIntensity != rawIntensity || meanIntensity != meanIntensity)
+                continue;
+            
+            double ratio = rawIntensity / meanIntensity;
+            ratio -= imageReflection->miller(0)->getPartialCutoff();
+            
+            partialPenalty += ratio;
+            weights++;
+        }
+    }
+    
+    partialPenalty /= weights;
+    
+ //   std::cout << "Partial penalty: " << partialPenalty << std::endl;
+    
+    return partialPenalty;
+}
+
 double MtzManager::rSplit(double low, double high, bool square)
 {
-    double scale = this->gradientAgainstManager(*referenceManager);
+    double scale = this->gradientAgainstManager(referenceManager);
     
     applyScaleFactor(scale);
     
@@ -437,6 +484,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             wavelength = this->getWavelength();
     }
     
+    
     bandwidth = this->getBandwidth();
     
     bool optimisedMean = !optimisingWavelength || (scoreType == ScoreTypeStandardDeviation);
@@ -574,7 +622,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         
         while (!optimisedB && count < 30)
         {
-            double score = minimizeParam(bStep, bFactor, bFactorScoreWrapper, this);
+            minimizeParam(bStep, bFactor, bFactorScoreWrapper, this);
             
             //    std::cout << bFactor << "\t" << score << std::endl;
             
@@ -655,10 +703,19 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
 void MtzManager::gridSearch(bool silent)
 {
     scoreType = defaultScoreType;
+    
+    if (defaultScoreType == ScoreTypePartialityCorrelation)
+    {
+        if (!(refPartCorrel > 0.65 && trust == TrustLevelGood))
+            scoreType = ScoreTypeMinimizeRSplit;
+    }
+    
     chooseAppropriateTarget();
     std::string scoreDescription = this->describeScoreType();
+    penaltyWeight = FileParser::getKey("PENALTY_WEIGHT", 0.5);
+    penaltyResolution = FileParser::getKey("PENALTY_RESOLUTION", 2.5);
     
-    double scale = this->gradientAgainstManager(*this->getReferenceManager());
+    double scale = this->gradientAgainstManager(this->getReferenceManager());
     applyScaleFactor(scale);
     
     this->reallowPartialityOutliers();
@@ -683,9 +740,6 @@ void MtzManager::gridSearch(bool silent)
             double correl = minimize();
             double *params = &(*(bestParams.begin()));
             getParams(&params);
-            
-            int hits = 0;
-            double realCorrel = StatisticsManager::cc_pearson(this, getReferenceManager(), true, &hits, NULL, 0, 0, false);
             
             std::pair<vector<double>, double> result = std::make_pair(bestParams, correl);
             
@@ -894,7 +948,7 @@ void MtzManager::excludePartialityOutliers()
 {
     vector<Reflection *> refReflections, imgReflections;
     
-    applyScaleFactor(this->gradientAgainstManager(*referenceManager));
+    applyScaleFactor(this->gradientAgainstManager(referenceManager));
     
     this->findCommonReflections(referenceManager, imgReflections, refReflections,
                                 NULL);

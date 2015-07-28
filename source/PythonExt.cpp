@@ -30,7 +30,7 @@ void runScriptFromPython(std::string scriptName)
     
     InputFileParser *parser = new InputFileParser(scriptName);
     
-    parser->parse();
+    parser->parse(true);
     
     delete parser;
 }

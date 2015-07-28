@@ -5,7 +5,6 @@
 #include <string>
 #include <iostream>
 #include "MtzManager.h"
-#include <liblbfgs.h>
 #include <memory>
 #include "definitions.h"
 
@@ -41,11 +40,9 @@ public:
 
 	void findReflectionInVector(int refl_id, ReflectionManager **ref, int *l);
 	void processReflections(void);
-	void evaluate_gradient(lbfgsfloatval_t **gradients);
 	double evaluate_psi();
-	double set_Gs(lbfgsfloatval_t **new_Gs);
-	void outputSimpleScaling(lbfgsfloatval_t **scales);
-    static void rMergeThreaded(ScalingManager *self, int offset, double *numerator, double *denominator, int imageNumber);
+	double set_Gs(scitbx::af::shared<double> new_Gs);
+	static void rMergeThreaded(ScalingManager *self, int offset, double *numerator, double *denominator, int imageNumber);
 	double rMerge(int imageNumber = -1);
     double rSplit(void);
 	static double rMergeWrapper(void *object);

@@ -55,6 +55,9 @@ private:
     double lastWavelength;
     double lastRlpSize;
     double lastMosaicity;
+    int slices;
+    double trickyRes;
+    double maxSlices;
     
     double lastRadius;
     double lastVolume;
@@ -81,7 +84,7 @@ private:
                           double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
                           double exponent);
     
-    double integrate_sphere(double p, double q, double radius);
+    double integrate_sphere(double p, double q, double radius, double sphere_volume, double circle_surface_area);
     
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
     
@@ -362,9 +365,9 @@ public:
         }*/
 	}
 
-	double getResolution() const
+	double getResolution()
 	{
-		return resol;
+        return resolution();
 	}
 
 	void setResolution(double resol)

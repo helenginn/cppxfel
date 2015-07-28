@@ -29,6 +29,7 @@ private:
     void applyParametersToImages();
     static int cycleNum;
     bool hasRefined;
+    bool isPython;
 public:
 	MtzRefiner();
 	virtual ~MtzRefiner();
@@ -51,9 +52,11 @@ public:
     void initialMerge();
     void orientationPlot();
     void applyUnrefinedPartiality();
+    void loadImageFiles();
+    void clusterIndexing();
 
     void loadPanels();
-	void integrate(bool orientation);
+	void integrate();
 	static void integrateImagesWrapper(MtzRefiner *object,
 			vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
 	void integrateImages(vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
@@ -75,6 +78,16 @@ public:
         return mtzManagers;
     }
     
+    bool isFromPython()
+    {
+        return isPython;
+    }
+    
+    void setFromPython(bool newValue)
+    {
+        isPython = newValue;
+    }
+    
     void refineDistances();
     void polarisationGraph();
     void displayIndexingHands();
@@ -84,6 +97,10 @@ public:
     void removeSigmaValues();
     void readXFiles(std::string filename);
     void xFiles();
+    
+    void addMatrixToLastImage(scitbx::mat3<double> unit_cell, scitbx::mat3<double> rotation);
+    void loadDxtbxImage(std::string imageName, vector<int> imageData, double distance, double wavelength);
+    
 };
 
 #endif /* MTZREFINER_H_ */

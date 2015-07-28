@@ -10,10 +10,11 @@
 #include "MtzRefiner.h"
 #include <sstream>
 #include "Logger.h"
+#include <boost/python.hpp>
 
 InputFileParser::InputFileParser(std::string filename) : FileParser(filename)
 {
-	// TODO Auto-generated constructor stub
+    // TODO Auto-generated constructor stub
 }
 
 InputFileParser::~InputFileParser()
@@ -32,7 +33,20 @@ vector<MtzPtr> InputFileParser::mtzs()
     return refiner->getMtzManagers();
 }
 
-void InputFileParser::parse()
+void InputFileParser::parseFromPython()
+{
+    parse(true);
+}
+
+void InputFileParser::integrate()
+{
+    if (refiner == NULL)
+        parse(true);
+    
+    refiner->integrate();
+}
+
+void InputFileParser::parse(bool fromPython)
 {
     Logger::mainLogger = LoggerPtr(new Logger());
     boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
@@ -78,11 +92,24 @@ void InputFileParser::parse()
         
 		function(&parameters, command, rest);
 	}
+
+	if (fromPython)
+    {
+        log << "If you are running initial orientation matrix refinement using image files, please load individual experiments from DIALS indexing results. If you are running post-refinement on individual MTZ files, please supply the appropriate orientation matrix list file on the keyword ORIENTATION_MATRIX_LIST. This command will be ignored for image files. If you want to load image files please do so from your Python script." << std::endl;
+        
+        log << "Imported commands from parameter file. Waiting for commands." << std::endl;
+    }
+    
+    refiner = boost::shared_ptr<MtzRefiner>(new MtzRefiner());
     
     Logger::mainLogger->addStream(&log);
     log.str("");
-
-	refiner = boost::shared_ptr<MtzRefiner>(new MtzRefiner());
+    
+    if (fromPython)
+    {
+        refiner->setFromPython(true);
+        return;
+    }
     
 	if (foundCommands)
 	{
@@ -97,7 +124,7 @@ void InputFileParser::parse()
 			if (line == "INTEGRATE")
 			{
                 understood = true;
-                refiner->integrate(false);
+                refiner->integrate();
 			}
             
             if (line == "REFINE_DETECTOR_GEOMETRY")
@@ -202,6 +229,12 @@ void InputFileParser::parse()
                 refiner->applyUnrefinedPartiality();
             }
             
+            if (line == "CLUSTER_INDEX")
+            {
+                understood = true;
+                refiner->clusterIndexing();
+            }
+            
             if (line == "INDEX")
             {
                 understood = true;
@@ -230,4 +263,22 @@ void InputFileParser::parse()
         log.str("");
 		refiner->refine();
 	}
+}
+
+
+void InputFileParser::loadDxtbxImage(std::string imageName, std::string imageData, double distance, double wavelength)
+{
+    if (refiner == NULL)
+        parseFromPython();
+    
+    int length = (int)imageData.length();
+    vector<int> intData(length / sizeof(int));
+    memcpy(&intData[0], imageData.data(), length);
+        
+    refiner->loadDxtbxImage(imageName, intData, distance, wavelength);
+}
+
+void InputFileParser::addMatrixToLastImage(scitbx::mat3<double> unit_cell, scitbx::mat3<double> rotation)
+{
+    refiner->addMatrixToLastImage(unit_cell, rotation);
 }

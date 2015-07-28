@@ -36,7 +36,7 @@ void PanelParser::addPanel(std::string rest)
 	panels.push_back(ptr);
 }
 
-void PanelParser::parse()
+void PanelParser::parse(bool fromPython)
 {
     if (panels.size())
     {

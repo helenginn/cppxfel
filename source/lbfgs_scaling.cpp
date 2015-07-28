@@ -4,45 +4,9 @@
 #include <iostream>
 #include "stdio.h"
 #include "definitions.h"
+#include <scitbx/lbfgsb.h>
 
 ScalingManager *scaling;
-
-
-lbfgsfloatval_t Lbfgs_Scaling::evaluate(void *instance,
-		const lbfgsfloatval_t *x, lbfgsfloatval_t *g, const int n,
-		const lbfgsfloatval_t step)
-{
-	(*scaling).set_Gs((lbfgsfloatval_t**) &x);
-
-	//	scaling->evaluate_gradient(&g);
-
-	lbfgsfloatval_t fx = 0;
-
-	fx = scaling->rMerge();
-
-	for (int i = 0; i < n; i++)
-	{
-		g[i] = scaling->gradientForL(i, fx);
-	}
-
-//	for (int i=0; i < n; i++)
-//		std::cout << g[i] << std::endl;
-
-	return fx;
-}
-
-static int progress(void *instance, const lbfgsfloatval_t *x,
-		const lbfgsfloatval_t *g, const lbfgsfloatval_t fx,
-		const lbfgsfloatval_t xnorm, const lbfgsfloatval_t gnorm,
-		const lbfgsfloatval_t step, int n, int k, int ls)
-{
-	/*	printf("Iteration %d:\n", k);
-	 printf("  fx = %f, x[0] = %f, x[1] = %f, x[2] = %f\n", fx, x[0], x[1],
-	 x[2]);
-	 printf("  xnorm = %f, gnorm = %f, step = %f\n", xnorm, gnorm, step);
-	 printf("\n");*/
-	return 0;
-}
 
 Lbfgs_Scaling::Lbfgs_Scaling(char **filenames, int filenum)
 {
@@ -60,90 +24,90 @@ Lbfgs_Scaling::Lbfgs_Scaling(vector<MtzPtr> mtzs)
 
 void Lbfgs_Scaling::run(void)
 {
-	int n = (*scaling).mtz_num;
+	int n = scaling->mtz_num;
 
-	int ret = 0;
-	lbfgsfloatval_t fx = 0;
-	lbfgsfloatval_t *x = lbfgs_malloc(n);
-	lbfgs_parameter_t param;
-
-	if (x == NULL)
-	{
-		printf("ERROR: Failed to allocate a memory block for variables.\n");
-		return;
-	}
-
-	std::cout << "n = " << n << std::endl;
-
+    std::ostringstream logged;
+    
+	// set up lbfgs algorithm
+    
+	double fx = scaling->rMerge();
+	std::cout << "R meas after gradient scaling: " << fx << std::endl;
+    
+    scitbx::af::shared<int> nbd(n);
+    scitbx::af::shared<double> lowerLims(n);
+    scitbx::af::shared<double> upperLims(n);
+    
+    scitbx::af::shared<double> x = scitbx::af::shared<double>(n);
+    
+    logged << "Number of variables: " << x.size() << std::endl;
+    
     for (int i = 0; i < n; i++)
     {
-        x[i] = 1;
+        nbd[i] = 0;
+        lowerLims[i] = 0;
+        upperLims[i] = 0;
     }
     
-	fx = scaling->rMerge();
-	std::cout << "R meas after gradient scaling: " << fx << std::endl;
-
-	lbfgs_parameter_init(&param);
-	param.max_iterations = 50;
+    double factr = 1.e+7;
+    double pgtol = 0;
+    int iprint = 0;
+    
+    scitbx::lbfgsb::minimizer<double> *minimizer =
+    new scitbx::lbfgsb::minimizer<double>(n, 5, lowerLims, upperLims,
+                                          nbd, false, factr, pgtol, iprint);
+    
+    scitbx::lbfgs::traditional_convergence_test<double, int> is_converged(n);
+    
+    scitbx::af::ref<double> xb(x.begin(), n);
+    
+    for (int i = 0; i < n; i++)
+        x[i] = 1;
     
     
+    scitbx::af::shared<double> g(n);
+    scitbx::af::ref<double> gb(g.begin(), n);
+    
+    for (int i = 0; i < n; i++)
+        g[i] = 0;
+    
+    try
+    {
+        for (int num = 0;; num++)
+        {
+            float fx = scaling->rMerge(); // calculate fx
+            
+            // gradient values (set to 0 initially, then populate arrays)
+            
+            for (int i = 0; i < n; i++)
+            {
+                g[i] = scaling->gradientForL(i, fx);
+            }
+            
+            std::cout << "fx: " << fx << std::endl;
+            
+            minimizer->process(xb, fx, gb);
+            
+            scaling->set_Gs(x);
+            
+            if (minimizer->is_terminated())
+                break;
+            
+            if (minimizer->n_iteration() > 50)
+                break;
+        }
+    } catch (scitbx::lbfgs::error &e)
+    {
+        std::cout << e.what() << std::endl;
+    } catch (void *e)
+    {
+        std::cout << "Unknown error!" << std::endl;
+    }
     
 
-	ret = lbfgs(n, x, &fx, evaluate, progress, NULL, &param);
-
-	switch (ret)
-	{
-	case LBFGS_ALREADY_MINIMIZED:
-		printf("LBFGS_ALREADY_MINIMIZED\n");
-		break;
-	case LBFGSERR_LOGICERROR:
-		printf("LBFGSERR_LOGICERROR\n");
-		break;
-	case LBFGSERR_OUTOFMEMORY:
-		printf("LBFGSERR_OUTOFMEMORY %i\n", ret);
-		break;
-	case LBFGSERR_CANCELED:
-		printf("LBFGSERR_CANCELED %i\n", ret);
-		break;
-	case LBFGSERR_INVALID_N:
-		printf("LBFGSERR_INVALID_N %i\n", ret);
-		break;
-	case LBFGSERR_INVALID_N_SSE:
-		printf("LBFGSERR_INVALID_N_SSE %i\n", ret);
-		break;
-	case LBFGSERR_INVALID_X_SSE:
-		printf("LBFGSERR_INVALID_X_SSE %i\n", ret);
-		break;
-	case LBFGSERR_INVALID_EPSILON:
-		printf("LBFGSERR_INVALID_EPSILON %i\n", ret);
-		break;
-	case LBFGSERR_INVALID_TESTPERIOD:
-		printf("LBFGSERR_INVALID_TESTPERIOD %i\n", ret);
-		break;
-	case LBFGSERR_ROUNDING_ERROR:
-		printf("LBFGSERR_ROUNDING_ERROR %i\n", ret);
-		break;
-	case LBFGSERR_MINIMUMSTEP:
-		printf("LBFGSERR_MINIMUMSTEP %i\n", ret);
-		break;
-	case LBFGSERR_MAXIMUMSTEP:
-		printf("LBFGSERR_MAXIMUMSTEP %i\n", ret);
-		break;
-	case LBFGSERR_MAXIMUMLINESEARCH:
-		printf("LBFGSERR_MAXIMUMLINESEARCH %i\n", ret);
-		break;
-	case LBFGSERR_MAXIMUMITERATION:
-		printf("LBFGSERR_MAXIMUMITERATION %i\n", ret);
-		break;
-	default:
-		break;
-	}
-
-	/* Report the result. */
-	printf("L-BFGS optimization terminated with status code = %d\n", ret);
-	//  printf(" fx = %f, x[0] = %f, x[1] = %f\n", fx, x[0], x[1]);
-
-	for (int i = 0; i < n; i++)
+    // after refinement
+    
+	
+    for (int i = 0; i < n; i++)
 	{
         std::string filename = scaling->mtzs[i]->getFilename();
 
@@ -158,15 +122,12 @@ void Lbfgs_Scaling::run(void)
 	}
     
     fx = scaling->rMerge();
-    scaling->set_Gs(&x);
+    scaling->set_Gs(x);
     
     std::cout << "R meas after correcting scales: " << fx << std::endl;
 
     double rsplit = scaling->rSplit();
     std::cout << "Estimated R split: " << rsplit << std::endl;
-
-
-	lbfgs_free(x);
 }
 
 Lbfgs_Scaling::~Lbfgs_Scaling(void)

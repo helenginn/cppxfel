@@ -65,7 +65,8 @@ public:
 
             try
             {
-                return boost::get<Value>(parameters[key]);
+                Value value = boost::get<Value>(parameters[key]);
+                return value;
             }
             catch (boost::exception_detail::clone_impl<boost::exception_detail::error_info_injector<boost::bad_get> > &ex)
             {
@@ -83,7 +84,8 @@ public:
     FileParser(void);
 	FileParser(std::string filename);
 	virtual ~FileParser();
-	virtual void parse() {};
+    virtual void parseFromPython() { parse(true); };
+	virtual void parse(bool fromPython) {};
 };
 
 #endif /* FILEPARSER_H_ */

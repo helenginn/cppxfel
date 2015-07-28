@@ -14,6 +14,9 @@
 #include <iostream>
 #include <locale>
 #include <stdio.h>
+
+#define FILE_PARSER_CPP_
+
 #include "MtzRefiner.h"
 
 ParametersMap FileParser::parameters;
@@ -186,6 +189,11 @@ void FileParser::generateFunctionList()
     parserMap["SCALE_AND_B_FACTORS"] = simpleBool;
     parserMap["R_SPLIT_THRESHOLD"] = simpleFloat;
     parserMap["REINITIALISE_WAVELENGTH"] = simpleBool;
+    parserMap["PENALTY_WEIGHT"] = simpleFloat;
+    parserMap["PENALTY_RESOLUTION"] = simpleFloat;
+    parserMap["PARTIALITY_SLICES"] = simpleInt;
+    parserMap["MAX_SLICES"] = simpleInt;
+    parserMap["CAREFUL_RESOLUTION"] = simpleFloat;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
@@ -277,7 +285,10 @@ void FileParser::generateFunctionList()
     parserMap["STEP_UNIT_CELL_A"] = simpleFloat;
     parserMap["STEP_UNIT_CELL_B"] = simpleFloat;
     parserMap["STEP_UNIT_CELL_C"] = simpleFloat;
-
+    parserMap["FROM_DIALS"] = simpleBool;
+    parserMap["DO_NOT_REJECT_REFLECTIONS"] = simpleBool;
+    parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;
+    
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;
 }
@@ -291,9 +302,9 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
 
 	std::ostringstream stream;
 
-	std::locale loc;
+	std::locale theLocale;
 	for (std::string::size_type j = 0; j < command.length(); ++j)
-		stream << std::toupper(command[j], loc);
+		stream << std::toupper(command[j], theLocale);
 
 	std::string upperCommand = stream.str();
 

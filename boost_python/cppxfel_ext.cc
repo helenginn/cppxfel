@@ -19,6 +19,8 @@
 #include <boost/container/vector.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include "../source/MtzManager.h"
+#include <dials/model/data/shoebox.h>
+#include <dials/algorithms/centroid/centroid.h>
 
 namespace cppxfel { namespace boost_python {
 
@@ -33,6 +35,19 @@ namespace cppxfel { namespace boost_python {
 		return l;
 	}
 	
+	template<class T>
+	std::vector<T> py_list_to_vector(boost::python::list theList)
+	{
+		std::vector<T> vec;
+		
+		for (int i = 0; i < len(theList); ++i)
+    {
+        vec.push_back(boost::python::extract<T>(theList[i]));
+    }
+		
+		return vec;
+	}
+	
 	boost::python::list getMtzs(InputFileParser parser)
 	{
 		vector<MtzPtr> mtzs = parser.getRefiner()->getMtzManagers();
@@ -44,7 +59,7 @@ namespace cppxfel { namespace boost_python {
 	{
 		runScriptFromPython(scriptFile);
 	}
-
+	
 	BOOST_PYTHON_MODULE(cppxfel_ext)
 	{
  		def ("run", &cppxfelScript);
@@ -55,14 +70,21 @@ namespace cppxfel { namespace boost_python {
  			.def("applyUnrefinedPartiality", &MtzManager::applyUnrefinedPartiality)
  		;
  		
+ 		class_<dials::model::Shoebox<float> >("DialsShoebox", no_init);
+ 		
  		class_<std::vector<MtzPtr> >("MtzArray")
 			.def(vector_indexing_suite<vector<MtzPtr> >()); 		
  		
-		class_<InputFileParser>("Parser", init<std::string>())
-			.def("parse", &InputFileParser::parse)
+		class_<InputFileParser>("cppParser", init<std::string>())
+			.def("parse", &InputFileParser::parseFromPython)
 			.def("refine", &InputFileParser::refine)
 			.def("mtzs", &getMtzs)
+			.def("setPythonSelf", &InputFileParser::setPythonSelf)
+			.def("loadImage", &InputFileParser::loadDxtbxImage)
+			.def("addMatrixToLastImage", &InputFileParser::addMatrixToLastImage)
+			.def("integrate", &InputFileParser::integrate)
 		;
+		
  	}
 }
 

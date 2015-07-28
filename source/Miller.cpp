@@ -27,16 +27,14 @@ asu Miller::p1_asu = asu();
 bool Miller::initialised_p1 = false;
 space_group Miller::p1_spg = space_group();
 
-double Miller::integrate_sphere(double p, double q, double radius)
+double Miller::integrate_sphere(double p, double q, double radius, double sphere_volume, double circle_surface_area)
 {
     double partiality_add = 3 * pow(q, 2) - 2 * pow(q, 3);
     double partiality_remove = 3 * pow(p, 2) - 2 * pow(p, 3);
     
     double proportion = partiality_add - partiality_remove;
     
-    double sphere_volume = (4 * M_PI / 3) * pow(radius, 3);
-    double circle_surface_area = pow(radius, 2) * M_PI;
-        
+    
     double distance_total = radius * 2;
     double distance_fraction = distance_total * (q - p);
     
@@ -103,10 +101,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
                               double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
                               double exponent)
 {
-    int slices = 8;
-    
-    if (resolution() > 2.5)
-        slices = 5;
+    if (resolution() < 1 / trickyRes) slices = maxSlices;
     
     double bandwidth_span = high_wavelength - low_wavelength;
     
@@ -119,17 +114,25 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
     double total_normal = 0;
     double total_sphere = 0;
     
+    double sphere_volume = (4 * M_PI / 3) * pow(spot_size_radius, 3);
+    double circle_surface_area = pow(spot_size_radius, 2) * M_PI;
+    
     for (int i = 0; i < slices; i++)
     {
-        double sphereSlice = integrate_sphere(currentP, currentQ,
-                                             spot_size_radius);
-        
         double pBandwidth = high_wavelength - bandwidth_span * currentP;
         double qBandwidth = high_wavelength - bandwidth_span * currentQ;
         
         //	double normalSlice = integrate_beam(pBandwidth, qBandwidth, mean, sigma);
         double normalSlice = integrate_beam_slice(pBandwidth, qBandwidth, mean,
                                                  sigma, exponent);
+        
+        double sphereSlice = 0;
+        
+        if (normalSlice > 0)
+        {
+            sphereSlice = integrate_sphere(currentP, currentQ,
+                                              spot_size_radius, sphere_volume, circle_surface_area);
+        }
         
         total_integral += normalSlice * sphereSlice;
         total_normal += normalSlice;
@@ -188,6 +191,9 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     lastMosaicity = 0;
     lastVolume = 0;
     lastSurfaceArea = 0;
+    slices = FileParser::getKey("PARTIALITY_SLICES", 8);
+    trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
+    maxSlices = FileParser::getKey("MAX_SLICES", 100);
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -535,11 +541,11 @@ double Miller::partialityForHKL(vec hkl, double hRot, double kRot, double mosaic
     
     double stdev = wavelength * bandwidth / 2;
     
-    double limit = 4 * stdev;
+    double limit = 3 * stdev;
     double inwardsLimit = wavelength + limit;
     double outwardsLimit = wavelength - limit;
     
-    if (outwards_bandwidth > inwardsLimit || inwards_bandwidth < outwardsLimit)
+    if ((outwards_bandwidth > inwardsLimit || inwards_bandwidth < outwardsLimit) && resolution() > 1 / trickyRes)
     {
         return 0;
     }
@@ -588,11 +594,23 @@ double Miller::calculateNormPartiality(double mosaicity,
     double normPartiality = partialityForHKL(newHKL, 0, 0, mosaicity,
                                             spotSize, wavelength, bandwidth, exponent);
     
+    if (normPartiality == 0)
+    {
+        std::cout << "Stop here too!" << std::endl;
+    }
+    
     return normPartiality;
 }
 
 double Miller::resolution()
 {
+    if (resol == 0)
+    {
+        vec newVec = getTransformedHKL(0, 0);
+        
+        resol = length_of_vector(newVec);
+    }
+    
     return resol;
 }
 
@@ -622,7 +640,7 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
     
     double normPartiality = 1;
     
-    if (normalise && partiality > 0.001)
+    if (normalise && tempPartiality > 0.001)
     {
         normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
     }
@@ -636,6 +654,11 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
     lastRadius = expectedRadius(spotSize, mosaicity, &hkl);
 
     partiality = tempPartiality / normPartiality;
+    
+    if (!std::isfinite(partiality))
+    {
+        std::cout << "Stop!" << std::endl;
+    }
 }
 
 double Miller::twoTheta(bool horizontal)
@@ -659,13 +682,6 @@ double Miller::twoTheta(bool horizontal)
     
     beamCoordinates[0] = 0;
     beamCoordinates[1] = 1 / usedWavelength;
-    
-    double dotProduct = rlpCoordinates[0] * beamCoordinates[0]
-    + rlpCoordinates[1] * beamCoordinates[1];
-    double rlpMagnitude = sqrt(
-                              pow(rlpCoordinates[0], 2) + pow(rlpCoordinates[1], 2));
-    double beamMagnitude = sqrt(
-                               pow(beamCoordinates[0], 2) + pow(beamCoordinates[1], 2));
     
   //  double cosTwoTheta = dotProduct / (rlpMagnitude * beamMagnitude);
     
@@ -969,6 +985,8 @@ void Miller::integrateIntensity(double hRot, double kRot)
     if (image == NULL)
         throw 1;
     
+    std::ostringstream logged;
+    
     if (!shoebox)
     {
         MillerPtr strongSelf = selfPtr.lock();
@@ -982,7 +1000,12 @@ void Miller::integrateIntensity(double hRot, double kRot)
         int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_RADIUS",
                                                   SHOEBOX_BACKGROUND_RADIUS);
         
+        
+        logged << "Shoebox created from values " << foregroundLength << ", " << neitherLength << ", " << backgroundLength << std::endl;
+        
         shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength);
+        
+        
     }
     
     int x = 0;
@@ -994,7 +1017,9 @@ void Miller::integrateIntensity(double hRot, double kRot)
     
     rawIntensity = image->intensityAt(x, y, shoebox, &countingSigma, 0);
 
-//    std::cout << rawIntensity << ", " << countingSigma << std::endl;
+    logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
+    
+    Logger::mainLogger->addStream(&logged, LogLevelDebug);
 }
 
 void Miller::incrementOverlapMask(double hRot, double kRot)

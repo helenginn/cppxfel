@@ -157,8 +157,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 			if (int1 != int1 || int2 != int2)
 				continue;
 
-			if (!(reflections1[i]->getResolution() > invLow
-					&& reflections1[i]->getResolution() < invHigh))
+			if (!(reflections1[i]->betweenResolutions(lowResolution, highResolution)))
 				continue;
             
             double resolution = 1 / reflections1[i]->getResolution();
@@ -733,12 +732,10 @@ double StatisticsManager::gridCorrelation(int imageNumI, int imageNumJ)
 
 void StatisticsManager::printGradientsAgainstRef(MtzManager *ref)
 {
-	MtzManager &reference = *ref;
-
 	for (int i = 0; i < mtz_num; i++)
 	{
 		MtzPtr mtz = mtzs[i];
-		double grad = mtz->gradientAgainstManager(reference);
+		double grad = mtz->gradientAgainstManager(ref);
 		std::cout << mtz->getFilename() << " " << 1 / grad << std::endl;
 	}
 }
@@ -845,7 +842,7 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 {
 	int num = 0;
 
-    double scale = (*test_image)->gradientAgainstManager(**image, false);
+    double scale = (*test_image)->gradientAgainstManager(*image, false);
 	(*test_image)->applyScaleFactor(scale);
 
 	vector<Reflection *>refReflections, imageReflections;

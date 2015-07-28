@@ -5,7 +5,6 @@
  *      Author: helenginn
  */
 
-#include <liblbfgs.h>
 #include "StatisticsManager.h"
 #include <cmath>
 #include "Vector.h"
@@ -86,6 +85,8 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
 
     if (matrix->isComplex())
         this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
+    
+    
     
 	for (int i = 0; i < reflections.size(); i++)
 	{
@@ -188,10 +189,14 @@ double MtzManager::bestWavelength(double lowRes, double highRes, bool usingRefer
 
             MtzManager *reference = MtzManager::getReferenceManager();
             Reflection *refReflection = NULL;
-            reference->findReflectionWithId(reflection(i)->getReflId(), &refReflection);
             
-            if (refReflection != NULL && refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
-                continue;
+            if (reference != NULL)
+            {
+                reference->findReflectionWithId(reflection(i)->getReflId(), &refReflection);
+                
+                if (refReflection != NULL && refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
+                    continue;
+            }
             
             if (usingReference)
             {

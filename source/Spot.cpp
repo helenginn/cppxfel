@@ -11,22 +11,19 @@
 #include <cfloat>
 #include "Image.h"
 #include <algorithm>
-
-Spot::Spot()
-{
-	// TODO Auto-generated constructor stub
-	probe = vector<vector<double> >();
-
-	makeProbe(180, 6);
-}
+#include "Vector.h"
+#include <fstream>
 
 Spot::Spot(Image *image)
 {
 	// TODO Auto-generated constructor stub
 	probe = vector<vector<double> >();
 	parentImage = image;
-
-	makeProbe(180, 6);
+    angleDetectorPlane = 0;
+    setAngle = false;
+    checked = false;
+    
+	makeProbe(500, 1);
 }
 
 Spot::~Spot()
@@ -155,16 +152,50 @@ void Spot::setXY(int x, int y)
 
 double Spot::scatteringAngle(Image *image)
 {
+    if (image == NULL)
+        image = this->parentImage;
+    
 	double beamX = image->getBeamX();
 	double beamY = image->getBeamY();
 
-	double distance_from_centre = sqrt(pow(x - beamX, 2) + pow(y - beamY, 2));
+	double distance_from_centre = sqrt(pow(getX() - beamX, 2) + pow(getY() - beamY, 2));
 	double distance_pixels = distance_from_centre * image->getMmPerPixel();
 	double detector_distance = image->getDetectorDistance();
 
 	double sinTwoTheta = sin(distance_pixels / detector_distance);
 
 	return sinTwoTheta;
+}
+
+double Spot::resolution()
+{
+    double twoTheta = asin(scatteringAngle());
+    double theta = twoTheta / 2;
+    double wavelength = parentImage->getWavelength();
+    
+    double d = wavelength / (2 * sin(theta));
+    
+    return 1 / d;
+}
+
+double Spot::angleInPlaneOfDetector()
+{
+    if (!setAngle)
+    {
+        vec upBeam = new_vector(0, 1, 0);
+        vec centre = new_vector(parentImage->getBeamX(), parentImage->getBeamY(), 0);
+        vec spotVec = new_vector(x, y, 0);
+        vec spotVecFromCentre = vector_between_vectors(centre, spotVec);
+        
+        angleDetectorPlane = angleBetweenVectors(upBeam, spotVecFromCentre);
+        
+        if (spotVecFromCentre.h < 0)
+            angleDetectorPlane = -angleDetectorPlane;
+        
+        setAngle = true;
+    }
+    
+    return angleDetectorPlane;
 }
 
 void Spot::sortSpots(vector<Spot *> *spots)
@@ -177,3 +208,65 @@ bool Spot::spotComparison(Spot *a, Spot *b)
 {
 	return (a->weight() > b->weight());
 }
+
+Coord Spot::getXY()
+{
+    Coord shift = Panel::shiftForSpot(this);
+    
+    return std::make_pair(x + shift.first, y + shift.second);
+}
+
+double Spot::getX()
+{
+    Coord shift = getXY();
+    
+    return shift.first;
+}
+
+double Spot::getY()
+{
+    Coord shift = getXY();
+    
+    return shift.second;
+}
+
+Coord Spot::getRawXY()
+{
+    return std::make_pair(x, y);
+}
+
+bool Spot::isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees)
+{
+    double tolerance = toleranceDegrees * M_PI / 180;
+    
+    double thisAngle = angleInPlaneOfDetector();
+    double otherAngle = otherSpot->angleInPlaneOfDetector();
+    
+    if (thisAngle < 0)
+        thisAngle += M_PI;
+    
+    if (otherAngle < 0)
+        otherAngle += M_PI;
+    
+    return (thisAngle > otherAngle - tolerance && thisAngle < otherAngle + tolerance);
+}
+
+void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
+{
+    std::ofstream dat;
+    dat.open(filename);
+    int count = 0;
+    
+    for (int i = 0; i < spots.size(); i++)
+    {
+        dat << "0\t0\t0\t" << spots[i]->angleInPlaneOfDetector() << "\t1\t1\t"
+        << spots[i]->x << "\t" << spots[i]->y
+        << "\t1" << std::endl;
+        
+        count++;
+    }
+    
+    dat.close();
+}
+
+

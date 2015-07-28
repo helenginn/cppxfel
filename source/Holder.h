@@ -8,7 +8,7 @@
 #ifndef HOLDER_H_
 #define HOLDER_H_
 
-#include "headers/csymlib.h"
+#include "csymlib.h"
 
 class Reflection;
 

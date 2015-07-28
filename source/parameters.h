@@ -107,6 +107,7 @@ class Miller;
 #include <map>
 #include <boost/variant.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/tuple/tuple.hpp>
 #include <string>
 
 using std::vector;
@@ -128,14 +129,20 @@ class Shoebox;
 class Matrix;
 class Indexer;
 class MtzManager;
+class CommonLine;
+class Spot;
+class ImageCluster;
 
 typedef boost::shared_ptr<Miller> MillerPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
+typedef boost::shared_ptr<Spot> SpotPtr;
+typedef boost::shared_ptr<CommonLine> CommonLinePtr;
 typedef boost::shared_ptr<Panel>PanelPtr;
 typedef boost::shared_ptr<MtzManager>MtzPtr;
 typedef boost::shared_ptr<std::ostringstream> StreamPtr;
 typedef boost::shared_ptr<Logger>LoggerPtr;
 typedef boost::shared_ptr<Image>ImagePtr;
+typedef boost::shared_ptr<ImageCluster>ImageClusterPtr;
 typedef std::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<Indexer>IndexerPtr;
 
@@ -144,11 +151,13 @@ typedef boost::variant<double, double, std::string, bool, int,
 typedef std::map<std::string, ParameterVariant> ParametersMap;
 typedef void (*ParserFunction)(ParametersMap *, std::string, std::string);
 typedef std::map<std::string, ParserFunction> ParserMap;
+typedef std::pair<CommonLinePtr, CommonLinePtr> CommonLinePair;
 
 typedef double (StatisticsFunction)(MtzManager *, MtzManager *, int, int *,
 		double *, double, double, bool);
 typedef double (RFactorFunction)(RFactorType, MtzManager *, int *, double *,
 		double, double);
+
 
 typedef enum
 {

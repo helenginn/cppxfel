@@ -16,7 +16,7 @@ private:
 	vector<PanelPtr> panels;
 
 public:
-	virtual void parse();
+	virtual void parse(bool fromPython = false);
 
 	void addPanel(std::string rest);
 	PanelParser(std::string filename);

@@ -14,6 +14,7 @@
 #include <fstream>
 #include "GraphDrawer.h"
 #include "Vector.h"
+#include "Spot.h"
 
 vector<PanelPtr> Panel::panels;
 bool Panel::usePanelInfo;
@@ -41,6 +42,7 @@ Panel::Panel(vector<double> dimensions)
     
     if (dimensions.size() >= 6)
     {
+        originalShift = std::make_pair(dimensions[4], dimensions[5]);
         bestShift = std::make_pair(dimensions[4], dimensions[5]);
     }
     else
@@ -173,7 +175,7 @@ void Panel::print(std::ostringstream *stream)
     *stream << "PANEL ";
     *stream << topLeft.first << " " << topLeft.second << " " << bottomRight.first
     << " " << bottomRight.second << " ";
-    *stream << bestShift.first << " " << bestShift.second << " ";
+    *stream << bestShift.first + originalShift.first << " " << bestShift.second + originalShift.second << " ";
     *stream << tilt.first << " " << tilt.second << " ";
     *stream << swivel << " " << gainScale << std::endl;
     
@@ -260,6 +262,14 @@ bool scoreComparisonDescending(std::pair<double, double> score1,
 PanelPtr Panel::panelForMiller(Miller *miller)
 {
     Coord coord = std::make_pair(miller->getLastX(), miller->getLastY());
+    
+    return panelForCoord(coord);
+}
+
+
+PanelPtr Panel::panelForSpot(Spot *spot)
+{
+    Coord coord = spot->getRawXY();
     
     return panelForCoord(coord);
 }
@@ -370,6 +380,19 @@ Coord Panel::shiftForMiller(Miller *miller)
     return panel->getTotalShift(miller);
 }
 
+Coord Panel::shiftForSpot(Spot *spot)
+{
+    PanelPtr panel = panelForSpot(spot);
+    
+    if (!panel)
+        return std::make_pair(FLT_MAX, FLT_MAX);
+    
+    double x = panel->bestShift.first;
+    double y = panel->bestShift.second;
+    
+    return std::make_pair(x, y);
+}
+
 double Panel::scaleForMiller(Miller *miller)
 {
     PanelPtr panel = panelForMiller(miller);
@@ -391,76 +414,200 @@ void Panel::plotAll(PlotType plotType)
 void Panel::plotVectors(int i, PlotType plotType)
 {
 #ifdef MAC
-    vector<double> xRed, yRed;
-    vector<double> xBlue, yBlue;
+    bool splitResolution = Panel::panelCount() == 1;
     
-    double aveIntensity = Miller::averageRawIntensity(millers);
-    
-    for (int k = 0; k < millers.size(); k++)
+    vector<double> bins;
+    if (splitResolution)
     {
-        MillerPtr miller = millers[k];
-        double intensity = miller->getRawIntensity();
+        StatisticsManager::generateResolutionBins(0, 1.6, 4, &bins);
+    }
+    else
+    {
+        StatisticsManager::generateResolutionBins(0, 1.6, 1, &bins);
+    }
+    
+    for (int j = 0; j < bins.size(); j++)
+    {
+        if (bins.size() == 2 && j == 1)
+            break;
+
+        vector<double> xRed, yRed;
+        vector<double> xBlue, yBlue;
+        vector<MillerPtr> resMillers;
+    
+        double minD = 0;
+        double maxD = 0;
         
-        Coord shift = millers[k]->getShift();
-        Coord expectedShift = this->getTotalShift(&*millers[k]);
-        
-        Coord difference;
-        difference.first = expectedShift.first - shift.first;
-        difference.second = expectedShift.second - shift.second;
-        
-        vector<double> *chosenX = (intensity < aveIntensity) ? &xRed : &xBlue;
-        vector<double> *chosenY = (intensity < aveIntensity) ? &yRed : &yBlue;
-        
-        if (plotType == PlotTypeRelative)
+        if (j == bins.size() - 1)
         {
-            chosenX->push_back(difference.first);
-            chosenY->push_back(difference.second);
+            minD = 0;
+            maxD = FLT_MAX;
         }
         else
         {
-            chosenX->push_back(shift.first);
-            chosenY->push_back(shift.second);
+            minD = bins[j] == 0 ? 0 : 1 / bins[j];
+            maxD = bins[j + 1] == 0 ? FLT_MAX : 1 / bins[j + 1];
+        }
+        
+        std::cout << minD << ", " << maxD << std::endl;
+        
+        for (int k = 0; k < millers.size(); k++)
+        {
+            MillerPtr miller = millers[k];
+            
+            if (miller->getResolution() > minD && miller->getResolution() < maxD)
+            {
+                resMillers.push_back(miller);
+            }
+        }
+        
+        double aveIntensity = Miller::averageRawIntensity(resMillers);
+        
+        std::cout << "Average intensity: " << aveIntensity << std::endl;
+        
+        double minX = FLT_MAX; double minY = FLT_MAX; double maxX = -FLT_MAX; double maxY = -FLT_MAX;
+        
+        for (int k = 0; k < resMillers.size(); k++)
+        {
+            MillerPtr miller = resMillers[k];
+            
+            double intensity = miller->getRawIntensity();
+            
+            Coord shift = miller->getShift();
+            Coord expectedShift = this->getTotalShift(&*miller);
+            shift.first += originalShift.first;
+            shift.second += originalShift.second;
+            
+            if (shift.first < minX)
+                minX = shift.first;
+            if (shift.first > maxX)
+                maxX = shift.first;
+            if (shift.second < minY)
+                minY = shift.second;
+            if (shift.second < maxY)
+                maxY = shift.second;
+            
+            Coord difference;
+            difference.first = expectedShift.first - shift.first;
+            difference.second = expectedShift.second - shift.second;
+            
+            bool under = intensity < aveIntensity * 2.5;
+            under = (miller->getRawIntensity() / miller->getCountingSigma() < 17);
+            
+            vector<double> *chosenX = under ? &xRed : &xBlue;
+            vector<double> *chosenY = under ? &yRed : &yBlue;
+            
+            if (plotType == PlotTypeRelative)
+            {
+                chosenX->push_back(difference.first);
+                chosenY->push_back(difference.second);
+            }
+            else
+            {
+                chosenX->push_back(shift.first);
+                chosenY->push_back(shift.second);
+            }
+        }
+        
+        resMillers.clear();
+        vector<MillerPtr>().swap(resMillers);
+        
+        vector<vector<double> > xs;
+        vector<vector<double> > ys;
+        xs.push_back(xRed); // actually green
+        ys.push_back(yRed);
+        xs.push_back(xBlue); // actually blue
+        ys.push_back(yBlue);
+        
+        GraphDrawer drawer = GraphDrawer(MtzManager::getReferenceManager());
+        GraphMap map = GraphMap();
+        
+        std::ostringstream title_stream;
+        title_stream << "Panel plot ";
+        title_stream << topLeft.first << " " << topLeft.second << " "
+        << bottomRight.first << " " << bottomRight.second;
+        std::string title = title_stream.str();
+        
+        map["title"] = title;
+        map["xTitle"] = "X shift";
+        map["yTitle"] = "Y shift";
+        map["plotType"] = "point";
+        
+        if (plotType == PlotTypeRelative)
+        {
+            map["xMin"] = minX;
+            map["yMin"] = minY;
+            map["xMax"] = maxX;
+            map["yMax"] = maxY;
+        }
+        map["colour_0"] = 3;
+        map["colour_1"] = 9;
+        
+        std::ostringstream resString;
+        if (j < bins.size())
+            resString << bins[j];
+        else
+            resString << "all";
+        
+        std::ostringstream filename_stream;
+        filename_stream << std::string("panel_plot_") << i << "_" << j << "_" << resString.str();
+        std::string filename = filename_stream.str();
+        
+        drawer.plot(filename, map, xs, ys);
+    }
+#endif
+}
+
+double Panel::scoreBetweenResolutions(double minRes, double maxRes)
+{
+    double score = 0;
+    
+    for (int i = 0; i < panelCount(); i++)
+    {
+        score += panels[i]->stdevScore(minRes, maxRes);
+    }
+    
+    return score;
+}
+
+double Panel::stdevScore(double minRes, double maxRes)
+{
+    vector<MillerPtr> resMillers;
+    
+    double minD, maxD;
+    
+    StatisticsManager::convertResolutions(minRes, maxRes, &minD, &maxD);
+    
+    for (int i = 0; i < millers.size(); i++)
+    {
+        MillerPtr miller = millers[i];
+        
+        if (miller->getResolution() > minD && miller->getResolution() < maxD)
+        {
+            resMillers.push_back(miller);
         }
     }
     
-    vector<vector<double> > xs;
-    vector<vector<double> > ys;
-    xs.push_back(xRed);
-    ys.push_back(yRed);
-    xs.push_back(xBlue);
-    ys.push_back(yBlue);
+    double aveIntensity = Miller::averageRawIntensity(resMillers);
+    vector<double> xShifts, yShifts;
     
-    GraphDrawer drawer = GraphDrawer(MtzManager::getReferenceManager());
-    GraphMap map = GraphMap();
-    
-    std::ostringstream title_stream;
-    title_stream << "Panel plot ";
-    title_stream << topLeft.first << " " << topLeft.second << " "
-    << bottomRight.first << " " << bottomRight.second;
-    std::string title = title_stream.str();
-    
-    map["title"] = title;
-    map["xTitle"] = "X shift";
-    map["yTitle"] = "Y shift";
-    map["plotType"] = "point";
-    
-    if (plotType == PlotTypeRelative)
+    for (int i = 0; i < resMillers.size(); i++)
     {
-        map["xMin"] = - 3;
-        map["yMin"] = - 3;
-        map["xMax"] = 3;
-        map["yMax"] = 3;
+        MillerPtr miller = resMillers[i];
+        
+        if (miller->getRawIntensity() > aveIntensity)
+        {
+            Coord shift = miller->getShift();
+            
+            xShifts.push_back(shift.first);
+            yShifts.push_back(shift.second);
+        }
     }
-    map["colour_0"] = 3;
-    map["colour_1"] = 9;
     
-    std::ostringstream filename_stream;
-    filename_stream << std::string("panel_plot_") << i;
-    std::string filename = filename_stream.str();
+    double xStdev = standard_deviation(&xShifts);
+    double yStdev = standard_deviation(&yShifts);
     
-    drawer.plot(filename, map, xs, ys);
-    
-#endif
+    return xStdev + yStdev;
 }
 
 double Panel::scoreDetectorDistance(void *object)
@@ -627,7 +774,7 @@ void Panel::findAllParameters()
     if (millers.size() == 0)
         return;
     
-    findShift(2, 0.1);
+    findShift(1, 0.2);
     this->findAxisDependence(3);
 //    refineAllParameters(3);
 //    findShift(2, 0.1);
@@ -777,22 +924,6 @@ void Panel::refineAllParameters(double windowSize)
     
     minimized = false;
     count = 0;
-    /*
-    logged << "Swivel refinement progress: Swiv\tsd(X) + sd(Y)" << std::endl;
-    
-    
-    while (count < 10 && !minimized)
-    {
-        double score = minimizeParameter(swivStep, this->swivel, swivelShiftScoreWrapper, this);
-        
-        logged << swivel << "\t" << score << std::endl;
-        
-        if (swivStep < 0.001)
-            minimized = true;
-        
-        count++;
-    }*/
-    
 }
 
 double Panel::detectorGain(double *error)

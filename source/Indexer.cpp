@@ -21,14 +21,14 @@
 
 
 #define BIG_BANDWIDTH 0.015
-#define DISTANCE_TOLERANCE 0.02
+#define DISTANCE_TOLERANCE 0.01
 #define WAVELENGTH_TOLERANCE 0.0001
 
 #define ANGLE_TOLERANCE 0.0001
 #define SPOT_DISTANCE_TOLERANCE 5
 
 double Indexer::intensityThreshold;
-bool Indexer::absoluteIntensity;
+bool Indexer::absoluteIntensity = false;
 
 Indexer::Indexer(Image *newImage, MatrixPtr matrix)
 {
@@ -46,12 +46,14 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     reference = NULL;
     hRot = 0;
     kRot = 0;
+    lRot = 0;
     bestHRot = 0;
     bestKRot = 0;
+    bestLRot = 0;
     lastTotal = 0;
     lastStdev = 0;
     expectedSpots = FileParser::getKey("EXPECTED_SPOTS", 30);
-    intensityThreshold = INTENSITY_THRESHOLD;
+    intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", INTENSITY_THRESHOLD);
     refinement = RefinementTypeOrientationMatrixEarly;
     image = newImage;
     absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
@@ -98,9 +100,17 @@ bool Indexer::millerReachesThreshold(MillerPtr miller)
 {
     double iSigI = miller->getRawIntensity() / miller->getCountingSigma();
     
+    std::ostringstream logged;
+    
+    logged << "Absolute intensity is " << absoluteIntensity << ", iSigI is " << iSigI << ", raw intensity is " << miller->getRawIntensity() << std::endl;
+    
+    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    
     if (absoluteIntensity)
+    {
         return (miller->getRawIntensity() > intensityThreshold);
-        
+    }
+    
     return (iSigI > intensityThreshold);
 }
 
@@ -110,16 +120,32 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
     wavelengths.clear();
     frequencies.clear();
     
-    double interval = testBandwidth / 8;
     
     double wavelength = image->getWavelength();
     vector<double> totals;
     
+    vector<double> wavelengthRange = FileParser::getKey("WAVELENGTH_RANGE", vector<double>(2, 0));
+    
+    double spread = testBandwidth * 2;
+    double interval = (wavelength * spread * 2) / 20;
+
+    double minLength = wavelength * (1 - spread);
+    double maxLength = wavelength * (1 + spread);
+    
+    if (wavelengthRange[0] != 0 || wavelengthRange[1] != 0)
+    {
+        minLength = wavelengthRange[0];
+        maxLength = wavelengthRange[1];
+        interval = (maxLength - minLength) / 20;
+    }
+    
+    bool resolutionWeights = true;
+
+    
     std::ostringstream logged;
     logged << "Wavelength histogram for " << this->image->getFilename() << std::endl;
     
-    for (double i = wavelength * (1 - testBandwidth);
-         i < wavelength * (1 + testBandwidth); i += interval)
+    for (double i = minLength; i < maxLength; i += interval)
     {
         wavelengths.push_back(i);
         double frequency = 0;
@@ -128,13 +154,16 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
         for (int j = 0; j < millers.size(); j++)
         {
             double ewald = millers[j]->getWavelength(hRot, kRot);
-            
+                        
             if (ewald < i || ewald > i + interval)
                 continue;
             
             bool strong = millerReachesThreshold(millers[j]);
             
             double weight = whichAxis == 0 ? 1 : millers[j]->getEwaldWeight(hRot, kRot, whichAxis == 1);
+            
+         //   if (resolutionWeights)
+         //       weight *= millers[j]->getResolution();
             
             total += weight;
             if (strong)
@@ -237,14 +266,6 @@ void Indexer::calculateNearbyMillers(bool rough)
                 
                 if (sphereRadius < minSphere || sphereRadius > maxSphere)
                 {
-                    double res = 1 / length_of_vector(hkl);
-                    
-                    if (res > 7)
-                    {
-                        nearbyMillers.push_back(newMiller);
-                        continue;
-                    }
-                    
                     double ewaldSphere = getEwaldSphereNoMatrix(hkl);
                     
                     if (ewaldSphere < minBandwidth || ewaldSphere > maxBandwidth)
@@ -279,9 +300,15 @@ void Indexer::calculateNearbyMillers(bool rough)
 void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox)
 {
     MatrixPtr matrix = getMatrix();
+    
+    double lRad = lRot * M_PI / 180;
+
     if (complexUnitCell)
     {
+   //     unitCell[1] = unitCell[0];
+        
         matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+        matrix->rotate(0, 0, lRad);
     }
     double wavelength = image->getWavelength();
     double maxD = 1 / maxResolution;
@@ -336,10 +363,10 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
         if (i == 0)
             logged << "Calculated partiality with parameters: hRot " << hRot << ", kRot " << kRot << ", spot size " << testSpotSize << ", wavelength " << wavelength << ", bandwidth " << bandwidth << std::endl;
         
-        if (miller->getPartiality() <= 0)
+        if (miller->getPartiality() <= 0.01)
         {
-            logged << "Rejected Miller partiality too low at\t" << roughX << "\t" << roughY << std::endl;
-            sendLog(LogLevelDebug);
+        //    logged << "Rejected Miller partiality too low at\t" << roughX << "\t" << roughY << std::endl;
+            //sendLog(LogLevelDebug);
             partialityTooLow++;
             continue;
         }
@@ -373,7 +400,9 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
         this->millers.push_back(miller);
     }
     
-    logged << "Using wavelength: " << wavelength << std::endl;
+    matrix->rotate(0, 0, -lRad);
+
+    logged << "Using wavelength " << wavelength << " Å and distance " << image->getDetectorDistance() << " mm" << std::endl;
     logged << "Beyond resolution cutoff: " << cutResolution << std::endl;
     logged << "Partiality equal to 0: " << partialityTooLow << std::endl;
     logged << "Image pixels were masked/flagged: " << unacceptableIntensity << std::endl;
@@ -788,8 +817,8 @@ double Indexer::score(int whichAxis)
         double total = getTotalReflectionsWithinBandwidth();
         //	double totalIntensity = getTotalIntegratedSignal();
         
-        double totalWeight = 10;
-        double stdevWeight = 15;
+        double totalWeight = 15;
+        double stdevWeight = 10;
         
         double totalChange = total / lastTotal - 1;
         double totalStdev = stdev / lastStdev - 1;
@@ -799,6 +828,11 @@ double Indexer::score(int whichAxis)
      //   return 0 - total;
 
         return score;
+    }
+    
+    if (refinement == RefinementTypeOrientationMatrixPanelStdev)
+    {
+        return Panel::scoreBetweenResolutions(0, 1.6);
     }
     
     if (refinement == RefinementTypeOrientationMatrixHighestPeak)
@@ -947,11 +981,11 @@ double Indexer::score(int whichAxis)
 void Indexer::refineDetectorAndWavelength(MtzManager *reference)
 {
     int oldSearch = getSearchSize();
-    setSearchSize(0);
+    setSearchSize(1);
     this->reference = reference;
     this->calculateNearbyMillers(true);
     checkAllMillers(maxResolution, testBandwidth);
-    refinement = RefinementTypeDetectorWavelength;
+    refinement = RefinementTypeOrientationMatrixEarly;
     
     testDistance = image->getDetectorDistance();
     testWavelength = image->getWavelength();
@@ -959,10 +993,15 @@ void Indexer::refineDetectorAndWavelength(MtzManager *reference)
     double oldWavelength = testWavelength;
     
     int count = 0;
-    double distStep = 0.2;
-    double waveStep = 0.01;
+    double distStep = 0.13 * 5;
+    double waveStep = 0.01 * 5;
     
-    bool refinedDist = true;
+    double cStep = FileParser::getKey("STEP_UNIT_CELL_C", 0.2);;
+    
+    bool refinedC = false;
+    
+    
+    bool refinedDist = false;
     bool refinedWave = false;
     
     vector<double> wavelengths;
@@ -978,18 +1017,24 @@ void Indexer::refineDetectorAndWavelength(MtzManager *reference)
     
     while (!(refinedDist && refinedWave) && count < 50)
     {
-        if (!refinedDist)
+     /*   if (!refinedDist)
             this->minimizeParameter(&distStep, &testDistance);
         
         if (!refinedWave)
             this->minimizeParameter(&waveStep, &testWavelength);
+        */
+        this->minimizeTwoParameters(&distStep, &waveStep, &testDistance, &testWavelength);
         
-     //   this->minimizeTwoParameters(&distStep, &waveStep, &testDistance, &testWavelength);
+        if (!refinedC)
+            minimizeParameter(&cStep, &unitCell[2]);
         
         newScore = score();
         
         sendLog(LogLevelNormal);
-
+        
+        if (cStep < 0.01)
+            refinedC = true;
+        
         if (distStep < DISTANCE_TOLERANCE)
             refinedDist = true;
         
@@ -1016,7 +1061,7 @@ void Indexer::refineDetectorAndWavelength(MtzManager *reference)
 double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
                                    bool allSolutions)
 {
-    double startRad = start * M_PI / 180;
+   // double startRad = start * M_PI / 180;
     vector<double> scores = vector<double>();
     vector<double> wedges = vector<double>();
     vector<double> hRads = vector<double>();
@@ -1089,9 +1134,8 @@ double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
 void Indexer::refineRoundBeamAxis()
 {
     refineRoundBeamAxis(0, 360, 10, true);
-    double betterWedge = refineRoundBeamAxis(-6, 6, 1, false);
+  //  double betterWedge = refineRoundBeamAxis(-6, 6, 1, false);
     
-    double bestRadians = betterWedge * M_PI / 180;
     checkAllMillers(maxResolution, testBandwidth);
     
     double total = getTotalIntegratedSignal();
@@ -1218,27 +1262,40 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
+        double lRotStep = initialStep;
         double aStep = FileParser::getKey("STEP_UNIT_CELL_A", 0.2);
         double bStep = FileParser::getKey("STEP_UNIT_CELL_B", 0.2);;
         double cStep = FileParser::getKey("STEP_UNIT_CELL_C", 0.2);;
         
         bool refinedH = false;
         bool refinedK = false;
+        bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", false);
         bool refinedA = !refineA;
         bool refinedB = !refineB;
         bool refinedC = !refineC;
         
         int count = 0;
         
-        while (!(refinedH && refinedK && (refinedA && refinedB && refinedC)) && count < 20)
+        while (!(refinedH && refinedK && refinedL && (refinedA && refinedB && refinedC)) && count < 20)
         {
-            if (refinementType != RefinementTypeOrientationMatrixEarlySeparated)
+            if (!refinedL)
+            {
+                refinement = RefinementTypeDetectorWavelength;
+                this->minimizeParameter(&lRotStep, &lRot);
+                refinement = refinementType;
+            }
+            if (refinementType != RefinementTypeOrientationMatrixEarlySeparated && !refinedH && !refinedK)
+            {
                 this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
-            else
+            }
+            else if (refinementType == RefinementTypeOrientationMatrixEarly && !(refinedH && refinedK))
             {
                 this->minimizeParameter(&kRotStep, &kRot, 2);
                 this->minimizeParameter(&hRotStep, &hRot, 1);
             }
+            
+            
+       //     refinementType = RefinementTypeOrientationMatrixPanelStdev;
             
             if (!refinedA)
                 minimizeParameter(&aStep, &unitCell[0]);
@@ -1247,6 +1304,7 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
             if (!refinedC)
                 minimizeParameter(&cStep, &unitCell[2]);
 
+       //     refinementType = RefinementTypeOrientationMatrixEarly;
             
             checkAllMillers(maxResolution, testBandwidth);
             
@@ -1258,7 +1316,8 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
             double newScore = score();
             lastScore = newScore;
             
-            logged << hRot << "\t" << kRot << "\t" << newScore << "\t" << hRotStep << std::endl;
+            logged << hRot << "\t" << kRot << "\t" << lRot << "\t" << newScore << "\t" << hRotStep << std::endl;
+            sendLog(LogLevelDetailed);
             
             if (hRotStep < 0.25 && kRotStep < 0.25)
             {
@@ -1276,6 +1335,9 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
                 refinedH = true;
             if (kRotStep < orientationTolerance)
                 refinedK = true;
+            
+            if (lRotStep < orientationTolerance)
+                refinedL = true;
             
             if (aStep < 0.01)
                 refinedA = true;
@@ -1310,6 +1372,7 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     
     double hRad = hRot * M_PI / 180;
     double kRad = kRot * M_PI / 180;
+    double lRad = lRot * M_PI / 180;
     
     vector<double> originalUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     double *lengths = new double[3];
@@ -1327,16 +1390,18 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     
     delete [] lengths;
     
-    getMatrix()->rotate(hRad, kRad, 0);
+    getMatrix()->rotate(hRad, kRad, lRad);
     
     bestHRot = hRot;
     bestKRot = kRot;
+    bestLRot = lRot;
     
     hRot = 0;
     kRot = 0;
+    lRot = 0;
     
     checkAllMillers(maxResolution, testBandwidth);
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal);
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
                  &theScore, true);
     

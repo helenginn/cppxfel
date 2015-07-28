@@ -40,7 +40,7 @@ bool Logger::tryLock(std::unique_lock<std::mutex> &lock, int maxTries)
     int tryCount = 0;
     bool locked = false;
     
-    while (!locked && tryCount < maxTries)
+    while (!locked)
     {
         try
         {

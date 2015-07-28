@@ -59,63 +59,14 @@ void ScalingManager::evaluate_gradient_at_l(int l)
     gradients[l] = total;
 }
 
-void ScalingManager::evaluate_gradient(lbfgsfloatval_t **new_gradients)
-{
-    //using namespace boost;
-    
-    /*for (int l=0; l < mtz_num; l+=4)
-     {
-     vector<thread> ts;
-     int thread_count = 0;
-     
-     for (int i=0; i < 4; i++)
-     {
-     if (mtz_num > l + 1)
-     {
-     ts.push_back(thread(&ScalingManager::evaluate_gradient_at_l, l + 1));
-     thread_count++;
-     }
-     }
-     
-     for (int i=0; i < thread_count; i++)
-     {
-     ts[i].join();
-     }
-     }*/
-    
-    for (int l = 0; l < mtz_num; l++)
-    {
-        evaluate_gradient_at_l(l);
-    }
-    
-    for (int i = 0; i < mtz_num; i++)
-    {
-        (*new_gradients)[i] = gradients[i];
-    }
-}
 
-double ScalingManager::set_Gs(lbfgsfloatval_t **new_Gs)
+double ScalingManager::set_Gs(scitbx::af::shared<double> new_Gs)
 {
     int count = 0;
     
     for (int i = 0; i < Gs.size(); i++)
     {
-        Gs[i].G = (*new_Gs)[i];
-        /*
-         if ((*new_Gs)[i] == (*new_Gs)[i])
-         Gs[count].G = (*new_Gs)[i];
-         
-         for (int j = 0; j < PARAM_NUM; j++)
-         {
-         Gs[count].params[j] = (*new_Gs)[i + 1 + j];
-         //		std::cout << Gs[count].params[j] << " ";
-         }
-         
-         Gs[count].params[PARAM_WAVELENGTH] /= MULT_WAVELENGTH;
-         
-         //	std::cout << std::endl;
-         //	mtzs[count]->refreshPartialities(&(*(Gs[count].params.begin())));
-         */
+        Gs[i].G = new_Gs[i];
         count++;
     }
     
@@ -320,47 +271,6 @@ ScalingManager::ScalingManager(char **filenames, int filenum, int partiality)
     
     mtz_num = filenum;
     refs = NULL;
-}
-
-void ScalingManager::outputSimpleScaling(lbfgsfloatval_t **scales)
-{
-    for (int i = 0; i < mtz_num; i++)
-    {
-        double total_intensities = 0;
-        int total = 0;
-        
-        for (int j = 0; j < mtzs[i]->reflectionCount(); j++)
-        {
-            //	if (mtzs[i].reflections[j].resolution < 45)
-            //{
-            double intensity = mtzs[i]->reflection(j)->meanIntensity();
-            
-            if (intensity != intensity)
-                continue;
-            
-            total_intensities += intensity;
-            total++;
-            //}
-        }
-        
-        total_intensities /= total;
-        
-        //	printf("Total intensities = %.3f\n", total_intensities);
-        
-        double scale = total_intensities / 1000;
-        
-        if (scale != scale)
-            scale = 1;
-        
-        if (scales != NULL)
-        {
-            (*scales)[i] = scale;
-        }
-        
-        mtzs[i]->applyScaleFactor(1000 / total_intensities);
-        
-        std::cout << mtzs[i]->getFilename() << " " << scale << std::endl;
-    }
 }
 
 double ScalingManager::residualsForImage(MtzManager *reference,

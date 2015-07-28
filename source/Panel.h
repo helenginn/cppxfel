@@ -28,6 +28,7 @@ private:
 	Coord topLeft;
 	Coord bottomRight;
 	Coord bestShift;
+    Coord originalShift;
 	Coord tilt;
     double tiltWindowSize;
     double averageIntensity;
@@ -51,7 +52,7 @@ private:
     void fractionalCoordinates(Miller *miller, Coord *frac);
 
 	static bool usePanelInfo;
-	static vector<PanelPtr> panels;
+    static vector<PanelPtr> panels;
     bool addMiller(MillerPtr miller);
 
     void refineAllParameters(double windowSize);
@@ -72,6 +73,7 @@ private:
     static std::string printAllThreaded();
     double detectorGain(double *error);
 
+    double stdevScore(double minRes, double maxRes);
     vector<MillerPtr> millers;
 	int defaultShift;
     std::ostringstream logged;
@@ -80,9 +82,11 @@ public:
 	Panel(vector<double> dimensions);
 	virtual ~Panel();
 
-	bool isCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
+    static double scoreBetweenResolutions(double minRes, double maxRes);
+    bool isCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
 	static void addMillerToPanelArray(MillerPtr miller);
 	static PanelPtr panelForMiller(Miller *miller);
+    static PanelPtr panelForSpot(Spot *spot);
     static PanelPtr panelForCoord(Coord coord);
 	static void setupPanel(PanelPtr panel);
 	void plotVectors(int i, PlotType plotType);
@@ -93,6 +97,7 @@ public:
     void finaliseMillerArray();
     static void finaliseMillerArrays();
     static Coord shiftForMiller(Miller *miller);
+    static Coord shiftForSpot(Spot *spot);
     static double scaleForMiller(Miller *miller);
 	void print(std::ostringstream *stream);
 	static void printToFile(std::string filename);

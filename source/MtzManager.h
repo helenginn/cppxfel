@@ -3,11 +3,10 @@
 
 #include <string>
 #include <iostream>
-#include "headers/cmtzlib.h"
-#include "headers/csymlib.h"
+#include "cmtzlib.h"
+#include "csymlib.h"
 #include <vector>
 #include "Matrix.h"
-#include "liblbfgs.h"
 
 #include "Holder.h"
 #include "Miller.h"
@@ -65,6 +64,8 @@ protected:
     int previousAmbiguity;
     bool allowTrust;
     bool setInitialValues;
+    double penaltyWeight;
+    double penaltyResolution;
     
 	double hRot;
 	double kRot;
@@ -181,7 +182,7 @@ public:
 			vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
 			int *num = NULL, bool force = false);
 	double meanCorrectedIntensity(Reflection *reflection);
-	double gradientAgainstManager(MtzManager &otherManager, bool leastSquares = false, double lowRes = 0, double highRes = 0);
+	double gradientAgainstManager(MtzManager *otherManager, bool leastSquares = false, double lowRes = 0, double highRes = 0);
 	double minimizeGradient(MtzManager *otherManager, bool leastSquares);
     void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<std::pair<double, double> > *dataPoints = NULL);
 	double minimizeRFactor(MtzManager *otherManager);
@@ -258,6 +259,7 @@ public:
 	double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
 	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high, bool square = false);
+    double belowPartialityPenalty(double low, double high);
 	std::string describeScoreType();
     
 	void refreshPartialities(double hRot, double kRot, double mosaicity,

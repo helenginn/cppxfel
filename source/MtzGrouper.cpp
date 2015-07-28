@@ -11,13 +11,13 @@
 #include <cmath>
 #include "StatisticsManager.h"
 #include "misc.h"
-#include "headers/csymlib.h"
+#include "csymlib.h"
 #include <boost/thread/thread.hpp>
 #include "Miller.h"
 #include "lbfgs_scaling.h"
-#include "headers/ccp4_spg.h"
-#include "headers/ccp4_general.h"
-#include "headers/ccp4_parser.h"
+#include "csymlib.h"
+#include "ccp4_general.h"
+#include "ccp4_parser.h"
 
 #include "FileParser.h"
 #include "GraphDrawer.h"
@@ -34,10 +34,6 @@ MtzGrouper::MtzGrouper()
 	cutResolution = false;
     expectedResolution = FileParser::getKey("MAX_RESOLUTION_ALL", 1.6);
     usingNewRefinement = FileParser::getKey("SCALE_AND_B_FACTORS", false);
-    
-    int defaultScoreInt = FileParser::getKey("DEFAULT_TARGET_FUNCTION",
-                                             (int) DEFAULT_SCORE_TYPE);
-    ScoreType defaultScoreType = (ScoreType) defaultScoreInt;
     
     exclusionByCCHalf = FileParser::getKey("EXCLUSION_BY_CC_HALF", false);
         
@@ -244,7 +240,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 					(scalingType == ScalingTypeReferenceLeastSquares);
 
 			scale = mtzManagers[i]->gradientAgainstManager(
-					*MtzManager::getReferenceManager(), leastSquares);
+					MtzManager::getReferenceManager(), leastSquares);
 		}
 		else if (scalingType == ScalingTypeBFactor)
 		{

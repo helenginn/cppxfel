@@ -389,7 +389,7 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
         std::cout << mtz->getFilename() << "\t" << correl << "\t"
         << invCorrel << std::endl;
 
-		double scale = mtz->gradientAgainstManager(*referenceManager);
+		double scale = mtz->gradientAgainstManager(referenceManager);
         std::cout << "Scale: " << scale << std::endl;
         mtz->applyScaleFactor(scale);
      
@@ -783,7 +783,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
     if (correl > invCorrel)
         mtz->setActiveAmbiguity(0);
     
-    double gradient = mtz->gradientAgainstManager(*MtzManager::getReferenceManager());
+    double gradient = mtz->gradientAgainstManager(MtzManager::getReferenceManager());
     mtz->applyScaleFactor(gradient);
     
     std::cout << "Correlations: " << correl << ", " << invCorrel << std::endl;
@@ -794,7 +794,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 1.6, 4, &resolutions);
+	StatisticsManager::generateResolutionBins(0, 3, 1, &resolutions);
 
 	vector<std::string> files;
 
@@ -809,23 +809,25 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
 	maxPercentage = partials[partials.size() - 10].percentage;
 
-    if (maxPercentage < 250 || !std::isfinite(maxPercentage))
-		maxPercentage = 250;
+    if (maxPercentage < 500 || !std::isfinite(maxPercentage))
+		maxPercentage = 500;
 
-	maxPercentage = 200;
+	maxPercentage = 500;
 
 	std::sort(partials.begin(), partials.end(), sortByWavelength);
 
 	double minX = partials[50].wavelength;
 	double maxX = partials[partials.size() - 50].wavelength;
+    double middle = partials[partials.size() / 2].wavelength;
 
-    double wantedWidth = 0.2;
+    double wantedWidth = 1.0;
+    
+    std::cout << "minX: " << minX << ", maxX: " << maxX << ", middle: " << middle << std::endl;
     
 	if (maxX - minX > wantedWidth)
 	{
-		double ave = (maxX + minX) / 2;
-		maxX = ave + wantedWidth / 2;
-		minX = ave - wantedWidth / 2;
+        maxX = middle + wantedWidth / 2;
+		minX = middle - wantedWidth / 2;
 	}
 
 	int resCount = resolutions.size();
@@ -833,7 +835,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	properties["xMin"] = minX;
 	properties["xMax"] = maxX;
 	properties["yMin2"] = 0;
-	properties["yMax2"] = 2.0;
+	properties["yMax2"] = 5.0;
 	properties["yMax"] = maxPercentage;
 
 	vector<double> xs, ys, ys2, scatterX, scatterY;
@@ -857,11 +859,11 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
                     || partials[i].partiality != partials[i].partiality)
                     continue;
                 
-                if (partials[i].percentage > maxPercentage)
-                    continue;
+              //  if (partials[i].percentage > maxPercentage)
+              //      continue;
                 
 				xs.push_back(partials[i].wavelength);
-				ys.push_back(partials[i].percentage);
+                ys.push_back(0);//partials[i].percentage);
                 ys2.push_back(partials[i].partiality);
 
 				scatterX.push_back(partials[i].partiality);
@@ -913,7 +915,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	properties["xMin"] = 0;
 	properties["xMax"] = 1.2;
 	properties["yMin"] = 0;
-	properties["yMax"] = maxPercentage;
+    properties["yMax"] = maxPercentage;
 
 	plot(filename + "_scatter", properties, scatterX, scatterY);
 
@@ -922,7 +924,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
 void GraphDrawer::plotPartialityStats()
 {
-    double threshold = 50;
+    double threshold = 100;
     GraphMap map;
     map["xMin"] = 0.0;
     map["xMax"] = 1;
@@ -935,7 +937,7 @@ void GraphDrawer::plotPartialityStats()
     
     for (int i = 0; i < mtz->reflectionCount(); i++)
     {
-        if (mtz->reflection(i)->millerCount() < 10)
+        if (mtz->reflection(i)->millerCount() < 2)
             continue;
         
         if (!mtz->reflection(i)->anyAccepted())
@@ -944,7 +946,7 @@ void GraphDrawer::plotPartialityStats()
         if (mtz->reflection(i)->meanIntensity() < threshold)
             continue;
         
-        if (!mtz->reflection(i)->betweenResolutions(2.0, 0))
+        if (!mtz->reflection(i)->betweenResolutions(0, 2.0))
             continue;
         
         double max_intensity = mtz->reflection(i)->meanIntensity();
@@ -961,7 +963,7 @@ void GraphDrawer::plotPartialityStats()
             if (percentage < 0)
                 percentage = 0;
             
-          //  if (rand() % 4 == 0)
+        //    if (rand() % 20 == 0)
             {
                 xs.push_back(partiality);
                 ys.push_back(percentage);
@@ -998,7 +1000,38 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
         
         cctbx::miller::sym_equiv_indices indices = cctbx::miller::sym_equiv_indices(*spaceGroup, genericIndex);
         
-        for (int i = 0; i < indices.indices().size(); i++)
+        unsigned long size = indices.indices().size();
+        
+        cctbx::miller::index<double> position = matrix->multiplyIndex(&genericIndex);
+        
+        double h = position[0];
+        double k = position[1];
+        double l = position[2];
+        
+        std::cout << h << "\t" << k << "\t" << l << std::endl;
+        std::cout << -h << "\t" << -k << "\t" << l << std::endl;
+        std::cout << k << "\t" << -h << "\t" << l << std::endl;
+        std::cout << -k << "\t" << -h << "\t" << -l << std::endl;
+        std::cout << -k << "\t" << h << "\t" << l << std::endl;
+        std::cout <<-h << "\t" << k << "\t" << -l << std::endl;
+        std::cout << h << "\t" << -k << "\t" << -l << std::endl;
+        std::cout << h << "\t" << k << "\t" << -l << std::endl;
+        
+        h = -h;
+        k = -k;
+        l = -l;
+        
+        std::cout << h << "\t" << k << "\t" << l << std::endl;
+        std::cout << -h << "\t" << -k << "\t" << l << std::endl;
+        std::cout << k << "\t" << -h << "\t" << l << std::endl;
+        std::cout << -k << "\t" << -h << "\t" << -l << std::endl;
+        std::cout << -k << "\t" << h << "\t" << l << std::endl;
+        std::cout <<-h << "\t" << k << "\t" << -l << std::endl;
+        std::cout << h << "\t" << -k << "\t" << -l << std::endl;
+        std::cout << h << "\t" << k << "\t" << -l << std::endl;
+        
+        /*
+        for (int i = 0; i < size; i++)
         {
             cctbx::miller::index<> asymIndex = indices.indices()[i].h();
             cctbx::miller::index<double> position = matrix->multiplyIndex(&asymIndex);
@@ -1008,7 +1041,8 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
             zs.push_back(position[2]);
             
             std::cout << position[0] << "\t" << position[1] << "\t" << position[2] << std::endl;
-        }
+            std::cout << -position[0] << "\t" << -position[1] << "\t" << -position[2] << std::endl;
+        }*/
     }
 }
 

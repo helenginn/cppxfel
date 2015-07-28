@@ -9,7 +9,7 @@
 
 #include <vector>
 #include <cmath>
-#include "headers/csymlib.h"
+#include "csymlib.h"
 #include <cctbx/miller/sym_equiv.h>
 #include <cctbx/miller/asu.h>
 #include <cctbx/miller.h>
@@ -454,24 +454,18 @@ double Reflection::mergeSigma()
 
 double Reflection::meanSigma(bool friedel)
 {
-    int num = (int)millers.size();
+    int num = (int)millerCount();
     int count = 0;
     
     double total_sigi = 0;
     
     for (int i = 0; i < num; i++)
     {
-        MillerPtr miller = millers[i];
+        MillerPtr aMiller = miller(i);
         
-        if (miller->accepted())
+        if (aMiller->accepted())
         {
-            bool theFriedel = false;
-            bool shouldUse = miller->positiveFriedel(&theFriedel);
-            
-            if (!shouldUse || theFriedel != friedel)
-                continue;
-            
-            total_sigi += miller->getSigma();
+            total_sigi += aMiller->getSigma();
             count++;
         }
     }
@@ -542,19 +536,28 @@ void Reflection::calculateResolution(MtzManager *mtz)
     int k = millers[0]->getK();
     int l = millers[0]->getL();
     
-    cctbx::miller::index<> anyMiller = cctbx::miller::index<>(h, k, l);
+    vec coordinate = new_vector(h, k, l);
     
+    cctbx::miller::index<> anyMiller = cctbx::miller::index<>(h, k, l);
+  /*
+    scitbx::mat3<double> cctbxMat = unitCell.reciprocal().orthogonalization_matrix();
+    MatrixPtr mat = MatrixPtr(new Matrix);
+    mat->assignFromCctbxMatrix(cctbxMat);
+    mat->multiplyVector(&coordinate);
+    
+    resolution = length_of_vector(coordinate);
+    */
     resolution = unitCell.two_stol(anyMiller);
     
- /*   asym_index asymmetricMiller = asym_index(spaceGroup, asymmetricUnit, anyMiller);
-    cctbx::miller::index<> asymmetricIndex = asymmetricMiller.h();
+    /*double powH = pow(195, 2);
+    double powK = pow(195, 2);
+    double powL = pow(600, 2);
     
-    vec hkl = new_vector(asymmetricIndex.as_tiny()[0], asymmetricIndex.as_tiny()[1], asymmetricIndex.as_tiny()[2]);
+    double d_sqr = 1 / (pow(h, 2) / powH + pow(k, 2) / powK + pow(l, 2) / powL);
+    double d = sqrt(d_sqr);
     
-    mat.multiplyVector(&hkl);
-    
-    resolution = length_of_vector(hkl);*/
-    
+    resolution = 1 / d;
+    */
     for (int i = 0; i < millerCount(); i++)
     {
         miller(i)->setResolution(resolution);

@@ -113,7 +113,6 @@ void XManager::loadReflections(PartialityModel model)
        //         continue;
             
             int reflid = this->index_for_reflection(h, k, l, false);
-            int invreflid = this->index_for_reflection(h, k, l, true);
             
             Reflection *currentReflection = NULL;
             

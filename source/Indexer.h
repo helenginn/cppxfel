@@ -12,7 +12,7 @@
 #include "Miller.h"
 #include "Matrix.h"
 #include "MtzManager.h"
-#include "headers/csymlib.h"
+#include "csymlib.h"
 #include "Spot.h"
 #include "parameters.h"
 #include "Logger.h"
@@ -35,6 +35,7 @@ typedef enum
     RefinementTypeOrientationMatrixTotalSignal = 8,
     RefinementTypeOrientationMatrixHighestPeak = 9,
     RefinementTypeOrientationMatrixEarlySeparated = 10,
+    RefinementTypeOrientationMatrixPanelStdev = 11,
 } RefinementType;
 
 class Indexer
@@ -54,8 +55,10 @@ private:
     bool refineC;
 	double hRot;
 	double kRot;
+    double lRot;
     double bestHRot;
     double bestKRot;
+    double bestLRot;
 	int search;
 	double testDistance;
 	double testWavelength;
@@ -298,6 +301,11 @@ public:
     void setOrientationTolerance(double newTolerance)
     {
         orientationTolerance = newTolerance;
+    }
+    
+    double getBestLRot()
+    {
+        return bestLRot;
     }
 };
 

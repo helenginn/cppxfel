@@ -112,7 +112,7 @@ void AmbiguityBreaker::setMtzs(vector<MtzPtr> newMtzs)
     
     for (int i = 0; i < mtzs.size(); i++)
     {
-  //      mtzs[i]->applyUnrefinedPartiality();
+        mtzs[i]->applyUnrefinedPartiality();
     }
     
     if (ambiguityCount > 1)
@@ -149,13 +149,17 @@ void AmbiguityBreaker::split()
             }
         }
     }
+    else if (ambiguityCount > 2)
+    {
+        Logger::mainLogger->addString("WARNING! cppxfel has not been configured to split a set of images with more than two possible indexing solutions. The resulting structure will be twinned. Instead, feel free to provide a reference MTZ under the \"INITIAL_MTZ\" keyword which will avoid the requirement to break the indexing ambiguity. (Sorry)");
+    }
 }
 
 void AmbiguityBreaker::merge()
 {
     for (int i = 0; i < mtzs.size(); i++)
     {
-   //     mtzs[i]->applyUnrefinedPartiality();
+        mtzs[i]->applyUnrefinedPartiality();
     }
     
     MtzGrouper *idxGrouper = new MtzGrouper();

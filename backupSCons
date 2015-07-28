@@ -14,8 +14,7 @@ if (not env_etc.no_boost_python and hasattr(env_etc, "boost_adaptbx_include")):
             env_etc.libtbx_include,
             env_etc.scitbx_include,
             env_etc.cctbx_include,
-            env_etc.cctbx_include,
-            env_etc.ccp4io_include,
+            env_etc.rstbx_include,
             env_etc.boost_include,
             env_etc.boost_adaptbx_include,
             env_etc.python_include,
@@ -24,14 +23,14 @@ if (not env_etc.no_boost_python and hasattr(env_etc, "boost_adaptbx_include")):
             "/usr/local/include"])
     print env_etc.cppxfel_dist
     env.Append(
-		LIBS=env_etc.libm + ["scitbx_boost_python",
+		LIBS=env_etc.libm + [ 
+		"scitbx_boost_python",
 		"boost_python",
 		"cctbx",
 		"plplotd",
-		"ccp4io",
+		"ccp4c.0",
 		"boost_system-mt",
 		"boost_thread-mt"])
-    env.Append(CCFLAGS='-g')
 
 if env_etc.clang_version:
   wd = ["-Wno-unused-variable"]

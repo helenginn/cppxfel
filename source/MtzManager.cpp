@@ -3,10 +3,10 @@
 #include <string>
 #include <iostream>
 #include "headers/cmtzlib.h"
-#include "headers/csymlib.h"
-#include "headers/ccp4_spg.h"
-#include "headers/ccp4_general.h"
-#include "headers/ccp4_parser.h"
+#include "csymlib.h"
+#include "ccp4_spg.h"
+#include "ccp4_general.h"
+#include "ccp4_parser.h"
 #include "Vector.h"
 #include "FileReader.h"
 #include <cerrno>
@@ -320,6 +320,8 @@ MtzManager::MtzManager(void)
     bFactor = 0;
     setInitialValues = false;
     refPartCorrel = 0;
+    penaltyWeight = 0.5;
+    penaltyResolution = 2.5;
     
     optimisingWavelength = !OPTIMISED_WAVELENGTH;
     optimisingBandwidth = !OPTIMISED_BANDWIDTH;
@@ -534,7 +536,9 @@ void MtzManager::loadReflections(PartialityModel model)
     
     MTZ *mtz = MtzGet(filename.c_str(), 0);
     
-    int spgnum = MtzSpacegroupNumber(mtz);
+    int fromMtzNum = MtzSpacegroupNumber(mtz);
+    
+    int spgnum = FileParser::getKey("SPACE_GROUP", fromMtzNum);
     
     low_group = ccp4spg_load_by_ccp4_num(spgnum);
     
@@ -873,7 +877,7 @@ void MtzManager::findCommonReflections(MtzManager *other,
                                        vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
                                        int *num, bool force)
 {
-    if (other == previousReference && previousAmbiguity == activeAmbiguity && !force)
+    if (other == previousReference && previousAmbiguity == activeAmbiguity && !force && false)
     {
         reflectionVector1.reserve(matchReflections.size());
         reflectionVector2.reserve(refReflections.size());
@@ -970,7 +974,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
     clearScaleFactor();
     MtzManager *reference = MtzManager::getReferenceManager();
     
-    double grad = this->gradientAgainstManager(*reference);
+    double grad = this->gradientAgainstManager(reference);
     this->applyScaleFactor(grad);
     
     vector<Reflection *> refReflections, imageReflections;
@@ -1086,7 +1090,7 @@ double MtzManager::minimizeGradient(MtzManager *otherManager, bool leastSquares)
 {
     double resolution = 0.001;
     double step = 0.1;
-    double gradient = gradientAgainstManager(*otherManager);
+    double gradient = gradientAgainstManager(otherManager);
     
     vector<Reflection *> reflections1;
     vector<Reflection *> reflections2;
@@ -1153,7 +1157,7 @@ double MtzManager::minimizeGradient(MtzManager *otherManager, bool leastSquares)
     return gradient;
 }
 
-double MtzManager::gradientAgainstManager(MtzManager &otherManager,
+double MtzManager::gradientAgainstManager(MtzManager *otherManager,
                                           bool leastSquares, double lowRes, double highRes)
 {
     vector<Reflection *> reflections1;
@@ -1166,7 +1170,7 @@ double MtzManager::gradientAgainstManager(MtzManager &otherManager,
     double maxD = 0;
     StatisticsManager::convertResolutions(lowRes, highRes, &minD, &maxD);
     
-    MtzManager::findCommonReflections(&otherManager, reflections1, reflections2, &num);
+    MtzManager::findCommonReflections(otherManager, reflections1, reflections2, &num);
     
     if (num <= 1)
         return 1;

@@ -12,7 +12,7 @@
 #include "Image.h"
 #include "Vector.h"
 #include "parameters.h"
-#include "headers/csymlib.h"
+#include "csymlib.h"
 #include <fstream>
 #include <iostream>
 #include "misc.h"
