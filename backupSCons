@@ -39,11 +39,13 @@ if env_etc.clang_version:
 source = [
     'boost_python/cppxfel_ext.cc',
     'source/AmbiguityBreaker.cpp',
+'source/CommonLine.cpp',
 'source/FileParser.cpp',
 'source/FileReader.cpp',
 'source/GraphDrawer.cpp',
 'source/Holder.cpp',
 'source/Image.cpp',
+'source/ImageCluster.cpp',
 'source/Index.cpp',
 'source/Indexer.cpp',
 'source/InputFileParser.cpp',
