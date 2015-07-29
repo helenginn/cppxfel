@@ -44,8 +44,7 @@ bool Logger::tryLock(std::unique_lock<std::mutex> &lock, int maxTries)
     {
         try
         {
-            lock.try_lock();
-            locked = true;
+            locked = lock.try_lock();
         }
         catch (std::system_error err)
         {
