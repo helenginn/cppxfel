@@ -162,6 +162,8 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	int aboveCutoffNum = 0;
 	double rotationCorrection = 0;
 
+    logged << "Filename\tCorrel\tRsplit\tRefcount\tMosaicity\tWavelength\tBandwidth\thRot\tkRot\trlpSize\texp\tcellA\tcellB\tcellC" << std::endl;
+
 	for (int i = 0; i < mtzManagers.size(); i++)
 	{
 		double correl = mtzManagers[i]->getRefCorrelation();
@@ -192,6 +194,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         
         double *cellDims = new double[3];
         mtzManagers[i]->getMatrix()->unitCellLengths(&cellDims);
+        
         
 		logged << mtzManagers[i]->getFilename() << "\t" << correl <<  "\t" << rSplit << "\t"
 				<< mtzManagers[i]->accepted() << "\t"
@@ -674,6 +677,8 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 			i--;
 			continue;
 		}
+        
+        sendLog();
 
 		double totalIntensity = 0;
 		double totalStdev = 0;

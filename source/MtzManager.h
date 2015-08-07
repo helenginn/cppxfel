@@ -255,7 +255,7 @@ public:
 	static double exclusionScoreWrapper(void *object, double lowRes = 0,
 			double highRes = 0);
     static double bFactorScoreWrapper(void *object);
-    static double score(void *object);
+    static double scoreNelderMead(void *object);
 	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
 	double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
 	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);

@@ -254,10 +254,10 @@ NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> e
             
             if (i > 0)
             {
-                int minJ = i;
+                int minJ = i - 1;
                 double scale = 2;
                 
-                testPoints[i].first[j] = testPoints[0].first[j] + (j == i) * scale * expectedRanges[j];
+                testPoints[i].first[j] = testPoints[0].first[j] + (j == minJ) * scale * expectedRanges[j];
             }
             
             logged << testPoints[i].first[j] << ", " << std::endl;
@@ -289,7 +289,7 @@ NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> e
 
 void NelderMead::sendLog(LogLevel priority)
 {
-    //priority = LogLevelNormal; // comment out later
+  //  priority = LogLevelNormal; // comment out later
     Logger::mainLogger->addStream(&logged, priority);
     logged.str("");
     logged.clear();

@@ -276,7 +276,7 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     
     delete [] lengths;
     
-    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
+    Logger::mainLogger->addStream(&logged, LogLevelDebug);
 }
 
 Matrix Matrix::operator*=(Matrix &b)
