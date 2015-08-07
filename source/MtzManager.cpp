@@ -320,7 +320,7 @@ MtzManager::MtzManager(void)
     bFactor = 0;
     setInitialValues = false;
     refPartCorrel = 0;
-    penaltyWeight = 0.5;
+    penaltyWeight = 0.0;
     penaltyResolution = 2.5;
     
     optimisingWavelength = !OPTIMISED_WAVELENGTH;
@@ -1760,8 +1760,9 @@ std::string MtzManager::getParamLine()
     std::ostringstream line;
     line << "params ";
     
-    line << mosaicity << " " << spotSize << " ";
-    line << bFactor << " " << scale << " " << cellDim[0] << " " << cellDim[1] << " " << cellDim[2];
+    line << mosaicity << " " << spotSize << " " << wavelength << " ";
+    line << bFactor << " " << scale << " ";
+    line << cellDim[0] << " " << cellDim[1] << " " << cellDim[2];
     
     return line.str();
 }
@@ -1778,11 +1779,13 @@ void MtzManager::setParamLine(std::string line)
     
     mosaicity = atof(components[1].c_str());
     spotSize = atof(components[2].c_str());
-    bFactor = atof(components[3].c_str());
-    scale = atof(components[4].c_str());
-    cellDim[0] = atof(components[5].c_str());
-    cellDim[1] = atof(components[6].c_str());
-    cellDim[2] = atof(components[7].c_str());
+    wavelength = atof(components[3].c_str());
+    bFactor = atof(components[4].c_str());
+    scale = atof(components[5].c_str());
+    cellDim[0] = atof(components[6].c_str());
+    cellDim[1] = atof(components[7].c_str());
+    cellDim[2] = atof(components[8].c_str());
     
+    finalised = true;
     setInitialValues = true;
 }

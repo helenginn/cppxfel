@@ -13,7 +13,6 @@ bool Logger::ready;
 
 Logger::Logger()
 {
-    std::unique_lock<std::mutex> lck(mtx);
     ready = false;
     printedLogLevel = LogLevelNormal;
 }
@@ -35,7 +34,7 @@ void Logger::addString(std::string theString, LogLevel level)
     addStream(&stream, level);
 }
 
-bool Logger::tryLock(std::unique_lock<std::mutex> &lock, int maxTries)
+bool Logger::tryLock(std::mutex &lock, int maxTries)
 {
     int tryCount = 0;
     bool locked = false;
@@ -54,17 +53,15 @@ bool Logger::tryLock(std::unique_lock<std::mutex> &lock, int maxTries)
         tryCount ++;
     }
     
-    return lock.owns_lock();
+    return locked;
 }
 
 void Logger::addStream(std::ostringstream *stream, LogLevel level)
 {
-    std::unique_lock<std::mutex> writeLock(writing, std::defer_lock);
-    
     if (level > printedLogLevel)
         return;
     
-    bool success = tryLock(writeLock);
+    bool success = tryLock(mtx);
     
     if (!success)
         return;
@@ -88,7 +85,7 @@ void Logger::addStream(std::ostringstream *stream, LogLevel level)
     
     printBlock.notify_all();
     
-    writeLock.unlock();
+    mtx.unlock();
 }
 
 void Logger::awaitPrinting()

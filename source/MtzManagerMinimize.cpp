@@ -9,7 +9,7 @@
 #include "MtzManager.h"
 #include "parameters.h"
 #include "GraphDrawer.h"
-
+#include "NelderMead.h"
 
 
 #define DEFAULT_RESOLUTION 3.4
@@ -78,6 +78,12 @@ double MtzManager::bFactorScoreWrapper(void *object)
     return score;
 }
 
+double MtzManager::score(void *object)
+{
+    static_cast<MtzManager *>(object)->refreshCurrentPartialities();
+    return static_cast<MtzManager *>(object)->exclusionScoreWrapper(object, 0, 0);
+}
+
 double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
                                          double highRes)
 {
@@ -92,8 +98,8 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     else if (scoreType == ScoreTypeMinimizeRSplit)
     {
         double rSplit = static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
-        double penalty = static_cast<MtzManager *>(object)->belowPartialityPenalty(0, static_cast<MtzManager *>(object)->penaltyResolution);
-        double penaltyWeight = static_cast<MtzManager *>(object)->penaltyWeight;
+        double penalty = 0;
+        double penaltyWeight = 0;
         
         return rSplit - penaltyWeight * penalty;
     }
@@ -475,15 +481,17 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     }
     else
     {
-        wavelength = bestWavelength(0, 0, false);
-        
         if (this->isRejected())
             return 0;
-        
-        if (finalised)
+
+        if (!finalised)
+            wavelength = bestWavelength(0, 0, false);
+        else if (finalised)
             wavelength = this->getWavelength();
     }
     
+    if (wavelength != wavelength)
+        return 0;
     
     bandwidth = this->getBandwidth();
     
@@ -494,123 +502,198 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     bool optimisedMos = !optimisingMosaicity || (scoreType == ScoreTypeStandardDeviation);
     bool optimisedHRot = !optimisingOrientation;
     bool optimisedKRot = !optimisingOrientation;
+    bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+    bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+    bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
     
-    double meanStep = stepSizeWavelength;
-    double bandStep = stepSizeBandwidth;
-    double expoStep = stepSizeExponent;
-    double spotStep = stepSizeRlpSize;
-    double mosStep = stepSizeMosaicity;
-    double hStep = stepSizeOrientation;
-    double kStep = stepSizeOrientation;
-    double aStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
-    double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
-    double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
-  
     params = new double[PARAM_NUM];
     
-    params[PARAM_HROT] = this->getHRot();
-    params[PARAM_KROT] = this->getKRot();
-    params[PARAM_MOS] = this->getMosaicity();
-    params[PARAM_SPOT_SIZE] = this->getSpotSize();
-    params[PARAM_WAVELENGTH] = wavelength;
-    params[PARAM_BANDWIDTH] = bandwidth;
-    params[PARAM_B_FACTOR] = bFactor;
-    params[PARAM_SCALE_FACTOR] = scale;
-    params[PARAM_EXPONENT] = this->getExponent();
-    params[PARAM_UNIT_CELL_A] = this->cellDim[0];
-    params[PARAM_UNIT_CELL_B] = this->cellDim[1];
-    params[PARAM_UNIT_CELL_C] = this->cellDim[2];
     
-    bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
-    bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
-    bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
+    int minimization = (int)FileParser::getKey("MINIMIZATION_METHOD", 0);
+    MinimizationMethod method = (MinimizationMethod) minimization;
     
-    int count = 0;
-    
-    refreshPartialities(params);
-    
- //   std::cout << "Before refinement, R split = " << rSplit(0, 0) << std::endl;
-    
-    while (!(optimisedMean && optimisedBandwidth && optimisedSpotSize
-             && optimisedMos && optimisedExponent && optimisedHRot
-             && optimisedKRot) && count < 50)
+    if (minimization == MinimizationMethodStepSearch)// || !finalised)
     {
-        count++;
+        int count = 0;
         
-        if (scoreType != ScoreTypeStandardDeviation)
+        double meanStep = stepSizeWavelength;
+        double bandStep = stepSizeBandwidth;
+        double expoStep = stepSizeExponent;
+        double spotStep = stepSizeRlpSize;
+        double mosStep = stepSizeMosaicity;
+        double hStep = stepSizeOrientation;
+        double kStep = stepSizeOrientation;
+        double aStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
+        double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
+        double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
+        
+        params[PARAM_HROT] = this->getHRot();
+        params[PARAM_KROT] = this->getKRot();
+        params[PARAM_MOS] = this->getMosaicity();
+        params[PARAM_SPOT_SIZE] = this->getSpotSize();
+        params[PARAM_WAVELENGTH] = wavelength;
+        params[PARAM_BANDWIDTH] = bandwidth;
+        params[PARAM_B_FACTOR] = bFactor;
+        params[PARAM_SCALE_FACTOR] = scale;
+        params[PARAM_EXPONENT] = this->getExponent();
+        params[PARAM_UNIT_CELL_A] = this->cellDim[0];
+        params[PARAM_UNIT_CELL_B] = this->cellDim[1];
+        params[PARAM_UNIT_CELL_C] = this->cellDim[2];
+        
+        bool optimisedUnitCellA = !optimisingUnitCellA;
+        bool optimisedUnitCellB = !optimisingUnitCellB;
+        bool optimisedUnitCellC = !optimisingUnitCellC;
+        
+        refreshPartialities(params);
+        
+        //   std::cout << "Before refinement, R split = " << rSplit(0, 0) << std::endl;
+        
+        while (!(optimisedMean && optimisedBandwidth && optimisedSpotSize
+                 && optimisedMos && optimisedExponent && optimisedHRot
+                 && optimisedKRot) && count < 50)
         {
-            if (!optimisedMean)
-                minimizeParameter(&meanStep, &params, PARAM_WAVELENGTH, score,
-                                  object, minResolution, maxResolutionAll);
+            count++;
             
-            if (!optimisedBandwidth)
-                minimizeParameter(&bandStep, &params, PARAM_BANDWIDTH, score,
-                                  object, minResolution, maxResolutionAll);
-        }
-        
-        if (!optimisedHRot && !optimisedKRot)
-            minimizeTwoParameters(&hStep, &kStep, &params, PARAM_HROT,
-                                  PARAM_KROT, score, object, minResolution, maxResolutionAll, FLT_MAX);
-        
-        if (scoreType != ScoreTypeStandardDeviation)
-        {
-            if (!optimisedSpotSize)
-                minimizeParameter(&spotStep, &params, PARAM_SPOT_SIZE, score,
-                                  object, minResolution, maxResolutionAll);
+            if (scoreType != ScoreTypeStandardDeviation)
+            {
+                if (!optimisedMean)
+                    minimizeParameter(&meanStep, &params, PARAM_WAVELENGTH, score,
+                                      object, minResolution, maxResolutionAll);
+                
+                if (!optimisedBandwidth)
+                    minimizeParameter(&bandStep, &params, PARAM_BANDWIDTH, score,
+                                      object, minResolution, maxResolutionAll);
+            }
             
-            if (!optimisedExponent)
-                minimizeParameter(&expoStep, &params, PARAM_EXPONENT, score, object,
-                                  minResolution, maxResolutionAll);
+            if (!optimisedHRot && !optimisedKRot)
+                minimizeTwoParameters(&hStep, &kStep, &params, PARAM_HROT,
+                                      PARAM_KROT, score, object, minResolution, maxResolutionAll, FLT_MAX);
             
-            if (!optimisedMos)
-                minimizeParameter(&mosStep, &params, PARAM_MOS, score, object,
-                                  minResolution, maxResolutionAll);
+            if (scoreType != ScoreTypeStandardDeviation)
+            {
+                if (!optimisedSpotSize)
+                    minimizeParameter(&spotStep, &params, PARAM_SPOT_SIZE, score,
+                                      object, minResolution, maxResolutionAll);
+                
+                if (!optimisedExponent)
+                    minimizeParameter(&expoStep, &params, PARAM_EXPONENT, score, object,
+                                      minResolution, maxResolutionAll);
+                
+                if (!optimisedMos)
+                    minimizeParameter(&mosStep, &params, PARAM_MOS, score, object,
+                                      minResolution, maxResolutionAll);
+            }
+            
+            if (hStep < toleranceOrientation)
+                optimisedHRot = true;
+            
+            if (kStep < toleranceOrientation)
+                optimisedKRot = true;
+            
+            if (meanStep < toleranceWavelength)
+                optimisedMean = true;
+            
+            if (bandStep < toleranceBandwidth)
+                optimisedBandwidth = true;
+            
+            if (mosStep < toleranceMosaicity)
+                optimisedMos = true;
+            
+            if (spotStep < toleranceRlpSize)
+                optimisedSpotSize = true;
+            
+            if (expoStep < toleranceExponent)
+                optimisedExponent = true;
+            
+            if (scoreType == ScoreTypeStandardDeviation)
+            {
+                std::cout << "stdev" << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << (*score)(object, 0, 0) << std::endl;
+            }
+            
         }
         
-        if (hStep < toleranceOrientation)
-            optimisedHRot = true;
+        count = 0;
         
-        if (kStep < toleranceOrientation)
-            optimisedKRot = true;
-        
-        if (meanStep < toleranceWavelength)
-            optimisedMean = true;
-        
-        if (bandStep < toleranceBandwidth)
-            optimisedBandwidth = true;
-        
-        if (mosStep < toleranceMosaicity)
-            optimisedMos = true;
-        
-        if (spotStep < toleranceRlpSize)
-            optimisedSpotSize = true;
-        
-        if (expoStep < toleranceExponent)
-            optimisedExponent = true;
-        
-        if (scoreType == ScoreTypeStandardDeviation)
+        while (!(optimisedUnitCellA && optimisedUnitCellB
+                 && optimisedUnitCellC) && count < 50)
         {
-            std::cout << "stdev" << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << (*score)(object, 0, 0) << std::endl;
-        }
-        /*
-        if (!optimisedUnitCellA && count > 5)
-        {
-            minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, 0, maxResolutionAll);
-        }
-        
-        if (!optimisedUnitCellB && count > 5)
-        {
-            minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, 0, maxResolutionAll);
+            if (!optimisedUnitCellA)
+            {
+                minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, 0, maxResolutionAll);
+            }
+            
+            if (!optimisedUnitCellB)
+            {
+                minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, 0, maxResolutionAll);
+            }
+            
+            if (!optimisedUnitCellC)
+            {
+                minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
+            }
+            
+            //    std::cout << (*score)(object, 0, maxResolutionAll) << ", " << correlation() << std::endl;
+            
+            if (aStep < 0.005)
+                optimisedUnitCellA = true;
+            
+            if (bStep < 0.005)
+                optimisedUnitCellB = true;
+            
+            if (cStep < 0.005)
+                optimisedUnitCellC = true;
+            
+            count++;
         }
         
-        if (!optimisedUnitCellC && count > 5)
-        {
-            minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
-        }*/
+        this->refreshPartialities(params);
+    }
+    else if (method == MinimizationMethodNelderMead)
+    {
+        std::vector<double *>paramPtrs;
+        paramPtrs.resize(PARAM_NUM);
+        
+        if (this->wavelength == 0)
+            this->wavelength = wavelength;
+        
+        paramPtrs[PARAM_HROT] = optimisingOrientation ? &this->hRot : NULL;
+        paramPtrs[PARAM_KROT] = optimisingOrientation ? &this->kRot : NULL;
+        paramPtrs[PARAM_MOS] = optimisingMosaicity ? &this->mosaicity : NULL;
+        paramPtrs[PARAM_SPOT_SIZE] = optimisingRlpSize ? &this->spotSize : NULL;
+        paramPtrs[PARAM_WAVELENGTH] = optimisingWavelength ? &this->wavelength : NULL;
+        paramPtrs[PARAM_BANDWIDTH] = optimisingBandwidth ? &this->bandwidth : NULL;
+        paramPtrs[PARAM_B_FACTOR] = NULL;
+        paramPtrs[PARAM_SCALE_FACTOR] = NULL;
+        paramPtrs[PARAM_EXPONENT] = optimisingExponent ? &this->exponent : NULL;
+        paramPtrs[PARAM_UNIT_CELL_A] = optimisingUnitCellA ? &this->cellDim[0] : NULL;
+        paramPtrs[PARAM_UNIT_CELL_B] = optimisingUnitCellB ? &this->cellDim[1] : NULL;
+        paramPtrs[PARAM_UNIT_CELL_C] = optimisingUnitCellC ? &this->cellDim[2] : NULL;
+        
+        std::vector<double> ranges;
+        ranges.resize(PARAM_NUM);
+        
+        ranges[PARAM_HROT] = stepSizeOrientation;
+        ranges[PARAM_KROT] = stepSizeOrientation;
+        ranges[PARAM_MOS] = stepSizeMosaicity;
+        ranges[PARAM_SPOT_SIZE] = stepSizeRlpSize;
+        ranges[PARAM_WAVELENGTH] = stepSizeWavelength;
+        ranges[PARAM_BANDWIDTH] = stepSizeBandwidth;
+        ranges[PARAM_B_FACTOR] = 0;
+        ranges[PARAM_SCALE_FACTOR] = 0;
+        ranges[PARAM_EXPONENT] = stepSizeExponent;
+        ranges[PARAM_UNIT_CELL_A] = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
+        ranges[PARAM_UNIT_CELL_B] = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
+        ranges[PARAM_UNIT_CELL_C] = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
+        
+        NelderMead refiner(paramPtrs, ranges, this, &this->score);
+        refiner.process();
+        double lastScore = rSplit(0, 0);
+        logged << "Score from MtzManager: " << lastScore << std::endl;
+        sendLog();
+        
+        getParams(&params);
         
     }
-    
-    
     
     bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);
     
@@ -637,41 +720,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     this->refreshPartialities(params);
     this->applyBFactor(bFactor);
     
-    count = 0;
-    
-    while (!(optimisedUnitCellA && optimisedUnitCellB
-             && optimisedUnitCellC) && count < 50)
-    {
-        if (!optimisedUnitCellA)
-        {
-            minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, 0, maxResolutionAll);
-        }
-        
-        if (!optimisedUnitCellB)
-        {
-            minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, 0, maxResolutionAll);
-        }
-        
-        if (!optimisedUnitCellC)
-        {
-            minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
-        }
-        
-    //    std::cout << (*score)(object, 0, maxResolutionAll) << ", " << correlation() << std::endl;
-        
-        if (aStep < 0.005)
-            optimisedUnitCellA = true;
-        
-        if (bStep < 0.005)
-            optimisedUnitCellB = true;
-        
-        if (cStep < 0.005)
-            optimisedUnitCellC = true;
-        
-        count++;
-    }
-    
-    this->refreshPartialities(params);
     
     double correl = correlation(true);
     
@@ -1141,7 +1189,6 @@ void MtzManager::findSteps(int param1, int param2, int param3)
         params[param3] = paramC;
 
     setParams(params);
-    double rSplit = boost::get<4>(results[0]);
     
     this->refreshPartialities(params);
     

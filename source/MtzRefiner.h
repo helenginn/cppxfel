@@ -67,6 +67,7 @@ public:
 			vector<MtzPtr> *mtzManagers, int offset);
 	void merge();
     void correlationAndInverse(bool shouldFlip = false);
+    void refreshCurrentPartialities();
     
     static int getCycleNum()
     {

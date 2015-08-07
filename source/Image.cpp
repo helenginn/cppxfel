@@ -18,6 +18,7 @@
 #include "Shoebox.h"
 #include "Spot.h"
 #include "CommonLine.h"
+#include "CommonCircle.h"
 
 Image::Image(std::string filename, double wavelength,
 		double distance)
@@ -34,7 +35,10 @@ Image::Image(std::string filename, double wavelength,
         xDim = dims[0];
         yDim = dims[1];
     }
-        
+    
+    noCircles = false;
+    commonCircleThreshold = FileParser::getKey("COMMON_CIRCLE_THRESHOLD", 0.05);
+    
     data = vector<int>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
     vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
@@ -53,7 +57,7 @@ Image::Image(std::string filename, double wavelength,
     beamX = beam[0];
     beamY = beam[1];
     _hasSeeded = false;
-    
+
 	pinPoint = true;
 	int tempShoebox[7][7] =
 	{
@@ -842,140 +846,131 @@ void Image::processSpotList()
     logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;
     sendLog(LogLevelNormal);
     
-    findCommonLines();
+    generateCommonCircles();
 }
 
-void Image::findCommonLines()
+bool Image::hasCommonCircleWithImage(Image *otherImage)
 {
-    double totalSpots = 0;
-    
-    for (int i = 0; i < spots.size(); i++)
+    for (int i = 0; i < commonCirclePairs.size(); i++)
     {
-        SpotPtr spot = spots[i];
-        
-        if (spot->isChecked())
-            continue;
-        
-        std::vector<SpotPtr> commonSpots;
-        commonSpots.push_back(spot);
-        
-        for (int j = 0; j < spots.size(); j++)
-        {
-            if (i == j)
-                continue;
-            
-            SpotPtr testSpot = spots[j];
-            
-            if (testSpot->isChecked())
-                continue;
-            
-            if (spot->isOnSameLineAsSpot(testSpot, 0.2))
-            {
-                commonSpots.push_back(testSpot);
-                testSpot->setChecked();
-            }
-        }
-        
-        if (commonSpots.size() < 3)
-            continue;
-        
-        totalSpots += (int)commonSpots.size();
-        
-        CommonLinePtr commonLine = CommonLinePtr(new CommonLine(commonSpots, this));
-        commonLines.push_back(commonLine);
-    }
-    
-    totalSpots /= commonLines.size();
-    
-    logged << "Generated " << commonLines.size() <<
-              " common lines with an average of " << totalSpots << std::endl;
-    sendLog();
-}
-
-bool Image::hasCommonLinesWithImage(Image *otherImage)
-{
-    for (int i = 0; i < commonLinePairs.size(); i++)
-    {
-        if (commonLinePairs[i].first->getParentImage() == this &&
-            commonLinePairs[i].second->getParentImage() == otherImage)
+        if (commonCirclePairs[i].first->getParentImage() == this &&
+            commonCirclePairs[i].second->getParentImage() == otherImage)
             return true;
 
-        if (commonLinePairs[i].second->getParentImage() == this &&
-            commonLinePairs[i].first->getParentImage() == otherImage)
+        if (commonCirclePairs[i].second->getParentImage() == this &&
+            commonCirclePairs[i].first->getParentImage() == otherImage)
             return true;
     }
     
     return false;
 }
 
-void Image::commonLinesWithImages(std::vector<Image *>images)
+void Image::commonCirclesWithImagesOneThread(std::vector<Image *> images, std::vector<CommonCirclePair> *pairs, int offset)
 {
-    for (int i = 0; i < images.size(); i++)
+    int maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = offset; i < images.size(); i += maxThreads)
     {
+        CommonCirclePair currentPair;
+        
         if (images[i] == this)
             continue;
         
-        if (hasCommonLinesWithImage(images[i]))
+        if (hasCommonCircleWithImage(images[i]))
             continue;
         
-        commonLinesWithImage(images[i]);
+        commonCircleWithImage(images[i], &currentPair);
+        
+        if (currentPair.first && currentPair.first != currentPair.second)
+        {
+            pairs->push_back(currentPair);
+        }
     }
 }
 
-void Image::addCommonLinePair(CommonLinePtr thisLine, CommonLinePtr otherLine)
+void Image::commonCirclesWithImagesThreaded(Image *currentImage, std::vector<Image *> images, std::vector<CommonCirclePair> *pairs, int offset)
 {
-    CommonLinePair pair = std::make_pair(thisLine, otherLine);
-    commonLinePairs.push_back(pair);
+    currentImage->commonCirclesWithImagesOneThread(images, pairs, offset);
 }
 
-double Image::commonLinesWithImage(Image *otherImage)
+void Image::commonCirclesWithImages(std::vector<Image *>images)
+{
+    int maxThreads = FileParser::getMaxThreads();
+    
+    boost::thread_group threads;
+    vector<vector<CommonCirclePair> > lineSubsets;
+    lineSubsets.resize(maxThreads);
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(commonCirclesWithImagesThreaded, this, images, &lineSubsets[i], i);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+    
+    for (int i = 0; i < lineSubsets.size(); i++)
+    {
+        for (int j = 0; j < lineSubsets[i].size(); j++)
+        {
+            CommonCirclePtr thisLine = lineSubsets[i][j].first;
+            CommonCirclePtr otherLine = lineSubsets[i][j].second;
+            Image *thisImage = thisLine->getParentImage();
+            Image *otherImage = otherLine->getParentImage();
+            
+            thisImage->addCommonCirclePair(thisLine, otherLine);
+            otherImage->addCommonCirclePair(otherLine, thisLine);
+        }
+    }
+}
+
+void Image::addCommonCirclePair(CommonCirclePtr thisCircle, CommonCirclePtr otherCircle)
+{
+    CommonCirclePair pair = std::make_pair(thisCircle, otherCircle);
+    commonCirclePairs.push_back(pair);
+}
+
+CommonCirclePair Image::getCommonCircleWithImage(Image *otherImage)
+{
+    for (int i = 0; i < commonCirclePairs.size(); i++)
+    {
+        if (commonCirclePairs[i].first->getParentImage() == otherImage ||
+            commonCirclePairs[i].second->getParentImage() == otherImage)
+            return commonCirclePairs[i];
+    }
+    
+    return std::make_pair(CommonCirclePtr(), CommonCirclePtr());
+}
+
+double Image::commonCircleWithImage(Image *otherImage, CommonCirclePair *pair)
 {
     double min = 1000;
-    CommonLinePtr thisLine;
-    CommonLinePtr otherLine;
     
-    if (hasCommonLinesWithImage(otherImage))
-        return 1000;
+    CommonCirclePtr thisCircle, otherCircle;
     
-    for (int i = 0; i < commonLines.size(); i++)
+    for (int i = 0; i < commonCircles.size(); i++)
     {
-        for (int j = 0; j < otherImage->commonLines.size(); j++)
+        for (int j = 0; j < otherImage->commonCircles.size(); j++)
         {
-            double score = commonLines[i]->similarityToCommonLine(otherImage->commonLines[j]);
+            double score = commonCircles[i]->similarityToCommonCircle(otherImage->commonCircles[j]);
             
             if (score < min)
             {
                 min = score;
-                thisLine = commonLines[i];
-                otherLine = otherImage->commonLines[j];
+                
+                thisCircle = commonCircles[i];
+                otherCircle = otherImage->commonCircles[j];
             }
         }
     }
     
-    if (min > 0.002)
-        return 1000;
-    
-    for (int i = 0; i < thisLine->spotCount(); i++)
+    if (min > commonCircleThreshold)
     {
-   //     std::cout << 1 / thisLine->spot(i)->resolution() << "\t" << 1 / otherLine->spot(i)->resolution() << std::endl;
+        *pair = std::make_pair(CommonCirclePtr(), CommonCirclePtr());
+        return 1000;
     }
     
-    this->addCommonLinePair(thisLine, otherLine);
-    otherImage->addCommonLinePair(otherLine, thisLine);
-    
-    /*
-    std::string filename = this->getFilename();
-    replace(filename, "img", "dat");
-    std::string newName = "spots-" + filename;
-    
-    std::string partner = otherImage->getFilename();
-    replace(partner, "img", "dat");
-    std::string partnerName = "spots-" + partner;
-    
-    Spot::writeDatFromSpots(newName, thisLine->spots());
-    Spot::writeDatFromSpots(partnerName, otherLine->spots());
-    
-    std::cout << min << std::endl;*/
+    *pair = std::make_pair(thisCircle, otherCircle);
     
     return min;
 }
@@ -987,3 +982,86 @@ void Image::sendLog(LogLevel priority)
     logged.clear();
 }
 
+void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements)
+{
+    double maxRes = 1.0;
+    
+    for (int i = 0; i < spots.size(); i++)
+    {
+        vec spotPos = spots[i]->estimatedVector();
+        bool goodSpot = (spots[i]->successfulLineCount() > 0);
+        
+        if (length_of_vector(spotPos) > 1 / maxRes)
+            continue;
+        
+        rotationMatrix->multiplyVector(&spotPos);
+        spotPositions->push_back(spotPos);
+        
+        std::string element = goodSpot ? "N" : "O";
+        spotElements->push_back(element);
+    }
+}
+
+void Image::generateCommonCircles()
+{
+    std::vector<double> angleRange = FileParser::getKey("COMMON_CIRCLE_ANGLE_RANGE", std::vector<double>());
+    if (angleRange.size() == 0)
+    {
+        angleRange.push_back(30);
+        angleRange.push_back(150);
+    }
+    
+    std::vector<double> pixRadiusRange = CommonCircle::radiusRangeForTwoThetaRange(angleRange[0], angleRange[1], this);
+    double pixTolerance = FileParser::getKey("PIXEL_TOLERANCE", 3.0);
+    double minimumCircleSpots = FileParser::getKey("MINIMUM_CIRCLE_SPOTS", 5);
+    
+    double minRadiusSqr = pow(pixRadiusRange[0], 2);
+    double maxRadiusSqr = pow(pixRadiusRange[1], 2);
+    
+    logged << "Checking radii from " << pixRadiusRange[0] << " to " << pixRadiusRange[1] << " pixels" << std::endl;
+    
+    int totalAddedSpots = 0;
+    
+    if (commonCircleCount() == 0 && !noCircles)
+    {
+        for (double i = 0; i < xDim; i += pixTolerance / 2)
+        {
+            for (double j = 0; j < yDim; j += pixTolerance / 2)
+            {
+                double radiusSqr = pow(i - beamX, 2) + pow(j - beamY, 2);
+                
+                if (radiusSqr < minRadiusSqr || radiusSqr > maxRadiusSqr)
+                {
+                    continue;
+                }
+                
+                CommonCirclePtr circle = CommonCirclePtr(new CommonCircle(this, i, j));
+                int spotsAdded = circle->addSpotsIfOnCommonCircle(spots);
+                
+                if (spotsAdded >= minimumCircleSpots)
+                {
+                    commonCircles.push_back(circle);
+                    totalAddedSpots += spotsAdded;
+                }
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < commonCircleCount(); i++)
+        {
+            CommonCirclePtr circle = getCommonCircle(i);
+            int added = circle->addSpotsIfOnCommonCircle(spots);
+            
+            if (added < minimumCircleSpots)
+            {
+                commonCircles.erase(commonCircles.begin() + i);
+                i--;
+            }
+        }
+    }
+    
+    double averageSpots = (double)totalAddedSpots / double(commonCircles.size());
+    logged << "Added " << commonCircles.size() << " total common circles with " << averageSpots << " average spots." << std::endl;
+    sendLog();
+}

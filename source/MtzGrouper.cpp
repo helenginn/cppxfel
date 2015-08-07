@@ -15,7 +15,6 @@
 #include <boost/thread/thread.hpp>
 #include "Miller.h"
 #include "lbfgs_scaling.h"
-#include "csymlib.h"
 #include "ccp4_general.h"
 #include "ccp4_parser.h"
 

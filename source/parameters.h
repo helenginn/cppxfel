@@ -122,6 +122,12 @@ typedef enum
 	RFactorNone, RFactorTypeMerge, RFactorTypePim, RFactorTypeMeas,
 } RFactorType;
 
+typedef enum
+{
+    MinimizationMethodStepSearch = 0,
+    MinimizationMethodNelderMead = 1,
+} MinimizationMethod;
+
 class Panel;
 class Logger;
 class Image;
@@ -132,11 +138,13 @@ class MtzManager;
 class CommonLine;
 class Spot;
 class ImageCluster;
+class CommonCircle;
 
 typedef boost::shared_ptr<Miller> MillerPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
 typedef boost::shared_ptr<CommonLine> CommonLinePtr;
+typedef boost::shared_ptr<CommonCircle> CommonCirclePtr;
 typedef boost::shared_ptr<Panel>PanelPtr;
 typedef boost::shared_ptr<MtzManager>MtzPtr;
 typedef boost::shared_ptr<std::ostringstream> StreamPtr;
@@ -152,6 +160,7 @@ typedef std::map<std::string, ParameterVariant> ParametersMap;
 typedef void (*ParserFunction)(ParametersMap *, std::string, std::string);
 typedef std::map<std::string, ParserFunction> ParserMap;
 typedef std::pair<CommonLinePtr, CommonLinePtr> CommonLinePair;
+typedef std::pair<CommonCirclePtr, CommonCirclePtr> CommonCirclePair;
 
 typedef double (StatisticsFunction)(MtzManager *, MtzManager *, int, int *,
 		double *, double, double, bool);

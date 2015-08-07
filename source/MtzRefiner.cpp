@@ -14,6 +14,7 @@
 #include "Image.h"
 #include <fstream>
 #include "AmbiguityBreaker.h"
+#include "CommonCircle.h"
 
 #include "FileParser.h"
 #include "Index.h"
@@ -644,6 +645,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
         
         Image *newImage = new Image(imgName, wavelength,
                                     detectorDistance);
+        bool hasSpots = false;
         
         for (int i = 1; i < lines.size(); i++)
         {
@@ -656,6 +658,21 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
             {
                 std::string spotsFile = components[1];
                 newImage->setSpotsFile(spotsFile);
+                hasSpots = true;
+            }
+            
+            if (components[0] == "circle")
+            {
+                if (components.size() < 3)
+                {
+                    newImage->setNoCircles();
+                }
+                else
+                {
+                    double x = atof(components[1].c_str());
+                    double y = atof(components[2].c_str());
+                    newImage->addProtoCircle(x, y);
+                }
             }
             
             if (components[0] == "matrix")
@@ -735,6 +752,11 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
         }
         if (newImages)
         {
+            if (hasSpots)
+            {
+                newImage->processSpotList();
+            }
+            
             if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
             {
                 newImages->push_back(newImage);
@@ -1130,8 +1152,8 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
         std::string mtzName = components[0] + ".mtz";
         if (!FileReader::exists(mtzName))
         {
-            log << "Skipping file " << mtzName << std::endl;
-            continue;
+        //    log << "Skipping file " << mtzName << std::endl;
+       //     continue;
         }
         
         log << "Loading file " << mtzName << std::endl;
@@ -1343,6 +1365,8 @@ void MtzRefiner::loadImageFiles()
             return;
         }
         
+        std::cout << "Applying parameters to images." << std::endl;
+        
         applyParametersToImages();
     }
 }
@@ -1436,8 +1460,9 @@ void MtzRefiner::clusterIndexing()
 {
     loadImageFiles();
     
-    ImageCluster cluster = ImageCluster(images);
-    cluster.process();
+    
+    ImageClusterPtr cluster = ImageClusterPtr(new ImageCluster(images));
+    cluster->process();
 }
 
 
@@ -1615,6 +1640,22 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
             matrix->rotate(0, 0, -M_PI / 2);
             std::string desc90 = matrix->description(true);
             integrateMats << desc90 << std::endl;
+        }
+        
+        if (image->getSpotsFile().length() > 0)
+        {
+            integrateMats << "spots " << image->getSpotsFile() << std::endl;
+            
+            for (int j = 0; j < image->commonCircleCount(); j++)
+            {
+                CommonCirclePtr circle = image->getCommonCircle(j);
+                integrateMats << circle->printResult();
+            }
+            
+            if (image->commonCircleCount() == 0)
+            {
+                integrateMats << "circle" << std::endl;
+            }
         }
     }
     
@@ -1794,7 +1835,7 @@ MtzRefiner::~MtzRefiner()
     
     for (int i = 0; i < images.size(); i++)
     {
-        delete images[i];
+  //      delete images[i];
     }
     
     images.clear();

@@ -23,10 +23,12 @@ private:
     
 public:
     CommonLine(std::vector<SpotPtr> newSpots, Image *parent);
-    double angleWithCommonLine(CommonLine otherLine);
+    double angleWithCommonLine(CommonLinePtr otherLine);
     
     void signature(std::vector<double> *twoThetas);
     double similarityToCommonLine(CommonLinePtr otherLine);
+    int makeSuccessful();
+    void removeSuccess();
     
     std::vector<SpotPtr> spots()
     {

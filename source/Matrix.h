@@ -38,6 +38,9 @@ private:
 public:
     double components[16];
     
+    bool isIdentity();
+    void multiply(double scalar);
+    void add(MatrixPtr secondMatrix);
     Matrix(void);
     Matrix(double *components);
     Matrix(scitbx::mat3<double> unitcell, scitbx::mat3<double> rotation);
@@ -45,13 +48,14 @@ public:
     void printDescription(bool detailed = false);
     std::string description(bool detailed = false);
     Matrix inverse2DMatrix();
-    Matrix inverse3DMatrix();
+    MatrixPtr inverse3DMatrix();
     Matrix transpose();
     cctbx::miller::index<double> multiplyIndex(cctbx::miller::index<> *index);
 
     void translate(double x, double y, double z);
     void rotateHK(double hRot, double kRot);
     void rotate(double alpha, double beta, double gamma);
+    void rotateRoundUnitVector(vec unitVector, double radians);
     void rotateRoundUnitVector(double *unitVector, double radians);
     void multiply(Matrix &b);
     void multiplyVector(vec *vector);

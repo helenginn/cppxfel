@@ -139,9 +139,6 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
         interval = (maxLength - minLength) / 20;
     }
     
-    bool resolutionWeights = true;
-
-    
     std::ostringstream logged;
     logged << "Wavelength histogram for " << this->image->getFilename() << std::endl;
     

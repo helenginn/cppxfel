@@ -76,6 +76,20 @@ void MtzManager::refreshPartialities(double parameters[])
                         parameters[PARAM_UNIT_CELL_C]);
 }
 
+void MtzManager::refreshCurrentPartialities()
+{
+    refreshPartialities(this->hRot,
+                        this->kRot,
+                        this->mosaicity,
+                        this->spotSize,
+                        this->wavelength,
+                        this->bandwidth,
+                        this->exponent,
+                        this->cellDim[0],
+                        this->cellDim[1],
+                        this->cellDim[2]);
+}
+
 void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
 		double spotSize, double wavelength, double bandwidth, double exponent,
                                      double a, double b, double c)

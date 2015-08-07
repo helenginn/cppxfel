@@ -160,6 +160,7 @@ void FileParser::generateFunctionList()
     parserMap["MAXIMUM_CYCLES"] = simpleInt;
     parserMap["STOP_REFINEMENT"] = simpleBool;
 
+    parserMap["MINIMIZATION_METHOD"] = simpleInt;
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
     parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
@@ -288,6 +289,16 @@ void FileParser::generateFunctionList()
     parserMap["FROM_DIALS"] = simpleBool;
     parserMap["DO_NOT_REJECT_REFLECTIONS"] = simpleBool;
     parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;
+    
+    parserMap["CLUSTER_MERGE_THRESHOLD"] = simpleFloat;
+    parserMap["CLUSTER_CYCLES"] = simpleInt;
+    parserMap["COMMON_LINE_ANGLE_TOLERANCE"] = simpleFloat;
+    
+    parserMap["PIXEL_TOLERANCE"] = simpleFloat;
+    parserMap["MINIMUM_CIRCLE_SPOTS"] = simpleInt;
+    parserMap["COMMON_CIRCLE_THRESHOLD"] = simpleFloat;
+    parserMap["MAX_UNIT_CELL"] = simpleFloat;
+    parserMap["COMMON_CIRCLE_ANGLE_RANGE"] = doubleVector;
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;

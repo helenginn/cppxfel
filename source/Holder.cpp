@@ -536,8 +536,6 @@ void Reflection::calculateResolution(MtzManager *mtz)
     int k = millers[0]->getK();
     int l = millers[0]->getL();
     
-    vec coordinate = new_vector(h, k, l);
-    
     cctbx::miller::index<> anyMiller = cctbx::miller::index<>(h, k, l);
   /*
     scitbx::mat3<double> cctbxMat = unitCell.reciprocal().orthogonalization_matrix();

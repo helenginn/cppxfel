@@ -72,12 +72,19 @@ std::string Matrix::description(bool detailed)
 	description << components[0] << " ";
 	description << components[4] << " ";
 	description << components[8] << " ";
+    description << components[12] << " ";
 	description << components[1] << " ";
 	description << components[5] << " ";
 	description << components[9] << " ";
+    description << components[13] << " ";
 	description << components[2] << " ";
 	description << components[6] << " ";
 	description << components[10] << " ";
+    description << components[14] << " ";
+    description << components[3] << " ";
+    description << components[7] << " ";
+    description << components[11] << " ";
+    description << components[15] << " ";
 
 	return description.str();
 }
@@ -109,15 +116,16 @@ MatrixPtr Matrix::matrixFromUnitCell(double a, double b, double c, double alpha,
     return aMatrix;
 }
 
+// might be totally crap
 void Matrix::orientationMatrixUnitCell(double *a, double *b, double *c)
 {
     Matrix orientationTranspose = this->transpose();
     Matrix transposeTimesMatrix = orientationTranspose * *this;
-    Matrix inverted = transposeTimesMatrix.inverse3DMatrix();
+    MatrixPtr inverted = transposeTimesMatrix.inverse3DMatrix();
     
-    double aSquared = inverted[0];
-    double bSquared = inverted[5];
-    double cSquared = inverted[10];
+    double aSquared = (*inverted)[0];
+    double bSquared = (*inverted)[5];
+    double cSquared = (*inverted)[10];
     
     *a = sqrt(aSquared);
     *b = sqrt(bSquared);
@@ -137,6 +145,14 @@ void Matrix::threeDimComponents(double **componentArray)
     (*componentArray)[6] = components[2];
     (*componentArray)[7] = components[6];
     (*componentArray)[8] = components[10];
+}
+
+void Matrix::add(MatrixPtr secondMatrix)
+{
+    for (int i = 0; i < 15; i++)
+    {
+        components[i] += secondMatrix->components[i];
+    }
 }
 
 scitbx::mat3<double> Matrix::cctbxMatrix(MatrixPtr theMatrix)
@@ -165,7 +181,7 @@ scitbx::mat3<double> Matrix::cctbxMatrix(MatrixPtr theMatrix)
 void Matrix::unitCellLengths(double **lengths)
 {
     scitbx::mat3<double> cctbxMat = cctbxMatrix();
-    scitbx::mat3<double> inverseMat = cctbxMat.error_minimizing_inverse(10);
+    scitbx::mat3<double> inverseMat = cctbxMat.inverse();
     
     for (int i = 0; i < 3; i++)
     {
@@ -250,7 +266,7 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     
     scitbx::af::double6 newParams = scitbx::af::double6(newA, newB, newC, alpha, beta, gamma);
     cctbx::uctbx::unit_cell newUnitCell = cctbx::uctbx::unit_cell(newParams);
-    scitbx::mat3<double> newOrtho = newUnitCell.orthogonalization_matrix().error_minimizing_inverse(10);
+    scitbx::mat3<double> newOrtho = newUnitCell.orthogonalization_matrix().inverse();
     
     assignFromCctbxMatrix(&*this->unitCell, newOrtho);
     recalculateOrientationMatrix();
@@ -268,44 +284,76 @@ Matrix Matrix::operator*=(Matrix &b)
     Matrix newMat;
 
 	(newMat)[0] = b[0] * components[0] + b[4] * components[1]
-			+ b[8] * components[2] + b[12] * components[3];
+    + b[8] * components[2];//; + b[12] * components[3];
 	(newMat)[1] = b[1] * components[0] + b[5] * components[1]
-			+ b[9] * components[2] + b[13] * components[3];
+    + b[9] * components[2];// + b[13] * components[3];
 	(newMat)[2] = b[2] * components[0] + b[6] * components[1]
-			+ b[10] * components[2] + b[14] * components[3];
-	(newMat)[3] = b[3] * components[0] + b[7] * components[1]
+    + b[10] * components[2];// + b[14] * components[3];
+/*	(newMat)[3] = b[3] * components[0] + b[7] * components[1]
 			+ b[11] * components[2] + b[15] * components[3];
-
+*/
+    
 	(newMat)[4] = b[0] * components[4] + b[4] * components[5]
-			+ b[8] * components[6] + b[12] * components[7];
+    + b[8] * components[6];// + b[12] * components[7];
 	(newMat)[5] = b[1] * components[4] + b[5] * components[5]
-			+ b[9] * components[6] + b[13] * components[7];
+    + b[9] * components[6];// + b[13] * components[7];
 	(newMat)[6] = b[2] * components[4] + b[6] * components[5]
-			+ b[10] * components[6] + b[14] * components[7];
-	(newMat)[7] = b[3] * components[4] + b[7] * components[5]
+    + b[10] * components[6];// + b[14] * components[7];
+/*	(newMat)[7] = b[3] * components[4] + b[7] * components[5]
 			+ b[11] * components[6] + b[15] * components[7];
-
+*/
+    
 	(newMat)[8] = b[0] * components[8] + b[4] * components[9]
-			+ b[8] * components[10] + b[12] * components[11];
+    + b[8] * components[10];// + b[12] * components[11];
 	(newMat)[9] = b[1] * components[8] + b[5] * components[9]
-			+ b[9] * components[10] + b[13] * components[11];
+    + b[9] * components[10];// + b[13] * components[11];
 	(newMat)[10] = b[2] * components[8] + b[6] * components[9]
-			+ b[10] * components[10] + b[14] * components[11];
-	(newMat)[11] = b[3] * components[8] + b[7] * components[9]
+    + b[10] * components[10] ;//+ b[14] * components[11];
+/*	(newMat)[11] = b[3] * components[8] + b[7] * components[9]
 			+ b[11] * components[10] + b[15] * components[11];
-
+*/
+    
 	(newMat)[12] = b[0] * components[12] + b[4] * components[13]
-			+ b[8] * components[14] + b[12] * components[15];
+    + b[8] * components[14];// + b[12] * components[15];
 	(newMat)[13] = b[1] * components[12] + b[5] * components[13]
-			+ b[9] * components[14] + b[13] * components[15];
+    + b[9] * components[14];// + b[13] * components[15];
 	(newMat)[14] = b[2] * components[12] + b[6] * components[13]
-			+ b[10] * components[14] + b[14] * components[15];
-	(newMat)[15] = b[3] * components[12] + b[7] * components[13]
+    + b[10] * components[14];// + b[14] * components[15];
+/*	(newMat)[15] = b[3] * components[12] + b[7] * components[13]
 			+ b[11] * components[14] + b[15] * components[15];
-
+*/
 	memcpy(this->components, newMat.components, 16 * sizeof(double));
 
 	return *this;
+}
+
+bool Matrix::isIdentity()
+{
+    for (int i = 0; i < 16; i++)
+    {
+        if (i == 0 || i == 5 || i == 10 || i == 15)
+        {
+            if (fabs(components[i] - 1) > 0.00001)
+                return false;
+        }
+        else if (components[i] > 0.00001)
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+void Matrix::multiply(double scalar)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        if (i == 3 || i == 7 || i > 11)
+            continue;
+        
+        components[i] *= scalar;
+    }
 }
 
 void Matrix::multiply(Matrix &b)
@@ -445,6 +493,19 @@ void Matrix::rotateModelAxes(double alpha, double beta, double gamma)
 
 }
 
+void Matrix::rotateRoundUnitVector(vec unitVector, double radians)
+{
+    double *axis = new double[3];
+    
+    axis[0] = unitVector.h;
+    axis[1] = unitVector.k;
+    axis[2] = unitVector.l;
+
+    rotateRoundUnitVector(axis, radians);
+    
+    delete [] axis;
+}
+
 void Matrix::rotateRoundUnitVector(double *unitVector, double radians)
 {
 	Matrix matrix = Matrix();
@@ -576,47 +637,16 @@ double invertValue(double topLeft, double bottomRight, double topRight, double b
     return topLeft * bottomRight - bottomLeft * topRight;
 }
 
-Matrix Matrix::inverse3DMatrix()
+MatrixPtr Matrix::inverse3DMatrix()
 {
-    double determinant = 0;
-    determinant = components[0] * components[5] * components[10] +
-    components[1] * components[6] * components[8] +
-    components[2] * components[4] * components[9] -
-    components[0] *components[6] * components[9] -
-    components[1] * components[4] * components[10] -
-    components[2] * components[5] * components[8];
+    scitbx::mat3<double> cctbxMat = cctbxMatrix();
+    scitbx::mat3<double> inverse = cctbxMat.inverse();
     
-    if (determinant == 0)
-        return Matrix();
+    MatrixPtr newMat = MatrixPtr(new Matrix());
+    newMat->assignFromCctbxMatrix(inverse);
     
-    Matrix inverse = Matrix();
+    return newMat;
     
-    inverse[0] = invertValue(components[5], components[10], components[9], components[6]);
-    inverse[1] = invertValue(components[4], components[10], components[8], components[6]);
-    inverse[2] = invertValue(components[4], components[9], components[8], components[5]);
-
-    inverse[4] = invertValue(components[1], components[10], components[9], components[2]);
-    inverse[5] = invertValue(components[0], components[10], components[8], components[2]);
-    inverse[6] = invertValue(components[0], components[9], components[8], components[1]);
-
-    inverse[8] = invertValue(components[1], components[6], components[5], components[2]);
-    inverse[9] = invertValue(components[0], components[6], components[4], components[2]);
-    inverse[10] = invertValue(components[0], components[5], components[4], components[1]);
-    
-    inverse[1] = 0 - inverse[1];
-    inverse[4] = 0 - inverse[4];
-    inverse[6] = 0 - inverse[6];
-    inverse[9] = 0 - inverse[9];
-    
-    for (int i = 0; i < 16; i += 4)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            inverse[i + j] /= determinant;
-        }
-    }
-    
-    return inverse;
 }
 
 Matrix Matrix::transpose()

@@ -101,7 +101,6 @@ void ReflectionManager::alpha_beta_hj(vector<Scale_factor> Gs, int j,
 	primary_call++;
 	double ref_intensity = reflections[j].reflection->meanIntensity();
 
-	double partiality =  reflections[j].reflection->meanPartiality();
 	double ref_sigma = 1;
 
 	Scale_factor *G_ref;

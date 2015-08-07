@@ -40,7 +40,7 @@ private:
     std::condition_variable printBlock;
     static bool ready;
     LogLevel printedLogLevel;
-    bool tryLock(std::unique_lock<std::mutex> &lock, int maxTries = 50);
+    bool tryLock(std::mutex &lock, int maxTries = 50);
     static bool isReady();
     
 public:

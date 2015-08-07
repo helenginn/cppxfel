@@ -405,7 +405,7 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 
 			double imgIntensity = imgReflections[j]->meanIntensity();
 			double refIntensity = refReflections[j]->meanIntensity();
-            double meanPartiality = imgReflections[j]->meanPartiality();
+      //      double meanPartiality = imgReflections[j]->meanPartiality();
             
 			double percent = imgIntensity / refIntensity;
 
@@ -505,7 +505,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, std::string filena
 		mtz->excludeFromLogCorrelation();
 
 		double correl = managers[i]->correlation(true);
-		if (correl < 0.98 && false)
+		if (correl < 0.98 && /* DISABLES CODE */ (false))
 			continue;
 
 	/*	 double gradient = managers[i]->gradientAgainstManager(
@@ -794,7 +794,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 3, 1, &resolutions);
+	StatisticsManager::generateResolutionBins(0, 1.6, 4, &resolutions);
 
 	vector<std::string> files;
 
@@ -818,9 +818,9 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
 	double minX = partials[50].wavelength;
 	double maxX = partials[partials.size() - 50].wavelength;
-    double middle = partials[partials.size() / 2].wavelength;
+    double middle = 1.27;//partials[partials.size() / 2].wavelength;
 
-    double wantedWidth = 1.0;
+    double wantedWidth = 0.08;
     
     std::cout << "minX: " << minX << ", maxX: " << maxX << ", middle: " << middle << std::endl;
     
@@ -830,7 +830,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 		minX = middle - wantedWidth / 2;
 	}
 
-	int resCount = resolutions.size();
+	int resCount = (int)resolutions.size();
 
 	properties["xMin"] = minX;
 	properties["xMax"] = maxX;
@@ -859,11 +859,11 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
                     || partials[i].partiality != partials[i].partiality)
                     continue;
                 
-              //  if (partials[i].percentage > maxPercentage)
-              //      continue;
+                if (partials[i].percentage > maxPercentage)
+                    continue;
                 
 				xs.push_back(partials[i].wavelength);
-                ys.push_back(0);//partials[i].percentage);
+                ys.push_back(partials[i].percentage);
                 ys2.push_back(partials[i].partiality);
 
 				scatterX.push_back(partials[i].partiality);

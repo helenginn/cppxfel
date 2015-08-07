@@ -22,6 +22,7 @@ Spot::Spot(Image *image)
     angleDetectorPlane = 0;
     setAngle = false;
     checked = false;
+    successfulCommonLines = 0;
     
 	makeProbe(500, 1);
 }
@@ -178,22 +179,42 @@ double Spot::resolution()
     return 1 / d;
 }
 
-double Spot::angleInPlaneOfDetector()
+double Spot::angleFromSpotToCentre(double centreX, double centreY)
 {
-    if (!setAngle)
+    double beamX = parentImage->getBeamX();
+    double beamY = parentImage->getBeamY();
+    
+    vec beamCentre = new_vector(beamX, beamY, 0);
+    vec circleCentre = new_vector(centreX, centreY, 0);
+    vec circleCentreToBeam = vector_between_vectors(circleCentre, beamCentre);
+    
+    return angleInPlaneOfDetector(centreX, centreY, circleCentreToBeam);
+}
+
+double Spot::angleInPlaneOfDetector(double centreX, double centreY, vec upBeam)
+{
+    if (centreX == 0 && centreY == 0)
     {
-        vec upBeam = new_vector(0, 1, 0);
-        vec centre = new_vector(parentImage->getBeamX(), parentImage->getBeamY(), 0);
-        vec spotVec = new_vector(x, y, 0);
-        vec spotVecFromCentre = vector_between_vectors(centre, spotVec);
-        
-        angleDetectorPlane = angleBetweenVectors(upBeam, spotVecFromCentre);
-        
-        if (spotVecFromCentre.h < 0)
-            angleDetectorPlane = -angleDetectorPlane;
-        
-        setAngle = true;
+        centreX = parentImage->getBeamX();
+        centreY = parentImage->getBeamY();
     }
+    
+    vec centre = new_vector(centreX, centreY, 0);
+    vec spotVec = new_vector(getX(), getY(), 0);
+    vec spotVecFromCentre = vector_between_vectors(centre, spotVec);
+    /*
+    if (centreX == 679.5 && centreY == 843.75)
+    {
+        std::ostringstream logged;
+        logged << "spotXY:\t" << getX() << "\t" << getY() << std::endl;
+        logged << "beam:\t" << parentImage->getBeamX() << "\t" << parentImage->getBeamY() << std::endl;
+        logged << "upBeam:\t" << upBeam.h << "\t" << upBeam.k << std::endl;
+        logged << "centreXY:\t" << centreX << "\t" << centreY << std::endl;
+        logged << "spotFromCentre:\t" << spotVecFromCentre.h << "\t" << spotVecFromCentre.k << std::endl;
+        Logger::mainLogger->addStream(&logged);
+    }*/
+    
+    angleDetectorPlane = angleBetweenVectors(upBeam, spotVecFromCentre);
     
     return angleDetectorPlane;
 }
@@ -267,6 +288,29 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
     }
     
     dat.close();
+}
+
+vec Spot::estimatedVector()
+{
+    double beamX = parentImage->getBeamX() * parentImage->getMmPerPixel();
+    double beamY = parentImage->getBeamY() * parentImage->getMmPerPixel();
+    
+    double wavelength = parentImage->getWavelength();
+    
+    double mmX = getX() * parentImage->getMmPerPixel();
+    double mmY = getY() * parentImage->getMmPerPixel();
+    
+    double detector_distance = parentImage->getDetectorDistance();
+    
+    vec crystalVec = new_vector(beamX, beamY, 0 - detector_distance);
+    vec spotVec = new_vector(mmX, mmY, 0);
+    vec reciprocalCrystalVec = new_vector(0, 0, 0 - 1 / wavelength);
+    
+    vec crystalToSpot = vector_between_vectors(crystalVec, spotVec);
+    scale_vector_to_distance(&crystalToSpot, 1 / wavelength);
+    add_vector_to_vector(&reciprocalCrystalVec, crystalToSpot);
+    
+    return reciprocalCrystalVec;
 }
 
 

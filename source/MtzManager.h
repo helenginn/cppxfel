@@ -252,9 +252,10 @@ public:
 	double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
 	double weightedBestWavelength(double lowRes, double highRes);
 	int accepted(void);
-	static double exclusionScoreWrapper(void *object, double lowRes,
-			double highRes);
+	static double exclusionScoreWrapper(void *object, double lowRes = 0,
+			double highRes = 0);
     static double bFactorScoreWrapper(void *object);
+    static double score(void *object);
 	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
 	double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
 	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
@@ -262,6 +263,7 @@ public:
     double belowPartialityPenalty(double low, double high);
 	std::string describeScoreType();
     
+    void refreshCurrentPartialities();
 	void refreshPartialities(double hRot, double kRot, double mosaicity,
                              double spotSize, double wavelength, double bandwidth, double exponent,
                              double a, double b, double c);

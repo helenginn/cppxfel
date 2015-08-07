@@ -11,6 +11,7 @@
 #include <vector>
 #include "parameters.h"
 #include "Panel.h"
+#include "Vector.h"
 
 class Image;
 
@@ -22,6 +23,7 @@ private:
     double angleDetectorPlane;
     bool setAngle;
     bool checked;
+    int successfulCommonLines;
 
 public:
 	Spot(Image *image);
@@ -37,7 +39,8 @@ public:
 	bool isAcceptable(Image *image);
 	static void sortSpots(vector<Spot *> *spots);
 	static bool spotComparison(Spot *a, Spot *b);
-    double angleInPlaneOfDetector();
+    double angleFromSpotToCentre(double centreX, double centreY);
+    double angleInPlaneOfDetector(double centreX = 0, double centreY = 0, vec upBeam = new_vector(0, 1, 0));
     bool isOnSameLineAsSpot(SpotPtr spot2, double tolerance);
     double resolution();
     static void writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots);
@@ -46,7 +49,23 @@ public:
     double getX();
     double getY();
     Coord getRawXY();
+    vec estimatedVector();
 
+    int successfulLineCount()
+    {
+        return successfulCommonLines;
+    }
+    
+    void addSuccessfulCommonLineCount()
+    {
+        successfulCommonLines++;
+    }
+    
+    void deleteSuccessfulCommonLineCount()
+    {
+        successfulCommonLines--;
+    }
+    
     bool isChecked()
     {
         return checked;

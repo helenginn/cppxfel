@@ -11,6 +11,7 @@
 #include <iostream>
 #include "gaussianfit.h"
 #include <tuple>
+#include "Matrix.h"
 
 vec vector_between_vectors(vec vec1, vec vec2)
 {
@@ -36,6 +37,47 @@ void add_vector_to_vector(vec *vec1, vec vec2)
 	(*vec1).l += vec2.l;
 }
 
+vec perpendicular_for_vectors(vec vec1, vec vec2)
+{
+    vec perp = cross_product_for_vectors(vec1, vec2);
+    scale_vector_to_distance(&perp, 1);
+    
+    return perp;
+}
+
+MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
+{
+    scale_vector_to_distance(&vec1, 1);
+    scale_vector_to_distance(&vec2, 1);
+    
+    vec v = cross_product_for_vectors(vec1, vec2);
+    double s = length_of_vector(v);
+    double c = cosineBetweenVectors(vec1, vec2);
+    
+    MatrixPtr vx = MatrixPtr(new Matrix());
+    vx->components[0] = 0;
+    vx->components[1] = v.l;
+    vx->components[2] = -v.k;
+    vx->components[4] = -v.l;
+    vx->components[5] = 0;
+    vx->components[6] = v.h;
+    vx->components[8] = v.k;
+    vx->components[9] = -v.h;
+    vx->components[10] = 0;
+
+    MatrixPtr vxSquared = vx->copy();
+    vxSquared->multiply(*vx);
+    
+    double scale = (1 - c) / pow(s, 2);
+    vxSquared->multiply(scale);
+    
+    MatrixPtr rotation = MatrixPtr(new Matrix());
+    rotation->add(vx);
+    rotation->add(vxSquared);
+    
+    return rotation;
+}
+
 vec cross_product_for_vectors(vec vec1, vec vec2)
 {
 	double new_h = vec1.k * vec2.l - vec1.l * vec2.k;
@@ -43,6 +85,11 @@ vec cross_product_for_vectors(vec vec1, vec vec2)
 	double new_l = vec1.h * vec2.k - vec1.k * vec2.h;
 
 	return new_vector(new_h, new_k, new_l);
+}
+
+double dot_product_for_vectors(vec vec1, vec vec2)
+{
+    return vec1.h * vec2.h + vec1.k * vec2.k + vec1.l * vec2.l;
 }
 
 vec copy_vector(vec old_vec)
@@ -72,6 +119,13 @@ double angleBetweenVectors(vec vec1, vec vec2)
 
 	double angle = acos(cosTheta);
 
+    vec rightAngle = new_vector(vec1.k, -vec1.h, 0);
+    
+    if (dot_product_for_vectors(rightAngle, vec2) < 0)
+    {
+        angle *= -1;
+    }
+    
 	return angle;
 }
 
@@ -601,7 +655,6 @@ double minimizeParameter(double &step, double &param, double (*score)(void *obje
     double param_scores[3];
     
     int j = 0;
-    double param_min_score = FLT_MAX;
     int param_min_num = 1;
     
     double bestParam = param;
@@ -618,6 +671,8 @@ double minimizeParameter(double &step, double &param, double (*score)(void *obje
         param_trials[j] = i;
         j++;
     }
+    
+    double param_min_score = param_scores[1];
     
     for (int i = 0; i < 3; i++)
         if (param_scores[i] < param_min_score)

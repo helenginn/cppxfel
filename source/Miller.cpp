@@ -596,7 +596,7 @@ double Miller::calculateNormPartiality(double mosaicity,
     
     if (normPartiality == 0)
     {
-        std::cout << "Stop here too!" << std::endl;
+    //    std::cout << "Stop here too!" << std::endl;
     }
     
     return normPartiality;
@@ -655,9 +655,9 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
 
     partiality = tempPartiality / normPartiality;
     
-    if (!std::isfinite(partiality))
+    if ((!std::isfinite(partiality)) || (partiality != partiality))
     {
-        std::cout << "Stop!" << std::endl;
+        partiality = 0;
     }
 }
 
