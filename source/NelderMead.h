@@ -22,6 +22,7 @@ private:
     double gamma;
     double rho;
     double sigma;
+    bool unlimited;
     
     std::vector<double *> paramPtrs;
     std::vector<TestPoint> testPoints;
@@ -50,6 +51,10 @@ public:
     NelderMead(std::vector<double *> newParamPtrs, std::vector<double> expectedRanges, void *object, double (*score)(void *object));
     void process();
     
+    void setUnlimited(bool newLimited)
+    {
+        unlimited = newLimited;
+    }
     
     int paramCount()
     {

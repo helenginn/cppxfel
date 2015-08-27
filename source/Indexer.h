@@ -36,6 +36,7 @@ typedef enum
     RefinementTypeOrientationMatrixHighestPeak = 9,
     RefinementTypeOrientationMatrixEarlySeparated = 10,
     RefinementTypeOrientationMatrixPanelStdev = 11,
+    RefinementTypeOrientationMatrixStdevOnly = 12,
 } RefinementType;
 
 class Indexer
@@ -49,6 +50,7 @@ private:
 
     CCP4SPG *spaceGroup;
     bool complexUnitCell;
+    RotationMode rotationMode;
 	vector<double> unitCell;
     bool refineA;
     bool refineB;
@@ -56,6 +58,9 @@ private:
 	double hRot;
 	double kRot;
     double lRot;
+    double aRot;
+    double bRot;
+    double cRot;
     double bestHRot;
     double bestKRot;
     double bestLRot;
@@ -112,6 +117,7 @@ public:
 	double refineRoundBeamAxis(double start, double end, double wedge, bool allSolutions);
 	void refineRoundBeamAxis();
 
+    bool millerWithinBandwidth(MillerPtr miller);
 	int getTotalReflections();
 	int getTotalReflections(double threshold);
     int getTotalReflectionsWithinBandwidth();
@@ -119,15 +125,18 @@ public:
 	int identicalSpotsAndMillers();
 	double getTotalIntegratedSignal();
 
+    double getRot(int rotNum);
 	void dropMillers();
 
     double getDetectorDistance();
     double getWavelength();
+    void refinementSummary();
     
-    void getBestRots(double *hRot, double *kRot)
+    void getBestRots(double *rot1, double *rot2, double *rot3)
     {
-        *hRot = bestHRot;
-        *kRot = bestKRot;
+        *rot1 = bestHRot;
+        *rot2 = bestKRot;
+        *rot3 = bestLRot;
     }
     
     MatrixPtr getMatrix()

@@ -10,7 +10,7 @@
 #include "parameters.h"
 #include <scitbx/lbfgsb.h>
 #include "Vector.h"
-
+#include "NelderMead.h"
 
 
 Scaler *Scaler::publicScaler = NULL;
@@ -143,6 +143,22 @@ Scaler::Scaler(vector<MtzPtr> mtzs, MtzManager **grouped)
         mtzs[i]->findCommonReflections(&*groupedMtz, imageReflections, refReflections);
         
         mtzData[mtzs[i]] = refReflections;
+        std::vector<double *> params(PARAM_NUM);
+        std::vector<double> steps(PARAM_NUM);
+        
+        double **firstPointer = &(*params.begin());
+        mtzs[i]->getParamPointers(&firstPointer);
+
+        *params[PARAM_SCALE_FACTOR] = mtzs[i]->getScale();
+        
+        double *firstDouble = &(*steps.begin());
+        mtzs[i]->getSteps(&firstDouble);
+
+        steps[PARAM_B_FACTOR] = 4;
+        steps[PARAM_SCALE_FACTOR] = 0.5;
+        
+        parameterMap[mtzs[i]] = params;
+        stepMap[mtzs[i]] = steps;
     }
 }
 
@@ -346,6 +362,26 @@ double Scaler::gradientForImageParameter(MtzPtr mtz, int paramNum)
     return gradient;
 }
 
+double Scaler::evaluateStatic(void *object)
+{
+    double numerator = 0;
+    double denominator = 0;
+
+    for (MtzDataMap::iterator it = static_cast<Scaler *>(object)->mtzData.begin(); it != static_cast<Scaler *>(object)->mtzData.end(); it++)
+    {
+        it->first->refreshCurrentPartialities();
+    }
+    
+    for (int i = 0; i < static_cast<Scaler *>(object)->groupedMtz->reflectionCount(); i++)
+    {
+        static_cast<Scaler *>(object)->groupedMtz->reflection(i)->rMergeContribution(&numerator, &denominator);
+    }
+    
+    double fx = numerator / denominator;
+    
+    return fx;
+}
+
 double Scaler::evaluate()
 {
     double numerator = 0;
@@ -483,6 +519,32 @@ double Scaler::xStepNorm(double step, int paramNum)
 }
 
 void Scaler::minimizeRMerge()
+{
+    minimizeRMergeNelderMead();
+}
+
+void Scaler::minimizeRMergeNelderMead()
+{
+    std::vector<double *> parameters;
+    std::vector<double> steps;
+    
+    for (MtzDataMap::iterator it = mtzData.begin(); it != mtzData.end(); it++)
+    {
+        MtzPtr mtz = it->first;
+        
+        for (int i = 0; i < parameterMap[mtz].size(); i++)
+        {
+            parameters.push_back(parameterMap[mtz][i]);
+            steps.push_back(stepMap[mtz][i]);
+        }
+    }
+    
+    NelderMead refiner(parameters, steps, this, &this->evaluateStatic);
+    refiner.setUnlimited(true);
+    refiner.process();
+}
+
+void Scaler::minimizeRMergeLBFGS()
 {
     int n = parameterCount();
     

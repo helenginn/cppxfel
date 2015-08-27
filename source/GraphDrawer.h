@@ -29,7 +29,7 @@ public:
 	static std::string generateFilename(std::string stem);
 	static std::string generateFilename(std::string stem, std::string ext);
 
-#ifdef MAC
+
 	std::string plot(std::string filename, GraphMap properties,
 			vector<double> x, vector<double> y,
 			vector<double> x2, vector<double> y2);
@@ -53,7 +53,6 @@ public:
 	void partialityPlot(std::string filename, GraphMap properties = GraphMap());
 	void bFactorPlot(vector<MtzManager *>& managers,
                      std::string filename = "all_gradients", GraphMap properties = GraphMap());
-#endif
 
     void plotOrientationStats(vector<MtzPtr> mtzs);
     void plotPartialityStats();

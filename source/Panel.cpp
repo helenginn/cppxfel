@@ -21,7 +21,6 @@ bool Panel::usePanelInfo;
 double Panel::distanceMultiplier;
 Coord Panel::beamCentre;
 
-
 Panel::Panel(vector<double> dimensions)
 {
     if (panels.size() == 0)
@@ -488,25 +487,25 @@ void Panel::plotVectors(int i, PlotType plotType)
                 maxY = shift.second;
             
             Coord difference;
-            difference.first = expectedShift.first - shift.first;
-            difference.second = expectedShift.second - shift.second;
             
-            bool under = intensity < aveIntensity * 2.5;
-            under = (miller->getRawIntensity() / miller->getCountingSigma() < 17);
-            
-            vector<double> *chosenX = under ? &xRed : &xBlue;
-            vector<double> *chosenY = under ? &yRed : &yBlue;
+            difference.first = shift.first;
+            difference.second = shift.second;
             
             if (plotType == PlotTypeRelative)
             {
-                chosenX->push_back(difference.first);
-                chosenY->push_back(difference.second);
+            difference.first = expectedShift.first - shift.first;
+            difference.second = expectedShift.second - shift.second;
             }
-            else
-            {
-                chosenX->push_back(shift.first);
-                chosenY->push_back(shift.second);
-            }
+            
+            bool under = intensity < aveIntensity * 2.5;
+            under = (miller->getRawIntensity() / miller->getCountingSigma() < 17);
+            double strength = miller->getRawIntensity() / miller->getCountingSigma();
+            
+            xRed.push_back(difference.first);
+            yRed.push_back(difference.second);
+            xBlue.push_back(strength);
+            yBlue.push_back(0);
+            
         }
         
         resMillers.clear();
@@ -774,7 +773,7 @@ void Panel::findAllParameters()
     if (millers.size() == 0)
         return;
     
-    findShift(1, 0.2);
+    findShift(2, 0.4);
     this->findAxisDependence(3);
 //    refineAllParameters(3);
 //    findShift(2, 0.1);
@@ -806,12 +805,8 @@ void Panel::findShift(double windowSize, double step, double x, double y)
                 if (!millers[k])
                     continue;
                 
-                Coord tiltShift = getTiltShift(&*millers[k]);
                 Coord translationShift = millers[k]->getShift();
                 Coord millerShift = translationShift;
-                
-                millerShift.first += tiltShift.first;
-                millerShift.second += tiltShift.second;
                 
                 bool inWindow = isCoordInPanel(millerShift, &windowTopLeft,
                                                &windowBottomRight);
@@ -829,6 +824,7 @@ void Panel::findShift(double windowSize, double step, double x, double y)
     std::sort(scores.begin(), scores.end(), scoreComparison);
     
     logged << "Changed best shift to " << scores[0].first.first << "\t" << scores[0].first.second << std::endl;
+    Logger::mainLogger->addStream(&logged);
     
     bestShift = scores[0].first;
 }

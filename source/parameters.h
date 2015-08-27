@@ -8,7 +8,7 @@
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 
-#define PARTIAL_CUTOFF 0.2
+#define PARTIAL_CUTOFF 0.3
 #define MULTIPLIER 512
 #define OFFSET 256
 
@@ -111,6 +111,12 @@ class Miller;
 #include <string>
 
 using std::vector;
+
+typedef enum
+{
+    RotationModeHorizontalVertical = 0,
+    RotationModeUnitCellABC = 1,
+} RotationMode;
 
 typedef enum
 {

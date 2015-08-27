@@ -137,6 +137,7 @@ protected:
 public:
     vector<double> superGaussianTable;
     double bFactor;
+    double externalScale;
     int rejectOverlaps();
 
 	MtzManager(void);
@@ -182,13 +183,13 @@ public:
 			vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
 			int *num = NULL, bool force = false);
 	double meanCorrectedIntensity(Reflection *reflection);
-	double gradientAgainstManager(MtzManager *otherManager, bool leastSquares = false, double lowRes = 0, double highRes = 0);
+	double gradientAgainstManager(MtzManager *otherManager, bool withCutoff = true, double lowRes = 0, double highRes = 0);
 	double minimizeGradient(MtzManager *otherManager, bool leastSquares);
     void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<std::pair<double, double> > *dataPoints = NULL);
 	double minimizeRFactor(MtzManager *otherManager);
     void applyBFactor(double bFactor);
 	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0, bool absolute = false);
-	void applyScaleFactorsForBins();
+	void applyScaleFactorsForBins(int binCount = 20);
 	void clearScaleFactor();
 	void makeScalesPermanent();
 	double averageIntensity(void);
@@ -246,7 +247,9 @@ public:
     
 	static int paramMult, spotMult;
 	void getParams(double *parameters[], int paramCount = PARAM_NUM);
-	void setParams(double parameters[], int paramCount = PARAM_NUM);
+    void getParamPointers(double ***parameters, int paramCount = PARAM_NUM);
+    void getSteps(double *parameters[], int paramCount = PARAM_NUM);
+    void setParams(double parameters[], int paramCount = PARAM_NUM);
 
     double medianWavelength(double lowRes, double highRes);
 	double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
@@ -259,7 +262,7 @@ public:
 	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
 	double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
 	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
-	double rSplit(double low, double high, bool square = false);
+	double rSplit(double low, double high, bool withCutoff = false, bool set = false);
     double belowPartialityPenalty(double low, double high);
 	std::string describeScoreType();
     
@@ -278,7 +281,7 @@ public:
 
     void setParamLine(std::string line);
     std::string getParamLine();
-    void findSteps(int param1 = PARAM_UNIT_CELL_A, int param2 = PARAM_UNIT_CELL_B, int param3 = PARAM_UNIT_CELL_C);
+    void findSteps(int param1, int param2, std::string csvName);
 	void gridSearch(bool silent = false);
 	double leastSquaresPartiality(ScoreType typeOfScore);
     double minimize();

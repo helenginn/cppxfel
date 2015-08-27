@@ -62,6 +62,39 @@ void MtzManager::getParams(double *parameters[], int paramCount)
     (*parameters)[PARAM_UNIT_CELL_C] = cellDim[2];
 }
 
+void MtzManager::getParamPointers(double ***parameters, int paramCount)
+{
+    (*parameters)[PARAM_WAVELENGTH] = &wavelength;
+    (*parameters)[PARAM_BANDWIDTH] = &bandwidth;
+    (*parameters)[PARAM_MOS] = &mosaicity;
+    (*parameters)[PARAM_SPOT_SIZE] = &spotSize;
+    (*parameters)[PARAM_HROT] = &hRot;
+    (*parameters)[PARAM_KROT] = &kRot;
+    (*parameters)[PARAM_EXPONENT] = &exponent;
+    (*parameters)[PARAM_B_FACTOR] = &bFactor;
+    (*parameters)[PARAM_SCALE_FACTOR] = &externalScale;
+    (*parameters)[PARAM_UNIT_CELL_A] = &cellDim[0];
+    (*parameters)[PARAM_UNIT_CELL_B] = &cellDim[1];
+    (*parameters)[PARAM_UNIT_CELL_C] = &cellDim[2];
+}
+
+void MtzManager::getSteps(double *ranges[], int paramCount)
+{
+    (*ranges)[PARAM_HROT] = stepSizeOrientation;
+    (*ranges)[PARAM_KROT] = stepSizeOrientation;
+    (*ranges)[PARAM_MOS] = stepSizeMosaicity;
+    (*ranges)[PARAM_SPOT_SIZE] = stepSizeRlpSize;
+    (*ranges)[PARAM_WAVELENGTH] = stepSizeWavelength / 2;
+    (*ranges)[PARAM_BANDWIDTH] = stepSizeBandwidth;
+    (*ranges)[PARAM_B_FACTOR] = 0;
+    (*ranges)[PARAM_SCALE_FACTOR] = 0;
+    (*ranges)[PARAM_EXPONENT] = stepSizeExponent;
+    (*ranges)[PARAM_UNIT_CELL_A] = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
+    (*ranges)[PARAM_UNIT_CELL_B] = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
+    (*ranges)[PARAM_UNIT_CELL_C] = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
+    
+}
+
 void MtzManager::refreshPartialities(double parameters[])
 {
     refreshPartialities(parameters[PARAM_HROT],
@@ -78,6 +111,10 @@ void MtzManager::refreshPartialities(double parameters[])
 
 void MtzManager::refreshCurrentPartialities()
 {
+    if (externalScale != -1)
+        this->applyScaleFactor(externalScale, 0, 0, true);
+    
+    applyBFactor(bFactor);
     refreshPartialities(this->hRot,
                         this->kRot,
                         this->mosaicity,
@@ -97,17 +134,21 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
 
     this->makeSuperGaussianLookupTable(exponent);
 
+    if (!matrix)
+        return;
+    
     if (matrix->isComplex())
         this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
     
-    
+    MatrixPtr newMatrix = MatrixPtr();
+    Miller::rotateMatrix(hRot, kRot, matrix, &newMatrix);
     
 	for (int i = 0; i < reflections.size(); i++)
 	{
 		for (int j = 0; j < reflections[i]->millerCount(); j++)
 		{
 			MillerPtr miller = reflections[i]->miller(j);
-			miller->recalculatePartiality(hRot, kRot, mosaicity, spotSize,
+			miller->recalculatePartiality(newMatrix, mosaicity, spotSize,
 					wavelength, bandwidth, exponent);
 		}
 	}
@@ -195,7 +236,9 @@ double MtzManager::bestWavelength(double lowRes, double highRes, bool usingRefer
             if (wavelengthRange.size())
             {
                 if (wavelength < wavelengthRange[0] || wavelength > wavelengthRange[1])
+                {
                     continue;
+                }
             }
             
 			double weight = 1;
@@ -237,8 +280,13 @@ double MtzManager::bestWavelength(double lowRes, double highRes, bool usingRefer
     {
         this->setRejected(true);
     }
+
+    double newWavelength = totalWavelength / count;
     
-	return totalWavelength / count;
+    logged << "Best wavelength " << newWavelength << " Å from " << count << " reflections." << std::endl;
+    sendLog(LogLevelDetailed);
+    return newWavelength;
+
 }
 
 double MtzManager::correlation(bool silent, double lowResolution,

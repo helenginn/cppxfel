@@ -116,11 +116,10 @@ public:
 	void setParent(Reflection *reflection);
 	void setFree(bool newFree);
 	bool positiveFriedel(bool *positive, int *isym = NULL);
-	bool activeWithAngle(double degrees);
 	void setRejected(std::string reason, bool rejection);
 	bool isRejected(std::string reason);
 	void makeScalesPermanent();
-    void integrateIntensity(double hRot, double kRot);
+    void integrateIntensity(MatrixPtr transformedMatrix);
     vec getTransformedHKL(double hRot, double kRot);
     double getEwaldWeight(double hRot, double kRot, bool isH);
     
@@ -130,12 +129,13 @@ public:
 
     bool isRejected();
     double getBFactorScale();
-	double intensity(void);
+	double intensity(bool withCutoff = true);
 	double getSigma(void);
-	double getPartiality(void);
+	double getPartiality();
 	double getWavelength(void);
 	double getWavelength(double hRot, double kRot);
-	double getWeight(WeightType weighting = WeightTypePartialitySigma);
+    double getWavelength(MatrixPtr transformedMatrix);
+	double getWeight(bool cutoff = true, WeightType weighting = WeightTypePartialitySigma);
 	double resolution();
     double twoTheta(bool horizontal);
 	double scatteringAngle(Image *image);
@@ -143,25 +143,26 @@ public:
 
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
-	void positionOnDetector(double hRot, double kRot, int *x,
+	void positionOnDetector(MatrixPtr transformedMatrix, int *x,
 			int *y);
-    void calculatePosition(double distance, double wavelength, double beamX, double beamY, double mmPerPixel, double hRot, double kRot, double *x, double *y);
+    void calculatePosition(double distance, double wavelength, double beamX, double beamY, double mmPerPixel, MatrixPtr transformedMatrix, double *x, double *y);
 
-	void setHorizontalPolarisationFactor(double newFactor);
-	void recalculatePartiality(double hRot, double kRot, double mosaicity,
+    void setHorizontalPolarisationFactor(double newFactor);
+	void recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent,
 			bool normalise = true);
-	double partialityForHKL(vec hkl, double hRot, double kRot, double mosaicity,
+	double partialityForHKL(vec hkl, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent);
 	void applyScaleFactor(double scaleFactor);
 	double calculateNormPartiality(double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent);
-	double calculateNormFromResolution(double hRot, double kRot, double mosaicity,
+	double calculateNormFromResolution(MatrixPtr rotatedMatrix, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent,
 			double d);
     double observedPartiality(double reference);
     double observedPartiality(MtzManager *reference);
     
+    vec getTransformedHKL(MatrixPtr matrix);
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
     
     static double averageRawIntensity(vector<MillerPtr> millers);
@@ -406,6 +407,9 @@ public:
         correctingPolarisation = on;
     }
 
+    static void rotateMatrix(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
+    static void rotateMatrix(double hRot, double kRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
+
 protected:
 	PartialityModel model;
 	double rawIntensity;
@@ -415,7 +419,6 @@ protected:
 	double wavelength;
 	std::string filename;
 
-	void rotateMatrix(double hRot, double kRot, MatrixPtr *newMatrix);
 };
 
 #endif /* MILLER_H_ */

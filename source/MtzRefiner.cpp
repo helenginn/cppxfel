@@ -141,9 +141,7 @@ void MtzRefiner::cycleThread(int offset)
                 for (int i = 0; i < 1; i++)
                 {
                     image->gridSearch(true);
-                    image->findSteps(PARAM_HROT, PARAM_KROT, PARAM_WAVELENGTH);
                     image->gridSearch(true);
-                    image->findSteps();
                 }
             }
             
@@ -228,6 +226,19 @@ void MtzRefiner::refine()
     {
         if (denormalise)
             mtzManagers[i]->denormaliseMillers();
+    }
+    
+    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", false);
+    
+    if (fixUnitCell)
+    {
+        for (int i = 0; i < mtzManagers.size(); i++)
+        {
+            vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+            
+            mtzManagers[i]->getMatrix()->changeOrientationMatrixDimensions(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], givenUnitCell[3], givenUnitCell[4], givenUnitCell[5]);
+            mtzManagers[i]->setUnitCell(givenUnitCell);
+        }
     }
     
     originalMerge = reference;
@@ -339,6 +350,7 @@ void MtzRefiner::refineCycle(bool once)
         if (!once)
             delete reference;
         reference = exclusion ? unmergedMtz : mergedMtz;
+        MtzManager::setReference(reference);
         i++;
     }
 }
@@ -588,6 +600,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
         exit(1);
     }
     
+    bool ignoreMissing = FileParser::getKey("IGNORE_MISSING_IMAGES", false);
     const std::string contents = FileReader::get_file_contents(
                                                                filename->c_str());
     
@@ -617,7 +630,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
         
         std::ostringstream logged;
         
-        if (!FileReader::exists(imgName))
+        if (!FileReader::exists(imgName) && !ignoreMissing)
         {
             logged << "Skipping image " << imgName << std::endl;
             Logger::mainLogger->addStream(&logged);
@@ -712,7 +725,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                         
                         if (fromDials)
                         {
-                            std::cout << "Rotating by 90º" << std::endl;
                             rotation->rotate(0, 0, M_PI / 2);
                         }
                         
@@ -1152,8 +1164,8 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
         std::string mtzName = components[0] + ".mtz";
         if (!FileReader::exists(mtzName))
         {
-        //    log << "Skipping file " << mtzName << std::endl;
-       //     continue;
+            log << "Skipping file " << mtzName << std::endl;
+            continue;
         }
         
         log << "Loading file " << mtzName << std::endl;
@@ -1435,23 +1447,8 @@ void MtzRefiner::integrate()
     {
         for (int j = 0; j < images[i]->indexerCount(); j++)
         {
-            std::string filename = images[i]->getFilename();
-            int totalReflections = images[i]->getIndexer(j)->getTotalReflections();
-            double lastScore = images[i]->getIndexer(j)->getLastScore();
-            double bestHRot = 0;
-            double bestKRot = 0;
-            double bestLRot = images[i]->getIndexer(j)->getBestLRot();
-            double wavelength = images[i]->getIndexer(j)->getWavelength();
-            double distance = images[i]->getIndexer(j)->getDetectorDistance();
-            MatrixPtr matrix = images[i]->getIndexer(j)->getMatrix();
-            double *lengths = new double[3];
-            matrix->unitCellLengths(&lengths);
-            images[i]->getIndexer(j)->getBestRots(&bestHRot, &bestKRot);
-            
-            std::cout << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
-            << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << std::endl;
-            
-            delete [] lengths;
+            images[i]->getIndexer(j)->refinementSummary();
+
         }
     }
 }
@@ -1493,7 +1490,17 @@ void MtzRefiner::findSteps()
 {
     for (int i = 0; i < mtzManagers.size(); i++)
     {
-        mtzManagers[i]->findSteps();
+        std::string mtzFile = mtzManagers[i]->getFilename();
+        std::string baseName = getBaseFilename(mtzFile);
+        std::string csvHK = "csv-hk-" + baseName + ".csv";
+        std::string csvHW = "csv-hw-" + baseName + ".csv";
+        std::string csvKW = "csv-kw-" + baseName + ".csv";
+        
+        mtzManagers[i]->gridSearch();
+        
+        mtzManagers[i]->findSteps(PARAM_HROT, PARAM_KROT, csvHK);
+        mtzManagers[i]->findSteps(PARAM_HROT, PARAM_WAVELENGTH, csvHW);
+        mtzManagers[i]->findSteps(PARAM_KROT, PARAM_WAVELENGTH, csvKW);
     }
 }
 
@@ -1542,8 +1549,7 @@ void MtzRefiner::loadMillersIntoPanels()
     {
         MtzPtr mtz = mtzManagers[i];
         
-        double hRot = mtz->getHRot();
-        double kRot = mtz->getKRot();
+        MatrixPtr matrix = mtz->getMatrix();
         
         for (int j = 0; j < mtz->reflectionCount(); j++)
         {
@@ -1553,7 +1559,7 @@ void MtzRefiner::loadMillersIntoPanels()
                 
                 double x, y;
                 
-                miller->calculatePosition(detectorDistance, wavelength, beam[0], beam[1], mmPerPixel, hRot, kRot, &x, &y);
+                miller->calculatePosition(detectorDistance, wavelength, beam[0], beam[1], mmPerPixel, matrix, &x, &y);
                 
                 if (miller->accepted())
                 {

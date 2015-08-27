@@ -162,7 +162,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
             
             double resolution = 1 / reflections1[i]->getResolution();
 
-			std::cout << h << "\t" << k << "\t" << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << std::endl;
+			std::cout << h << " " << k << " " << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << std::endl;
 		}
 	}
 
@@ -427,9 +427,17 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 				shouldLog ?
 						log(reflection2->meanIntensity()) :
 						reflection2->meanIntensity();
+        
+        double weight = 1;//reflection->meanWeight();
 
-		if (int1 != int1 || int2 != int2)
-			continue;
+        if (int1 == 0 || weight == 0 || weight != weight)
+            continue;
+        
+        if (int1 != int1 || int2 != int2)
+            continue;
+        
+        if (int1 + int2 < 0)
+            continue;
 
 		double res = reflection->getResolution();
 
@@ -437,8 +445,8 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 			continue;
 
 		count++;
-		sum_numerator += fabs(int1 - int2);
-		sum_denominator += fabs((int1 + int2) / 2);
+		sum_numerator += fabs(int1 - int2) * weight;
+		sum_denominator += fabs((int1 + int2) / 2) * weight;
 
 		mult += reflection->acceptedCount() + reflection2->acceptedCount();
 	}
@@ -842,7 +850,7 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 {
 	int num = 0;
 
-    double scale = (*test_image)->gradientAgainstManager(*image, false);
+    double scale = (*test_image)->gradientAgainstManager(*image, true);
 	(*test_image)->applyScaleFactor(scale);
 
 	vector<Reflection *>refReflections, imageReflections;
@@ -891,6 +899,7 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 			{
 				(*partials).resize(num + 1);
 
+                (*partials)[num].miller = imageReflection->miller(j);
 				(*partials)[num].partiality = partiality;
 				(*partials)[num].percentage = percentage;
 				(*partials)[num].resolution =

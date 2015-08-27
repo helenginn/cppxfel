@@ -47,6 +47,9 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     hRot = 0;
     kRot = 0;
     lRot = 0;
+    aRot = 0;
+    bRot = 0;
+    cRot = 0;
     bestHRot = 0;
     bestKRot = 0;
     bestLRot = 0;
@@ -63,6 +66,9 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     refineC = FileParser::getKey("REFINE_UNIT_CELL_C", false);;
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     orientationTolerance = INDEXING_ORIENTATION_TOLERANCE;
+    
+    int rotationModeInt = FileParser::getKey("ROTATION_MODE", 0);
+    rotationMode = (RotationMode)rotationModeInt;
     
     complexUnitCell = false;
     
@@ -150,7 +156,7 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
         
         for (int j = 0; j < millers.size(); j++)
         {
-            double ewald = millers[j]->getWavelength(hRot, kRot);
+            double ewald = millers[j]->getWavelength();
                         
             if (ewald < i || ewald > i + interval)
                 continue;
@@ -331,6 +337,17 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
     int partialityTooLow = 0;
     int unacceptableIntensity = 0;
     
+    MatrixPtr newMatrix = MatrixPtr();
+    
+    if (rotationMode == RotationModeHorizontalVertical)
+    {
+        Miller::rotateMatrix(hRot, kRot, matrix, &newMatrix);
+    }
+    else if (rotationMode == RotationModeUnitCellABC)
+    {
+        Miller::rotateMatrix(aRot, bRot, cRot, matrix, &newMatrix);
+    }
+    
     for (int i = 0; i < nearbyMillers.size(); i++)
     {
         MillerPtr miller = nearbyMillers[i];
@@ -342,7 +359,7 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
         int roughY = 0;
         
         miller->setMatrix(matrix);
-        miller->positionOnDetector(0, 0, &roughX, &roughY);
+        miller->positionOnDetector(matrix, &roughX, &roughY);
         
         double d = length_of_vector(hkl);
         if (d > maxD)
@@ -353,14 +370,13 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
             continue;
         }
         
-        
-        miller->recalculatePartiality(hRot, kRot, 0.03, testSpotSize,
+        miller->recalculatePartiality(newMatrix, 0.03, testSpotSize,
                                       wavelength, bandwidth, 1.5);
         
         if (i == 0)
             logged << "Calculated partiality with parameters: hRot " << hRot << ", kRot " << kRot << ", spot size " << testSpotSize << ", wavelength " << wavelength << ", bandwidth " << bandwidth << std::endl;
         
-        if (miller->getPartiality() <= 0.01)
+        if (miller->getPartiality() <= 0.05)
         {
         //    logged << "Rejected Miller partiality too low at\t" << roughX << "\t" << roughY << std::endl;
             //sendLog(LogLevelDebug);
@@ -369,7 +385,7 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
         }
         
         miller->setPartialityModel(PartialityModelScaled);
-        miller->getWavelength(hRot, kRot);
+        miller->getWavelength(newMatrix);
         
         if (complexShoebox)
         {
@@ -380,7 +396,7 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
             miller->makeComplexShoebox(wavelength, initialBandwidth, initialMosaicity, initialRlpSize);
         }
         
-        miller->integrateIntensity(hRot, kRot);
+        miller->integrateIntensity(newMatrix);
         
         double rawIntensity = miller->getRawIntensity();
         
@@ -533,17 +549,23 @@ int Indexer::getTotalReflections()
     return count;
 }
 
-int Indexer::getTotalReflectionsWithinBandwidth()
+bool Indexer::millerWithinBandwidth(MillerPtr miller)
 {
-    int count = 0;
     double minBandwidth = image->getWavelength() * (1 - testBandwidth);
     double maxBandwidth = image->getWavelength() * (1 + testBandwidth);
     
+    double wavelength = miller->getWavelength();
+    
+    return (wavelength > minBandwidth && wavelength < maxBandwidth);
+}
+
+int Indexer::getTotalReflectionsWithinBandwidth()
+{
+    int count = 0;
+    
     for (int i = 0; i < millers.size(); i++)
     {
-        double wavelength = millers[i]->getWavelength();
-        
-        if (wavelength < minBandwidth || wavelength > maxBandwidth)
+        if (!millerWithinBandwidth(millers[i]))
             continue;
         
         if (millerReachesThreshold(millers[i]))
@@ -815,16 +837,36 @@ double Indexer::score(int whichAxis)
         //	double totalIntensity = getTotalIntegratedSignal();
         
         double totalWeight = 15;
-        double stdevWeight = 10;
+        double stdevWeight = 15;
         
         double totalChange = total / lastTotal - 1;
         double totalStdev = stdev / lastStdev - 1;
         
         double score = (totalStdev * stdevWeight - totalChange * totalWeight);
-        
-     //   return 0 - total;
+        std::cout << aRot << ", " << bRot << ", " << cRot << ", " << score << std::endl;
 
         return score;
+    }
+    
+    if (refinement == RefinementTypeOrientationMatrixStdevOnly)
+    {
+        vector<double> wavelengths;
+        vector<int> frequencies;
+        getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed, 0);
+        
+        wavelengths.clear();
+        vector<double>().swap(wavelengths);
+        
+        for (int i = 0; i < millers.size(); i++)
+        {
+            if (millerReachesThreshold(millers[i]) && millerWithinBandwidth(millers[i]))
+            {
+                wavelengths.push_back(millers[i]->getWavelength());
+            }
+        }
+        
+        double stdev = standard_deviation(&wavelengths);
+        return stdev;
     }
     
     if (refinement == RefinementTypeOrientationMatrixPanelStdev)
@@ -1217,6 +1259,38 @@ void Indexer::matchMatrixToSpots(RefinementType refinement)
     std::cout << std::endl;
 }
 
+double Indexer::getRot(int rotNum)
+{
+    if (rotationMode == RotationModeHorizontalVertical)
+    {
+        switch (rotNum) {
+            case 0:
+                return hRot;
+            case 1:
+                return kRot;
+            case 2:
+                return lRot;
+            default:
+                break;
+        }
+    }
+    else if (rotationMode == RotationModeUnitCellABC)
+    {
+        switch (rotNum) {
+            case 0:
+                return aRot;
+            case 1:
+                return bRot;
+            case 2:
+                return cRot;
+            default:
+                break;
+        }
+    }
+
+    return 0;
+}
+
 void Indexer::refineOrientationMatrix()
 {
     int orientationScore = FileParser::getKey("ORIENTATION_SCORE", 0);
@@ -1260,16 +1334,23 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
         double hRotStep = initialStep;
         double kRotStep = initialStep;
         double lRotStep = initialStep;
+        double aRotStep = initialStep;
+        double bRotStep = initialStep;
+        double cRotStep = initialStep;
+        
         double aStep = FileParser::getKey("STEP_UNIT_CELL_A", 0.2);
         double bStep = FileParser::getKey("STEP_UNIT_CELL_B", 0.2);;
         double cStep = FileParser::getKey("STEP_UNIT_CELL_C", 0.2);;
         
-        bool refinedH = false;
-        bool refinedK = false;
-        bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", false);
+        bool refinedH = (rotationMode == RotationModeHorizontalVertical) ? false : true;
+        bool refinedK = (rotationMode == RotationModeHorizontalVertical) ? false : true;
+        bool refinedL = (rotationMode == RotationModeHorizontalVertical) ? !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", false) : true;
         bool refinedA = !refineA;
         bool refinedB = !refineB;
         bool refinedC = !refineC;
+        bool refinedARot = (rotationMode == RotationModeUnitCellABC) ? false : true;
+        bool refinedBRot = (rotationMode == RotationModeUnitCellABC) ? false : true;
+        bool refinedCRot = (rotationMode == RotationModeUnitCellABC) ? false : true;
         
         int count = 0;
         
@@ -1291,6 +1372,15 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
                 this->minimizeParameter(&hRotStep, &hRot, 1);
             }
             
+            if (!refinedARot && !refinedBRot && !refinedCRot)
+            {
+                this->minimizeTwoParameters(&aRotStep, &bRotStep, &aRot, &bRot);
+                this->minimizeTwoParameters(&bRotStep, &cRotStep, &bRot, &cRot);
+                this->minimizeTwoParameters(&cRotStep, &aRotStep, &cRot, &aRot);
+                this->minimizeTwoParameters(&aRotStep, &aStep, &aRot, &unitCell[0]);
+                this->minimizeTwoParameters(&bRotStep, &bStep, &bRot, &unitCell[1]);
+                this->minimizeTwoParameters(&cRotStep, &cStep, &cRot, &unitCell[2]);
+            }
             
        //     refinementType = RefinementTypeOrientationMatrixPanelStdev;
             
@@ -1313,19 +1403,19 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
             double newScore = score();
             lastScore = newScore;
             
-            logged << hRot << "\t" << kRot << "\t" << lRot << "\t" << newScore << "\t" << hRotStep << std::endl;
-            sendLog(LogLevelDetailed);
+            logged << getRot(0) << "\t" << getRot(1) << "\t" << getRot(2) << "\t" << newScore << "\t" << aRotStep << std::endl;
+            sendLog(LogLevelNormal);
             
-            if (hRotStep < 0.25 && kRotStep < 0.25)
+            if ((rotationMode == RotationModeHorizontalVertical && hRotStep < 0.25 && kRotStep < 0.25) ||
+                (rotationMode == RotationModeUnitCellABC && aRotStep < 0.25 && bRotStep < 0.25 && cRotStep < 0.25))
             {
                 if (!recalculated)
                 {
-            //        testWavelength = mean;
                     recalculated = true;
                     this->calculateNearbyMillers(true);
                 }
                 
-         //       refinement = RefinementTypeOrientationMatrixHighestPeak;
+                refinement = RefinementTypeOrientationMatrixStdevOnly;
             }
             
             if (hRotStep < orientationTolerance)
@@ -1335,6 +1425,13 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
             
             if (lRotStep < orientationTolerance)
                 refinedL = true;
+
+            if (aRotStep < orientationTolerance)
+                refinedARot = true;
+            if (bRotStep < orientationTolerance)
+                refinedBRot = true;
+            if (cRotStep < orientationTolerance)
+                refinedCRot = true;
             
             if (aStep < 0.01)
                 refinedA = true;
@@ -1348,28 +1445,24 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
         
         count = 0;
         
-        while (!(refinedA && refinedB && refinedC) && count < 50) {
-            
-            
-            
-            if (aStep < 0.01)
-                refinedA = true;
-            if (bStep < 0.01)
-                refinedB = true;
-            if (cStep < 0.01)
-                refinedC = true;
-            
-            count++;
-        }
+        if (aStep < 0.01)
+            refinedA = true;
+        if (bStep < 0.01)
+            refinedB = true;
+        if (cStep < 0.01)
+            refinedC = true;
     }
+    
+    refinement = RefinementTypeOrientationMatrixEarly;
+    lastScore = score();
     
     logged << "Current wavelength: " << testWavelength << " Å." << std::endl;
     logged << "Rotation result:\t" << image->getFilename() << "\t" << hRot
     << "\t" << kRot << "\t" << getTotalReflections() << "\t" << getLastScore() << std::endl;
     
-    double hRad = hRot * M_PI / 180;
-    double kRad = kRot * M_PI / 180;
-    double lRad = lRot * M_PI / 180;
+    double hRad = getRot(0) * M_PI / 180;
+    double kRad = getRot(1) * M_PI / 180;
+    double lRad = getRot(2) * M_PI / 180;
     
     vector<double> originalUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     double *lengths = new double[3];
@@ -1387,15 +1480,24 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     
     delete [] lengths;
     
-    getMatrix()->rotate(hRad, kRad, lRad);
+    if (rotationMode == RotationModeHorizontalVertical)
+        getMatrix()->rotate(hRad, kRad, lRad);
+    else
+    {
+        MatrixPtr oldMatrix = getMatrix()->copy();
+        getMatrix()->rotateABC(oldMatrix, getRot(0), getRot(1), getRot(2));
+    }
     
-    bestHRot = hRot;
-    bestKRot = kRot;
-    bestLRot = lRot;
+    bestHRot = getRot(0);
+    bestKRot = getRot(1);
+    bestLRot = getRot(2);
     
     hRot = 0;
     kRot = 0;
     lRot = 0;
+    aRot = 0;
+    bRot = 0;
+    cRot = 0;
     
     checkAllMillers(maxResolution, testBandwidth);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
@@ -1428,10 +1530,10 @@ MtzPtr Indexer::newMtz(int index)
     checkAllMillers(maxResolution, testBandwidth, complexShoebox);
     
     MatrixPtr newMat = getMatrix()->copy();
-    
+    /*
     double hRad = hRot * M_PI / 180;
     double kRad = kRot * M_PI / 180;
-    newMat->rotate(hRad, kRad, 0);
+    newMat->rotate(hRad, kRad, 0);*/
     
     MtzPtr mtz = MtzPtr(new MtzManager());
     mtz->setWavelength(mean);
@@ -1518,4 +1620,19 @@ void Indexer::sendLog(LogLevel priority)
     logged.clear();
 }
 
+void Indexer::refinementSummary()
+{
+    std::string filename = image->getFilename();
+    int totalReflections = getTotalReflections();
+    double lastScore = getLastScore();
+    double wavelength = getWavelength();
+    double distance = getDetectorDistance();
+    MatrixPtr matrix = getMatrix();
+    double *lengths = new double[3];
+    matrix->unitCellLengths(&lengths);
+    
+    std::cout << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
+    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << std::endl;
+    
+}
 

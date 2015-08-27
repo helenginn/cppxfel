@@ -69,12 +69,12 @@ public:
     void removeMiller(int index);
 
 	double meanIntensityWithExclusion(std::string *filename, int start = 0, int end = 0);
-	double meanIntensity(int start = 0, int end = 0);
+	double meanIntensity(bool withCutoff = true, int start = 0, int end = 0);
 	double meanSigma();
 	double meanSigma(bool friedel);
-	double meanPartiality();
+	double meanPartiality(bool withCutoff = true);
 	double mergedIntensity(WeightType weighting);
-    double meanWeight();
+    double meanWeight(bool cutoff = true);
     double rMergeContribution(double *numerator, double *denominator);
 
 	bool betweenResolutions(double lowAngstroms, double highAngstroms);
@@ -147,11 +147,11 @@ public:
 
     int getReflId()
     {
-        if (activeAmbiguity > ambiguityCount())
+   /*     if (activeAmbiguity > ambiguityCount())
         {
             std::cout << "Active ambiguity error" << std::endl;
         }
-        
+        */
         return reflectionIds[activeAmbiguity];
     }
     

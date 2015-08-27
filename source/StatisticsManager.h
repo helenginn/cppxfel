@@ -8,6 +8,7 @@
 
 struct Partial
 {
+    MillerPtr miller;
 	double partiality;
 	double percentage;
 	double resolution;

@@ -31,3 +31,34 @@ bool replace(std::string& str, const std::string& from, const std::string& to)
     str.replace(start_pos, from.length(), to);
     return true;
 }
+
+std::string getBaseFilename(std::string filename)
+{
+    std::string fName = getFilename(filename);
+    size_t pos = fName.rfind(".");
+    if(pos == std::string::npos)  //No extension.
+        return fName;
+    
+    if(pos == 0)    //. is at the front. Not an extension.
+        return fName;
+    
+    return fName.substr(0, pos);
+}
+
+std::string getFilename(std::string filename)
+{
+    size_t pos = filename.rfind("/");
+    if(pos == std::string::npos)  //No path.
+        return filename;
+    
+    return filename.substr(pos + 1, filename.length());
+}
+
+std::string getPath(std::string filename)
+{
+    size_t pos = filename.rfind("/");
+    if(pos == std::string::npos)  //No path.
+        return filename;
+    
+    return filename.substr(0, pos + 1);
+}

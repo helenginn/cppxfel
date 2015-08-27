@@ -32,7 +32,7 @@ MtzGrouper::MtzGrouper()
 	acceptableResolution = 1;
 	cutResolution = false;
     expectedResolution = FileParser::getKey("MAX_RESOLUTION_ALL", 1.6);
-    usingNewRefinement = FileParser::getKey("SCALE_AND_B_FACTORS", false);
+    usingNewRefinement = FileParser::getKey("MASS_SCALING", false);
     
     exclusionByCCHalf = FileParser::getKey("EXCLUSION_BY_CC_HALF", false);
         
@@ -188,7 +188,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         
         double rSplit = 0;
         if (MtzManager::getReferenceManager() != NULL)
-            rSplit = mtzManagers[i]->rSplit(0, expectedResolution);
+            rSplit = mtzManagers[i]->rSplit(0, expectedResolution, true, true);
         if (rSplit > 0)
             mtzManagers[i]->setAdditionalWeight(rSplit);
         
@@ -226,23 +226,20 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         MtzManager::getReferenceManager()->applyScaleFactor(refScale);
     }
     
-	double scale = 1;
-
 	for (int i = 0; i < mtzManagers.size(); i++)
 	{
-		if (scalingType == ScalingTypeAverage)
+        double scale = 1;
+
+        if (scalingType == ScalingTypeAverage)
 		{
 			scale = 1000 / mtzManagers[i]->averageIntensity();
 		}
 		else if (scalingType == ScalingTypeReference
-                 || scalingType == ScalingTypeReferenceLeastSquares
                  || scalingType == ScalingTypeMinimizeRMerge)
 		{
-			bool leastSquares =
-					(scalingType == ScalingTypeReferenceLeastSquares);
-
 			scale = mtzManagers[i]->gradientAgainstManager(
-					MtzManager::getReferenceManager(), leastSquares);
+					MtzManager::getReferenceManager(), false);
+       //     std::cout << mtzManagers[i]->getFilename() << " " << scale << std::endl;
 		}
 		else if (scalingType == ScalingTypeBFactor)
 		{
@@ -398,7 +395,13 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 	int mtzCount = groupMillers(mergeMtz, unmergedMtz, start, end);
 
-    Scaler::getScaler(mtzManagers, mergeMtz);
+    Scaler *scaler = Scaler::getScaler(mtzManagers, mergeMtz);
+    
+    if (usingNewRefinement)
+    {
+        scaler->minimizeRMerge();
+    }
+    
     int total = 0;
     
     if (exclusionByCCHalf && all)
@@ -666,7 +669,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 	int aveStdErrCount = 0;
     
     bool recalculateSigma = FileParser::getKey("RECALCULATE_SIGMA", false);
-
+    
     for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
 	{
 		Reflection *reflection = (*mergeMtz)->reflection(i);

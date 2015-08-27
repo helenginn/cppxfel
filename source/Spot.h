@@ -24,13 +24,14 @@ private:
     bool setAngle;
     bool checked;
     int successfulCommonLines;
-
+    double correctedX; double correctedY;
+    
 public:
 	Spot(Image *image);
 	virtual ~Spot();
-	double x; double y;
 
-	double weight();
+    double x; double y;
+    double weight();
 	double maximumLift(Image *image, int x, int y, bool ignoreCovers);
 	double maximumLift(Image *image, int x, int y);
 	void makeProbe(int height, int size);
@@ -46,8 +47,8 @@ public:
     static void writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots);
     
     Coord getXY();
-    double getX();
-    double getY();
+    double getX(bool update = false);
+    double getY(bool update = false);
     Coord getRawXY();
     vec estimatedVector();
 

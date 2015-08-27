@@ -19,6 +19,7 @@
 #include <sstream>
 #include <tuple>
 #include "Panel.h"
+#include <fstream>
 #include <cctbx/miller/sym_equiv.h>
 #include <cctbx/miller/asu.h>
 #include <cctbx/miller.h>
@@ -57,12 +58,10 @@ std::string GraphDrawer::generateFilename(std::string stem, std::string ext)
 	std::ostringstream timeString;
 	timeString << stem;
 
-	timeString << "_" << cputime << "." << ext;
+	timeString << "." << ext;
 
 	return timeString.str();
 }
-
-#ifdef MAC
 
 std::string GraphDrawer::plot(std::string filename, GraphMap properties,
 		vector<vector<double> > xs,
@@ -88,8 +87,8 @@ std::string GraphDrawer::plot(std::string filename, GraphMap properties,
 	vector<vector<double> > xs;
 	vector<vector<double> > ys;
 
-	xs.push_back(x);
-	ys.push_back(y);
+    xs.push_back(x); xs.push_back(x2);
+    ys.push_back(y); ys.push_back(y2);
 
 	return plot(filename, properties, xs, ys, x2, y2);
 }
@@ -99,7 +98,8 @@ std::string GraphDrawer::plot(std::string filename, GraphMap properties,
 		vector<vector<double> > ys, vector<double> x2,
 		vector<double> y2)
 {
-	std::string plotType = "line";
+#ifdef MAC
+/*	std::string plotType = "line";
 	std::string plotType2 = "line";
 	std::string title = "Title";
 	std::string xTitle = "x axis";
@@ -267,8 +267,38 @@ std::string GraphDrawer::plot(std::string filename, GraphMap properties,
     std::ostringstream logged;
 	logged << "Plotted " << fullName << std::endl;
     Logger::mainLogger->addStream(&logged, LogLevelDetailed);
+*/
+#endif
     
-	return fullName;
+    std::string csvName = generateFilename(filename, "csv");
+    
+    std::ofstream csv;
+    csv.open(csvName);
+    
+    int biggest = 0;
+    
+    for (int i = 0; i < xs.size(); i++)
+    {
+        if (xs[i].size() > biggest)
+            biggest = (int)xs[i].size();
+    }
+    
+    for (int i = 0; i < biggest; i++)
+    {
+        for (int j = 0; j < xs.size(); j++)
+        {
+            if (i < xs[j].size())
+                csv << xs[j][i] << "," << ys[j][i] << ",";
+            else csv << ",,";
+            
+        }
+        
+        csv << std::endl;
+    }
+    
+    csv.close();
+    
+    return csvName;
 }
 
 void GraphDrawer::correlationPlot(std::string filename, double xMax, double yMax)
@@ -373,6 +403,9 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
         
         double correl = mtz->correlation(true);
         double invCorrel = correl;
+        
+        if (correl < 0.85)
+            continue;
         
         if (MtzManager::getReferenceManager()->ambiguityCount() == 2)
         {
@@ -505,7 +538,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, std::string filena
 		mtz->excludeFromLogCorrelation();
 
 		double correl = managers[i]->correlation(true);
-		if (correl < 0.98 && /* DISABLES CODE */ (false))
+		if (correl < 0.85)
 			continue;
 
 	/*	 double gradient = managers[i]->gradientAgainstManager(
@@ -818,7 +851,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
 	double minX = partials[50].wavelength;
 	double maxX = partials[partials.size() - 50].wavelength;
-    double middle = 1.27;//partials[partials.size() / 2].wavelength;
+    double middle = partials[partials.size() / 2].wavelength;
 
     double wantedWidth = 0.08;
     
@@ -838,13 +871,16 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	properties["yMax2"] = 5.0;
 	properties["yMax"] = maxPercentage;
 
-	vector<double> xs, ys, ys2, scatterX, scatterY;
+	vector<double> xs, xs2, xs3, xs4, ys, ys2, ys3, ys4, scatterX, scatterY;
 
 	for (int shell = 0; shell < resCount - 1; shell++)
 	{
 		xs.clear();
 		ys.clear();
+        xs2.clear();
 		ys2.clear();
+        xs3.clear();
+        ys3.clear();
 
 		double lowRes = 1 / resolutions[shell];
 		double highRes = 1 / resolutions[shell + 1];
@@ -862,13 +898,21 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
                 if (partials[i].percentage > maxPercentage)
                     continue;
                 
+            //    double mValue = (partials[i].miller->getL());
+                
+            //    if (fabs(mValue) < 9)
+            //        continue;
+                
 				xs.push_back(partials[i].wavelength);
                 ys.push_back(partials[i].percentage);
-                ys2.push_back(partials[i].partiality);
-
-				scatterX.push_back(partials[i].partiality);
-				scatterY.push_back(partials[i].percentage);
-			}
+                xs2.push_back(partials[i].partiality);
+                ys2.push_back(partials[i].resolution);
+                xs3.push_back(abs(partials[i].miller->getH()));
+                ys3.push_back(abs(partials[i].miller->getK()));
+                xs4.push_back(abs(partials[i].miller->getL()));
+                ys4.push_back(partials[i].miller->getRawestIntensity());
+                
+            }
 		}
 
 		if (xs.size() <= 1)
@@ -876,12 +920,21 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
 		std::cout << lowRes << "\t" << highRes << "\t" << xs.size()
 				<< std::endl;
+        
+        std::vector<std::vector<double> > allXs, allYs;
+        allXs.push_back(xs);
+        allXs.push_back(xs2);
+        allXs.push_back(xs3);
+        allXs.push_back(xs4);
 
-		files.push_back(
-				plot(filename + "_" + i_to_str(shell), properties, xs, ys, xs,
-						ys2));
+        allYs.push_back(ys);
+        allYs.push_back(ys2);
+        allYs.push_back(ys3);
+        allYs.push_back(ys4);
+
+        plot(filename + "_" + i_to_str(shell), properties, allXs, allYs);
 	}
-
+/*
 	int milliseconds = 1200 / resCount;
 
 	std::string animate = "convert -delay " + i_to_str(milliseconds) + " -loop 0 ";
@@ -916,10 +969,8 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	properties["xMax"] = 1.2;
 	properties["yMin"] = 0;
     properties["yMax"] = maxPercentage;
-
-	plot(filename + "_scatter", properties, scatterX, scatterY);
-
-	std::cout << scatterX.size() << " reflections to scatter plot" << std::endl;
+*/
+//	plot(filename + "_scatter", properties, scatterX, scatterY);
 }
 
 void GraphDrawer::plotPartialityStats()
@@ -974,8 +1025,6 @@ void GraphDrawer::plotPartialityStats()
     plot("partialityStats", map, xs, ys);
 }
 
-#endif
-
 void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 {
     cctbx::miller::index<> genericIndex = cctbx::miller::index<>(0, 0, 1);
@@ -991,7 +1040,10 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
         
         cctbx::miller::index<double> position = matrix->multiplyIndex(&genericIndex);
         
-        std::cout << mtzs[i]->getFilename() << "\t" << position[0] << "\t" << position[1] << "\t" << position[2] << std::endl;
+        vec pos = new_vector(position[0], position[1], position[2]);
+        scale_vector_to_distance(&pos, 1);
+        
+        std::cout << mtzs[i]->getFilename() << "\t" << pos.h << "\t" << pos.k << "\t" << pos.l << std::endl;
     }
 
     for (int i = 0; i < mtzs.size(); i++)
@@ -1007,28 +1059,6 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
         double h = position[0];
         double k = position[1];
         double l = position[2];
-        
-        std::cout << h << "\t" << k << "\t" << l << std::endl;
-        std::cout << -h << "\t" << -k << "\t" << l << std::endl;
-        std::cout << k << "\t" << -h << "\t" << l << std::endl;
-        std::cout << -k << "\t" << -h << "\t" << -l << std::endl;
-        std::cout << -k << "\t" << h << "\t" << l << std::endl;
-        std::cout <<-h << "\t" << k << "\t" << -l << std::endl;
-        std::cout << h << "\t" << -k << "\t" << -l << std::endl;
-        std::cout << h << "\t" << k << "\t" << -l << std::endl;
-        
-        h = -h;
-        k = -k;
-        l = -l;
-        
-        std::cout << h << "\t" << k << "\t" << l << std::endl;
-        std::cout << -h << "\t" << -k << "\t" << l << std::endl;
-        std::cout << k << "\t" << -h << "\t" << l << std::endl;
-        std::cout << -k << "\t" << -h << "\t" << -l << std::endl;
-        std::cout << -k << "\t" << h << "\t" << l << std::endl;
-        std::cout <<-h << "\t" << k << "\t" << -l << std::endl;
-        std::cout << h << "\t" << -k << "\t" << -l << std::endl;
-        std::cout << h << "\t" << k << "\t" << -l << std::endl;
         
         /*
         for (int i = 0; i < size; i++)

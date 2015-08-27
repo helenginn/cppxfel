@@ -69,7 +69,7 @@ std::vector<double> NelderMead::calculateCentroid()
     }
     
     logged << "Lowest test point: " << testPoints[0].second << std::endl;
-    sendLog();
+    sendLog(LogLevelDebug);
     
     return centroid;
 }
@@ -163,10 +163,14 @@ void NelderMead::process()
 {
     int count = 0;
     
-    while (!converged() && count < 100)
+    while ((!converged() && count < 100) || unlimited)
     {
+        sendLog(LogLevelDetailed);
         std::vector<double> centroid = calculateCentroid();
         count++;
+
+        logged << "Evaluation of best point: " << testPoints[0].second << std::endl;
+        sendLog(LogLevelDetailed);
 
         TestPoint reflected = reflectedPoint(centroid);
         
@@ -206,6 +210,10 @@ void NelderMead::process()
     
     orderTestPoints();
     setTestPointParameters(&testPoints[0]);
+    
+    logged << "Evaluation of best point: " << testPoints[0].second << std::endl;
+    sendLog(LogLevelDetailed);
+
 }
 
 NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> expectedRanges, void *object, double (*score)(void *object))
@@ -214,6 +222,7 @@ NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> e
     gamma = 2;
     rho = -0.5;
     sigma = 0.5;
+    unlimited = false;
     
     std::vector<double *>streamlinedPtrs;
     
@@ -263,7 +272,7 @@ NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> e
             logged << testPoints[i].first[j] << ", " << std::endl;
         }
     }
-    
+   
     logged << "Test point evaluations: ";
     
     for (int i = 0; i < testPoints.size(); i++)
@@ -285,11 +294,12 @@ NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> e
     logged << std::endl;
     
     sendLog(LogLevelDebug);
+    
+    
 }
 
 void NelderMead::sendLog(LogLevel priority)
 {
-  //  priority = LogLevelNormal; // comment out later
     Logger::mainLogger->addStream(&logged, priority);
     logged.str("");
     logged.clear();

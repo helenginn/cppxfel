@@ -54,6 +54,7 @@ public:
 
     void translate(double x, double y, double z);
     void rotateHK(double hRot, double kRot);
+    void rotateABC(MatrixPtr oldMatrix, double aRot, double bRot, double cRot);
     void rotate(double alpha, double beta, double gamma);
     void rotateRoundUnitVector(vec unitVector, double radians);
     void rotateRoundUnitVector(double *unitVector, double radians);

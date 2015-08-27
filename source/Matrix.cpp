@@ -72,19 +72,19 @@ std::string Matrix::description(bool detailed)
 	description << components[0] << " ";
 	description << components[4] << " ";
 	description << components[8] << " ";
-    description << components[12] << " ";
+ //   description << components[12] << " ";
 	description << components[1] << " ";
 	description << components[5] << " ";
 	description << components[9] << " ";
-    description << components[13] << " ";
+ //   description << components[13] << " ";
 	description << components[2] << " ";
 	description << components[6] << " ";
 	description << components[10] << " ";
-    description << components[14] << " ";
-    description << components[3] << " ";
-    description << components[7] << " ";
-    description << components[11] << " ";
-    description << components[15] << " ";
+  //  description << components[14] << " ";
+   // description << components[3] << " ";
+  //  description << components[7] << " ";
+  //  description << components[11] << " ";
+  //  description << components[15] << " ";
 
 	return description.str();
 }
@@ -180,8 +180,10 @@ scitbx::mat3<double> Matrix::cctbxMatrix(MatrixPtr theMatrix)
 
 void Matrix::unitCellLengths(double **lengths)
 {
-    scitbx::mat3<double> cctbxMat = cctbxMatrix();
-    scitbx::mat3<double> inverseMat = cctbxMat.inverse();
+    Matrix *mat = unitCell != NULL ? &*unitCell : this;
+    
+    
+    scitbx::mat3<double> inverseMat = mat->inverse3DMatrix()->cctbxMatrix();
     
     for (int i = 0; i < 3; i++)
     {
@@ -216,6 +218,7 @@ void Matrix::recalculateOrientationMatrix()
 {
     MatrixPtr newMat = unitCell->copy();
     MatrixPtr copyRot = rotation->copy();
+    
     *newMat *= *rotation;
     memcpy(components, newMat->components, 16 * sizeof(double));
 }
@@ -440,6 +443,25 @@ void Matrix::rotateHK(double hRot, double kRot)
     double kRad = kRot * M_PI / 180;
     
     this->rotate(hRad, kRad, 0);
+}
+
+void Matrix::rotateABC(MatrixPtr oldMatrix, double aRot, double bRot, double cRot)
+{
+    double aRad = aRot * M_PI / 180;
+    double bRad = bRot * M_PI / 180;
+    double cRad = cRot * M_PI / 180;
+    
+    vec vecs[3];
+    
+    for (int i = 0; i < 3; i++)
+    {
+        vecs[i] = new_vector(i == 0, i == 1, i == 2);
+        oldMatrix->multiplyVector(&vecs[i]);
+    }
+    
+    this->rotateRoundUnitVector(vecs[0], aRad);
+    this->rotateRoundUnitVector(vecs[1], bRad);
+    this->rotateRoundUnitVector(vecs[2], cRad);
 }
 
 void Matrix::rotate(double alpha, double beta, double gamma)

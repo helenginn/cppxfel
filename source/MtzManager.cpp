@@ -313,6 +313,7 @@ MtzManager::MtzManager(void)
     usePartialityFunction = FURTHER_OPTIMISATION;
     rejected = false;
     scale = 1;
+    externalScale = -1;
     lastExponent = 0;
     previousReference = NULL;
     previousAmbiguity = -1;
@@ -682,6 +683,9 @@ void MtzManager::loadReflections(PartialityModel model)
             shiftY = adata[col_shifty->source - 1];
         }
         
+        if (col_partials == NULL && intensity != intensity)
+            continue;
+        
         MillerPtr miller = MillerPtr(new Miller(this, h, k, l));
         miller->setData(intensity, sigma, partiality, wavelength);
         miller->setCountingSigma(sigma);
@@ -775,6 +779,8 @@ void MtzManager::getRefReflections(vector<Reflection *> *refPointer,
 
 void MtzManager::setReference(MtzManager *reference)
 {
+    if (reference != NULL)
+        Logger::mainLogger->addString("Setting reference to " + reference->getFilename());
     MtzManager::referenceManager = reference;
 }
 
@@ -920,10 +926,18 @@ void MtzManager::findCommonReflections(MtzManager *other,
     }
 }
 
-void MtzManager::applyScaleFactorsForBins()
+void MtzManager::applyScaleFactorsForBins(int binCount)
 {
+    double highRes = FileParser::getKey("HIGH_RESOLUTION", 0.0);
+    double lowRes = FileParser::getKey("LOW_RESOLUTION", 0.0);
+    
+    if (highRes == 0)
+    {
+        highRes = this->maxResolution();
+    }
+    
     vector<double> bins;
-    StatisticsManager::generateResolutionBins(50, 1.4, 5, &bins);
+    StatisticsManager::generateResolutionBins(lowRes, highRes, binCount, &bins);
     
     for (int shell = 0; shell < bins.size() - 1; shell++)
     {
@@ -947,12 +961,17 @@ void MtzManager::applyScaleFactorsForBins()
             
             if (imgReflections[i]->betweenResolutions(low, high))
             {
-                weights += imgReflections[i]->meanPartiality();
-                refMean += refReflections[i]->meanIntensity()
-                * imgReflections[i]->meanPartiality();
-                imgMean += imgReflections[i]->meanIntensity()
-                * imgReflections[i]->meanPartiality();
+                weights++;
+                double refIntensity = refReflections[i]->meanIntensity();
+                double imgIntensity = imgReflections[i]->meanIntensity();
+                
+                if (refIntensity != refIntensity || imgIntensity != imgIntensity)
+                    continue;
+                
+                refMean += refIntensity;
+                imgMean += imgIntensity;
                 count++;
+                
             }
         }
         
@@ -961,9 +980,6 @@ void MtzManager::applyScaleFactorsForBins()
         
         double ratio = refMean / imgMean;
         
-        /*	std::cout << 1 / pow(low, 2) << "\t" << ratio << "\t" << grad << "\t"
-         << count << "\t" << std::endl;
-         */
         applyScaleFactor(ratio, low, high);
     }
 }
@@ -1158,19 +1174,15 @@ double MtzManager::minimizeGradient(MtzManager *otherManager, bool leastSquares)
 }
 
 double MtzManager::gradientAgainstManager(MtzManager *otherManager,
-                                          bool leastSquares, double lowRes, double highRes)
+                                          bool withCutoff, double lowRes, double highRes)
 {
     vector<Reflection *> reflections1;
     vector<Reflection *> reflections2;
     
-    vector<double> ints1, ints2;
+    int count = 0;
     int num = 0;
     
-    double minD = 0;
-    double maxD = 0;
-    StatisticsManager::convertResolutions(lowRes, highRes, &minD, &maxD);
-    
-    MtzManager::findCommonReflections(otherManager, reflections1, reflections2, &num);
+    this->findCommonReflections(otherManager, reflections1, reflections2, &num);
     
     if (num <= 1)
         return 1;
@@ -1180,42 +1192,29 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
     
     for (int i = 0; i < num; i++)
     {
-        for (int j = 0; j < reflections1[i]->millerCount(); j++)
-        {
-            if (!reflections1[i]->miller(j)->accepted())
-                continue;
-            
-            if (reflections1[i]->getResolution() < minD
-                || reflections1[i]->getResolution() > maxD)
-                continue;
-            
-            double mean1 = reflections1[i]->miller(j)->intensity();
-            double mean2 = reflections2[i]->meanIntensity();
-            
-            double part1 = reflections1[i]->miller(j)->getPartiality();
-            
-            if (mean1 != mean1 || mean2 != mean2)
-                continue;
-            
-            x_squared += mean1 * mean1 * part1;
-            x_y += mean1 * mean2 * part1;
-            
-     //       if (reflections1[i]->miller(j)->getPartiality() < 0.5)
-      //          continue;
-            
-            ints1.push_back(mean1);
-            ints2.push_back(mean2);
-            
-        }
+        if (reflections1[i]->acceptedCount() == 0 && withCutoff)
+            continue;
+        
+        if (!reflections1[i]->betweenResolutions(lowRes, highRes))
+            continue;
+        
+        double int1 = reflections1[i]->meanIntensity(withCutoff);
+        double int2 = reflections2[i]->meanIntensity();
+        double weight = reflections1[i]->meanPartiality();
+        
+        if ((int1 != int1) || (int2 != int2) || (weight != weight))
+            continue;
+        
+        x_squared += int1 * int1 * weight;
+        x_y += int1 * int2 * weight;
+        
+        count++;
     }
     
     double grad = x_y / x_squared;
     
     if (grad < 0)
         grad = -1;
-    
-    if (leastSquares)
-        grad = minimize_gradient_between_vectors(&ints1, &ints2);
     
     return grad;
 }

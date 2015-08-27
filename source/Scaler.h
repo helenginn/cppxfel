@@ -15,11 +15,15 @@
 
 
 typedef std::map<MtzPtr, vector<Reflection *> > MtzDataMap;
+typedef std::map<MtzPtr, vector<double *> > ParameterMap;
+typedef std::map<MtzPtr, vector<double> > StepMap;
 
 class Scaler
 {
 private:
     MtzDataMap mtzData;
+    ParameterMap parameterMap;
+    StepMap stepMap;
     MtzPtr groupedMtz;
     double evaluate();
     double gradientForImageParameter(MtzPtr mtz, int paramNum);
@@ -48,10 +52,13 @@ public:
     
     Scaler(vector<MtzPtr> mtzs, MtzManager **grouped);
     void minimizeRMerge();
+    void minimizeRMergeLBFGS();
+    void minimizeRMergeNelderMead();
     
     bool mtzIsBeneficial(MtzPtr mtz);
     double evaluateForImage(MtzManager *mtz);
     double evaluateForImage(MtzPtr mtz);
+    static double evaluateStatic(void *object);
 };
 
 #endif /* defined(__cppxfel__Scaler__) */

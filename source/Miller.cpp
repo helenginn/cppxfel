@@ -267,7 +267,9 @@ bool Miller::accepted(void)
         return true;
 
     if (this->partiality < partialCutoff)
+    {
         return false;
+    }
     
     if (this->isRejected())
         return false;
@@ -336,9 +338,9 @@ double Miller::scaleForScaleAndBFactor(double scaleFactor, double bFactor,
     return scale;
 }
 
-double Miller::intensity()
+double Miller::intensity(bool withCutoff)
 {
-    if (this->accepted())
+    if ((this->accepted() && withCutoff) || !withCutoff)
     {
         double modifier = scale * gainScale;
         modifier /= getBFactorScale();
@@ -348,6 +350,9 @@ double Miller::intensity()
         {
             modifier /= partiality * denormaliseFactor;
         }
+        
+        if (partiality == 0)
+            modifier = 0;
         
         return modifier * rawIntensity;
     }
@@ -394,15 +399,21 @@ double Miller::getWavelength()
     return wavelength;
 }
 
+vec Miller::getTransformedHKL(MatrixPtr matrix)
+{
+    vec hkl = new_vector(h, k, l);
+    
+    matrix->multiplyVector(&hkl);
+    
+    return hkl;
+}
+
 vec Miller::getTransformedHKL(double hRot, double kRot)
 {
     MatrixPtr newMatrix = MatrixPtr();
-    rotateMatrix(hRot, kRot, &newMatrix);
+    rotateMatrix(hRot, kRot, matrix, &newMatrix);
     
-    vec hkl = new_vector(h, k, l);
-    
-    newMatrix->multiplyVector(&hkl);
-
+    vec hkl = getTransformedHKL(newMatrix);
     return hkl;
 }
 
@@ -410,6 +421,14 @@ double Miller::getWavelength(double hRot, double kRot)
 {
     vec hkl = getTransformedHKL(hRot, kRot);
     
+    wavelength = getEwaldSphereNoMatrix(hkl);
+    
+    return wavelength;
+}
+
+double Miller::getWavelength(MatrixPtr transformedMatrix)
+{
+    vec hkl = getTransformedHKL(transformedMatrix);
     wavelength = getEwaldSphereNoMatrix(hkl);
     
     return wavelength;
@@ -424,9 +443,9 @@ double Miller::getEwaldWeight(double hRot, double kRot, bool isH)
     return weight;
 }
 
-double Miller::getWeight(WeightType weighting)
+double Miller::getWeight(bool cutoff, WeightType weighting)
 {
-    if (!this->accepted())
+    if (!this->accepted() && cutoff)
     {
         return 0;
     }
@@ -444,7 +463,9 @@ double Miller::getWeight(WeightType weighting)
     if (weighting == WeightTypePartialitySigma)
     {
         double sigma = this->getSigma();
-        weight /= sigma;
+        
+        if (sigma > 0)
+            weight /= sigma;
     }
     
     if (weighting == WeightTypeISigI)
@@ -458,9 +479,16 @@ double Miller::getWeight(WeightType weighting)
     return weight;
 }
 
-void Miller::rotateMatrix(double hRot, double kRot, MatrixPtr *newMatrix)
+void Miller::rotateMatrix(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
 {
-    (*newMatrix) = matrix->copy();
+    (*newMatrix) = oldMatrix->copy();
+    
+    (*newMatrix)->rotateABC(oldMatrix, aRot, bRot, cRot);
+}
+
+void Miller::rotateMatrix(double hRot, double kRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
+{
+    (*newMatrix) = oldMatrix->copy();
     
     double hRad = hRot * M_PI / 180;
     double kRad = kRot * M_PI / 180;
@@ -475,7 +503,7 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
     if (hkl == NULL)
     {
         MatrixPtr newMatrix = MatrixPtr();
-        rotateMatrix(latestHRot, latestKRot, &newMatrix);
+        rotateMatrix(latestHRot, latestKRot, matrix, &newMatrix);
         
         usedHKL = new_vector(h, k, l);
         hkl = &usedHKL;
@@ -496,7 +524,7 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
     return radius;
 }
 
-double Miller::partialityForHKL(vec hkl, double hRot, double kRot, double mosaicity,
+double Miller::partialityForHKL(vec hkl, double mosaicity,
                                double spotSize, double wavelength, double bandwidth, double exponent)
 {
     bandwidth = fabs(bandwidth);
@@ -570,7 +598,7 @@ double Miller::calculateDefaultNorm()
     
     vec newHKL = new_vector(newH, newK, newL);
     
-    double normPartiality = partialityForHKL(newHKL, 0, 0, 0,
+    double normPartiality = partialityForHKL(newHKL, 0,
                                              defaultSpotSize, wavelength, INITIAL_BANDWIDTH, INITIAL_EXPONENT);
     
     return normPartiality;
@@ -591,7 +619,7 @@ double Miller::calculateNormPartiality(double mosaicity,
     
     vec newHKL = new_vector(newH, newK, newL);
     
-    double normPartiality = partialityForHKL(newHKL, 0, 0, mosaicity,
+    double normPartiality = partialityForHKL(newHKL, mosaicity,
                                             spotSize, wavelength, bandwidth, exponent);
     
     if (normPartiality == 0)
@@ -614,7 +642,7 @@ double Miller::resolution()
     return resol;
 }
 
-void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
+void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
                                    double spotSize, double wavelength, double bandwidth, double exponent,
                                    bool normalise)
 {
@@ -623,30 +651,22 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
         return;
     }
     
-    MatrixPtr newMatrix = MatrixPtr();
-    rotateMatrix(hRot, kRot, &newMatrix);
-    
     vec hkl = new_vector(h, k, l);
     
-    newMatrix->multiplyVector(&hkl);
+    rotatedMatrix->multiplyVector(&hkl);
     
     this->wavelength = getEwaldSphereNoMatrix(hkl);
     
-    //	if (this->wavelength > 2.3 && this->wavelength < 2.5)
-    //		std::cout << hkl.h << "\t" << hkl.k << "\t" << hkl.l << "\t" << this->wavelength << std::endl;
-    
-    double tempPartiality = partialityForHKL(hkl, hRot, kRot, mosaicity,
+    double tempPartiality = partialityForHKL(hkl, mosaicity,
                                             spotSize, wavelength, bandwidth, exponent);
     
     double normPartiality = 1;
     
-    if (normalise && tempPartiality > 0.001)
+    if (normalise && tempPartiality > 0)
     {
         normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
     }
     
-    latestHRot = hRot;
-    latestKRot = kRot;
     lastWavelength = wavelength;
     lastBandwidth = bandwidth;
     lastRlpSize = spotSize;
@@ -654,6 +674,9 @@ void Miller::recalculatePartiality(double hRot, double kRot, double mosaicity,
     lastRadius = expectedRadius(spotSize, mosaicity, &hkl);
 
     partiality = tempPartiality / normPartiality;
+    
+    partiality += 0.05;
+    partiality /= 1.05;
     
     if ((!std::isfinite(partiality)) || (partiality != partiality))
     {
@@ -865,28 +888,10 @@ void flattenAngle(double *radians)
     }
 }
 
-bool Miller::activeWithAngle(double degrees)
+void Miller::calculatePosition(double distance, double wavelength, double beamX, double beamY, double mmPerPixel, MatrixPtr transformedMatrix, double *x, double *y)
 {
-    MatrixPtr newMatrix = MatrixPtr();
-    rotateMatrix(latestHRot, latestKRot, &newMatrix);
-    double radians = degrees * M_PI / 180;
-    newMatrix->rotate(0, 0, radians);
     vec hkl = new_vector(h, k, l);
-    newMatrix->multiplyVector(&hkl);
-    
-    double x = hkl.h;
-    double y = hkl.k;
-    
-    return ((x > 0 && y > 0) && (y > x));
-}
-
-void Miller::calculatePosition(double distance, double wavelength, double beamX, double beamY, double mmPerPixel, double hRot, double kRot, double *x, double *y)
-{
-    MatrixPtr newMatrix = MatrixPtr();
-    rotateMatrix(hRot, kRot, &newMatrix);
-    
-    vec hkl = new_vector(h, k, l);
-    newMatrix->multiplyVector(&hkl);
+    transformedMatrix->multiplyVector(&hkl);
     
     double x_mm = (hkl.k * distance / (1 / wavelength + hkl.l));
     double y_mm = (hkl.h * distance / (1 / wavelength + hkl.l));
@@ -901,7 +906,7 @@ void Miller::calculatePosition(double distance, double wavelength, double beamX,
     *y = lastY;
 }
 
-void Miller::positionOnDetector(double hRot, double kRot, int *x,
+void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
                                 int *y)
 {
     double x_coord = 0;
@@ -915,7 +920,7 @@ void Miller::positionOnDetector(double hRot, double kRot, int *x,
     double mmPerPixel = image->getMmPerPixel();
     
     calculatePosition(distance, wavelength, beamX, beamY, mmPerPixel,
-                      hRot, kRot, &x_coord, &y_coord);
+                      transformedMatrix, &x_coord, &y_coord);
     
     int intLastX = (int)x_coord;
     int intLastY = (int)y_coord;
@@ -980,7 +985,7 @@ void Miller::makeComplexShoebox(double wavelength, double bandwidth, double mosa
     shoebox->complexShoebox(wavelength, bandwidth, radius);
 }
 
-void Miller::integrateIntensity(double hRot, double kRot)
+void Miller::integrateIntensity(MatrixPtr transformedMatrix)
 {
     if (image == NULL)
         throw 1;
@@ -1011,7 +1016,7 @@ void Miller::integrateIntensity(double hRot, double kRot)
     int x = 0;
     int y = 0;
     
-    positionOnDetector(hRot, kRot, &x, &y);
+    positionOnDetector(transformedMatrix, &x, &y);
     
     gainScale = Panel::scaleForMiller(this);
     

@@ -23,6 +23,8 @@ Spot::Spot(Image *image)
     setAngle = false;
     checked = false;
     successfulCommonLines = 0;
+    correctedX = -1;
+    correctedY = -1;
     
 	makeProbe(500, 1);
 }
@@ -237,18 +239,26 @@ Coord Spot::getXY()
     return std::make_pair(x + shift.first, y + shift.second);
 }
 
-double Spot::getX()
+double Spot::getX(bool update)
 {
-    Coord shift = getXY();
+    if (update || correctedX == -1)
+    {
+        Coord shift = getXY();
+        correctedX = shift.first;
+    }
     
-    return shift.first;
+    return correctedX;
 }
 
-double Spot::getY()
+double Spot::getY(bool update)
 {
-    Coord shift = getXY();
+    if (update || correctedY == -1)
+    {
+        Coord shift = getXY();
+        correctedY = shift.second;
+    }
     
-    return shift.second;
+    return correctedY;
 }
 
 Coord Spot::getRawXY()

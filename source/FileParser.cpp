@@ -163,6 +163,7 @@ void FileParser::generateFunctionList()
     parserMap["MINIMIZATION_METHOD"] = simpleInt;
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
+    parserMap["LANDSCAPE_DIVISIONS"] = simpleInt;
     parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
     parserMap["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = simpleFloat;
     parserMap["ALLOW_TRUST"] = simpleBool;
@@ -187,7 +188,7 @@ void FileParser::generateFunctionList()
     parserMap["TRUST_INDEXING_SOLUTION"] = simpleBool;
     parserMap["REFINE_B_FACTOR"] = simpleBool;
     parserMap["INITIAL_GRID_SEARCH"] = simpleBool;
-    parserMap["SCALE_AND_B_FACTORS"] = simpleBool;
+    parserMap["MASS_SCALING"] = simpleBool;
     parserMap["R_SPLIT_THRESHOLD"] = simpleFloat;
     parserMap["REINITIALISE_WAVELENGTH"] = simpleBool;
     parserMap["PENALTY_WEIGHT"] = simpleFloat;
@@ -195,6 +196,7 @@ void FileParser::generateFunctionList()
     parserMap["PARTIALITY_SLICES"] = simpleInt;
     parserMap["MAX_SLICES"] = simpleInt;
     parserMap["CAREFUL_RESOLUTION"] = simpleFloat;
+    parserMap["SMOOTH_FUNCTION"] = simpleBool;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
@@ -289,7 +291,9 @@ void FileParser::generateFunctionList()
     parserMap["FROM_DIALS"] = simpleBool;
     parserMap["DO_NOT_REJECT_REFLECTIONS"] = simpleBool;
     parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;
+    parserMap["ROTATION_MODE"] = simpleInt;
     
+    parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     parserMap["CLUSTER_MERGE_THRESHOLD"] = simpleFloat;
     parserMap["CLUSTER_CYCLES"] = simpleInt;
     parserMap["COMMON_LINE_ANGLE_TOLERANCE"] = simpleFloat;

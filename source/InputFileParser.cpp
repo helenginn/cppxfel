@@ -175,6 +175,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->correlationAndInverse();
             }
             
+            if (line == "LANDSCAPE")
+            {
+                understood = true;
+                refiner->findSteps();
+            }
+            
             if (line == "POLARISATION_GRAPH")
             {
                 understood = true;

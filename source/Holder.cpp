@@ -352,9 +352,9 @@ Reflection *Reflection::copy(bool copyMillers)
     return newReflection;
 }
 
-double Reflection::meanPartiality()
+double Reflection::meanPartiality(bool withCutoff)
 {
-    int num = (int)millers.size();
+    int num = millerCount();
     double total_partiality = 0;
     int count = 0;
     
@@ -362,7 +362,7 @@ double Reflection::meanPartiality()
     {
         MillerPtr miller = millers[i];
         
-        if (miller->accepted())
+        if ((miller->accepted() && withCutoff) || !withCutoff)
         {
             total_partiality += miller->getPartiality();
             count++;
@@ -374,23 +374,29 @@ double Reflection::meanPartiality()
     return total_partiality;
 }
 
-double Reflection::meanIntensity(int start, int end)
+double Reflection::meanIntensity(bool withCutoff, int start, int end)
 {
     if (end == 0)
-        end = acceptedCount();
+        end = withCutoff ? acceptedCount() : millerCount();
     
     double total_intensity = 0;
-    double weight = 0;
+    double total_weights = 0;
     
     for (int i = start; i < end; i++)
     {
-        MillerPtr miller = this->acceptedMiller(i);
+        MillerPtr miller = withCutoff ? this->acceptedMiller(i) : this->miller(i);
+
+        double weight = miller->getWeight(withCutoff);
+        double intensity = miller->intensity(withCutoff);
         
-        total_intensity += miller->intensity() * miller->getPartiality();
-        weight += miller->getPartiality();
+        if (weight <= 0)
+            continue;
+        
+        total_intensity += intensity * weight;
+        total_weights += weight;
     }
     
-    total_intensity /= weight;
+    total_intensity /= total_weights;
     
     return total_intensity;
 }
@@ -398,7 +404,7 @@ double Reflection::meanIntensity(int start, int end)
 double Reflection::meanIntensityWithExclusion(std::string *filename, int start, int end)
 {
     if (filename == NULL)
-        return meanIntensity(start, end);
+        return meanIntensity(true, start, end);
     
     if (end == 0)
         end = acceptedCount();
@@ -478,9 +484,9 @@ double Reflection::meanSigma(bool friedel)
     return total_sigi;
 }
 
-double Reflection::meanWeight()
+double Reflection::meanWeight(bool withCutoff)
 {
-    int num = (int)millers.size();
+    int num = (int)millerCount();
     int count = 0;
     
     double total_weight = 0;
@@ -489,9 +495,9 @@ double Reflection::meanWeight()
     {
         MillerPtr miller = millers[i];
         
-        if (miller->accepted())
+        if ((miller->accepted() && withCutoff) || !withCutoff)
         {
-            total_weight += miller->getWeight();
+            total_weight += miller->getWeight(withCutoff);
             count++;
         }
     }

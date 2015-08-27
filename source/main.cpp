@@ -297,6 +297,27 @@ int main(int argc, char *argv[])
 
 		delete reference;
 	}
+    
+    if (strcmp(argv[1], "-scale") == 0)
+    {
+        if (argc <= 3)
+        {
+            std::cout << "arguments: -scale <ref> <file1>." << std::endl;
+            exit(1);
+        }
+        
+        MtzManager *reference = new MtzManager();
+        reference->setFilename(argv[2]);
+        reference->loadReflections(1);
+        MtzManager::setReference(reference);
+        
+        MtzManager *mtz = new MtzManager();
+        mtz->setFilename(argv[3]);
+        mtz->loadReflections(1);
+        
+        mtz->applyScaleFactorsForBins(50);
+        mtz->writeToFile("scaled-" + std::string(argv[3]));
+    }
 
 	if (strcmp(argv[1], "-bfactor") == 0)
 	{
@@ -312,20 +333,27 @@ int main(int argc, char *argv[])
 		reference->setFilename(argv[2]);
 		reference->loadReflections(1);
 		MtzManager::setReference(reference);
-
+        FileParser::setKey("REFINE_B_FACTOR", true);
+        
 		for (int i = 3; i < argc; i++)
 		{
 			MtzManager *mtz = new MtzManager();
 			mtz->setFilename(argv[i]);
 			mtz->loadReflections(1);
-
+       //     mtz->setOptimisingOrientation(false);
+       //    mtz->setOptimisingWavelength(false);
+       //     mtz->setOptimisingRlpSize(false);
+       //     mtz->setDefaultScoreType(ScoreTypeCorrelation);
+            
+       //     mtz->gridSearch();
+            
 			managers.push_back(mtz);
 		}
-        
+       
         
         for (int i = 0; i < managers.size(); i++)
         {
-            managers[i]->denormaliseMillers();
+   //         managers[i]->denormaliseMillers();
         }
 
 		GraphDrawer graph = GraphDrawer(reference);

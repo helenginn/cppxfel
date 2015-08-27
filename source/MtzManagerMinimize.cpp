@@ -3,14 +3,15 @@
 #include "Vector.h"
 #include <algorithm>
 #include "Scaler.h"
+#include <fstream>
 
 #include "MtzRefiner.h"
 #include "FileParser.h"
 #include "MtzManager.h"
 #include "parameters.h"
 #include "GraphDrawer.h"
-#include "NelderMead.h"
 
+#include "NelderMead.h"
 
 #define DEFAULT_RESOLUTION 3.4
 typedef boost::tuple<double, double, double, double, double> ResultTuple;
@@ -53,6 +54,12 @@ double MtzManager::weightedBestWavelength(double lowRes, double highRes)
     return weighted_mean(&wavelengths, &percentages);
 }
 
+double MtzManager::scoreNelderMead(void *object)
+{
+    static_cast<MtzManager *>(object)->refreshCurrentPartialities();
+    return static_cast<MtzManager *>(object)->exclusionScoreWrapper(object, 0, 0);
+}
+
 double MtzManager::unitCellScore(void *object)
 {
     static_cast<MtzManager *>(object)->refreshPartialities(static_cast<MtzManager *>(object)->params);
@@ -78,12 +85,6 @@ double MtzManager::bFactorScoreWrapper(void *object)
     return score;
 }
 
-double MtzManager::scoreNelderMead(void *object)
-{
-    static_cast<MtzManager *>(object)->refreshCurrentPartialities();
-    return static_cast<MtzManager *>(object)->exclusionScoreWrapper(object, 0, 0);
-}
-
 double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
                                          double highRes)
 {
@@ -97,11 +98,7 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     }
     else if (scoreType == ScoreTypeMinimizeRSplit)
     {
-        double rSplit = static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
-        double penalty = static_cast<MtzManager *>(object)->belowPartialityPenalty(0, static_cast<MtzManager *>(object)->penaltyResolution);
-        double penaltyWeight = static_cast<MtzManager *>(object)->penaltyWeight;
-        
-        return rSplit - penaltyWeight * penalty;
+        return static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
     }
     else if (scoreType == ScoreTypeMinimizeRSplitLog)
     {
@@ -141,62 +138,21 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
                                                                  highRes, ScoreTypeCorrelation);
 }
 
-double MtzManager::belowPartialityPenalty(double low, double high)
+double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
 {
-    double partialPenalty = 0;
-    double weights = 0;
-    
-    for (int i = 0; i < reflections.size(); i++)
+    if (set == false)
     {
-        Reflection *imageReflection = reflections[i];
-        
-        if (imageReflection->anyAccepted())
-            continue;
-        
-        if (!imageReflection->betweenResolutions(low, high))
-            continue;
-        
-        Reflection *refReflection = NULL;
-        int reflid = imageReflection->getReflId();
-        
-        referenceManager->findReflectionWithId(reflid, &refReflection);
-        
-        if (refReflection != NULL)
-        {
-            double rawIntensity = imageReflection->miller(0)->getRawIntensity();
-            double meanIntensity = refReflection->meanIntensity();
-            
-            if (rawIntensity != rawIntensity || meanIntensity != meanIntensity)
-                continue;
-            
-            double ratio = rawIntensity / meanIntensity;
-            ratio -= imageReflection->miller(0)->getPartialCutoff();
-            
-            partialPenalty += ratio;
-            weights++;
-        }
+        withCutoff = !FileParser::getKey("SMOOTH_FUNCTION", false);
     }
     
-    partialPenalty /= weights;
-    
- //   std::cout << "Partial penalty: " << partialPenalty << std::endl;
-    
-    return partialPenalty;
-}
-
-double MtzManager::rSplit(double low, double high, bool square)
-{
-    double scale = this->gradientAgainstManager(referenceManager);
-    
+    double scale = this->gradientAgainstManager(referenceManager, withCutoff);
     applyScaleFactor(scale);
     
     double sum_numerator = 0;
     double sum_denominator = 0;
     int count = 0;
+    int count1 = 0;
     double weights = 0;
-    
-    double lowCut = low == 0 ? 0 : 1 / low;
-    double highCut = high == 0 ? FLT_MAX : 1 / high;
     
     vector<Reflection *> reflections1;
     vector<Reflection *> reflections2;
@@ -208,17 +164,27 @@ double MtzManager::rSplit(double low, double high, bool square)
         Reflection *reflection = reflections1[i];
         Reflection *reflection2 = reflections2[i];
         
-        if (reflection->getResolution() < lowCut
-            || reflection->getResolution() > highCut)
+        if (!reflection->betweenResolutions(low, high))
             continue;
         
-        double int1 = reflection->meanIntensity();
-        if (reflection2->meanIntensity() < REFERENCE_WEAK_REFLECTION)
+        if (withCutoff && reflection->acceptedCount() == 0)
             continue;
+        
+        
+        double int1 = reflection->meanIntensity(withCutoff);
 
         double int2 = reflection2->meanIntensityWithExclusion(&filename);
         
-        double weight = reflection->meanWeight() * reflection->getResolution();
+        double weight = reflection->meanPartiality(withCutoff);
+        
+        if (!withCutoff)
+            weight *= weight;
+        
+        if (int1 == 0 || weight == 0 || weight != weight)
+        {
+            continue;
+            
+        }
         
         if (int1 != int1 || int2 != int2)
             continue;
@@ -229,26 +195,12 @@ double MtzManager::rSplit(double low, double high, bool square)
         count++;
         weights += weight;
         
-        if (!square)
-        {
-            sum_numerator += fabs(int1 - int2) * weight;
-            sum_denominator += (int1 + int2) * weight / 2;
-        }
-        else
-        {
-            double averageIntensity = pow((int1 + int2) / 2, 2);
-            double squareAddition = pow(int1 - int2, 2);
-            
-            sum_numerator += squareAddition;
-            sum_denominator += averageIntensity;
-        }
-        
+        sum_numerator += fabs(int1 - int2) * weight;
+        sum_denominator += (int1 + int2) * weight / 2;
     }
     
-    if (square)
-    {
-        //   sum_numerator = sqrt(sum_numerator);
-    }
+  //  if (!withCutoff)
+  //      std::cout << count << std::endl;
     
     double r_split = sum_numerator / (sum_denominator * sqrt(2));
     
@@ -490,60 +442,57 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             wavelength = this->getWavelength();
     }
     
-    
     bandwidth = this->getBandwidth();
-    
-    bool optimisedMean = !optimisingWavelength || (scoreType == ScoreTypeStandardDeviation);
-    bool optimisedBandwidth = !optimisingBandwidth || (scoreType == ScoreTypeStandardDeviation);
-    bool optimisedExponent = !optimisingExponent || (scoreType == ScoreTypeStandardDeviation);
-    bool optimisedSpotSize = !optimisingRlpSize || (scoreType == ScoreTypeStandardDeviation);
-    bool optimisedMos = !optimisingMosaicity || (scoreType == ScoreTypeStandardDeviation);
-    bool optimisedHRot = !optimisingOrientation;
-    bool optimisedKRot = !optimisingOrientation;
-    
-    double meanStep = stepSizeWavelength;
-    double bandStep = stepSizeBandwidth;
-    double expoStep = stepSizeExponent;
-    double spotStep = stepSizeRlpSize;
-    double mosStep = stepSizeMosaicity;
-    double hStep = stepSizeOrientation;
-    double kStep = stepSizeOrientation;
-    double aStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
-    double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
-    double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
-  
-    params = new double[PARAM_NUM];
-    
-    params[PARAM_HROT] = this->getHRot();
-    params[PARAM_KROT] = this->getKRot();
-    params[PARAM_MOS] = this->getMosaicity();
-    params[PARAM_SPOT_SIZE] = this->getSpotSize();
-    params[PARAM_WAVELENGTH] = wavelength;
-    params[PARAM_BANDWIDTH] = bandwidth;
-    params[PARAM_B_FACTOR] = bFactor;
-    params[PARAM_SCALE_FACTOR] = scale;
-    params[PARAM_EXPONENT] = this->getExponent();
-    params[PARAM_UNIT_CELL_A] = this->cellDim[0];
-    params[PARAM_UNIT_CELL_B] = this->cellDim[1];
-    params[PARAM_UNIT_CELL_C] = this->cellDim[2];
-    
-    bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
-    bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
-    bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
-    
-    bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
-    bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
-    bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
-    
-    int count = 0;
-    
-    refreshPartialities(params);
     
     int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 0);
     MinimizationMethod method = (MinimizationMethod)miniMethod;
     
     if (method == MinimizationMethodStepSearch)
     {
+        bool optimisedMean = !optimisingWavelength || (scoreType == ScoreTypeStandardDeviation);
+        bool optimisedBandwidth = !optimisingBandwidth || (scoreType == ScoreTypeStandardDeviation);
+        bool optimisedExponent = !optimisingExponent || (scoreType == ScoreTypeStandardDeviation);
+        bool optimisedSpotSize = !optimisingRlpSize || (scoreType == ScoreTypeStandardDeviation);
+        bool optimisedMos = !optimisingMosaicity || (scoreType == ScoreTypeStandardDeviation);
+        bool optimisedHRot = !optimisingOrientation;
+        bool optimisedKRot = !optimisingOrientation;
+        
+        double meanStep = stepSizeWavelength;
+        double bandStep = stepSizeBandwidth;
+        double expoStep = stepSizeExponent;
+        double spotStep = stepSizeRlpSize;
+        double mosStep = stepSizeMosaicity;
+        double hStep = stepSizeOrientation;
+        double kStep = stepSizeOrientation;
+        double aStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
+        double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
+        double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
+        
+        params = new double[PARAM_NUM];
+        
+        params[PARAM_HROT] = this->getHRot();
+        params[PARAM_KROT] = this->getKRot();
+        params[PARAM_MOS] = this->getMosaicity();
+        params[PARAM_SPOT_SIZE] = this->getSpotSize();
+        params[PARAM_WAVELENGTH] = wavelength;
+        params[PARAM_BANDWIDTH] = bandwidth;
+        params[PARAM_B_FACTOR] = bFactor;
+        params[PARAM_SCALE_FACTOR] = scale;
+        params[PARAM_EXPONENT] = this->getExponent();
+        params[PARAM_UNIT_CELL_A] = this->cellDim[0];
+        params[PARAM_UNIT_CELL_B] = this->cellDim[1];
+        params[PARAM_UNIT_CELL_C] = this->cellDim[2];
+        
+        bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+        bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+        bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
+        
+        int count = 0;
+        
+        refreshPartialities(params);
+        
+        //   std::cout << "Before refinement, R split = " << rSplit(0, 0) << std::endl;
+        
         while (!(optimisedMean && optimisedBandwidth && optimisedSpotSize
                  && optimisedMos && optimisedExponent && optimisedHRot
                  && optimisedKRot) && count < 50)
@@ -605,11 +554,48 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             {
                 std::cout << "stdev" << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << (*score)(object, 0, 0) << std::endl;
             }
+            /*
+             if (!optimisedUnitCellA && count > 5)
+             {
+             minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, 0, maxResolutionAll);
+             }
+             
+             if (!optimisedUnitCellB && count > 5)
+             {
+             minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, 0, maxResolutionAll);
+             }
+             
+             if (!optimisedUnitCellC && count > 5)
+             {
+             minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
+             }*/
             
         }
         
+        bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);
+        
+        if (refineB && bFactor == 0)
+        {
+            double bStep = 10;
+            double optimisedB = false;
+            int count = 0;
+            
+            while (!optimisedB && count < 30)
+            {
+                double score = minimizeParam(bStep, bFactor, bFactorScoreWrapper, this);
+                
+                if (bStep < 0.01)
+                    optimisedB = true;
+                
+                count++;
+            }
+        }
+        
+        params[PARAM_B_FACTOR] = bFactor;
+        
         this->setParams(params);
         this->refreshPartialities(params);
+        this->applyBFactor(bFactor);
         
         count = 0;
         
@@ -647,30 +633,19 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         
         this->refreshPartialities(params);
         
-        bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);
         
-        if (refineB && bFactor == 0)
-        {
-            double bStep = 10;
-            double optimisedB = false;
-            int count = 0;
-            
-            while (!optimisedB && count < 30)
-            {
-                minimizeParam(bStep, bFactor, bFactorScoreWrapper, this);
-                
-                //    std::cout << bFactor << "\t" << score << std::endl;
-                
-                if (bStep < 0.01)
-                    optimisedB = true;
-                
-                count++;
-            }
-        }
-        
-        this->setParams(params);
-        this->refreshPartialities(params);
-        this->applyBFactor(bFactor);
+        this->wavelength = params[PARAM_WAVELENGTH];
+        this->bandwidth = params[PARAM_BANDWIDTH];
+        this->mosaicity = params[PARAM_MOS];
+        this->spotSize = params[PARAM_SPOT_SIZE];
+        this->hRot = params[PARAM_HROT];
+        this->kRot = params[PARAM_KROT];
+        this->exponent = params[PARAM_EXPONENT];
+        this->cellDim[0] = params[PARAM_UNIT_CELL_A];
+        this->cellDim[1] = params[PARAM_UNIT_CELL_B];
+        this->cellDim[2] = params[PARAM_UNIT_CELL_C];
+       
+        delete[] params;
     }
     else if (method == MinimizationMethodNelderMead)
     {
@@ -679,6 +654,11 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         
         if (this->wavelength == 0)
             this->wavelength = wavelength;
+        
+        
+        bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+        bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+        bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
         
         paramPtrs[PARAM_HROT] = optimisingOrientation ? &this->hRot : NULL;
         paramPtrs[PARAM_KROT] = optimisingOrientation ? &this->kRot : NULL;
@@ -696,47 +676,20 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         std::vector<double> ranges;
         ranges.resize(PARAM_NUM);
         
-        ranges[PARAM_HROT] = stepSizeOrientation;
-        ranges[PARAM_KROT] = stepSizeOrientation;
-        ranges[PARAM_MOS] = stepSizeMosaicity;
-        ranges[PARAM_SPOT_SIZE] = stepSizeRlpSize;
-        ranges[PARAM_WAVELENGTH] = stepSizeWavelength;
-        ranges[PARAM_BANDWIDTH] = stepSizeBandwidth;
-        ranges[PARAM_B_FACTOR] = 0;
-        ranges[PARAM_SCALE_FACTOR] = 0;
-        ranges[PARAM_EXPONENT] = stepSizeExponent;
-        ranges[PARAM_UNIT_CELL_A] = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
-        ranges[PARAM_UNIT_CELL_B] = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
-        ranges[PARAM_UNIT_CELL_C] = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
-        
+        double *firstRange = &(*ranges.begin());
+        getSteps(&firstRange);
+ 
         NelderMead refiner(paramPtrs, ranges, this, &this->scoreNelderMead);
         refiner.process();
-        double lastScore = rSplit(0, 0);
-        
-        getParams(&params);
-        
     }
-
-    double correl = correlation(true);
-    
-    this->wavelength = params[PARAM_WAVELENGTH];
-    this->bandwidth = params[PARAM_BANDWIDTH];
-    this->mosaicity = params[PARAM_MOS];
-    this->spotSize = params[PARAM_SPOT_SIZE];
-    this->hRot = params[PARAM_HROT];
-    this->kRot = params[PARAM_KROT];
-    this->exponent = params[PARAM_EXPONENT];
-    this->cellDim[0] = params[PARAM_UNIT_CELL_A];
-    this->cellDim[1] = params[PARAM_UNIT_CELL_B];
-    this->cellDim[2] = params[PARAM_UNIT_CELL_C];
-    this->refCorrelation = correl;
-    
-    delete[] params;
     
     if (scoreType == ScoreTypeSymmetry)
     {
         return rFactorWithManager(RFactorTypeMeas);
     }
+    
+    double correl = correlation(true);
+    this->refCorrelation = correl;
     
     logged << "Returning correl: " << correl << std::endl;
     
@@ -747,17 +700,8 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
 void MtzManager::gridSearch(bool silent)
 {
     scoreType = defaultScoreType;
-    
-    if (defaultScoreType == ScoreTypePartialityCorrelation)
-    {
-        if (!(refPartCorrel > 0.65 && trust == TrustLevelGood))
-            scoreType = ScoreTypeMinimizeRSplit;
-    }
-    
     chooseAppropriateTarget();
     std::string scoreDescription = this->describeScoreType();
-    penaltyWeight = FileParser::getKey("PENALTY_WEIGHT", 0.5);
-    penaltyResolution = FileParser::getKey("PENALTY_RESOLUTION", 2.5);
     
     double scale = this->gradientAgainstManager(this->getReferenceManager());
     applyScaleFactor(scale);
@@ -784,6 +728,8 @@ void MtzManager::gridSearch(bool silent)
             double correl = minimize();
             double *params = &(*(bestParams.begin()));
             getParams(&params);
+            
+            int hits = 0;
             
             std::pair<vector<double>, double> result = std::make_pair(bestParams, correl);
             
@@ -824,6 +770,9 @@ void MtzManager::gridSearch(bool silent)
         }
     }
     
+    scale = this->gradientAgainstManager(this->getReferenceManager());
+    applyScaleFactor(scale);
+    
     double newCorrel = (scoreType == ScoreTypeSymmetry) ? 0 : correlation(true);
     this->setFinalised(true);
     
@@ -842,7 +791,7 @@ void MtzManager::gridSearch(bool silent)
     
     double newerCorrel = (scoreType == ScoreTypeSymmetry) ? rFactorWithManager(RFactorTypeMeas) : correlation(true);
     double partCorrel =  (scoreType == ScoreTypeSymmetry) ? 0 : leastSquaresPartiality(ScoreTypePartialityCorrelation);
-    double rSplitValue = (scoreType == ScoreTypeSymmetry) ? 0 : rSplit(0, maxResolutionAll);
+    double rSplitValue = (scoreType == ScoreTypeSymmetry) ? 0 : rSplit(0, maxResolutionAll, true, true);
     
     this->setRefPartCorrel(partCorrel);
     
@@ -867,7 +816,7 @@ void MtzManager::gridSearch(bool silent)
     
     logged << filename << "\t" << scoreDescription << "\t" << "\t"
     << newerCorrel << "\t" << rSplitValue << "\t"
-    << partCorrel << "\t" << rMerge << "\t" << hits << std::endl;
+    << partCorrel << "\t" << rMerge << "\t" << bFactor << "\t" << hits << std::endl;
     
     this->sendLog(silent ? LogLevelDebug : LogLevelNormal);
     
@@ -1052,8 +1001,12 @@ bool compareResult(ResultTuple one, ResultTuple two)
     return boost::get<4>(two) > boost::get<4>(one);
 }
 
-void MtzManager::findSteps(int param1, int param2, int param3)
+void MtzManager::findSteps(int param1, int param2, std::string csvName)
 {
+    std::ofstream csvStream;
+    std::cout << "Writing to CSV stream " << csvName << std::endl;
+    csvStream.open(csvName);
+    
     params = new double[PARAM_NUM];
     
     if (isnan(wavelength))
@@ -1076,16 +1029,16 @@ void MtzManager::findSteps(int param1, int param2, int param3)
     refreshPartialities(params);
     
     double *ranges = new double[3];
-    double divisions = 9;
+    double divisions = FileParser::getKey("LANDSCAPE_DIVISIONS", 100);
     
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 2; i++)
     {
-        int chosen = (i == 0) ? param1 : ((i == 1) ? param2 : param3);
+        int chosen = (i == 0) ? param1 : param2;
         
         if (chosen == PARAM_HROT || chosen == PARAM_KROT)
-                ranges[i] = 0.08;
+            ranges[i] = 0.2;
         else if (chosen == PARAM_WAVELENGTH)
-            ranges[i] = 0.03;
+            ranges[i] = 0.05;
         else if (chosen == PARAM_BANDWIDTH)
             ranges[i] = 0.0005;
         else if (chosen == PARAM_SPOT_SIZE)
@@ -1128,46 +1081,44 @@ void MtzManager::findSteps(int param1, int param2, int param3)
         jStep = (jMaxParam - jMinParam) / divisions;
     }
     
-    if (param3 >= 0)
-    {
-        kMinParam = params[param3] - ranges[2];
-        kMaxParam = params[param3] + ranges[2];
-        kStep = (kMaxParam - kMinParam) / divisions;
-    }
-    
     vector<ResultTuple> results;
     double bestResult = rSplit(0, maxResolutionAll);
-    
-    for (double iParam = iMinParam; iParam <= iMaxParam; iParam += iStep)
+  
+    for (int i = 0; i < divisions; i++)
     {
-        for (double jParam = jMinParam; jParam <= jMaxParam; jParam += jStep)
+        double iParam = iMinParam + iStep * (double)i;
+
+        for (int j = 0; j < divisions; j++)
         {
-            for (double kParam = kMinParam; kParam <= kMaxParam; kParam += kStep)
+            double jParam = jMinParam + jStep * (double)j;
+            
+            if (ranges[0] > 0)
+                params[param1] = iParam;
+            if (ranges[1] > 0)
+                params[param2] = jParam;
+            
+            this->refreshPartialities(params);
+            double score = rSplit(0, maxResolutionAll);
+            double rSplitValue = rSplit(0, maxResolutionAll);
+            
+            ResultTuple result = boost::make_tuple<>(iParam, jParam, 0, rSplitValue, score);
+            results.push_back(result);
+            
+            csvStream << iParam << "," << jParam << "," << rSplitValue << std::endl;
+            sendLog(LogLevelNormal);
+            
+            if (bestResult > score)
             {
-                if (ranges[0] > 0)
-                    params[param1] = iParam;
-                if (ranges[1] > 0)
-                    params[param2] = jParam;
-                if (ranges[2] > 0)
-                    params[param3] = kParam;
-                this->refreshPartialities(params);
-                double score = rSplit(0, maxResolutionAll);
-                double rSplitValue = rSplit(0, maxResolutionAll);
-                
-                ResultTuple result = boost::make_tuple<>(iParam, jParam, kParam, rSplitValue, score);
-                results.push_back(result);
-                
-                if (bestResult > score)
-                {
-                    logged << "newmin\t" << iParam << "\t" << jParam << "\t" << kParam << "\t" << rSplitValue << std::endl;
-                    sendLog(LogLevelDetailed);
-                    bestResult = score;
-                }
-                //      }
+                //     logged << "newmin\t" << iParam << "\t" << jParam << "\t" << kParam << "\t" << rSplitValue << std::endl;
+                //     sendLog(LogLevelDetailed);
+                bestResult = score;
             }
         }
     }
     
+    csvStream.close();
+    
+    /*
     if (results.size() == 0)
         return;
     
@@ -1194,7 +1145,7 @@ void MtzManager::findSteps(int param1, int param2, int param3)
     
     delete [] ranges;
     
-    this->writeToFile("ref-" + getFilename());
+    this->writeToFile("ref-" + getFilename());*/
 }
 
 void MtzManager::chooseAppropriateTarget()
