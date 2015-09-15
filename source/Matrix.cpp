@@ -53,22 +53,25 @@ Matrix::Matrix(void)
     rotation = MatrixPtr();
 }
 
-std::string Matrix::description(bool detailed)
+std::string Matrix::description(bool detailed, bool submatrix)
 {
     std::ostringstream description;
 
     if (detailed == true && unitCell)
     {
         description << "unitcell ";
-        description << unitCell->description() << std::endl;
+        description << unitCell->description(false, true) << std::endl;
         description << "rotation ";
-        description << rotation->description();
+        description << rotation->description(false, true);
         
         return description.str();
     }
     
 	description << std::setprecision(14);
 
+    if (!submatrix)
+        description << "matrix ";
+    
 	description << components[0] << " ";
 	description << components[4] << " ";
 	description << components[8] << " ";

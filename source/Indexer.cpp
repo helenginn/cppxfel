@@ -843,8 +843,7 @@ double Indexer::score(int whichAxis)
         double totalStdev = stdev / lastStdev - 1;
         
         double score = (totalStdev * stdevWeight - totalChange * totalWeight);
-        std::cout << aRot << ", " << bRot << ", " << cRot << ", " << score << std::endl;
-
+        
         return score;
     }
     
@@ -1404,7 +1403,7 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
             lastScore = newScore;
             
             logged << getRot(0) << "\t" << getRot(1) << "\t" << getRot(2) << "\t" << newScore << "\t" << aRotStep << std::endl;
-            sendLog(LogLevelNormal);
+            sendLog(LogLevelDetailed);
             
             if ((rotationMode == RotationModeHorizontalVertical && hRotStep < 0.25 && kRotStep < 0.25) ||
                 (rotationMode == RotationModeUnitCellABC && aRotStep < 0.25 && bRotStep < 0.25 && cRotStep < 0.25))

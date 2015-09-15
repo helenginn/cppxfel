@@ -53,7 +53,8 @@ public:
 	void partialityPlot(std::string filename, GraphMap properties = GraphMap());
 	void bFactorPlot(vector<MtzManager *>& managers,
                      std::string filename = "all_gradients", GraphMap properties = GraphMap());
-
+    
+    void plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l);
     void plotOrientationStats(vector<MtzPtr> mtzs);
     void plotPartialityStats();
     MtzManager*& getMtz()

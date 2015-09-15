@@ -20,19 +20,15 @@ if (not env_etc.no_boost_python and hasattr(env_etc, "boost_adaptbx_include")):
             env_etc.boost_adaptbx_include,
             env_etc.python_include,
             env_etc.dxtbx_include,
-            env_etc.cppxfel_include,
-            "/usr/local/include"])
+            env_etc.cppxfel_include])
     print env_etc.cppxfel_dist
     env.Append(
 		LIBS=env_etc.libm + ["scitbx_boost_python",
 		"boost_python",
 		"cctbx",
-		"plplotd",
-		"ccp4io",
-		"boost_system-mt",
-		"boost_thread-mt"])
-    env.Append(CCFLAGS='-g')
-
+		"ccp4io"])
+    env.Append(SHCCFLAGS=['-std=c++0x'])
+    
 if env_etc.clang_version:
   wd = ["-Wno-unused-variable"]
   env.Append(CCFLAGS=wd)

@@ -541,19 +541,19 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, std::string filena
 		if (correl < 0.85)
 			continue;
 
-	/*	 double gradient = managers[i]->gradientAgainstManager(
-		 *MtzManager::getReferenceManager());
+		 double gradient = managers[i]->gradientAgainstManager(
+		 MtzManager::getReferenceManager());
 
 	//	 double bFactor = 0;
 
 	//	 managers[i]->bFactorAndScale(&gradient, &bFactor);
 		 //	gradient = 1000 / managers[i]->averageIntensity();
 
-	//	 	managers[i]->applyScaleFactor(gradient);
-*/
+		 	managers[i]->applyScaleFactor(gradient);
+
 
 		vector<double> bins;
-		StatisticsManager::generateResolutionBins(50, 2.1, 8, &bins);
+		StatisticsManager::generateResolutionBins(50, 1.6, 10, &bins);
 
 		vector<double> x, y;
 
@@ -897,12 +897,12 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
                 
                 if (partials[i].percentage > maxPercentage)
                     continue;
+                /*
+                double mValue = (partials[i].miller->getH());
                 
-            //    double mValue = (partials[i].miller->getL());
-                
-            //    if (fabs(mValue) < 9)
-            //        continue;
-                
+                if (fabs(mValue) < 7)
+                    continue;
+                */
 				xs.push_back(partials[i].wavelength);
                 ys.push_back(partials[i].percentage);
                 xs2.push_back(partials[i].partiality);
@@ -1073,6 +1073,32 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
             std::cout << position[0] << "\t" << position[1] << "\t" << position[2] << std::endl;
             std::cout << -position[0] << "\t" << -position[1] << "\t" << -position[2] << std::endl;
         }*/
+    }
+}
+
+void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l)
+{
+    int index = Reflection::reflectionIdForCoordinates(h, k, l);
+    
+    std::cout << "filename,intensity,+-,resolution" << std::endl;
+    
+    for (int i = 0; i < mtzs.size(); i++)
+    {
+        MtzPtr mtz = mtzs[i];
+        
+        for (int j = 0; j < mtz->reflectionCount(); j++)
+        {
+            Reflection *refl = mtz->reflection(j);
+            
+            int thisID = refl->getReflId();
+            
+            if (thisID != index)
+            {
+                continue;
+            }
+            
+            std::cout << mtz->getFilename().substr(0, 4) << "," << refl->meanIntensity() << "," << refl->meanSigma() << "," << 1 / refl->getResolution() << std::endl;
+        }
     }
 }
 

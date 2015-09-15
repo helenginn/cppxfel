@@ -120,6 +120,9 @@ void MtzRefiner::cycleThread(int offset)
     int j = 0;
     
     bool initialGridSearch = FileParser::getKey("INITIAL_GRID_SEARCH", false);
+    int secondScore = FileParser::getKey("SECOND_TARGET_FUNCTION", -1);
+    
+    std::vector<int> targets = FileParser::getKey("TARGET_FUNCTIONS", std::vector<int>());
     
     int maxThreads = FileParser::getMaxThreads();
     
@@ -136,24 +139,23 @@ void MtzRefiner::cycleThread(int offset)
             logged << "Refining image " << i << " " << image->getFilename() << std::endl;
             Logger::mainLogger->addStream(&logged);
             
-            if (initialGridSearch && cycleNum == 0)
+            bool silent = (targets.size() > 0);
+            
+            image->gridSearch(silent);
+            
+            if (targets.size() > 0)
             {
-                for (int i = 0; i < 1; i++)
+                ScoreType firstScore = image->getScoreType();
+                for (int i = 0; i < targets.size(); i++)
                 {
-                    image->gridSearch(true);
-                    image->gridSearch(true);
+                    silent = (i < targets.size() - 1);
+                    image->setDefaultScoreType((ScoreType)targets[i]);
+                    image->gridSearch(silent);
                 }
+                image->setDefaultScoreType(firstScore);
             }
             
-            image->gridSearch();
-            
-            if (image->getScoreType() == ScoreTypeStandardDeviation)
-            {
-                image->setDefaultScoreType(DEFAULT_SCORE_TYPE);
-                //          image->gridSearch(true);
-            }
-            
-            image->writeToDat();
+        //    image->writeToDat();
         }
     }
 }
@@ -276,6 +278,7 @@ void MtzRefiner::refineCycle(bool once)
     int thresholdSwap = FileParser::getKey("THRESHOLD_SWAP",
                                            THRESHOLD_SWAP);
     bool exclusion = FileParser::getKey("EXCLUDE_OWN_REFLECTIONS", false);
+    bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
     
     double resolution = FileParser::getKey("MAX_RESOLUTION_ALL",
                                            MAX_OPTIMISATION_RESOLUTION);
@@ -347,10 +350,13 @@ void MtzRefiner::refineCycle(bool once)
             finished = true;
         
         delete grouper;
-        if (!once)
-            delete reference;
-        reference = exclusion ? unmergedMtz : mergedMtz;
-        MtzManager::setReference(reference);
+        if (replaceReference)
+        {
+            if (!once)
+                delete reference;
+            reference = exclusion ? unmergedMtz : mergedMtz;
+            MtzManager::setReference(reference);
+        }
         i++;
     }
 }
@@ -696,7 +702,11 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 
                 newMatrix = MatrixPtr(new Matrix(matrix));
                 
-                newMatrix->rotate(0, 0, M_PI / 2);
+                if (fromDials)
+                {
+                    newMatrix->rotate(0, 0, M_PI / 2);
+                }
+                
                 continue;
             }
             

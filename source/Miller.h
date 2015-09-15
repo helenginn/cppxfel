@@ -28,6 +28,11 @@ typedef enum
 	CalculationTypeOriginal, CalculationTypeIntegrate
 } CalculationType;
 
+typedef enum
+{
+    RlpModelUniform, RlpModelGaussian,
+} RlpModel;
+
 class Miller
 {
 private:
@@ -40,6 +45,7 @@ private:
     double l;
     short int fakeFriedel;
 	bool normalised;
+    RlpModel rlpModel;
     bool correctingPolarisation;
 	double polarisationCorrection;
     double polarisationFactor;
@@ -55,6 +61,7 @@ private:
     double lastWavelength;
     double lastRlpSize;
     double lastMosaicity;
+    double lastNormPartiality;
     int slices;
     double trickyRes;
     double maxSlices;
@@ -84,6 +91,8 @@ private:
                           double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
                           double exponent);
     
+    double integrate_sphere_uniform(double p, double q);
+    double integrate_sphere_gaussian(double p, double q);
     double integrate_sphere(double p, double q, double radius, double sphere_volume, double circle_surface_area);
     
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
@@ -149,8 +158,7 @@ public:
 
     void setHorizontalPolarisationFactor(double newFactor);
 	void recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
-			double spotSize, double wavelength, double bandwidth, double exponent,
-			bool normalise = true);
+			double spotSize, double wavelength, double bandwidth, double exponent);
 	double partialityForHKL(vec hkl, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent);
 	void applyScaleFactor(double scaleFactor);

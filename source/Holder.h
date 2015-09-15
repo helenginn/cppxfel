@@ -61,7 +61,8 @@ public:
 	Reflection *copy();
     
 	static int indexForReflection(int h, int k, int l, CSym::CCP4SPG *lowspgroup, bool inverted);
-
+    static int reflectionIdForCoordinates(int h, int k, int l);
+    
     int checkOverlaps();
 	void reflectionDescription();
 	void calculateResolution(MtzManager *mtz);

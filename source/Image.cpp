@@ -76,6 +76,7 @@ Image::Image(std::string filename, double wavelength,
 	this->filename = filename;
 	this->wavelength = wavelength;
 	detectorDistance = distance;
+    this->fitBackgroundAsPlane = FileParser::getKey("FIT_BACKGROUND_AS_PLANE", false);
     
     pixelCountCutoff = FileParser::getKey("PIXEL_COUNT_CUTOFF", 0);
 }
@@ -205,8 +206,9 @@ void Image::loadImage()
         {
             for (int i = 0; i < data.size(); i++)
             {
-                unsigned short point = *(&memblock[i * sizeof(short)]);
+                unsigned short point = *((unsigned short *)(&memblock[i * sizeof(short)]));
                 int convertedPoint = point;
+                
                 data[i] = convertedPoint;
             }
             
@@ -445,25 +447,161 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
 void Image::printBox(int x, int y, int tolerance)
 {
     std::ostringstream logged;
-    
+
     logged << "Print box at (" << x << ", " << y << "), radius " << tolerance << std::endl;
     
 	for (int i = x - tolerance; i <= x + tolerance; i++)
 	{
 		for (int j = y - tolerance; j <= y + tolerance; j++)
 		{
-			logged << valueAt(i, j) << "\t";
+            logged << i << ", " << j << ", " << valueAt(i, j) << std::endl;
 		}
-
-		logged << std::endl;
 	}
     
     logged << std::endl;
     
-   // Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+     
 }
 
-double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *error)
+double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, double *error)
+{
+    int slowSide = 0;
+    int fastSide = 0;
+    
+    int foregroundWidth = FileParser::getKey("SHOEBOX_FOREGROUND_RADIUS", 2) * 2 + 1;
+    
+    shoebox->sideLengths(&slowSide, &fastSide);
+    int slowTol = (slowSide - 1) / 2;
+    int fastTol = (fastSide - 1) / 2;
+    
+    int startX = x - slowTol;
+    int startY = y - fastTol;
+    
+    std::vector<double> xxs, xys, xs, yys, ys, xzs, yzs, zs;
+    
+    for (int i = startX; i < startX + slowSide; i++)
+    {
+        for (int j = startY; j < startY + fastSide; j++)
+        {
+            double sX = i - startX;
+            double sY = j - startY;
+            Mask flag = flagAtShoeboxIndex(shoebox, sX, sY);
+            
+            if (flag == MaskForeground || flag == MaskNeither)
+                continue;
+            
+            double newX = i;
+            double newY = j;
+            double newZ = valueAt(i, j);
+            
+            xxs.push_back(newX * newX);
+            yys.push_back(newY * newY);
+            xys.push_back(newX * newY);
+            xs.push_back(newX);
+            ys.push_back(newY);
+            xzs.push_back(newX * newZ);
+            yzs.push_back(newY * newZ);
+            zs.push_back(newZ);
+        }
+    }
+
+    double xxSum = sum(xxs);
+    double yySum = sum(yys);
+    double xySum = sum(xys);
+    double xSum = sum(xs);
+    double ySum = sum(ys);
+    double zSum = sum(zs);
+    double xzSum = sum(xzs);
+    double yzSum = sum(yzs);
+    
+    double aveBackgroundPixel = zSum / zs.size();
+    
+    MatrixPtr matrix = MatrixPtr(new Matrix());
+    
+    matrix->components[0] = xxSum;
+    matrix->components[1] = xySum;
+    matrix->components[2] = xSum;
+    
+    matrix->components[4] = xySum;
+    matrix->components[5] = yySum;
+    matrix->components[6] = ySum;
+    
+    matrix->components[8] = xSum;
+    matrix->components[9] = ySum;
+    matrix->components[10] = xs.size();
+
+    vec b = new_vector(xzSum, yzSum, zSum);
+    
+    MatrixPtr inverse = matrix->inverse3DMatrix();
+    inverse->multiplyVector(&b);
+    
+    // plane is now pa + qb + rc (components of b)
+
+    double p = b.h;
+    double q = b.k;
+    double r = b.l;
+    
+    double backgroundInSignal = 0;
+    
+    double lowestPoint = FLT_MAX;
+    double highestPoint = -FLT_MAX;
+    std::vector<double> corners;
+    
+    corners.push_back(p * (startX) + q * (startY) + r);
+    corners.push_back(p * (startX + foregroundWidth) + q * (startY) + r);
+    corners.push_back(p * (startX) + q * (startY + foregroundWidth) + r);
+    corners.push_back(p * (startX + foregroundWidth) + q * (startY + foregroundWidth) + r);
+
+    for (int i = 0; i < corners.size(); i++)
+    {
+        if (corners[i] < lowestPoint)
+            lowestPoint = corners[i];
+        if (corners[i] > highestPoint)
+            highestPoint = corners[i];
+    }
+    
+    double topHeight = (highestPoint - lowestPoint);
+    
+    double bottomVolume = lowestPoint * foregroundWidth * foregroundWidth;
+    double topVolume = 0.5 * topHeight * foregroundWidth * foregroundWidth;
+    
+    backgroundInSignal = topVolume + bottomVolume;
+    
+    double foreground = 0;
+    int num = 0;
+    
+    for (int i = startX; i < startX + slowSide; i++)
+    {
+        for (int j = startY; j < startY + fastSide; j++)
+        {
+            double sX = i - startX;
+            double sY = j - startY;
+            Mask flag = flagAtShoeboxIndex(shoebox, sX, sY);
+            
+            if (flag == MaskNeither || flag == MaskBackground)
+                continue;
+            
+            double weight = weightAtShoeboxIndex(shoebox, sX, sY);
+            double total = valueAt(i, j);
+            num++;
+            
+            foreground += total * weight;
+        }
+    }
+    
+    double signalOnly = foreground - backgroundInSignal;
+    *error = sqrt(foreground);
+    
+    if (!std::isfinite(signalOnly))
+    {
+        Logger::mainLogger->addString("Infinite intensity", LogLevelDebug);
+    }
+    
+    return signalOnly;
+}
+
+double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double *error)
 {
     int slowSide = 0;
     int fastSide = 0;
@@ -472,65 +610,86 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
     int slowTol = (slowSide - 1) / 2;
     int fastTol = (fastSide - 1) / 2;
     
-	int startX = x - slowTol;
-	int startY = y - fastTol;
-
-	int foreground = 0;
-	int foreNum = 0;
-
-	int background = 0;
-	int backNum = 0;
-
-//	print = true;
-
-	for (int i = startX; i < startX + slowSide; i++)
-	{
-		for (int j = startY; j < startY + fastSide; j++)
-		{
+    int startX = x - slowTol;
+    int startY = y - fastTol;
+    
+    int foreground = 0;
+    int foreNum = 0;
+    
+    int background = 0;
+    int backNum = 0;
+    
+    //	print = true;
+    
+    for (int i = startX; i < startX + slowSide; i++)
+    {
+        for (int j = startY; j < startY + fastSide; j++)
+        {
             double sX = i - startX;
             double sY = j - startY;
+            double value = valueAt(i, j);
             
-			Mask flag = flagAtShoeboxIndex(shoebox, sX, sY);
-
-			if (flag == MaskForeground)
-			{
+            Mask flag = flagAtShoeboxIndex(shoebox, sX, sY);
+            
+            if (flag == MaskForeground)
+            {
                 double weight = weightAtShoeboxIndex(shoebox, sX, sY);
-                double value = valueAt(i, j);
-				foreNum += weight;
-				foreground += value * weight;
+                foreNum += weight;
+                foreground += value * weight;
                 
                 if (value > pixelCountCutoff && pixelCountCutoff > 0)
                 {
-              //      return isnan(' ');
+                    return isnan(' ');
                 }
-			}
-			else if (flag == MaskBackground)
-			{
-				backNum++;
-				background += valueAt(i, j);
-			}
-		}
-	}
-
+            }
+            else if (flag == MaskBackground)
+            {
+                backNum++;
+                background += value;
+            }
+        }
+    }
+    
     double aveBackground = (double) background / (double) backNum;
-	double backgroundInForeground = aveBackground * (double) foreNum;
-
-	double totalPhotons = foreground + background;
-	*error = sqrt(totalPhotons);
-
+    double backgroundInForeground = aveBackground * (double) foreNum;
+    
+    double totalPhotons = foreground;
+    *error = sqrt(totalPhotons);
+    
     
     std::ostringstream logged;
     logged << "Photons (back/fore/back-in-fore): " << background << "\t" << foreground << "\t" << "; weights: " << backNum << "\t" << foreNum << std::endl;
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+//    Logger::mainLogger->addStream(&logged, LogLevelDebug);
     
-	double intensity = (foreground - backgroundInForeground);
-	
+    double intensity = (foreground - backgroundInForeground);
+    
     if (!std::isfinite(intensity))
-	{
+    {
         Logger::mainLogger->addString("Infinite intensity", LogLevelDebug);
-	}
+    }
+    
+    return intensity;
+}
 
-	return intensity;
+double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *error)
+{
+    double oneError, twoError;
+    
+    double one = integrateSimpleSummation(x, y, shoebox, &oneError);
+    double two = integrateFitBackgroundPlane(x, y, shoebox, &twoError);
+    
+ //   std::cout << one << "\t" << oneError << "\t" << two << "\t" << twoError << std::endl;
+    
+    if (!fitBackgroundAsPlane)
+    {
+        return integrateSimpleSummation(x, y, shoebox, error);
+    }
+    else
+    {
+        return integrateFitBackgroundPlane(x, y, shoebox, error);
+    }
+    
+    return 0;
 }
 
 double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int tolerance)

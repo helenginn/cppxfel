@@ -264,6 +264,45 @@ int main(int argc, char *argv[])
 #endif
 		}
 	}
+    
+    if (strcmp(argv[1], "-intensities") == 0)
+    {
+        if (argc <= 5)
+        {
+            std::cout << "arguments: -intensities h k l <file1> {<file2> ...}." << std::endl;
+            exit(1);
+        }
+        
+        srand((unsigned int)time(NULL));
+        
+        int h = atoi(argv[2]);
+        int k = atoi(argv[3]);
+        int l = atoi(argv[4]);
+        
+        if (h == 0 && k == 0 && l == 0)
+        {
+            h = (double)(rand() / RAND_MAX) * 40;
+            k = (double)rand() / RAND_MAX * (40 - h) + h;
+            l = (double)rand() / RAND_MAX * (40 - k) + k;
+        }
+        
+        std::cout << "Plotting intensities for (" << h << ", " << k << ", " << l << ")" << std::endl;
+        
+        
+        std::vector<MtzPtr> mtzs;
+        
+        for (int i = 5; i < argc; i++)
+        {
+            MtzPtr mtz = MtzPtr(new MtzManager());
+            mtz->setFilename(argv[i]);
+            mtz->loadReflections(1);
+            
+            mtzs.push_back(mtz);
+        }
+        
+        GraphDrawer drawer = GraphDrawer(&*mtzs[0]);
+        drawer.plotReflectionFromMtzs(mtzs, h, k, l);
+    }
 
 #ifdef MAC
     if (strcmp(argv[1], "-partimg") == 0)

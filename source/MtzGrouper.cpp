@@ -45,6 +45,9 @@ MtzGrouper::~MtzGrouper()
 
 bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
 {
+    if (!excludeWorst)
+        return true;
+    
     int minimumReflectionCutoff = FileParser::getKey(
                                                      "MINIMUM_REFLECTION_CUTOFF",
                                                      MINIMUM_REFLECTION_CUTOFF);
@@ -161,8 +164,17 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	double averageAboveCutoff = 0;
 	int aboveCutoffNum = 0;
 	double rotationCorrection = 0;
+    
+    int rotMode = FileParser::getKey("ROTATION_MODE", 0);
+    RotationMode mode = (RotationMode)rotMode;
 
-    logged << "Filename\tCorrel\tRsplit\tRefcount\tMosaicity\tWavelength\tBandwidth\thRot\tkRot\trlpSize\texp\tcellA\tcellB\tcellC" << std::endl;
+    
+    
+    logged << "Filename\tCorrel\tRsplit\tRefcount\tMosaicity\tWavelength\tBandwidth\t";
+    
+    logged << (mode == RotationModeHorizontalVertical ? "hRot\tkRot\t" : "aRot\tbRot\tcRot\t");
+    
+    logged << "rlpSize\texp\tcellA\tcellB\tcellC" << std::endl;
 
 	for (int i = 0; i < mtzManagers.size(); i++)
 	{
@@ -172,6 +184,10 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 		double hRot = mtzManagers[i]->getHRot();
 		double kRot = mtzManagers[i]->getKRot();
+        
+        double aRot = mtzManagers[i]->getARot();
+        double bRot = mtzManagers[i]->getBRot();
+        double cRot = mtzManagers[i]->getCRot();
 
 		double correction = sqrt(hRot * hRot + kRot * kRot);
         
@@ -192,16 +208,23 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         if (rSplit > 0)
             mtzManagers[i]->setAdditionalWeight(rSplit);
         
+        double partCorrel = mtzManagers[i]->getRefPartCorrel();
+        
         double *cellDims = new double[3];
         mtzManagers[i]->getMatrix()->unitCellLengths(&cellDims);
         
         
-		logged << mtzManagers[i]->getFilename() << "\t" << correl <<  "\t" << rSplit << "\t"
+		logged << mtzManagers[i]->getFilename() << "\t" << correl << "\t" << rSplit << "\t" << partCorrel << "\t"
 				<< mtzManagers[i]->accepted() << "\t"
-				<< mtzManagers[i]->getMosaicity() << "\t"
+				/*<< mtzManagers[i]->getMosaicity() << "\t"*/
 				<< mtzManagers[i]->getWavelength() << "\t"
-				<< mtzManagers[i]->getBandwidth() << "\t" << hRot << "\t"
-				<< kRot << "\t" << mtzManagers[i]->getSpotSize() << "\t"
+				<< mtzManagers[i]->getBandwidth() << "\t";
+        if (mode == RotationModeHorizontalVertical)
+            logged << hRot << "\t" << kRot << "\t";
+        else if (mode == RotationModeUnitCellABC)
+            logged << aRot << "\t" << bRot << "\t" << cRot << "\t";
+        
+        logged << mtzManagers[i]->getSpotSize() << "\t"
             << mtzManagers[i]->getExponent() << "\t" << cellDims[0] << "\t" << cellDims[1] << "\t" << cellDims[2] << std::endl;
         
         delete [] cellDims;

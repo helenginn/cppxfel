@@ -45,6 +45,7 @@ double minimizeParam(double &step, double &param, double (*score)(void *object),
 double minimizeParameter(double &step, double &param, double (*score)(void *object),
                        void *object);
 
+double sum(vector<double> values);
 void regression_line(vector<boost::tuple<double, double, double> > values, double &intercept, double &gradient);
 double correlation_between_vectors(vector<double> *vec1,
 		vector<double> *vec2, vector<double> *weights, int exclude);

@@ -27,23 +27,41 @@ asu Miller::p1_asu = asu();
 bool Miller::initialised_p1 = false;
 space_group Miller::p1_spg = space_group();
 
+double Miller::integrate_sphere_gaussian(double p, double q)
+{
+    double mean = 0.5;
+    double sigma = 0.25;
+    double exponent = 1.5;
+    
+    double partiality_add = super_gaussian(q, mean, sigma, exponent);
+    double partiality_remove = super_gaussian(p, mean, sigma, exponent);
+    
+    double proportion = (partiality_add + partiality_remove) / 2;
+    proportion *= (q - p);
+    
+    
+    return proportion;
+}
+
+double Miller::integrate_sphere_uniform(double p, double q)
+{
+    double partiality_add = 4 * q * (1 - q);
+    double partiality_remove = 4 * p * (1 - p);
+    
+    double proportion = (partiality_add + partiality_remove) / 2;
+    proportion *= (q - p);
+    
+    return proportion;
+}
+
 double Miller::integrate_sphere(double p, double q, double radius, double sphere_volume, double circle_surface_area)
 {
-    double partiality_add = 3 * pow(q, 2) - 2 * pow(q, 3);
-    double partiality_remove = 3 * pow(p, 2) - 2 * pow(p, 3);
+    if (rlpModel == RlpModelGaussian)
+        return integrate_sphere_gaussian(p, q);
+    if (rlpModel == RlpModelUniform)
+        return integrate_sphere_uniform(p, q);
     
-    double proportion = partiality_add - partiality_remove;
-    
-    
-    double distance_total = radius * 2;
-    double distance_fraction = distance_total * (q - p);
-    
-    double cylinder_volume = circle_surface_area * distance_fraction;
-    
-    if (cylinder_volume <= 0)
-        return 0;
-    
-    return proportion * sphere_volume / cylinder_volume;
+    else return integrate_sphere_uniform(p, q);
 }
 
 double Miller::superGaussian(double bandwidth, double mean,
@@ -142,6 +160,10 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         currentQ += fraction_total / slices;
     }
     
+    std::ostringstream logged;
+    logged << total_normal << "\t" << total_sphere << std::endl;
+  //  Logger::mainLogger->addStream(&logged);
+    
     //std::cout << middle_wavelength << "\t" << spot_size_radius << "\t" << total_integral << "\t" << total_normal << std::endl;
     
     //	std::cout << bandwidth_span << "\t" << total_normal << "\t" << total_integral << std::endl;
@@ -162,13 +184,14 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     gainScale = 1;
     sigma = 1;
     wavelength = 0;
+    lastNormPartiality = 0;
     partiality = -1;
     model = PartialityModelNone;
     filename = "";
     countingSigma = 0;
     latestHRot = 0;
     latestKRot = 0;
-    normalised = true;
+    normalised = FileParser::getKey("NORMALISE_PARTIALITIES", true);
     correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
     polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
     polarisationCorrection = 0;
@@ -197,6 +220,9 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
+    
+    int rlpInt = FileParser::getKey("RLP_MODEL", 0);
+    rlpModel = (RlpModel)rlpInt;
     
     mtzParent = parent;
     parentReflection = NULL;
@@ -313,7 +339,7 @@ double Miller::getBFactorScale()
     
     double resn = getResolution();
     
-    double sinThetaOverLambda = 1 / (2 / resn);
+    double sinThetaOverLambda = resn / 2;// 1 / (2 / resn);
     
     double factor = exp(- bFactor * pow(sinThetaOverLambda, 2));
     
@@ -622,11 +648,6 @@ double Miller::calculateNormPartiality(double mosaicity,
     double normPartiality = partialityForHKL(newHKL, mosaicity,
                                             spotSize, wavelength, bandwidth, exponent);
     
-    if (normPartiality == 0)
-    {
-    //    std::cout << "Stop here too!" << std::endl;
-    }
-    
     return normPartiality;
 }
 
@@ -643,8 +664,7 @@ double Miller::resolution()
 }
 
 void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
-                                   double spotSize, double wavelength, double bandwidth, double exponent,
-                                   bool normalise)
+                                   double spotSize, double wavelength, double bandwidth, double exponent)
 {
     if (model == PartialityModelFixed)
     {
@@ -661,10 +681,16 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
                                             spotSize, wavelength, bandwidth, exponent);
     
     double normPartiality = 1;
+    bool recalculatingNorm = FileParser::getKey("RECALCULATE_NORM", true);
     
-    if (normalise && tempPartiality > 0)
+    if (normalised && tempPartiality > 0)
     {
-        normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
+        normPartiality = lastNormPartiality;
+        if (recalculatingNorm || lastNormPartiality == 0)
+        {
+            normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
+            lastNormPartiality = normPartiality;
+        }
     }
     
     lastWavelength = wavelength;
@@ -674,9 +700,6 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     lastRadius = expectedRadius(spotSize, mosaicity, &hkl);
 
     partiality = tempPartiality / normPartiality;
-    
-    partiality += 0.05;
-    partiality /= 1.05;
     
     if ((!std::isfinite(partiality)) || (partiality != partiality))
     {
@@ -1022,9 +1045,15 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     
     rawIntensity = image->intensityAt(x, y, shoebox, &countingSigma, 0);
 
-    logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
     
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    if (rawIntensity > 200)
+    {
+        logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelDebug);
+        image->printBox(x, y, 10);
+    }
+    
+    
 }
 
 void Miller::incrementOverlapMask(double hRot, double kRot)

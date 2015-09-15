@@ -49,9 +49,9 @@ std::string MtzManager::describeScoreType()
         case ScoreTypeCorrelation:
             return std::string("correl");
         case ScoreTypePartialityCorrelation:
-            return std::string("part");
+            return std::string("partCC");
         case ScoreTypePartialityLeastSquares:
-            return std::string("part");
+            return std::string("partLQ");
         case ScoreTypeMinimizeRSplit:
             return std::string("rfactor");
         case ScoreTypeMinimizeRSplitLog:
@@ -257,6 +257,8 @@ void MtzManager::loadParametersMap()
     stepSizeRlpSize = FileParser::getKey("STEP_SIZE_RLP_SIZE", SPOT_STEP);
     stepSizeOrientation = FileParser::getKey("STEP_SIZE_ORIENTATION",
                                              ROT_STEP);
+    stepSizeOrientABC = FileParser::getKey("STEP_SIZE_ORIENTATION_ABC",
+                                             ROT_STEP * 3);
     stepSizeExponent = FileParser::getKey("STEP_SIZE_EXPONENT",
                                           EXPONENT_STEP);
     
@@ -296,6 +298,9 @@ MtzManager::MtzManager(void)
     bandwidth = INITIAL_BANDWIDTH;
     hRot = 0;
     kRot = 0;
+    aRot = 0;
+    bRot = 0;
+    cRot = 0;
     mosaicity = INITIAL_MOSAICITY;
     spotSize = INITIAL_SPOT_SIZE;
     wavelength = 0;
@@ -323,6 +328,8 @@ MtzManager::MtzManager(void)
     refPartCorrel = 0;
     penaltyWeight = 0.0;
     penaltyResolution = 2.5;
+    int rotMode = FileParser::getKey("ROTATION_MODE", 0);
+    rotationMode = (RotationMode)rotMode;
     
     optimisingWavelength = !OPTIMISED_WAVELENGTH;
     optimisingBandwidth = !OPTIMISED_BANDWIDTH;

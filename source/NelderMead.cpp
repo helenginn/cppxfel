@@ -7,6 +7,7 @@
 //
 
 #include "NelderMead.h"
+#include "FileParser.h"
 
 bool converged()
 {
@@ -163,7 +164,9 @@ void NelderMead::process()
 {
     int count = 0;
     
-    while ((!converged() && count < 100) || unlimited)
+    int maxCount = FileParser::getKey("NELDER_MEAD_CYCLES", 100);
+    
+    while ((!converged() && count < maxCount) || unlimited)
     {
         sendLog(LogLevelDetailed);
         std::vector<double> centroid = calculateCentroid();

@@ -30,6 +30,7 @@ private:
     vector<IndexerPtr> indexers;
     bool shouldMaskValue;
     bool maskedValue;
+    bool fitBackgroundAsPlane;
     std::string spotsFile;
     std::ostringstream logged;
     
@@ -62,6 +63,8 @@ private:
 
 	int shoeboxLength();
 	Mask flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
+    double integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, double *error);
+    double integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double *error);
 	double integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *error);
 	bool checkShoebox(ShoeboxPtr shoebox, int x, int y);
     double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);

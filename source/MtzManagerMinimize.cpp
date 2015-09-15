@@ -111,9 +111,9 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     else if (scoreType == ScoreTypePartialityCorrelation
              || scoreType == ScoreTypePartialityLeastSquares)
     {
-        return 1
-        - static_cast<MtzManager *>(object)->leastSquaresPartiality(
-                                                                    scoreType);
+        double value = 1 - static_cast<MtzManager *>(object)->leastSquaresPartiality(scoreType);
+        
+        return  value;
     }
     else if (scoreType == ScoreTypeStandardDeviation)
     {
@@ -443,6 +443,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     }
     
     bandwidth = this->getBandwidth();
+    double stepSizeOrientABC = FileParser::getKey("STEP_SIZE_ORIENTATION_ABC", 0.2);
     
     int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 0);
     MinimizationMethod method = (MinimizationMethod)miniMethod;
@@ -454,8 +455,14 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         bool optimisedExponent = !optimisingExponent || (scoreType == ScoreTypeStandardDeviation);
         bool optimisedSpotSize = !optimisingRlpSize || (scoreType == ScoreTypeStandardDeviation);
         bool optimisedMos = !optimisingMosaicity || (scoreType == ScoreTypeStandardDeviation);
-        bool optimisedHRot = !optimisingOrientation;
-        bool optimisedKRot = !optimisingOrientation;
+        bool optimisedHRot = (rotationMode != RotationModeUnitCellABC) ? !optimisingOrientation : true;
+        bool optimisedKRot = (rotationMode != RotationModeUnitCellABC) ? !optimisingOrientation : true;
+        bool optimisedARot = (rotationMode != RotationModeHorizontalVertical) ? !optimisingOrientation : true;
+        bool optimisedBRot = (rotationMode != RotationModeHorizontalVertical) ? !optimisingOrientation : true;
+        bool optimisedCRot = (rotationMode != RotationModeHorizontalVertical) ? !optimisingOrientation : true;
+        bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+        bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+        bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
         
         double meanStep = stepSizeWavelength;
         double bandStep = stepSizeBandwidth;
@@ -464,28 +471,18 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         double mosStep = stepSizeMosaicity;
         double hStep = stepSizeOrientation;
         double kStep = stepSizeOrientation;
+        double aRotStep = stepSizeOrientABC;
+        double bRotStep = stepSizeOrientABC;
+        double cRotStep = stepSizeOrientABC;
         double aStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
         double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
         double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
         
         params = new double[PARAM_NUM];
         
-        params[PARAM_HROT] = this->getHRot();
-        params[PARAM_KROT] = this->getKRot();
-        params[PARAM_MOS] = this->getMosaicity();
-        params[PARAM_SPOT_SIZE] = this->getSpotSize();
+        getParams(&params);
         params[PARAM_WAVELENGTH] = wavelength;
-        params[PARAM_BANDWIDTH] = bandwidth;
-        params[PARAM_B_FACTOR] = bFactor;
-        params[PARAM_SCALE_FACTOR] = scale;
-        params[PARAM_EXPONENT] = this->getExponent();
-        params[PARAM_UNIT_CELL_A] = this->cellDim[0];
-        params[PARAM_UNIT_CELL_B] = this->cellDim[1];
-        params[PARAM_UNIT_CELL_C] = this->cellDim[2];
         
-        bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
-        bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
-        bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
         
         int count = 0;
         
@@ -495,7 +492,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         
         while (!(optimisedMean && optimisedBandwidth && optimisedSpotSize
                  && optimisedMos && optimisedExponent && optimisedHRot
-                 && optimisedKRot) && count < 50)
+                 && optimisedKRot && optimisedARot && optimisedBRot && optimisedCRot) && count < 50)
         {
             count++;
             
@@ -514,6 +511,18 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
                 minimizeTwoParameters(&hStep, &kStep, &params, PARAM_HROT,
                                       PARAM_KROT, score, object, minResolution, maxResolutionAll, FLT_MAX);
             
+            if (!optimisedARot)
+                minimizeParameter(&aRotStep, &params, PARAM_AROT, score,
+                                  object, minResolution, maxResolutionAll);
+
+            if (!optimisedBRot)
+                minimizeParameter(&bRotStep, &params, PARAM_BROT, score,
+                                  object, minResolution, maxResolutionAll);
+            
+            if (!optimisedCRot)
+                minimizeParameter(&cRotStep, &params, PARAM_CROT, score,
+                                  object, minResolution, maxResolutionAll);
+
             if (scoreType != ScoreTypeStandardDeviation)
             {
                 if (!optimisedSpotSize)
@@ -534,6 +543,15 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             
             if (kStep < toleranceOrientation)
                 optimisedKRot = true;
+            
+            if (aRotStep < toleranceOrientation)
+                optimisedARot = true;
+            
+            if (bRotStep < toleranceOrientation)
+                optimisedBRot = true;
+            
+            if (cRotStep < toleranceOrientation)
+                optimisedCRot = true;
             
             if (meanStep < toleranceWavelength)
                 optimisedMean = true;
@@ -633,17 +651,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         
         this->refreshPartialities(params);
         
-        
-        this->wavelength = params[PARAM_WAVELENGTH];
-        this->bandwidth = params[PARAM_BANDWIDTH];
-        this->mosaicity = params[PARAM_MOS];
-        this->spotSize = params[PARAM_SPOT_SIZE];
-        this->hRot = params[PARAM_HROT];
-        this->kRot = params[PARAM_KROT];
-        this->exponent = params[PARAM_EXPONENT];
-        this->cellDim[0] = params[PARAM_UNIT_CELL_A];
-        this->cellDim[1] = params[PARAM_UNIT_CELL_B];
-        this->cellDim[2] = params[PARAM_UNIT_CELL_C];
+        setParams(params);
        
         delete[] params;
     }
@@ -660,8 +668,18 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
         bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
         
+        paramPtrs[PARAM_HROT] = optimisingOrientation && (rotationMode != RotationModeUnitCellABC) ? &this->hRot : NULL;
+        paramPtrs[PARAM_KROT] = optimisingOrientation && (rotationMode != RotationModeUnitCellABC) ? &this->kRot : NULL;
+        paramPtrs[PARAM_AROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->aRot : NULL;
+        paramPtrs[PARAM_BROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->bRot : NULL;
+        paramPtrs[PARAM_CROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->cRot : NULL;
+        /*
         paramPtrs[PARAM_HROT] = optimisingOrientation ? &this->hRot : NULL;
         paramPtrs[PARAM_KROT] = optimisingOrientation ? &this->kRot : NULL;
+        paramPtrs[PARAM_AROT] = optimisingOrientation ? &this->aRot : NULL;
+        paramPtrs[PARAM_BROT] = optimisingOrientation ? &this->bRot : NULL;
+        paramPtrs[PARAM_CROT] = optimisingOrientation ? &this->cRot : NULL;
+        */
         paramPtrs[PARAM_MOS] = optimisingMosaicity ? &this->mosaicity : NULL;
         paramPtrs[PARAM_SPOT_SIZE] = optimisingRlpSize ? &this->spotSize : NULL;
         paramPtrs[PARAM_WAVELENGTH] = optimisingWavelength ? &this->wavelength : NULL;
@@ -818,7 +836,7 @@ void MtzManager::gridSearch(bool silent)
     << newerCorrel << "\t" << rSplitValue << "\t"
     << partCorrel << "\t" << rMerge << "\t" << bFactor << "\t" << hits << std::endl;
     
-    this->sendLog(silent ? LogLevelDebug : LogLevelNormal);
+    this->sendLog(silent ? LogLevelDetailed : LogLevelNormal);
     
     delete[] firstParams;
     

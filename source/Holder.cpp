@@ -182,16 +182,21 @@ void Reflection::setSpaceGroup(int spaceGroupNum)
     hasSetup = true;
 }
 
+int Reflection::reflectionIdForCoordinates(int h, int k, int l)
+{
+    int index = (h + OFFSET) * pow((double) MULTIPLIER, (int) 2)
+    + (k + OFFSET) * MULTIPLIER + (l + OFFSET);
+    
+    return index;
+}
+
 int Reflection::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
 {
     int h = cctbxMiller[0];
     int k = cctbxMiller[1];
     int l = cctbxMiller[2];
     
-    int index = (h + OFFSET) * pow((double) MULTIPLIER, (int) 2)
-    + (k + OFFSET) * MULTIPLIER + (l + OFFSET);
-    
-    return index;
+    return reflectionIdForCoordinates(h, k, l);
 }
 
 void Reflection::generateReflectionIds()

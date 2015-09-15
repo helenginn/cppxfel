@@ -67,8 +67,12 @@ protected:
     double penaltyWeight;
     double penaltyResolution;
     
+    RotationMode rotationMode;
 	double hRot;
 	double kRot;
+    double aRot;
+    double bRot;
+    double cRot;
 	double mosaicity;
 	double spotSize;
 	double wavelength;
@@ -95,6 +99,7 @@ protected:
 	double stepSizeMosaicity;
 	double stepSizeRlpSize;
 	double stepSizeOrientation;
+    double stepSizeOrientABC;
 	double stepSizeExponent;
 
 	double toleranceWavelength;
@@ -267,7 +272,7 @@ public:
 	std::string describeScoreType();
     
     void refreshCurrentPartialities();
-	void refreshPartialities(double hRot, double kRot, double mosaicity,
+	void refreshPartialities(double hRot, double kRot, double aRot, double bRot, double cRot, double mosaicity,
                              double spotSize, double wavelength, double bandwidth, double exponent,
                              double a, double b, double c);
 	void refreshPartialities(double parameters[]);
@@ -407,6 +412,21 @@ public:
 	{
 		this->kRot = kRot;
 	}
+    
+    double getARot() const
+    {
+        return aRot;
+    }
+    
+    double getBRot() const
+    {
+        return bRot;
+    }
+    
+    double getCRot() const
+    {
+        return cRot;
+    }
 
 	double getRefCorrelation() const
 	{

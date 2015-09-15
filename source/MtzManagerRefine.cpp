@@ -21,21 +21,24 @@ void MtzManager::applyUnrefinedPartiality()
     double wavelength = bestWavelength();
     double mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
     double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
-    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_MOSAICITY);
+    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
     double exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
 
-    refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent, cellDim[0], cellDim[1], cellDim[2]);
+    refreshPartialities(0, 0, 0, 0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent, cellDim[0], cellDim[1], cellDim[2]);
 }
 
 void MtzManager::setParams(double parameters[], int paramCount)
 {
-	wavelength = parameters[PARAM_WAVELENGTH];
+    wavelength = parameters[PARAM_WAVELENGTH];
 	bandwidth = parameters[PARAM_BANDWIDTH];
 	mosaicity = parameters[PARAM_MOS];
 	spotSize = parameters[PARAM_SPOT_SIZE];
 	hRot = parameters[PARAM_HROT];
 	kRot = parameters[PARAM_KROT];
-	exponent = parameters[PARAM_EXPONENT];
+    aRot = parameters[PARAM_AROT];
+    bRot = parameters[PARAM_BROT];
+    cRot = parameters[PARAM_CROT];
+    exponent = parameters[PARAM_EXPONENT];
     bFactor = parameters[PARAM_B_FACTOR];
     
     applyBFactor(bFactor);
@@ -54,7 +57,10 @@ void MtzManager::getParams(double *parameters[], int paramCount)
 	(*parameters)[PARAM_SPOT_SIZE] = spotSize;
 	(*parameters)[PARAM_HROT] = hRot;
 	(*parameters)[PARAM_KROT] = kRot;
-	(*parameters)[PARAM_EXPONENT] = exponent;
+    (*parameters)[PARAM_AROT] = aRot;
+    (*parameters)[PARAM_BROT] = bRot;
+    (*parameters)[PARAM_CROT] = cRot;
+    (*parameters)[PARAM_EXPONENT] = exponent;
     (*parameters)[PARAM_B_FACTOR] = bFactor;
     (*parameters)[PARAM_SCALE_FACTOR] = scale;
     (*parameters)[PARAM_UNIT_CELL_A] = cellDim[0];
@@ -70,6 +76,9 @@ void MtzManager::getParamPointers(double ***parameters, int paramCount)
     (*parameters)[PARAM_SPOT_SIZE] = &spotSize;
     (*parameters)[PARAM_HROT] = &hRot;
     (*parameters)[PARAM_KROT] = &kRot;
+    (*parameters)[PARAM_AROT] = &aRot;
+    (*parameters)[PARAM_BROT] = &bRot;
+    (*parameters)[PARAM_CROT] = &cRot;
     (*parameters)[PARAM_EXPONENT] = &exponent;
     (*parameters)[PARAM_B_FACTOR] = &bFactor;
     (*parameters)[PARAM_SCALE_FACTOR] = &externalScale;
@@ -82,6 +91,9 @@ void MtzManager::getSteps(double *ranges[], int paramCount)
 {
     (*ranges)[PARAM_HROT] = stepSizeOrientation;
     (*ranges)[PARAM_KROT] = stepSizeOrientation;
+    (*ranges)[PARAM_AROT] = stepSizeOrientABC;
+    (*ranges)[PARAM_BROT] = stepSizeOrientABC;
+    (*ranges)[PARAM_CROT] = stepSizeOrientABC;
     (*ranges)[PARAM_MOS] = stepSizeMosaicity;
     (*ranges)[PARAM_SPOT_SIZE] = stepSizeRlpSize;
     (*ranges)[PARAM_WAVELENGTH] = stepSizeWavelength / 2;
@@ -99,6 +111,9 @@ void MtzManager::refreshPartialities(double parameters[])
 {
     refreshPartialities(parameters[PARAM_HROT],
                         parameters[PARAM_KROT],
+                        parameters[PARAM_AROT],
+                        parameters[PARAM_BROT],
+                        parameters[PARAM_CROT],
                         parameters[PARAM_MOS],
                         parameters[PARAM_SPOT_SIZE],
                         parameters[PARAM_WAVELENGTH],
@@ -117,6 +132,9 @@ void MtzManager::refreshCurrentPartialities()
     applyBFactor(bFactor);
     refreshPartialities(this->hRot,
                         this->kRot,
+                        this->aRot,
+                        this->bRot,
+                        this->cRot,
                         this->mosaicity,
                         this->spotSize,
                         this->wavelength,
@@ -127,7 +145,7 @@ void MtzManager::refreshCurrentPartialities()
                         this->cellDim[2]);
 }
 
-void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
+void MtzManager::refreshPartialities(double hRot, double kRot, double aRot, double bRot, double cRot, double mosaicity,
 		double spotSize, double wavelength, double bandwidth, double exponent,
                                      double a, double b, double c)
 {
@@ -140,8 +158,10 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
     if (matrix->isComplex())
         this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
     
+    MatrixPtr firstMatrix = MatrixPtr();
     MatrixPtr newMatrix = MatrixPtr();
-    Miller::rotateMatrix(hRot, kRot, matrix, &newMatrix);
+    Miller::rotateMatrix(aRot, bRot, cRot, matrix, &firstMatrix);
+    Miller::rotateMatrix(hRot, kRot, firstMatrix, &newMatrix);
     
 	for (int i = 0; i < reflections.size(); i++)
 	{
@@ -152,7 +172,10 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
 					wavelength, bandwidth, exponent);
 		}
 	}
+    
+    logged << "Refreshed partialities with wavelength " << wavelength << ", spot size " << spotSize << " to generate " << accepted() << " accepted reflections." << std::endl;
 
+    sendLog(LogLevelDebug);
 }
 
 static bool greaterThan(double num1, double num2)

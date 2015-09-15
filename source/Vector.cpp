@@ -306,6 +306,17 @@ double correlation_through_origin(vector<double> *vec1,
 	return R;
 }
 
+double sum(vector<double> values)
+{
+    double sum = 0;
+    for (int i = 0; i < values.size(); i++)
+    {
+        sum += values[i];
+    }
+    
+    return sum;
+}
+
 double correlation_between_vectors(vector<double> *vec1,
 		vector<double> *vec2, vector<double> *weights, int exclude)
 {

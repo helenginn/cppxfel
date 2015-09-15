@@ -112,7 +112,7 @@ void AmbiguityBreaker::setMtzs(vector<MtzPtr> newMtzs)
     
     for (int i = 0; i < mtzs.size(); i++)
     {
-        mtzs[i]->applyUnrefinedPartiality();
+    //    mtzs[i]->applyUnrefinedPartiality();
     }
     
     if (ambiguityCount > 1)
@@ -159,11 +159,12 @@ void AmbiguityBreaker::merge()
 {
     for (int i = 0; i < mtzs.size(); i++)
     {
-        mtzs[i]->applyUnrefinedPartiality();
+    //    mtzs[i]->applyUnrefinedPartiality();
     }
     
     MtzGrouper *idxGrouper = new MtzGrouper();
     idxGrouper->setWeighting(WeightTypeAverage);
+    idxGrouper->setExcludeWorst(false);
     idxGrouper->setMtzManagers(mtzs);
     idxGrouper->merge(&merged);
     delete idxGrouper;
