@@ -445,7 +445,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     bandwidth = this->getBandwidth();
     double stepSizeOrientABC = FileParser::getKey("STEP_SIZE_ORIENTATION_ABC", 0.2);
     
-    int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 0);
+    int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 1);
     MinimizationMethod method = (MinimizationMethod)miniMethod;
     
     if (method == MinimizationMethodStepSearch)

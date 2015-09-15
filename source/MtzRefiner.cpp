@@ -710,13 +710,46 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 continue;
             }
             
-            if (components[0] == "unitcell")
+            if (components[0] == "wavelength")
             {
-                // individual matrices
-                double matrix[9];
-                readMatrix(matrix, lines[i]);
+                double newWavelength = wavelength;
                 
-                unitCell = MatrixPtr(new Matrix(matrix));
+                if (components.size() >= 2)
+                    newWavelength = atof(components[1].c_str());
+                
+                newImage->setWavelength(newWavelength);
+            }
+            
+            if (components[0] == "distance")
+            {
+                double newDistance = detectorDistance;
+                
+                if (components.size() >= 2)
+                    newDistance = atof(components[1].c_str());
+                
+                newImage->setDetectorDistance(newDistance);
+            }
+            
+            if (components[0] == "distance")
+            {
+                double newDistance = detectorDistance;
+                
+                if (components.size() >= 2)
+                    newDistance = atof(components[1].c_str());
+                
+                newImage->setDetectorDistance(newDistance);
+            }
+            
+            if (components[0] == "centre")
+            {
+                if (components.size() < 3)
+                    continue;
+                
+                double centreX = atof(components[1].c_str());
+                double centreY = atof(components[2].c_str());
+                
+                newImage->setBeamX(centreX);
+                newImage->setBeamY(centreY);
             }
             
             if (components[0] == "rotation")
@@ -838,7 +871,7 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages)
         }
     }
     
-    double version = FileParser::getKey("MATRIX_LIST_VERSION", 1.0);
+    double version = FileParser::getKey("MATRIX_LIST_VERSION", 2.0);
     
     // thought: turn the vector concatenation into a templated function
     
