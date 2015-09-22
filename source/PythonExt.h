@@ -17,5 +17,6 @@ class MtzRefiner;
 
 void runScriptFromPython(std::string scriptName);
 void runCommandLineArgs(int argc, vector<std::string> argv);
+void runCommandLine(std::string fullArgs);
 
 #endif /* defined(__cppxfel__PythonExt__) */

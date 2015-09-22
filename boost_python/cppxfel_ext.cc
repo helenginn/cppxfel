@@ -63,6 +63,7 @@ namespace cppxfel { namespace boost_python {
 	BOOST_PYTHON_MODULE(cppxfel_ext)
 	{
  		def ("run", &cppxfelScript);
+ 		def ("runCommandLineArgs", &runCommandLine);
  		
  		class_<MtzManager, MtzPtr, boost::noncopyable>("MtzManager", no_init)
  			.def("gridSearch", &MtzManager::gridSearch)
