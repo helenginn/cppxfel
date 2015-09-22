@@ -20,7 +20,7 @@
 #include <scitbx/vec3.h>
 #include <cctbx/crystal_orientation.h>
 #include "Logger.h"
-#include <boost/python.hpp>
+//#include <boost/python.hpp>
 #include "FileParser.h"
 
 double *Matrix::array()

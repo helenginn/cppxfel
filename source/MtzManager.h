@@ -55,6 +55,7 @@ protected:
 	int index_for_reflection(int h, int k, int l, bool inverted);
 	void findMultiplier(MTZ *mtz, int *multiplier, int *offset);
 
+
 	// minimisation stuff
 
 	vector<Reflection *> reflections;

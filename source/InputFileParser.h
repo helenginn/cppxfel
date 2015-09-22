@@ -10,7 +10,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include "FileParser.h"
-#include <boost/python.hpp>
+//#include <boost/python.hpp>
 #include "MtzRefiner.h"
 
 
@@ -18,7 +18,7 @@ class InputFileParser : public FileParser
 {
 private:
     boost::shared_ptr<MtzRefiner> refiner;
-    boost::python::object pythonSelf;
+//    boost::python::object pythonSelf;
 public:
     void refine(int maxCycles);
     vector<MtzPtr> mtzs();
@@ -28,11 +28,11 @@ public:
 
 	InputFileParser(std::string filename);
 	virtual ~InputFileParser();
-    
+    /*
     void setPythonSelf(boost::python::object object)
     {
         pythonSelf = object;
-    }
+    }*/
     
     boost::shared_ptr<MtzRefiner> getRefiner()
     {

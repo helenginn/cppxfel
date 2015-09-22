@@ -24,7 +24,7 @@
 #include "Panel.h"
 #include "Logger.h"
 #include "XManager.h"
-#include <boost/python.hpp>
+//#include <boost/python.hpp>
 #include "ImageCluster.h"
 
 bool MtzRefiner::hasPanelParser;
@@ -511,28 +511,6 @@ void MtzRefiner::applyParametersToImages()
         }
     }
     
-    double overPredSpotSize = FileParser::getKey("OVER_PRED_RLP_SIZE",
-                                                 OVER_PRED_SPOT_SIZE);
-    double overPredBandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH",
-                                                  OVER_PRED_BANDWIDTH);
-    overPredBandwidth /= 2;
-    
-    // @TODO add orientation tolerance as flexible
-    double orientationTolerance = FileParser::getKey(
-                                                     "INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
-    
-    double orientationStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
-    
-    // @TODO intensityThreshold should be flexible
-    double intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD",
-                                                   INTENSITY_THRESHOLD);
-    
-    double metrologySearchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
-                                                    METROLOGY_SEARCH_SIZE);
-    
-    double maxIntegratedResolution = FileParser::getKey(
-                                                        "MAX_INTEGRATED_RESOLUTION", MAX_INTEGRATED_RESOLUTION);
-    
     bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
     
     for (int i = 0; i < images.size(); i++)
@@ -544,13 +522,6 @@ void MtzRefiner::applyParametersToImages()
         CCP4SPG *spg = ccp4spg_load_by_standard_num(spg_num);
         
         newImage->setSpaceGroup(spg);
-        newImage->setMaxResolution(maxIntegratedResolution);
-        newImage->setSearchSize(metrologySearchSize);
-        newImage->setIntensityThreshold(intensityThreshold);
-        newImage->setOrientationTolerance(orientationTolerance);
-        
-  //      newImage->addMask(688, 1025, 722, 980);
-  //      newImage->addMask(0, 735, 761, 893);
         
         if (distance != 0)
         {
@@ -570,11 +541,6 @@ void MtzRefiner::applyParametersToImages()
             {
                 newImage->getIndexer(j)->getMatrix()->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
             }
-        
-        newImage->setInitialStep(orientationStep);
-        
-        newImage->setTestSpotSize(overPredSpotSize);
-        newImage->setTestBandwidth(overPredBandwidth);
     }
 }
 
@@ -730,15 +696,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 newImage->setDetectorDistance(newDistance);
             }
             
-            if (components[0] == "distance")
-            {
-                double newDistance = detectorDistance;
-                
-                if (components.size() >= 2)
-                    newDistance = atof(components[1].c_str());
-                
-                newImage->setDetectorDistance(newDistance);
-            }
             
             if (components[0] == "centre")
             {
@@ -750,6 +707,15 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 
                 newImage->setBeamX(centreX);
                 newImage->setBeamY(centreY);
+            }
+            
+            if (components[0] == "unitcell")
+            {
+                // individual matrices
+                double matrix[9];
+                readMatrix(matrix, lines[i]);
+                
+                unitCell = MatrixPtr(new Matrix(matrix));
             }
             
             if (components[0] == "rotation")
@@ -936,8 +902,8 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages)
         }
     }
     
-    if (version == 2.0 && areImages)
-        applyParametersToImages();
+ //   if (version == 2.0 && areImages)
+ //       applyParametersToImages();
 }
 
 void MtzRefiner::singleLoadImages(std::string *filename, vector<Image *> *newImages, int offset)
@@ -1395,7 +1361,7 @@ void MtzRefiner::loadImageFiles()
 {
     loadPanels();
     
-    if (!isFromPython())
+    if ((!isFromPython()) || (isFromPython() && images.size() == 0))
     {
         std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
                                                   std::string(""));
@@ -1422,7 +1388,7 @@ void MtzRefiner::loadImageFiles()
         
         std::cout << "Applying parameters to images." << std::endl;
         
-        applyParametersToImages();
+   //     applyParametersToImages();
     }
 }
 

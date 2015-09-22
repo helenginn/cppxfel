@@ -5,9 +5,6 @@
  *      Author: helenginn
  */
 
-#define BOOST_ALL_NO_LIB
-#define BOOST_REGEX_NO_LIB
-
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 

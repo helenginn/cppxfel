@@ -79,7 +79,7 @@ namespace cppxfel { namespace boost_python {
 			.def("parse", &InputFileParser::parseFromPython)
 			.def("refine", &InputFileParser::refine)
 			.def("mtzs", &getMtzs)
-			.def("setPythonSelf", &InputFileParser::setPythonSelf)
+//			.def("setPythonSelf", &InputFileParser::setPythonSelf)
 			.def("loadImage", &InputFileParser::loadDxtbxImage)
 			.def("addMatrixToLastImage", &InputFileParser::addMatrixToLastImage)
 			.def("integrate", &InputFileParser::integrate)

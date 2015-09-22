@@ -10,7 +10,7 @@
 #include "MtzRefiner.h"
 #include <sstream>
 #include "Logger.h"
-#include <boost/python.hpp>
+//#include <boost/python.hpp>
 
 InputFileParser::InputFileParser(std::string filename) : FileParser(filename)
 {
@@ -95,7 +95,7 @@ void InputFileParser::parse(bool fromPython)
 
 	if (fromPython)
     {
-        log << "If you are running initial orientation matrix refinement using image files, please load individual experiments from DIALS indexing results. If you are running post-refinement on individual MTZ files, please supply the appropriate orientation matrix list file on the keyword ORIENTATION_MATRIX_LIST. This command will be ignored for image files. If you want to load image files please do so from your Python script." << std::endl;
+  //      log << "If you are running initial orientation matrix refinement using image files, please load individual experiments from DIALS indexing results. If you are running post-refinement on individual MTZ files, please supply the appropriate orientation matrix list file on the keyword ORIENTATION_MATRIX_LIST. This command will be ignored for image files. If you want to load image files please do so from your Python script." << std::endl;
         
         log << "Imported commands from parameter file. Waiting for commands." << std::endl;
     }

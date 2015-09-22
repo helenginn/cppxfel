@@ -1097,7 +1097,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
                 continue;
             }
             
-            std::cout << mtz->getFilename().substr(0, 4) << "," << refl->meanIntensity() << "," << refl->meanSigma() << "," << 1 / refl->getResolution() << std::endl;
+            std::cout << mtz->getFilename().substr(0, 4) << "\t" << refl->meanIntensity() << "\t" << refl->meanSigma() << "\t" << refl->miller(0)->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
         }
     }
 }

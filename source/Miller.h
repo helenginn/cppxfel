@@ -43,6 +43,7 @@ private:
     double h;
     double k;
     double l;
+    double phase;
     short int fakeFriedel;
 	bool normalised;
     RlpModel rlpModel;
@@ -413,6 +414,16 @@ public:
     void setCorrectingPolarisation(bool on)
     {
         correctingPolarisation = on;
+    }
+    
+    void setPhase(double newPhase)
+    {
+        phase = newPhase;
+    }
+    
+    double getPhase()
+    {
+        return phase;
     }
 
     static void rotateMatrix(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);

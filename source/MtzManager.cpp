@@ -638,6 +638,7 @@ void MtzManager::loadReflections(PartialityModel model)
     
     MTZCOL *col_wave = MtzColLookup(mtz, "WAVE");
     MTZCOL *col_partials = MtzColLookup(mtz, "PART");
+    MTZCOL *col_phase = MtzColLookup(mtz, "PHIC");
     MTZCOL *col_shiftx = MtzColLookup(mtz, "SHIFTX");
     MTZCOL *col_shifty = MtzColLookup(mtz, "SHIFTY");
     
@@ -675,6 +676,7 @@ void MtzManager::loadReflections(PartialityModel model)
             sigma = adata[col_sigf->source - 1];
         float wavelength = 1;
         float partiality = 1;
+        float phase = 0;
         float shiftX = 0;
         float shiftY = 0;
         
@@ -690,6 +692,11 @@ void MtzManager::loadReflections(PartialityModel model)
             shiftY = adata[col_shifty->source - 1];
         }
         
+        if (col_phase != NULL)
+        {
+            phase = adata[col_phase->source - 1];
+        }
+        
         if (col_partials == NULL && intensity != intensity)
             continue;
         
@@ -698,6 +705,7 @@ void MtzManager::loadReflections(PartialityModel model)
         miller->setCountingSigma(sigma);
         miller->setFilename(filename);
         miller->setPartialityModel(model);
+        miller->setPhase(phase);
         miller->setShift(std::make_pair(shiftX, shiftY));
         miller->matrix = this->matrix;
         

@@ -32,17 +32,23 @@ bool Indexer::absoluteIntensity = false;
 
 Indexer::Indexer(Image *newImage, MatrixPtr matrix)
 {
-    int spgNum = FileParser::getKey("SPACE_GROUP", 197);
+    int spgNum = FileParser::getKey("SPACE_GROUP", -1);
     
     spaceGroup = ccp4spg_load_by_standard_num(spgNum);
-    initialStep = 0.2;
-    testWavelength = 0;
-    testDistance = 0;
-    testBandwidth = BIG_BANDWIDTH;
-    testSpotSize = 0.0002;
-    maxResolution = 1.4;
-    search = 5;
-    searchSize = 8;
+    initialStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
+    
+    testWavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
+    testDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
+    testBandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH",
+                                       OVER_PRED_BANDWIDTH) / 2;
+    testSpotSize = FileParser::getKey("OVER_PRED_RLP_SIZE",
+                                      OVER_PRED_SPOT_SIZE);;
+    maxResolution = FileParser::getKey(
+                                       "MAX_INTEGRATED_RESOLUTION", MAX_INTEGRATED_RESOLUTION);;
+    search = FileParser::getKey("METROLOGY_SEARCH_SIZE",
+                                METROLOGY_SEARCH_SIZE);;
+    searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
+                                    METROLOGY_SEARCH_SIZE);;
     reference = NULL;
     hRot = 0;
     kRot = 0;
@@ -65,14 +71,12 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     refineB = FileParser::getKey("REFINE_UNIT_CELL_B", false);;
     refineC = FileParser::getKey("REFINE_UNIT_CELL_C", false);;
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-    orientationTolerance = INDEXING_ORIENTATION_TOLERANCE;
+    orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
     
     int rotationModeInt = FileParser::getKey("ROTATION_MODE", 0);
     rotationMode = (RotationMode)rotationModeInt;
     
     complexUnitCell = false;
-    
-    //	calculateNearbyMillers(true);
 }
 
 double Indexer::getDetectorDistance()
@@ -94,6 +98,26 @@ void Indexer::setComplexMatrix()
     this->unitCell[0] = unitCellDouble[0];
     this->unitCell[1] = unitCellDouble[1];
     this->unitCell[2] = unitCellDouble[2];
+    
+    vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+    
+    if (unitCell.size() == 0)
+    {
+        std::cout
+        << "Please provide unit cell dimensions under keyword UNIT_CELL"
+        << std::endl;
+        exit(1);
+    }
+    
+    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
+    
+    if (fixUnitCell)
+    {
+        image->setUnitCell(unitCell);
+        setUnitCell(unitCell);
+   
+        matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+    }
 }
 
 void Indexer::dropMillers()
@@ -1313,7 +1337,7 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     checkAllMillers(maxResolution, testBandwidth);
     sendLog(LogLevelDetailed);
     Logger::mainLogger->addString("Wavelength histogram before refinement");
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal);
     
     double mean = 0;
     double stdev = 0;

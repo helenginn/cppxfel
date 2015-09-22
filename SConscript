@@ -23,7 +23,7 @@ if (not env_etc.no_boost_python and hasattr(env_etc, "boost_adaptbx_include")):
             env_etc.cppxfel_include])
     print env_etc.cppxfel_dist
     env.Append(
-		LIBS=env_etc.libm + ["scitbx_boost_python",
+		LIBS=env_etc.libm + ["scitbx_boost_python", "boost_thread-mt", "boost_system-mt",
 		"boost_python",
 		"cctbx",
 		"ccp4io"])
@@ -36,6 +36,9 @@ if env_etc.clang_version:
 source = [
     'boost_python/cppxfel_ext.cc',
     'source/AmbiguityBreaker.cpp',
+    'source/CommonCircle.cpp',
+    'source/CommonLine.cpp',
+    'source/ImageCluster.cpp',
 'source/FileParser.cpp',
 'source/FileReader.cpp',
 'source/GraphDrawer.cpp',
@@ -52,6 +55,7 @@ source = [
 'source/MtzManagerMinimize.cpp',
 'source/MtzManagerRefine.cpp',
 'source/MtzRefiner.cpp',
+'source/NelderMead.cpp',
 'source/Panel.cpp',
 'source/PanelParser.cpp',
 'source/PythonExt.cpp',
