@@ -1,7 +1,8 @@
 from cppxfel import *
 
 def run(argc, argv):
-  cppxfelMain(argc, argv)
+  totalLine = ' '.join(argv)
+  runCommandLineArgs(totalLine)
 
   return
 

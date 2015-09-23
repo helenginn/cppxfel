@@ -10,6 +10,7 @@
 #include "InputFileParser.h"
 #include "Logger.h"
 #include "MtzRefiner.h"
+#include "FileReader.h"
 
 int main(int argc, char *argv[]);
 
@@ -35,7 +36,14 @@ void runScriptFromPython(std::string scriptName)
     delete parser;
 }
 
-void runCommandLineArgs(int argc, vector<std::string> stringArgv)
+void runCommandLine(std::string fullArgs)
+{
+    std::vector<std::string> strings = FileReader::split(fullArgs, ' ');
+		
+		runCommandLineArgs(strings.size(), strings);
+}
+
+void runCommandLineArgs(int argc, std::vector<std::string> stringArgv)
 {
     vector<char *> charVector;
     
