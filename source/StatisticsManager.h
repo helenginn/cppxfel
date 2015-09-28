@@ -26,8 +26,8 @@ public:
     vector<MtzPtr> mtzs;
 	void loadFiles(char **filenames, int filenum, int partiality);
     void generate_cc_grid();
-    void ccGridThreaded(int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc);
-    static void ccGridThreadedWrapper(StatisticsManager *object, int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc);
+    void ccGridThreaded(int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, double slice, int *num_cc, int *num_inv_cc);
+    static void ccGridThreadedWrapper(StatisticsManager *object, int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, double slice, int *num_cc, int *num_inv_cc);
     double gridCorrelation(int imageNumI, int imageNumJ);
 
 	void printGradientsAgainstRef(MtzManager *reference);

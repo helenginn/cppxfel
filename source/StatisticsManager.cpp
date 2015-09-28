@@ -577,12 +577,12 @@ double StatisticsManager::cc_through_origin(int num1, int num2, int silent,
 }
 
 
-void StatisticsManager::ccGridThreadedWrapper(StatisticsManager *object, int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc)
+void StatisticsManager::ccGridThreadedWrapper(StatisticsManager *object, int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, double slice, int *num_cc, int *num_inv_cc)
 {
     object->ccGridThreaded(offset, calculationsPerThread, histogram, histogramCount, slice, num_cc, num_inv_cc);
 }
 
-void StatisticsManager::ccGridThreaded(int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, int slice, int *num_cc, int *num_inv_cc)
+void StatisticsManager::ccGridThreaded(int offset, int calculationsPerThread, std::map<int, int> *histogram, int histogramCount, double slice, int *num_cc, int *num_inv_cc)
 {
     std::ostringstream logged;
     
@@ -629,6 +629,8 @@ void StatisticsManager::ccGridThreaded(int offset, int calculationsPerThread, st
           */
             double appropriateSlice = (cc - fmod(cc, slice));
             appropriateSlice *= histogramCount;
+            
+            std::cout << slice << std::endl;
             
             (*histogram)[appropriateSlice]++;
             
