@@ -501,7 +501,7 @@ double Miller::getWeight(bool cutoff, WeightType weighting)
         
         weight = intensity / sigma;
     }
-    
+
     return weight;
 }
 

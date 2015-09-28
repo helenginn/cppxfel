@@ -566,13 +566,9 @@ double StatisticsManager::cc_through_origin(int num1, int num2, int silent,
 
 	double R_squared = 1 - residuals_squared / denominator;
     
-    std::cout << "R_squared: " << R_squared << std::endl;
-    
-	if (R_squared < 0)
+    if (R_squared < 0)
 		R_squared = 0;
 	double R = sqrt(R_squared);
-    
-    std::cout << "grad: " << grad << std::endl;
     
 	if (grad < 0)
 		R = 0;
