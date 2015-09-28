@@ -205,7 +205,7 @@ print >> integrateTxt, "SPACE_GROUP", spacegroup
 print >> integrateTxt, "UNIT_CELL",
 for dimension in unit_cell_dimensions.parameters():
 	print >> integrateTxt, dimension,
-print "\n"
+print >> integrateTxt 
 print >> integrateTxt, "FIX_UNIT_CELL ON\n"
 print >> integrateTxt, "MM_PER_PIXEL", pixelSize[0]
 print >> integrateTxt, "BEAM_CENTRE", centre[0], centre[1]
