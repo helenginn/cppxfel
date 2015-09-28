@@ -33,7 +33,7 @@ Returns: None
 """
 def printExperiments(experiments, filename, output):	
 	rootname_stem = rootnameStem(filename)
-	print >>output, "image " + rootname_stem
+	print >>output, "image " + rootname_stem[1:]
 	
 	global distance, centre, wavelength, pixelSize, spacegroup, unit_cell_dimensions
 	
@@ -156,7 +156,7 @@ def dumpImages(imagePaths, shouldDump):
 			data_array.append(data[i])
 
 		string = data_array.tostring()
-		newFile = open(rootname + '.dmp', 'wb')
+		newFile = open(rootname + '.img', 'wb')
 		newFile.write(string)
 		newFile.close()
 

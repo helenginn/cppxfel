@@ -10,9 +10,14 @@
 #include "Index.h"
 #include "Logger.h"
 
-
+int new_main(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
+{
+    new_main(argc, argv);
+}
+
+int new_main(int argc, char *argv[])
 {
     time_t startcputime;
     time(&startcputime);
