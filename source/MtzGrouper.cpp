@@ -442,7 +442,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         threads.join_all();
     }
 
-    std::cout << "N: Accepted " << total << " due to increase in CC half" << std::endl;
+ //   std::cout << "N: Accepted " << total << " due to increase in CC half" << std::endl;
 
     
 	if (unmergedMtz != NULL)

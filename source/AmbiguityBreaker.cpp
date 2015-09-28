@@ -221,6 +221,8 @@ void AmbiguityBreaker::breakAmbiguity()
     
     scitbx::af::ref<double> xb(x.begin(), n);
     
+    srand(time(NULL));
+    
     for (int i = 0; i < n; i++)
         x[i] = 1;
     
