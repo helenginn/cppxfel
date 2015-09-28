@@ -40,9 +40,9 @@ int main(int argc, char *argv[])
 #ifdef MAC
 //	std::cout << "Original: " << getenv("SYMINFO") << std::endl;
 
-	setenv("SYMINFO", "/Applications/ccp4-6.4.0/lib/data/syminfo.lib", 1);
+//	setenv("SYMINFO", "/Applications/ccp4-6.4.0/lib/data/syminfo.lib", 1);
 
-	std::cout << getenv("SYMINFO") << std::endl;
+//	std::cout << getenv("SYMINFO") << std::endl;
 #endif
     
 	std::cout << "Welcome to Helen's XFEL tasks" << std::endl;
