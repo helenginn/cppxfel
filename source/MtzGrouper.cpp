@@ -80,7 +80,7 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
         return false;
     }
     
-    double minimumRSplit = FileParser::getKey("R_SPLIT_THRESHOLD", 0.0);
+    double minimumRSplit = FileParser::getKey("R_FACTOR_THRESHOLD", 0.0);
     
     bool needsRSplit = mtz->getReferenceManager() != NULL;
     double rSplit = 0;

@@ -192,7 +192,7 @@ void FileParser::generateFunctionList()
     parserMap["REFINE_B_FACTOR"] = simpleBool;
     parserMap["INITIAL_GRID_SEARCH"] = simpleBool;
     parserMap["MASS_SCALING"] = simpleBool;
-    parserMap["R_SPLIT_THRESHOLD"] = simpleFloat;
+    parserMap["R_FACTOR_THRESHOLD"] = simpleFloat;
     parserMap["REINITIALISE_WAVELENGTH"] = simpleBool;
     parserMap["PENALTY_WEIGHT"] = simpleFloat;
     parserMap["PENALTY_RESOLUTION"] = simpleFloat;
