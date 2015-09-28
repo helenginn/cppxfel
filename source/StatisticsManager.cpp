@@ -630,7 +630,7 @@ void StatisticsManager::ccGridThreaded(int offset, int calculationsPerThread, st
             double appropriateSlice = (cc - fmod(cc, slice));
             appropriateSlice *= histogramCount;
             
-            std::cout << slice << std::endl;
+            std::cout << cc << std::endl;
             
             (*histogram)[appropriateSlice]++;
             
