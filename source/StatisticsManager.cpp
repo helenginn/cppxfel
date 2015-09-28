@@ -565,9 +565,15 @@ double StatisticsManager::cc_through_origin(int num1, int num2, int silent,
 	}
 
 	double R_squared = 1 - residuals_squared / denominator;
+    
+    std::cout << "R_squared: " << R_squared << std::endl;
+    
 	if (R_squared < 0)
 		R_squared = 0;
 	double R = sqrt(R_squared);
+    
+    std::cout << "grad: " << grad << std::endl;
+    
 	if (grad < 0)
 		R = 0;
 	if (R != R)
@@ -614,11 +620,9 @@ void StatisticsManager::ccGridThreaded(int offset, int calculationsPerThread, st
             if (j == i)
             {
                 cc = 1;
-         //       inv_cc = 0;
             }
             else
             {
-         //       inv_cc = cc_through_origin(i, j, 1, 1, &inv_hitc, 0, 0, false);
                 cc = cc_through_origin(i, j, 1, 0, &hitc, 0, 0, false);
             }
             
@@ -629,8 +633,6 @@ void StatisticsManager::ccGridThreaded(int offset, int calculationsPerThread, st
           */
             double appropriateSlice = (cc - fmod(cc, slice));
             appropriateSlice *= histogramCount;
-            
-            std::cout << cc << std::endl;
             
             (*histogram)[appropriateSlice]++;
             
