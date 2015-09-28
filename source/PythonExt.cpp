@@ -12,7 +12,7 @@
 #include "MtzRefiner.h"
 #include "FileReader.h"
 
-int main(int argc, char *argv[]);
+int new_main(int argc, char *argv[]);
 
 void setupCppxfel()
 {
@@ -45,6 +45,8 @@ void runCommandLine(std::string fullArgs)
 
 void runCommandLineArgs(int argc, std::vector<std::string> stringArgv)
 {
+    std::cout << "Running cppxfel..." << std::endl;
+
     vector<char *> charVector;
     
     for (int i = 0; i < stringArgv.size(); i++)
@@ -52,5 +54,5 @@ void runCommandLineArgs(int argc, std::vector<std::string> stringArgv)
         charVector.push_back((char *)stringArgv[i].c_str());
     }
     
-    main(argc, &(*(charVector.begin())));
+    new_main(argc, &(*(charVector.begin())));
 }
