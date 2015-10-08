@@ -6,12 +6,13 @@ from os.path import basename
 import os
 import scitbx_array_family_flex_ext
 from subprocess import call
+import StringIO
 
 import_phil = "import.options"
 find_spots_phil = "find_spots.options"
 index_phil = "index.options"
 
-if len(sys.argv) == 0:
+if len(sys.argv) == 1:
 	print "Script to run DIALS on individual still shots (XFEL).\n"
 	
 	print "This script will run dials.import, dials.find_spots and dials.index"
@@ -173,7 +174,7 @@ def matrixForFilename(filename, output):
 output = StringIO.StringIO()
 
 for filename in sys.argv[1:]:
-		matrixForFilename(rootname, output)	
+	matrixForFilename(filename, output)	
 
 print output.getvalue()
 
