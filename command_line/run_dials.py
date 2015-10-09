@@ -40,19 +40,25 @@ def indexImages(images):
 	jsons = []
 
 	import_options = ""
-	if os.path.isfile(import_options_file):
+	if os.path.isfile(import_phil):
 		import_options_file = open(import_phil, 'r')
 		import_options = import_options_file.read()
 	
+	print "Import options: ", import_options
+
 	find_spots_options = ""
-	if os.path.isfile(find_spots_options_file):
+	if os.path.isfile(find_spots_phil):
 		find_spots_options_file = open(find_spots_phil, 'r')
 		find_spots_options = find_spots_options_file.read()
+
+	print "Find spots options: ", find_spots_options
 	
 	index_options = ""
-	if os.path.isfile(index_options_file):
+	if os.path.isfile(index_phil):
 		index_options_file = open(index_phil, 'r')
 		index_options = index_options_file.read()
+
+	print "Index options: ", index_options
 
 	for i in range(0, len(images)):
 		filename = images[i]
@@ -88,7 +94,7 @@ def indexImages(images):
 	
 		command = "dials.index " + rootname + ".json _" + rootname + "_strong.pickle "
 		command += index_options
-		command += "output.reflections=_" + rootname + "_indexed.pickle "
+		command += " output.reflections=_" + rootname + "_indexed.pickle "
 		command += "output.experiments=_" + rootname + "_experiments.json "
 		print "Executing command:", command
 	
@@ -173,12 +179,23 @@ def matrixForFilename(filename, output):
 
 output = StringIO.StringIO()
 
-for filename in sys.argv[1:]:
-	matrixForFilename(filename, output)	
+thread_count = int(os.getenv('NSLOTS', 4))
+image_num = len(sys.argv) - 1
+images_per_thread = image_num / thread_count
 
-print output.getvalue()
+print "Total images: ", image_num
 
-outputFilename = "matrices.dat"
-outputFile = open(outputFilename, 'w')
-print >>outputFile, output_a.getvalue()[:-1]
-outputFile.close()
+threads = []
+
+for i in range(0, thread_count):
+		min = int(i * images_per_thread)
+		max = int((i + 1) * images_per_thread)
+	
+		print "Processing", min, "to", max, " images"
+		images = sys.argv[min + 1:max + 1]
+		print len(images), "images."
+
+		thread = Process(target=indexImages, args=(images, ))
+		threads.append(thread)
+		thread.start()
+
