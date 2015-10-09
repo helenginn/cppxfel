@@ -93,9 +93,9 @@ def indexImages(images):
 			print "Skip spotfinding for " + rootname + ", already present"
 	
 		command = "dials.index " + rootname + ".json _" + rootname + "_strong.pickle "
-		command += index_options
 		command += " output.reflections=_" + rootname + "_indexed.pickle "
 		command += "output.experiments=_" + rootname + "_experiments.json "
+		command += index_options
 		print "Executing command:", command
 	
 		os.system(command)
