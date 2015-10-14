@@ -280,6 +280,8 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 	sum_x_minus_mean_x_sq /= weight_counted;
 	sum_y_minus_mean_y_sq /= weight_counted;
 
+    std::cout << "Num_counted: " << num_counted << std::endl;
+    
 	if (hits != NULL)
 		*hits = num_counted;
 
