@@ -173,7 +173,7 @@ void NelderMead::process()
         count++;
 
         logged << "Evaluation of best point: " << testPoints[0].second << std::endl;
-        sendLog(LogLevelDetailed);
+        sendLog(LogLevelDebug);
 
         TestPoint reflected = reflectedPoint(centroid);
         
