@@ -140,7 +140,6 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         double pBandwidth = high_wavelength - bandwidth_span * currentP;
         double qBandwidth = high_wavelength - bandwidth_span * currentQ;
         
-        //	double normalSlice = integrate_beam(pBandwidth, qBandwidth, mean, sigma);
         double normalSlice = integrate_beam_slice(pBandwidth, qBandwidth, mean,
                                                  sigma, exponent);
         
@@ -159,16 +158,6 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         currentP = currentQ;
         currentQ += fraction_total / slices;
     }
-    
-    std::ostringstream logged;
-    logged << total_normal << "\t" << total_sphere << std::endl;
-  //  Logger::mainLogger->addStream(&logged);
-    
-    //std::cout << middle_wavelength << "\t" << spot_size_radius << "\t" << total_integral << "\t" << total_normal << std::endl;
-    
-    //	std::cout << bandwidth_span << "\t" << total_normal << "\t" << total_integral << std::endl;
-    
-    //	printf("%.5f\t%.5f\t%.5f\n", total_normal, total_sphere, total_integral);
     
     return total_integral;
 }
