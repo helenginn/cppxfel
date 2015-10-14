@@ -168,7 +168,7 @@ void NelderMead::process()
     
     while ((!converged() && count < maxCount) || unlimited)
     {
-        sendLog(LogLevelDetailed);
+        sendLog(LogLevelDebug);
         std::vector<double> centroid = calculateCentroid();
         count++;
 
