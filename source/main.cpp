@@ -7,7 +7,6 @@
 #include "misc.h"
 #include "GraphDrawer.h"
 #include "Wiki.h"
-#include "Index.h"
 #include "Logger.h"
 
 void new_main(int argc, char *argv[]);
@@ -71,11 +70,6 @@ void new_main(int argc, char *argv[])
         boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
     }
     
-	if (strcmp(argv[1], "-index") == 0)
-	{
-		index(argv, argc);
-	}
-
     if (strcmp(argv[1], "-b") == 0)
     {
         float bFactor = atof(argv[2]);
@@ -169,7 +163,7 @@ void new_main(int argc, char *argv[])
 
 		MtzManager *mtz2 = new MtzManager();
 		mtz2->setFilename(std::string(argv[3]));
-		mtz2->loadReflections(1);
+		mtz2->loadReflections(PartialityModelScaled, true);
 
 		if (inverted)
             mtz1->setActiveAmbiguity(1);
@@ -261,12 +255,8 @@ void new_main(int argc, char *argv[])
                 l = atoi(argv[6]);
             }
 
-   //         stats.partialityStats(0, threshold, h, k, l);
-
-#ifdef MAC
             GraphDrawer drawer = GraphDrawer(&*stats.mtzs[0]);
             drawer.plotPartialityStats();
-#endif
 		}
 	}
     
@@ -328,7 +318,7 @@ void new_main(int argc, char *argv[])
 			MtzManager *mtz = new MtzManager();
 			mtz->setFilename(argv[i]);
             std::cout << argv[i] << std::endl;
-			mtz->loadReflections(PartialityModelNone);
+			mtz->loadReflections(PartialityModelNone, true);
 
             vector<Reflection *>refReflections, imageReflections;
             
@@ -384,21 +374,8 @@ void new_main(int argc, char *argv[])
 			MtzManager *mtz = new MtzManager();
 			mtz->setFilename(argv[i]);
 			mtz->loadReflections(1);
-       //     mtz->setOptimisingOrientation(false);
-       //    mtz->setOptimisingWavelength(false);
-       //     mtz->setOptimisingRlpSize(false);
-       //     mtz->setDefaultScoreType(ScoreTypeCorrelation);
-            
-       //     mtz->gridSearch();
-            
-			managers.push_back(mtz);
+            managers.push_back(mtz);
 		}
-       
-        
-        for (int i = 0; i < managers.size(); i++)
-        {
-   //         managers[i]->denormaliseMillers();
-        }
 
 		GraphDrawer graph = GraphDrawer(reference);
 

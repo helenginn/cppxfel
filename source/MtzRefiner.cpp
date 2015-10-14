@@ -17,7 +17,6 @@
 #include "CommonCircle.h"
 
 #include "FileParser.h"
-#include "Index.h"
 #include "parameters.h"
 #include "FileReader.h"
 #include "PanelParser.h"
@@ -537,9 +536,9 @@ void MtzRefiner::applyParametersToImages()
             newImage->setUnitCell(unitCell);
         
         if (fixUnitCell)
-            for (int j = 0; j < newImage->indexerCount(); j++)
+            for (int j = 0; j < newImage->IOMRefinerCount(); j++)
             {
-                newImage->getIndexer(j)->getMatrix()->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+                newImage->getIOMRefiner(j)->getMatrix()->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
             }
     }
 }
@@ -755,7 +754,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                     
                     if (newImages)
                     {
-                        newImage->setUpIndexer(newMatrix);
+                        newImage->setUpIOMRefiner(newMatrix);
                     }
                     
                     unitCell = MatrixPtr();
@@ -793,7 +792,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
             
             newManager->setFilename(imgName.c_str());
             newManager->setMatrix(newMatrix);
-            newManager->loadReflections(1);
+            newManager->loadReflections(PartialityModelScaled, true);
             newManager->setSigmaToUnity();
             newManager->loadParametersMap();
             newManager->setParamLine(paramsLine);
@@ -1032,7 +1031,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<Image *> *newIma
             newMat = Matrix::matrixFromUnitCell(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
         }
         
-        newImage->setUpIndexer(newMat);
+        newImage->setUpIOMRefiner(newMat);
         newImage->setPinPoint(true);
         
         CCP4SPG *spg = ccp4spg_load_by_standard_num(spg_num);
@@ -1402,7 +1401,7 @@ void MtzRefiner::integrate()
     
     for (int i = 0; i < images.size(); i++)
     {
-        crystals += images[i]->indexerCount();
+        crystals += images[i]->IOMRefinerCount();
     }
     
     std::cout << images.size() << " images with " << crystals << " crystal orientations." << std::endl;
@@ -1454,9 +1453,9 @@ void MtzRefiner::integrate()
     
     for (int i = 0; i < images.size(); i++)
     {
-        for (int j = 0; j < images[i]->indexerCount(); j++)
+        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
         {
-            images[i]->getIndexer(j)->refinementSummary();
+            images[i]->getIOMRefiner(j)->refinementSummary();
 
         }
     }
@@ -1648,9 +1647,9 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         
         integrateMats << "image " << imgFilename << std::endl;
 
-        for (int j = 0; j < image->indexerCount(); j++)
+        for (int j = 0; j < image->IOMRefinerCount(); j++)
         {
-            MatrixPtr matrix = image->getIndexer(j)->getMatrix()->copy();
+            MatrixPtr matrix = image->getIOMRefiner(j)->getMatrix()->copy();
             
             matrix->rotate(0, 0, -M_PI / 2);
             std::string desc90 = matrix->description(true);
@@ -1687,7 +1686,7 @@ void MtzRefiner::indexImage(int offset, vector<MtzPtr> *mtzSubset)
     for (int i = offset; i < images.size(); i+= MAX_THREADS)
     {
         Image *newImage = images[i];
-        IndexerPtr indexer = newImage->getIndexer(0);
+        IOMRefinerPtr indexer = newImage->getIOMRefiner(0);
         
         newImage->addMask(0, 840, 1765, 920);
         newImage->addMask(446, 1046, 1324, 1765);
@@ -1900,9 +1899,9 @@ void MtzRefiner::refineDistances()
 {
     for (int i = 0; i < images.size(); i++)
     {
-        for (int j = 0; j < images[i]->indexerCount(); j++)
+        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
         {
-            images[i]->getIndexer(j)->refineDetectorAndWavelength(reference);
+            images[i]->getIOMRefiner(j)->refineDetectorAndWavelength(reference);
         }
     }
 }
@@ -1917,7 +1916,7 @@ void MtzRefiner::addMatrixToLastImage(scitbx::mat3<double> unit_cell, scitbx::ma
 {
     Image *lastImage = images.back();
     MatrixPtr newMat = MatrixPtr(new Matrix(unit_cell, rotation));
-    lastImage->setUpIndexer(newMat);
+    lastImage->setUpIOMRefiner(newMat);
     
     double *lengths = new double[3];
     newMat->unitCellLengths(&lengths);

@@ -8,7 +8,7 @@
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 
-#define PARTIAL_CUTOFF 0.3
+#define PARTIAL_CUTOFF 0.1
 #define MULTIPLIER 512
 #define OFFSET 256
 
@@ -142,7 +142,7 @@ class Logger;
 class Image;
 class Shoebox;
 class Matrix;
-class Indexer;
+class IOMRefiner;
 class MtzManager;
 class CommonLine;
 class Spot;
@@ -161,7 +161,7 @@ typedef boost::shared_ptr<Logger>LoggerPtr;
 typedef boost::shared_ptr<Image>ImagePtr;
 typedef boost::shared_ptr<ImageCluster>ImageClusterPtr;
 typedef boost::shared_ptr<Matrix>MatrixPtr;
-typedef boost::shared_ptr<Indexer>IndexerPtr;
+typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
 
 typedef boost::variant<double, double, std::string, bool, int,
 		vector<double>, vector<int> > ParameterVariant;

@@ -95,9 +95,9 @@ std::string Image::filenameRoot()
 	return root.substr(0, root.size() - 1);
 }
 
-void Image::setUpIndexer(MatrixPtr matrix)
+void Image::setUpIOMRefiner(MatrixPtr matrix)
 {
-	IndexerPtr indexer = IndexerPtr(new Indexer(this, matrix));
+	IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(this, matrix));
     
     if (matrix->isComplex())
         indexer->setComplexMatrix();
@@ -105,9 +105,9 @@ void Image::setUpIndexer(MatrixPtr matrix)
     indexers.push_back(indexer);
 }
 
-void Image::setUpIndexer(MatrixPtr unitcell, MatrixPtr rotation)
+void Image::setUpIOMRefiner(MatrixPtr unitcell, MatrixPtr rotation)
 {
-    IndexerPtr indexer = IndexerPtr(new Indexer(this, MatrixPtr(new Matrix())));
+    IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(this, MatrixPtr(new Matrix())));
     
     indexers.push_back(indexer);
 }
@@ -227,8 +227,8 @@ void Image::dropImage()
     overlapMask.clear();
     vector<unsigned char>().swap(overlapMask);
 
-    for (int i = 0; i < indexerCount(); i++)
-		getIndexer(i)->dropMillers();
+    for (int i = 0; i < IOMRefinerCount(); i++)
+		getIOMRefiner(i)->dropMillers();
 }
 
 bool Image::coveredBySpot(int x, int y)
@@ -799,7 +799,7 @@ vector<MtzPtr> Image::currentMtzs()
     int count = 0;
     bool rejecting = !FileParser::getKey("DO_NOT_REJECT_REFLECTIONS", false);
     
-    for (int i = 0; i < indexerCount(); i++)
+    for (int i = 0; i < IOMRefinerCount(); i++)
     {
         MtzPtr newMtz = indexers[i]->newMtz(i);
         
@@ -818,7 +818,7 @@ vector<MtzPtr> Image::currentMtzs()
 
 void Image::setSpaceGroup(CCP4SPG *spg)
 {
-    for (int i = 0; i < indexerCount(); i++)
+    for (int i = 0; i < IOMRefinerCount(); i++)
     {
         indexers[i]->setSpaceGroup(spg);
     }
@@ -955,11 +955,11 @@ unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
 
 bool Image::checkUnitCell(double trueA, double trueB, double trueC, double tolerance)
 {
-    for (int i = 0; i < indexerCount(); i++)
+    for (int i = 0; i < IOMRefinerCount(); i++)
     {
         bool isOk = true;
         double *cellDims = new double[3];
-        getIndexer(i)->getMatrix()->unitCellLengths(&cellDims);
+        getIOMRefiner(i)->getMatrix()->unitCellLengths(&cellDims);
         
         if (cellDims[0] < trueA - tolerance || cellDims[0] > trueA + tolerance)
             isOk = false;
@@ -975,7 +975,7 @@ bool Image::checkUnitCell(double trueA, double trueB, double trueC, double toler
         }
     }
     
-    return indexerCount() > 0;
+    return IOMRefinerCount() > 0;
 }
 
 void Image::processSpotList()

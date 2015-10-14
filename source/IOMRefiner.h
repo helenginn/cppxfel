@@ -1,12 +1,12 @@
 /*
- * Indexer.h
+ * IOMRefiner.h
  *
  *  Created on: 11 Nov 2014
  *      Author: helenginn
  */
 
-#ifndef INDEXER_H_
-#define INDEXER_H_
+#ifndef IOMRefiner_H_
+#define IOMRefiner_H_
 
 #include "Image.h"
 #include "Miller.h"
@@ -39,7 +39,7 @@ typedef enum
     RefinementTypeOrientationMatrixStdevOnly = 12,
 } RefinementType;
 
-class Indexer
+class IOMRefiner
 {
 private:
 	Image *image;
@@ -89,9 +89,9 @@ private:
     void sendLog(LogLevel priority);
 
 public:
-	Indexer(Image *newImage = NULL, MatrixPtr matrix = MatrixPtr());
+	IOMRefiner(Image *newImage = NULL, MatrixPtr matrix = MatrixPtr());
     void setComplexMatrix();
-    virtual ~Indexer();
+    virtual ~IOMRefiner();
 
 	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false);
 	MtzPtr newMtz(int i);
@@ -318,4 +318,4 @@ public:
     }
 };
 
-#endif /* INDEXER_H_ */
+#endif /* IOMRefiner_H_ */

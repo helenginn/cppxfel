@@ -9,14 +9,14 @@
 #define IMAGE_H_
 
 #include "Matrix.h"
-#include "Indexer.h"
+#include "IOMRefiner.h"
 #include "parameters.h"
 #include "Logger.h"
 #include "CommonCircle.h"
 #include "csymlib.h"
 
 class CommonLine;
-class Indexer;
+class IOMRefiner;
 class ImageCluster;
 
 class Image
@@ -27,7 +27,7 @@ private:
 	vector<int> data;
     vector<unsigned char> overlapMask;
 	void loadImage();
-    vector<IndexerPtr> indexers;
+    vector<IOMRefinerPtr> indexers;
     bool shouldMaskValue;
     bool maskedValue;
     bool fitBackgroundAsPlane;
@@ -82,8 +82,8 @@ public:
 	void focusOnMaximum(int *x, int *y, int tolerance = 0, double shiftX = 0, double shiftY = 0);
 	void dropImage();
 	virtual ~Image();
-	void setUpIndexer(MatrixPtr matrix);
-    void setUpIndexer(MatrixPtr unitcell, MatrixPtr rotation);
+	void setUpIOMRefiner(MatrixPtr matrix);
+    void setUpIOMRefiner(MatrixPtr unitcell, MatrixPtr rotation);
 	std::string filenameRoot();
 	void printBox(int x, int y, int tolerance);
 	void addMask(int startX, int startY, int endX, int endY);
@@ -210,12 +210,12 @@ public:
         _hasSeeded = seed;
     }
     
-    int indexerCount()
+    int IOMRefinerCount()
     {
         return (int)indexers.size();
     }
     
-    IndexerPtr getIndexer(int i)
+    IOMRefinerPtr getIOMRefiner(int i)
     {
         return indexers[i];
     }

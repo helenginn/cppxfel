@@ -1,11 +1,11 @@
 /*
- * Indexer.cpp
+ * IOMRefiner.cpp
  *
  *  Created on: 11 Nov 2014
  *      Author: helenginn
  */
 
-#include "Indexer.h"
+#include "IOMRefiner.h"
 #include "Vector.h"
 #include <cmath>
 #include "gaussianfit.h"
@@ -27,10 +27,10 @@
 #define ANGLE_TOLERANCE 0.0001
 #define SPOT_DISTANCE_TOLERANCE 5
 
-double Indexer::intensityThreshold;
-bool Indexer::absoluteIntensity = false;
+double IOMRefiner::intensityThreshold;
+bool IOMRefiner::absoluteIntensity = false;
 
-Indexer::Indexer(Image *newImage, MatrixPtr matrix)
+IOMRefiner::IOMRefiner(Image *newImage, MatrixPtr matrix)
 {
     int spgNum = FileParser::getKey("SPACE_GROUP", -1);
     
@@ -79,17 +79,17 @@ Indexer::Indexer(Image *newImage, MatrixPtr matrix)
     complexUnitCell = false;
 }
 
-double Indexer::getDetectorDistance()
+double IOMRefiner::getDetectorDistance()
 {
     return image->getDetectorDistance();
 }
 
-double Indexer::getWavelength()
+double IOMRefiner::getWavelength()
 {
     return image->getWavelength();
 }
 
-void Indexer::setComplexMatrix()
+void IOMRefiner::setComplexMatrix()
 {
     complexUnitCell = true;
     
@@ -120,13 +120,13 @@ void Indexer::setComplexMatrix()
     }
 }
 
-void Indexer::dropMillers()
+void IOMRefiner::dropMillers()
 {
     nearbyMillers.clear();
     vector<MillerPtr>().swap(nearbyMillers);
 }
 
-bool Indexer::millerReachesThreshold(MillerPtr miller)
+bool IOMRefiner::millerReachesThreshold(MillerPtr miller)
 {
     double iSigI = miller->getRawIntensity() / miller->getCountingSigma();
     
@@ -144,7 +144,7 @@ bool Indexer::millerReachesThreshold(MillerPtr miller)
     return (iSigI > intensityThreshold);
 }
 
-void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
+void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
                                      vector<int> &frequencies, LogLevel level, int whichAxis)
 {
     wavelengths.clear();
@@ -219,7 +219,7 @@ void Indexer::getWavelengthHistogram(vector<double> &wavelengths,
     Logger::mainLogger->addStream(&logged, level);
 }
 
-void Indexer::calculateNearbyMillers(bool rough)
+void IOMRefiner::calculateNearbyMillers(bool rough)
 {
     MatrixPtr matrix = getMatrix();
     double wavelength = image->getWavelength();
@@ -272,7 +272,7 @@ void Indexer::calculateNearbyMillers(bool rough)
                 MillerPtr newMiller = MillerPtr(new Miller(NULL, h, k, l));
                 
                 newMiller->setSelf(newMiller);
-                newMiller->setImageAndIndexer(image, this);
+                newMiller->setImageAndIOMRefiner(image, this);
                 
                 if (rough == false)
                 {
@@ -324,7 +324,7 @@ void Indexer::calculateNearbyMillers(bool rough)
     sendLog(LogLevelDetailed);
 }
 
-void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox)
+void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox)
 {
     MatrixPtr matrix = getMatrix();
     
@@ -448,7 +448,7 @@ void Indexer::checkAllMillers(double maxResolution, double bandwidth, bool compl
     sendLog(LogLevelDetailed);
 }
 
-double Indexer::minimizeParameter(double *meanStep, double *param, int whichAxis)
+double IOMRefiner::minimizeParameter(double *meanStep, double *param, int whichAxis)
 {
     double param_trials[3];
     double param_scores[3];
@@ -494,7 +494,7 @@ double Indexer::minimizeParameter(double *meanStep, double *param, int whichAxis
     return param_min_score;
 }
 
-void Indexer::minimizeTwoParameters(double *meanStep1, double *meanStep2,
+void IOMRefiner::minimizeTwoParameters(double *meanStep1, double *meanStep2,
                                     double *param1, double *param2)
 {
     double param_trials1[9];
@@ -547,7 +547,7 @@ void Indexer::minimizeTwoParameters(double *meanStep1, double *meanStep2,
     }
 }
 
-int Indexer::getTotalReflections(double threshold)
+int IOMRefiner::getTotalReflections(double threshold)
 {
     int count = 0;
     
@@ -560,7 +560,7 @@ int Indexer::getTotalReflections(double threshold)
     return count;
 }
 
-int Indexer::getTotalReflections()
+int IOMRefiner::getTotalReflections()
 {
     int count = 0;
     
@@ -573,7 +573,7 @@ int Indexer::getTotalReflections()
     return count;
 }
 
-bool Indexer::millerWithinBandwidth(MillerPtr miller)
+bool IOMRefiner::millerWithinBandwidth(MillerPtr miller)
 {
     double minBandwidth = image->getWavelength() * (1 - testBandwidth);
     double maxBandwidth = image->getWavelength() * (1 + testBandwidth);
@@ -583,7 +583,7 @@ bool Indexer::millerWithinBandwidth(MillerPtr miller)
     return (wavelength > minBandwidth && wavelength < maxBandwidth);
 }
 
-int Indexer::getTotalReflectionsWithinBandwidth()
+int IOMRefiner::getTotalReflectionsWithinBandwidth()
 {
     int count = 0;
     
@@ -599,7 +599,7 @@ int Indexer::getTotalReflectionsWithinBandwidth()
     return count;
 }
 
-double Indexer::getTotalIntegratedSignal()
+double IOMRefiner::getTotalIntegratedSignal()
 {
     double totalIntensity = 0;
     
@@ -617,7 +617,7 @@ double Indexer::getTotalIntegratedSignal()
     return totalIntensity;
 }
 
-void Indexer::findSpots()
+void IOMRefiner::findSpots()
 {
     int tolerance = 60;
     
@@ -675,18 +675,18 @@ void Indexer::findSpots()
     Logger::mainLogger->addStream(&logged, LogLevelNormal);
 }
 
-void Indexer::duplicateSpots(vector<Image *> images)
+void IOMRefiner::duplicateSpots(vector<Image *> images)
 {
     std::map<vector<int>, int> frequencies =
     std::map<vector<int>, int>();
     
     for (int i = 0; i < images.size(); i++)
     {
-        for (int j = 0; j < images[i]->indexerCount(); j++)
+        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
         {
-            IndexerPtr indexer = images[i]->getIndexer(j);
+            IOMRefinerPtr IOMRefiner = images[i]->getIOMRefiner(j);
             
-            vector<Spot *> spots = indexer->getSpots();
+            vector<Spot *> spots = IOMRefiner->getSpots();
             
             std::cout << "Image: " << i << " Spot count: " << spots.size()
             << std::endl;
@@ -736,15 +736,15 @@ void Indexer::duplicateSpots(vector<Image *> images)
     std::cout << "Spots removed: " << spotsRemoved << std::endl;
 }
 
-void Indexer::scatterSpots(vector<Image *> images)
+void IOMRefiner::scatterSpots(vector<Image *> images)
 {
     for (int i = 0; i < images.size(); i++)
     {
-        for (int j = 0; j < images[i]->indexerCount(); j++)
+        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
         {
-            IndexerPtr indexer = images[i]->getIndexer(j);
+            IOMRefinerPtr IOMRefiner = images[i]->getIOMRefiner(j);
             
-            vector<Spot *> spots = indexer->getSpots();
+            vector<Spot *> spots = IOMRefiner->getSpots();
             
             for (int j = 0; j < spots.size(); j++)
             {
@@ -754,7 +754,7 @@ void Indexer::scatterSpots(vector<Image *> images)
     }
 }
 
-void Indexer::writeDatFromSpots(std::string filename)
+void IOMRefiner::writeDatFromSpots(std::string filename)
 {
     std::ofstream dat;
     dat.open(filename);
@@ -779,7 +779,7 @@ void Indexer::writeDatFromSpots(std::string filename)
 }
 
 
-int Indexer::identicalSpotsAndMillers()
+int IOMRefiner::identicalSpotsAndMillers()
 {
     int count = 0;
     
@@ -804,7 +804,7 @@ int Indexer::identicalSpotsAndMillers()
     return count;
 }
 
-double Indexer::medianIntensity()
+double IOMRefiner::medianIntensity()
 {
     vector<double> intensities = vector<double>();
     
@@ -828,7 +828,7 @@ double Indexer::medianIntensity()
     
 }
 
-double Indexer::score(int whichAxis)
+double IOMRefiner::score(int whichAxis)
 {
     if (refinement == RefinementTypeDetectorWavelength)
         return 0 - getTotalReflections();
@@ -1040,7 +1040,7 @@ double Indexer::score(int whichAxis)
     return 0;
 }
 
-void Indexer::refineDetectorAndWavelength(MtzManager *reference)
+void IOMRefiner::refineDetectorAndWavelength(MtzManager *reference)
 {
     int oldSearch = getSearchSize();
     setSearchSize(1);
@@ -1120,7 +1120,7 @@ void Indexer::refineDetectorAndWavelength(MtzManager *reference)
 }
 
 // in degrees, returns degree rotation
-double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
+double IOMRefiner::refineRoundBeamAxis(double start, double end, double wedge,
                                    bool allSolutions)
 {
    // double startRad = start * M_PI / 180;
@@ -1193,7 +1193,7 @@ double Indexer::refineRoundBeamAxis(double start, double end, double wedge,
     return bestWedge;
 }
 
-void Indexer::refineRoundBeamAxis()
+void IOMRefiner::refineRoundBeamAxis()
 {
     refineRoundBeamAxis(0, 360, 10, true);
   //  double betterWedge = refineRoundBeamAxis(-6, 6, 1, false);
@@ -1209,7 +1209,7 @@ void Indexer::refineRoundBeamAxis()
     this->getMatrix()->printDescription();
 }
 
-void Indexer::matchMatrixToSpots()
+void IOMRefiner::matchMatrixToSpots()
 {
     matchMatrixToSpots(RefinementTypeOrientationMatrixSpots);
 }
@@ -1219,7 +1219,7 @@ bool compareScore(std::pair<vector<double>, double> a, std::pair<vector<double>,
     return (a.second < b.second);
 }
 
-void Indexer::matchMatrixToSpots(RefinementType refinement)
+void IOMRefiner::matchMatrixToSpots(RefinementType refinement)
 {
     double wedge = FileParser::getKey("INDEXING_SLICE_ANGLE", 30.0); // degrees
     //	map<vector<double>, double> scores = map<vector<double>, double>();
@@ -1282,7 +1282,7 @@ void Indexer::matchMatrixToSpots(RefinementType refinement)
     std::cout << std::endl;
 }
 
-double Indexer::getRot(int rotNum)
+double IOMRefiner::getRot(int rotNum)
 {
     if (rotationMode == RotationModeHorizontalVertical)
     {
@@ -1314,7 +1314,7 @@ double Indexer::getRot(int rotNum)
     return 0;
 }
 
-void Indexer::refineOrientationMatrix()
+void IOMRefiner::refineOrientationMatrix()
 {
     int orientationScore = FileParser::getKey("ORIENTATION_SCORE", 0);
     RefinementType refinementType = (RefinementType)orientationScore;
@@ -1322,7 +1322,7 @@ void Indexer::refineOrientationMatrix()
     this->refineOrientationMatrix(refinementType);
 }
 
-void Indexer::refineOrientationMatrix(RefinementType refinementType)
+void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
 {
     refinement = refinementType;
     this->calculateNearbyMillers(true);
@@ -1530,7 +1530,7 @@ void Indexer::refineOrientationMatrix(RefinementType refinementType)
     sendLog(LogLevelNormal);
 }
 
-MtzPtr Indexer::newMtz(int index)
+MtzPtr IOMRefiner::newMtz(int index)
 {
     calculateNearbyMillers(true);
     setSearch(searchSize);
@@ -1624,7 +1624,7 @@ MtzPtr Indexer::newMtz(int index)
     return mtz;
 }
 
-Indexer::~Indexer()
+IOMRefiner::~IOMRefiner()
 {
     nearbyMillers.clear();
     vector<MillerPtr>().swap(nearbyMillers);
@@ -1636,14 +1636,14 @@ Indexer::~Indexer()
         ccp4spg_free(&spaceGroup);
 }
 
-void Indexer::sendLog(LogLevel priority)
+void IOMRefiner::sendLog(LogLevel priority)
 {
     Logger::mainLogger->addStream(&logged, priority);
     logged.str("");
     logged.clear();
 }
 
-void Indexer::refinementSummary()
+void IOMRefiner::refinementSummary()
 {
     std::string filename = image->getFilename();
     int totalReflections = getTotalReflections();

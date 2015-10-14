@@ -174,7 +174,7 @@ void Panel::print(std::ostringstream *stream)
     *stream << "PANEL ";
     *stream << topLeft.first << " " << topLeft.second << " " << bottomRight.first
     << " " << bottomRight.second << " ";
-    *stream << bestShift.first + originalShift.first << " " << bestShift.second + originalShift.second << " ";
+    *stream << bestShift.first << " " << bestShift.second << " ";
     *stream << tilt.first << " " << tilt.second << " ";
     *stream << swivel << " " << gainScale << std::endl;
     
@@ -783,10 +783,12 @@ void Panel::findShift(double windowSize, double step, double x, double y)
 {
     vector<std::pair<Coord, double> > scores;
     
-    int minX = -defaultShift + x - windowSize;
-    int maxX = defaultShift + x + windowSize;
-    int minY = -defaultShift + y - windowSize;
-    int maxY = defaultShift + y + windowSize;
+    int minX = -defaultShift + originalShift.first + x - windowSize;
+    int maxX = defaultShift + originalShift.first + x + windowSize;
+    int minY = -defaultShift + originalShift.second + y - windowSize;
+    int maxY = defaultShift + originalShift.second + y + windowSize;
+    
+    logged << "Finding best shift within window (" << minX << ", " << minY << "), (" << maxX << ", " << maxY << ")" << std::endl;
     
     for (double i = minX; i < maxX; i += step)
     {
@@ -823,7 +825,7 @@ void Panel::findShift(double windowSize, double step, double x, double y)
     
     std::sort(scores.begin(), scores.end(), scoreComparison);
     
-    logged << "Changed best shift to " << scores[0].first.first << "\t" << scores[0].first.second << std::endl;
+    logged << "Changed best shift to " << scores[0].first.first << "\t" << scores[0].first.second << " with score of " << scores[0].second << std::endl;
     Logger::mainLogger->addStream(&logged);
     
     bestShift = scores[0].first;

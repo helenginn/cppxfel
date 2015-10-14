@@ -308,8 +308,8 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	MtzManager **unmerged = NULL;
 	MtzManager *invMerge = NULL;
 
-    std::string idxName = std::string("idxMerge.mtz");
-    std::string invName = std::string("invMerge.mtz");
+    std::string idxName = std::string("half1Merge.mtz");
+    std::string invName = std::string("half2Merge.mtz");
     std::string unmergedName = std::string("unmerged.mtz");
     
     if (cycle >= 0)

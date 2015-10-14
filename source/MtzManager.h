@@ -181,7 +181,7 @@ public:
 
     std::string filenameRoot();
 	void setSpaceGroup(int spgnum);
-	virtual void loadReflections(PartialityModel model);
+	virtual void loadReflections(PartialityModel model, bool special = false);
 	void loadReflections(int partiality);
 	static void setReference(MtzManager *reference);
 	int findReflectionWithId(int refl_id, Reflection **reflection, bool insertionPoint = false);

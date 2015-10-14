@@ -99,7 +99,7 @@ private:
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
     
     Image *image;
-    Indexer *indexer;
+    IOMRefiner *indexer;
     ShoeboxPtr shoebox;
     boost::weak_ptr<Miller> selfPtr;
     MatrixPtr flipMatrix;
@@ -395,7 +395,7 @@ public:
 		this->shift = shift;
 	}
     
-    void setImageAndIndexer(Image *newImage, Indexer *indexer)
+    void setImageAndIOMRefiner(Image *newImage, IOMRefiner *indexer)
     {
         this->image = newImage;
         this->indexer = indexer;

@@ -532,7 +532,7 @@ void MtzManager::loadReflections(int partials)
     loadReflections(model);
 }
 
-void MtzManager::loadReflections(PartialityModel model)
+void MtzManager::loadReflections(PartialityModel model, bool special)
 {
     if (filename.length() == 0)
     {
@@ -668,7 +668,7 @@ void MtzManager::loadReflections(PartialityModel model)
         hkls_for_reflection(mtz, adata, &h, &k, &l, &multiplier, &offset);
         
         int reflection_reflection_index = index_for_reflection(h, k, l, false);
-       
+        
         float intensity = adata[col_f->source - 1];
         
         float sigma = 1;
