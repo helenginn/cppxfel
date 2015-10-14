@@ -223,6 +223,7 @@ void Reflection::generateReflectionIds()
     //    cctbx::miller::index<> asymmetricMiller = equivMaker(0).h();
        
         int newId = reflectionIdForMiller(asymmetricMiller.h());
+    //    int newId = reflectionIdForMiller(cctbxMiller);
         
         reflectionIds.push_back(newId);
     }
