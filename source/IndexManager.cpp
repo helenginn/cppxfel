@@ -7,3 +7,9 @@
 //
 
 #include "IndexManager.h"
+
+IndexManager::IndexManager(std::vector<Image *> newImages)
+{
+    images = newImages;
+}
+

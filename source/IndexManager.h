@@ -10,5 +10,21 @@
 #define __cppxfel__IndexManager__
 
 #include <stdio.h>
+#include <vector>
+#include "Image.h"
+
+class IndexManager
+{
+protected:
+    std::vector<Image *> images;
+    
+public:
+    Image *getImage(int i)
+    {
+        return images[i];
+    }
+    
+    IndexManager(std::vector<Image *>images);
+};
 
 #endif /* defined(__cppxfel__IndexManager__) */

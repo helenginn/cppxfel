@@ -25,6 +25,7 @@ private:
     bool checked;
     int successfulCommonLines;
     double correctedX; double correctedY;
+    vec lastEstimatedVector;
     
 public:
 	Spot(Image *image);

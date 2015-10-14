@@ -302,6 +302,11 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
 
 vec Spot::estimatedVector()
 {
+    if (lastEstimatedVector.h != 0 && lastEstimatedVector.k != 0 && lastEstimatedVector.l != 0)
+    {
+        return lastEstimatedVector;
+    }
+    
     double beamX = parentImage->getBeamX() * parentImage->getMmPerPixel();
     double beamY = parentImage->getBeamY() * parentImage->getMmPerPixel();
     
@@ -320,7 +325,9 @@ vec Spot::estimatedVector()
     scale_vector_to_distance(&crystalToSpot, 1 / wavelength);
     add_vector_to_vector(&reciprocalCrystalVec, crystalToSpot);
     
-    return reciprocalCrystalVec;
+    lastEstimatedVector = reciprocalCrystalVec;
+    
+    return lastEstimatedVector;
 }
 
 

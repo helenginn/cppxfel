@@ -17,8 +17,7 @@
 #include "misc.h"
 #include "Shoebox.h"
 #include "Spot.h"
-#include "CommonLine.h"
-#include "CommonCircle.h"
+#include "Vector.h"
 
 Image::Image(std::string filename, double wavelength,
 		double distance)
@@ -1004,134 +1003,6 @@ void Image::processSpotList()
     
     logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;
     sendLog(LogLevelNormal);
-    
-    generateCommonCircles();
-}
-
-bool Image::hasCommonCircleWithImage(Image *otherImage)
-{
-    for (int i = 0; i < commonCirclePairs.size(); i++)
-    {
-        if (commonCirclePairs[i].first->getParentImage() == this &&
-            commonCirclePairs[i].second->getParentImage() == otherImage)
-            return true;
-
-        if (commonCirclePairs[i].second->getParentImage() == this &&
-            commonCirclePairs[i].first->getParentImage() == otherImage)
-            return true;
-    }
-    
-    return false;
-}
-
-void Image::commonCirclesWithImagesOneThread(std::vector<Image *> images, std::vector<CommonCirclePair> *pairs, int offset)
-{
-    int maxThreads = FileParser::getMaxThreads();
-    
-    for (int i = offset; i < images.size(); i += maxThreads)
-    {
-        CommonCirclePair currentPair;
-        
-        if (images[i] == this)
-            continue;
-        
-        if (hasCommonCircleWithImage(images[i]))
-            continue;
-        
-        commonCircleWithImage(images[i], &currentPair);
-        
-        if (currentPair.first && currentPair.first != currentPair.second)
-        {
-            pairs->push_back(currentPair);
-        }
-    }
-}
-
-void Image::commonCirclesWithImagesThreaded(Image *currentImage, std::vector<Image *> images, std::vector<CommonCirclePair> *pairs, int offset)
-{
-    currentImage->commonCirclesWithImagesOneThread(images, pairs, offset);
-}
-
-void Image::commonCirclesWithImages(std::vector<Image *>images)
-{
-    int maxThreads = FileParser::getMaxThreads();
-    
-    boost::thread_group threads;
-    vector<vector<CommonCirclePair> > lineSubsets;
-    lineSubsets.resize(maxThreads);
-    
-    for (int i = 0; i < maxThreads; i++)
-    {
-        boost::thread *thr = new boost::thread(commonCirclesWithImagesThreaded, this, images, &lineSubsets[i], i);
-        threads.add_thread(thr);
-    }
-    
-    threads.join_all();
-    
-    for (int i = 0; i < lineSubsets.size(); i++)
-    {
-        for (int j = 0; j < lineSubsets[i].size(); j++)
-        {
-            CommonCirclePtr thisLine = lineSubsets[i][j].first;
-            CommonCirclePtr otherLine = lineSubsets[i][j].second;
-            Image *thisImage = thisLine->getParentImage();
-            Image *otherImage = otherLine->getParentImage();
-            
-            thisImage->addCommonCirclePair(thisLine, otherLine);
-            otherImage->addCommonCirclePair(otherLine, thisLine);
-        }
-    }
-}
-
-void Image::addCommonCirclePair(CommonCirclePtr thisCircle, CommonCirclePtr otherCircle)
-{
-    CommonCirclePair pair = std::make_pair(thisCircle, otherCircle);
-    commonCirclePairs.push_back(pair);
-}
-
-CommonCirclePair Image::getCommonCircleWithImage(Image *otherImage)
-{
-    for (int i = 0; i < commonCirclePairs.size(); i++)
-    {
-        if (commonCirclePairs[i].first->getParentImage() == otherImage ||
-            commonCirclePairs[i].second->getParentImage() == otherImage)
-            return commonCirclePairs[i];
-    }
-    
-    return std::make_pair(CommonCirclePtr(), CommonCirclePtr());
-}
-
-double Image::commonCircleWithImage(Image *otherImage, CommonCirclePair *pair)
-{
-    double min = 1000;
-    
-    CommonCirclePtr thisCircle, otherCircle;
-    
-    for (int i = 0; i < commonCircles.size(); i++)
-    {
-        for (int j = 0; j < otherImage->commonCircles.size(); j++)
-        {
-            double score = commonCircles[i]->similarityToCommonCircle(otherImage->commonCircles[j]);
-            
-            if (score < min)
-            {
-                min = score;
-                
-                thisCircle = commonCircles[i];
-                otherCircle = otherImage->commonCircles[j];
-            }
-        }
-    }
-    
-    if (min > commonCircleThreshold)
-    {
-        *pair = std::make_pair(CommonCirclePtr(), CommonCirclePtr());
-        return 1000;
-    }
-    
-    *pair = std::make_pair(thisCircle, otherCircle);
-    
-    return min;
 }
 
 void Image::sendLog(LogLevel priority)
@@ -1161,66 +1032,28 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
     }
 }
 
-void Image::generateCommonCircles()
+void Image::compileDistancesFromSpots()
 {
-    std::vector<double> angleRange = FileParser::getKey("COMMON_CIRCLE_ANGLE_RANGE", std::vector<double>());
-    if (angleRange.size() == 0)
+    double reciprocalDistanceLimit = (4 / 103.5);
+    
+    for (int i = 0; i < spots.size(); i++)
     {
-        angleRange.push_back(30);
-        angleRange.push_back(150);
-    }
-    
-    std::vector<double> pixRadiusRange = CommonCircle::radiusRangeForTwoThetaRange(angleRange[0], angleRange[1], this);
-    double pixTolerance = FileParser::getKey("PIXEL_TOLERANCE", 3.0);
-    double minimumCircleSpots = FileParser::getKey("MINIMUM_CIRCLE_SPOTS", 5);
-    
-    double minRadiusSqr = pow(pixRadiusRange[0], 2);
-    double maxRadiusSqr = pow(pixRadiusRange[1], 2);
-    
-    logged << "Checking radii from " << pixRadiusRange[0] << " to " << pixRadiusRange[1] << " pixels" << std::endl;
-    
-    int totalAddedSpots = 0;
-    
-    if (commonCircleCount() == 0 && !noCircles)
-    {
-        for (double i = 0; i < xDim; i += pixTolerance / 2)
+        vec spotPos1 = spots[i]->estimatedVector();
+        
+        for (int j = i + 1; j < spots.size(); j++)
         {
-            for (double j = 0; j < yDim; j += pixTolerance / 2)
-            {
-                double radiusSqr = pow(i - beamX, 2) + pow(j - beamY, 2);
-                
-                if (radiusSqr < minRadiusSqr || radiusSqr > maxRadiusSqr)
-                {
-                    continue;
-                }
-                
-                CommonCirclePtr circle = CommonCirclePtr(new CommonCircle(this, i, j));
-                int spotsAdded = circle->addSpotsIfOnCommonCircle(spots);
-                
-                if (spotsAdded >= minimumCircleSpots)
-                {
-                    commonCircles.push_back(circle);
-                    totalAddedSpots += spotsAdded;
-                }
-            }
-        }
-    }
-    else
-    {
-        for (int i = 0; i < commonCircleCount(); i++)
-        {
-            CommonCirclePtr circle = getCommonCircle(i);
-            int added = circle->addSpotsIfOnCommonCircle(spots);
+            vec spotPos2 = spots[j]->estimatedVector();
             
-            if (added < minimumCircleSpots)
+            bool close = within_vicinity(spotPos1, spotPos2, reciprocalDistanceLimit);
+            
+            if (close)
             {
-                commonCircles.erase(commonCircles.begin() + i);
-                i--;
+                double distance = distance_between_vectors(spotPos1, spotPos2);
+                
+                logged << distance * 103.5 << std::endl;
             }
         }
     }
     
-    double averageSpots = (double)totalAddedSpots / double(commonCircles.size());
-    logged << "Added " << commonCircles.size() << " total common circles with " << averageSpots << " average spots." << std::endl;
     sendLog();
 }

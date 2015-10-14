@@ -19,10 +19,12 @@ typedef struct
 	double l;
 } vec;
 
+bool within_vicinity(vec vec1, vec vec2, double maxD);
 vec cross_product_for_vectors(vec vec1, vec vec2);
 double dot_product_for_vectors(vec vec1, vec vec2);
 vec new_vector(double h, double k, double l);
 double length_of_vector(vec vect);
+double distance_between_vectors(vec vec1, vec vec2);
 double angleBetweenVectors(vec vec1, vec vec2);
 double cosineBetweenVectors(vec vec1, vec vec2);
 vec copy_vector(vec old_vec);

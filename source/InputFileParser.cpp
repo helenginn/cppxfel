@@ -235,12 +235,6 @@ void InputFileParser::parse(bool fromPython)
                 refiner->applyUnrefinedPartiality();
             }
             
-            if (line == "CLUSTER_INDEX")
-            {
-                understood = true;
-                refiner->clusterIndexing();
-            }
-            
             if (line == "INDEX")
             {
                 understood = true;

@@ -13,6 +13,27 @@
 #include <tuple>
 #include "Matrix.h"
 
+double distance_between_vectors(vec vec1, vec vec2)
+{
+    take_vector_away_from_vector(vec1, &vec2);
+    
+    return length_of_vector(vec2);
+}
+
+bool within_vicinity(vec vec1, vec vec2, double maxD)
+{
+    if (fabs(vec1.h - vec2.h) > maxD)
+        return false;
+    
+    if (fabs(vec1.k - vec2.k) > maxD)
+        return false;
+    
+    if (fabs(vec1.l - vec2.l) > maxD)
+        return false;
+    
+    return true;
+}
+
 vec vector_between_vectors(vec vec1, vec vec2)
 {
 	vec vec;

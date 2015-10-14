@@ -53,8 +53,7 @@ public:
     void orientationPlot();
     void applyUnrefinedPartiality();
     void loadImageFiles();
-    void clusterIndexing();
-
+    
     void loadPanels();
 	void integrate();
 	static void integrateImagesWrapper(MtzRefiner *object,

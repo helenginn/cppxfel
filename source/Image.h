@@ -12,7 +12,6 @@
 #include "IOMRefiner.h"
 #include "parameters.h"
 #include "Logger.h"
-#include "CommonCircle.h"
 #include "csymlib.h"
 
 class CommonLine;
@@ -92,51 +91,9 @@ public:
 	static void applyMaskToImages(vector<Image *> images, int startX,
 			int startY, int endX, int endY);
     void refineDistances();
-    
-    double commonCircleWithImage(Image *otherImage, CommonCirclePair *pair);
-    void commonCirclesWithImages(std::vector<Image *>images);
-    bool hasCommonCircleWithImage(Image *otherImage);
-    void addCommonCirclePair(CommonCirclePtr thisLine, CommonCirclePtr otherLine);
-    static void commonCirclesWithImagesThreaded(Image *currentImage, std::vector<Image *> images, std::vector<CommonCirclePair> *pairs, int offset);
-    void commonCirclesWithImagesOneThread(std::vector<Image *> images, std::vector<CommonCirclePair> *pairs, int offset);
-    CommonCirclePair getCommonCircleWithImage(Image *otherImage);
+
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
 
-    void generateCommonCircles();
-    
-    void addUnexpectedMatch(ImageCluster *theCluster)
-    {
-        unexpectedMatches[theCluster] = true;
-    }
-    
-    void removeUnexpectedMatch(ImageCluster *theCluster)
-    {
-        if (unexpectedMatches.count(theCluster) > 0)
-        {
-            unexpectedMatches.erase(theCluster);
-        }
-    }
-    
-    bool isUnexpectedMatch(ImageCluster *theCluster)
-    {
-        return (unexpectedMatches.count(theCluster) > 0) && (unexpectedMatches[theCluster] == true);
-    }
-    
-    bool hasAnyUnexpectedMatch()
-    {
-        return unexpectedMatches.size() > 0;
-    }
-    
-    unsigned long circlePairCount()
-    {
-        return commonCirclePairs.size();
-    }
-    
-    CommonCirclePair circlePair(int i)
-    {
-        return commonCirclePairs[i];
-    }
-    
 	const std::string& getFilename() const
 	{
 		return filename;
@@ -155,22 +112,6 @@ public:
     void setSpotsFile(std::string newFile)
     {
         spotsFile = newFile;
-    }
-    
-    int commonCircleCount()
-    {
-        return (int)commonCircles.size();
-    }
-    
-    CommonCirclePtr getCommonCircle(int i)
-    {
-        return commonCircles[i];
-    }
-    
-    void addProtoCircle(double x, double y)
-    {
-        CommonCirclePtr newCircle = CommonCirclePtr(new CommonCircle(this, x, y));
-        commonCircles.push_back(newCircle);
     }
 
 	int valueAt(int x, int y);
@@ -195,10 +136,7 @@ public:
     
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
-    void setNoCircles(bool no = true)
-    {
-        noCircles = no;
-    }
+    void compileDistancesFromSpots();
     
     bool hasSeeded()
     {

@@ -16,7 +16,7 @@ Returns: filename stem.
 
 """
 def rootnameStem(filename):
-	return filename.replace("_experiments.json", "")
+	return filename.replace("_experiments.json", "").replace("_strong.list", "")
 
 """
 Function prints matrices from DIALS experiment objects separating
@@ -37,17 +37,23 @@ def printExperiments(experiments, filename, output):
 	
 	global distance, centre, wavelength, pixelSize, spacegroup, unit_cell_dimensions
 	
-	beam = experiments[0].beam
-	detector = experiments[0].detector[0]
-	distance = detector.get_distance()
-	centre = detector.get_ray_intersection_px(beam.get_s0())
-	wavelength = beam.get_wavelength()
+	if len(experiments):
+		beam = experiments[0].beam
+		detector = experiments[0].detector[0]
+		distance = detector.get_distance()
+		centre = detector.get_ray_intersection_px(beam.get_s0())
+		wavelength = beam.get_wavelength()
 
-	pixelSize = detector.get_pixel_size()
+		pixelSize = detector.get_pixel_size()
 
-	print >> output, "wavelength", wavelength
-	print >> output, "distance", distance
-	print >> output, "centre", centre[0], centre[1]
+		print >> output, "wavelength", wavelength
+		print >> output, "distance", distance
+		print >> output, "centre", centre[0], centre[1]
+
+	spotListName = rootname_stem + "_strong.list"
+	
+	if (os.path.isfile(spotListName)):
+		print >> output, "spots", spotListName
 
 	for experiment in experiments:
 		spacegroup = experiment.crystal.get_space_group().type().number()
@@ -101,22 +107,31 @@ def matrixForFilename(filename, output):
 	paths.append(path)
 	printExperiments(experiments, filename, output)
 
+def printSpots():
+	import glob
+	global output
+	globString = "*_strong.list"
+	files = glob.glob(globString)
+	
+	for file in files:
+		rootname = rootnameStem(file)
+		
+		if os.path.isfile(rootname + "_experiments.json"):
+			continue
+		
+		imagePath = rootname[1:] + ".pickle"
+		
+		paths.append(imagePath)
+		printExperiments([], file, output)
 
 def printMatrices():
 	import glob
-	output = StringIO.StringIO()
+	global output
 	globString = "*_experiments.json"
 	files = glob.glob(globString)
 	
 	for file in files:
 		matrixForFilename(file, output)	
-
-	print output.getvalue()
-
-	outputFilename = "matrices.dat"
-	outputFile = open(outputFilename, 'w')
-	print >>outputFile, output.getvalue()[:-1]
-	outputFile.close()
 
 def dumpPanels(image):
 	global panels
@@ -174,7 +189,17 @@ import scitbx.math
 
 paths = []
 
+output = StringIO.StringIO()
+
 printMatrices()
+printSpots()
+
+print output.getvalue()
+
+outputFilename = "matrices.dat"
+outputFile = open(outputFilename, 'w')
+print >>outputFile, output.getvalue()[:-1]
+outputFile.close()
 
 threads = []
 thread_count = int(os.getenv('NSLOTS', 4))
@@ -201,10 +226,14 @@ integrateTxt = StringIO.StringIO()
 
 print >> integrateTxt, "ORIENTATION_MATRIX_LIST matrices.dat"
 print >> integrateTxt, "NEW_MATRIX_LIST orientations.dat\n"
-print >> integrateTxt, "SPACE_GROUP", spacegroup
-print >> integrateTxt, "UNIT_CELL",
-for dimension in unit_cell_dimensions.parameters():
-	print >> integrateTxt, dimension,
+
+if spacegroup > 0:
+	print >> integrateTxt, "SPACE_GROUP", spacegroup
+
+if len(unit_cell_dimensions):
+	print >> integrateTxt, "UNIT_CELL",
+	for dimension in unit_cell_dimensions.parameters():
+		print >> integrateTxt, dimension,
 print >> integrateTxt 
 print >> integrateTxt, "FIX_UNIT_CELL ON\n"
 print >> integrateTxt, "MM_PER_PIXEL", pixelSize[0]
@@ -230,3 +259,6 @@ outputFile.close()
 
 print "New template input file integrate.txt"
 print "Please check your target unit cell and space group"
+
+if distance == 0:
+	print "You MUST change the experimental parameters in integrate.txt"

@@ -14,7 +14,6 @@
 #include "Image.h"
 #include <fstream>
 #include "AmbiguityBreaker.h"
-#include "CommonCircle.h"
 
 #include "FileParser.h"
 #include "parameters.h"
@@ -23,8 +22,6 @@
 #include "Panel.h"
 #include "Logger.h"
 #include "XManager.h"
-//#include <boost/python.hpp>
-#include "ImageCluster.h"
 
 bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
@@ -644,21 +641,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 newImage->setSpotsFile(spotsFile);
                 hasSpots = true;
             }
-            
-            if (components[0] == "circle")
-            {
-                if (components.size() < 3)
-                {
-                    newImage->setNoCircles();
-                }
-                else
-                {
-                    double x = atof(components[1].c_str());
-                    double y = atof(components[2].c_str());
-                    newImage->addProtoCircle(x, y);
-                }
-            }
-            
+                        
             if (components[0] == "matrix")
             {
                 // individual matrices
@@ -1461,16 +1444,6 @@ void MtzRefiner::integrate()
     }
 }
 
-void MtzRefiner::clusterIndexing()
-{
-    loadImageFiles();
-    
-    
-    ImageClusterPtr cluster = ImageClusterPtr(new ImageCluster(images));
-    cluster->process();
-}
-
-
 void MtzRefiner::loadPanels()
 {
     std::string panelList = FileParser::getKey("PANEL_LIST", std::string(""));
@@ -1659,17 +1632,6 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         if (image->getSpotsFile().length() > 0)
         {
             integrateMats << "spots " << image->getSpotsFile() << std::endl;
-            
-            for (int j = 0; j < image->commonCircleCount(); j++)
-            {
-                CommonCirclePtr circle = image->getCommonCircle(j);
-                integrateMats << circle->printResult();
-            }
-            
-            if (image->commonCircleCount() == 0)
-            {
-                integrateMats << "circle" << std::endl;
-            }
         }
     }
     
@@ -1684,7 +1646,7 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
 void MtzRefiner::indexImage(int offset, vector<MtzPtr> *mtzSubset)
 {
     for (int i = offset; i < images.size(); i+= MAX_THREADS)
-    {
+    {/*
         Image *newImage = images[i];
         IOMRefinerPtr indexer = newImage->getIOMRefiner(0);
         
@@ -1707,7 +1669,10 @@ void MtzRefiner::indexImage(int offset, vector<MtzPtr> *mtzSubset)
         
         mtzSubset->push_back(manager);
         
-        newImage->dropImage();
+        newImage->dropImage();*/
+        
+        Image *newImage = images[i];
+        newImage->compileDistancesFromSpots();
     }
 }
 
