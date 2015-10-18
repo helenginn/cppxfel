@@ -12,6 +12,22 @@
 #include "gaussianfit.h"
 #include <tuple>
 #include "Matrix.h"
+#include "Logger.h"
+
+vec reverseVector(vec vec1)
+{
+    vec vec2 = copy_vector(vec1);
+    vec2.h = -vec2.h;
+    vec2.k = -vec2.k;
+    vec2.l = -vec2.l;
+    
+    return vec2;
+}
+
+bool vectors_are_equal(vec vec1, vec vec2)
+{
+    return (vec1.h == vec2.h && vec1.k == vec2.k && vec1.l == vec2.l);
+}
 
 double distance_between_vectors(vec vec1, vec vec2)
 {
@@ -68,14 +84,84 @@ vec perpendicular_for_vectors(vec vec1, vec vec2)
 
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
 {
+    MatrixPtr matrix = MatrixPtr(new Matrix());
+    
+    double cosine = cosineBetweenVectors(vec1, vec2);
+    vec crossVector = cross_product_for_vectors(vec1, vec2);
+    scale_vector_to_distance(&crossVector, 1);
+    
+    std::ostringstream logged;
+  //  logged << "Cross vector for rotation:" << crossVector.h << ", " << crossVector.k << ", " << crossVector.l << std::endl;
+    Logger::mainLogger->addStream(&logged);
+    
+    double angle = acos(cosine);
+    
+    matrix->rotateRoundUnitVector(crossVector, angle);
+    
+    return matrix;
+}
+
+MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle)
+{
+    bool close = false;
+    double lastAngle = fabs(angleBetweenVectors(vec1, vec2));
+    MatrixPtr mat = MatrixPtr(new Matrix());
+    double step = 1 * M_PI / 180;
+    bool switchedOnce = false;
+    bool divided = false;
+    double secondLastAngle = lastAngle;
+    
+    std::ostringstream logged;
+    
+    while (!close)
+    {
+        mat->rotateRoundUnitVector(chosenCrossProduct, step);
+        vec vec1Copy = copy_vector(vec1);
+        mat->multiplyVector(&vec1Copy);
+        double angleDiff = fabs(angleBetweenVectors(vec1Copy, vec2));
+        
+        if (angleDiff > lastAngle)
+        {
+            if (switchedOnce)
+                close = true;
+            
+            step = -step;
+            switchedOnce = true;
+        }
+        
+        if (angleDiff < 10 && !divided)
+        {
+            step /= 10;
+            divided = true;
+        }
+        
+        secondLastAngle = lastAngle;
+        lastAngle = angleDiff;
+    }
+    
+    *resultantAngle = secondLastAngle;
+    
+    mat->rotateRoundUnitVector(chosenCrossProduct, -step);
+    
+    return mat;
+}
+
+
+MatrixPtr rotation_between_vectors_custom_cross(vec vec1, vec vec2, vec chosenCrossProduct)
+{
     scale_vector_to_distance(&vec1, 1);
     scale_vector_to_distance(&vec2, 1);
+    scale_vector_to_distance(&chosenCrossProduct, 1);
     
-    vec v = cross_product_for_vectors(vec1, vec2);
-    double s = length_of_vector(v);
+    bool done = false;
+    MatrixPtr vx = MatrixPtr(new Matrix());
+    MatrixPtr vxSquared = MatrixPtr(new Matrix());
     double c = cosineBetweenVectors(vec1, vec2);
     
-    MatrixPtr vx = MatrixPtr(new Matrix());
+    
+    vec v = cross_product_for_vectors(vec1, vec2);// chosenCrossProduct;
+    
+    vx = MatrixPtr(new Matrix());
     vx->components[0] = 0;
     vx->components[1] = v.l;
     vx->components[2] = -v.k;
@@ -85,11 +171,22 @@ MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
     vx->components[8] = v.k;
     vx->components[9] = -v.h;
     vx->components[10] = 0;
-
-    MatrixPtr vxSquared = vx->copy();
+    
+    vxSquared = vx->copy();
     vxSquared->multiply(*vx);
     
-    double scale = (1 - c) / pow(s, 2);
+    vec vxvec1 = copy_vector(vec1);
+    vx->multiplyVector(&vxvec1);
+    
+    vec vxSquaredVec1 = copy_vector(vec1);
+    vxSquared->multiplyVector(&vxSquaredVec1);
+    
+    vec vec3 = vec2;
+    take_vector_away_from_vector(vxvec1, &vec3);
+    take_vector_away_from_vector(vec1, &vec3);
+    
+    
+    double scale = (1 - c);
     vxSquared->multiply(scale);
     
     MatrixPtr rotation = MatrixPtr(new Matrix());
@@ -142,7 +239,8 @@ double angleBetweenVectors(vec vec1, vec vec2)
 
     vec rightAngle = new_vector(vec1.k, -vec1.h, 0);
     
-    if (dot_product_for_vectors(rightAngle, vec2) < 0)
+    if (cosTheta < 0)
+  //  if (dot_product_for_vectors(rightAngle, vec2) < 0)
     {
         angle *= -1;
     }

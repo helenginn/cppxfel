@@ -8,6 +8,7 @@
 #ifndef IOMRefiner_H_
 #define IOMRefiner_H_
 
+#include "IndexManager.h"
 #include "Image.h"
 #include "Miller.h"
 #include "Matrix.h"
@@ -47,6 +48,7 @@ private:
 	vector<MillerPtr> nearbyMillers;
 	vector<Spot *>spots;
     MatrixPtr matrix;
+    std::vector<Match> indexingMatches;
 
     CCP4SPG *spaceGroup;
     bool complexUnitCell;
@@ -137,6 +139,17 @@ public:
         *rot1 = bestHRot;
         *rot2 = bestKRot;
         *rot3 = bestLRot;
+    }
+    
+    void setMatch(Match newMatch1, Match newMatch2)
+    {
+        indexingMatches.push_back(newMatch1);
+        indexingMatches.push_back(newMatch2);
+    }
+    
+    std::vector<Match> getMatch()
+    {
+        return indexingMatches;
     }
     
     MatrixPtr getMatrix()

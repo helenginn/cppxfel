@@ -25,13 +25,12 @@ private:
     bool checked;
     int successfulCommonLines;
     double correctedX; double correctedY;
-    vec lastEstimatedVector;
+    double x; double y;
     
 public:
 	Spot(Image *image);
 	virtual ~Spot();
 
-    double x; double y;
     double weight();
 	double maximumLift(Image *image, int x, int y, bool ignoreCovers);
 	double maximumLift(Image *image, int x, int y);

@@ -158,6 +158,14 @@ void Matrix::add(MatrixPtr secondMatrix)
     }
 }
 
+void Matrix::subtract(MatrixPtr secondMatrix)
+{
+    for (int i = 0; i < 15; i++)
+    {
+        components[i] -= secondMatrix->components[i];
+    }
+}
+
 scitbx::mat3<double> Matrix::cctbxMatrix(MatrixPtr theMatrix)
 {
     Matrix *chosenMatrix = this;
@@ -435,9 +443,12 @@ void Matrix::scale(double a)
 
 void Matrix::scale(double a, double b, double c)
 {
-	components[0] *= a;
-	components[5] *= b;
-	components[10] *= c;
+    MatrixPtr scaleMat = MatrixPtr(new Matrix());
+	scaleMat->components[0] *= a;
+	scaleMat->components[5] *= b;
+	scaleMat->components[10] *= c;
+    
+    this->multiply(*scaleMat);
 }
 
 void Matrix::rotateHK(double hRot, double kRot)
@@ -671,6 +682,15 @@ MatrixPtr Matrix::inverse3DMatrix()
     newMat->assignFromCctbxMatrix(inverse);
     
     return newMat;
+    
+}
+
+double Matrix::determinant()
+{
+    scitbx::mat3<double> cctbxMat = cctbxMatrix();
+    double det = cctbxMat.determinant();
+    
+    return det;
     
 }
 

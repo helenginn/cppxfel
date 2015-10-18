@@ -827,7 +827,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 2.5, 4, &resolutions);
+	StatisticsManager::generateResolutionBins(0, 1.6, 4, &resolutions);
 
 	vector<std::string> files;
 

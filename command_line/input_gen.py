@@ -3,7 +3,7 @@ wavelength = 0
 centre = (0, 0)
 pixelSize = (0, 0)
 spacegroup = 0
-unit_cell_dimensions = ()
+unit_cell_dimensions = (0, 0, 0, 0, 0, 0)
 panels = []
 
 """
@@ -57,7 +57,7 @@ def printExperiments(experiments, filename, output):
 
 	for experiment in experiments:
 		spacegroup = experiment.crystal.get_space_group().type().number()
-		unit_cell_dimensions = experiment.crystal.get_unit_cell()
+		unit_cell_dimensions = experiment.crystal.get_unit_cell().parameters()
 		unit_cell = experiment.crystal.get_B()	
 		rotation = experiment.crystal.get_U()	
 
@@ -232,7 +232,7 @@ if spacegroup > 0:
 
 if len(unit_cell_dimensions):
 	print >> integrateTxt, "UNIT_CELL",
-	for dimension in unit_cell_dimensions.parameters():
+	for dimension in unit_cell_dimensions:
 		print >> integrateTxt, dimension,
 print >> integrateTxt 
 print >> integrateTxt, "FIX_UNIT_CELL ON\n"

@@ -694,8 +694,8 @@ void IOMRefiner::duplicateSpots(vector<Image *> images)
             for (int j = 0; j < spots.size(); j++)
             {
                 vector<int> coord = vector<int>();
-                coord.push_back(spots[j]->x);
-                coord.push_back(spots[j]->y);
+                coord.push_back(spots[j]->getX());
+                coord.push_back(spots[j]->getY());
                 
                 if (frequencies.count(coord) == 0)
                 {
@@ -764,7 +764,7 @@ void IOMRefiner::writeDatFromSpots(std::string filename)
     {
         //	if (spots[i]->isAcceptable(image))
         //	{
-        dat << "0\t0\t0\t1\t1\t1\t" << spots[i]->x << "\t" << spots[i]->y
+        dat << "0\t0\t0\t1\t1\t1\t" << spots[i]->getX() << "\t" << spots[i]->getY()
         << "\t1" << std::endl;
         
         std::cout << "Spot lift " << spots[i]->weight() << std::endl;
@@ -787,10 +787,10 @@ int IOMRefiner::identicalSpotsAndMillers()
     {
         for (int j = 0; j < millers.size(); j++)
         {
-            int x1 = spots[i]->x;
+            int x1 = spots[i]->getX();
             int x2 = millers[j]->getLastX();
             
-            int y1 = spots[i]->y;
+            int y1 = spots[i]->getY();
             int y2 = millers[j]->getLastY();
             
             int diffX = abs(x2 - x1);
@@ -966,8 +966,8 @@ double IOMRefiner::score(int whichAxis)
                 double millerX = millers[i]->getLastX();
                 double millerY = millers[i]->getLastY();
                 
-                double spotX = spots[j]->x;
-                double spotY = spots[j]->y;
+                double spotX = spots[j]->getX();
+                double spotY = spots[j]->getY();
                 
                 double distance = sqrt(pow(spotY - millerY, 2) + pow(spotX - millerX, 2));
                 
@@ -1335,9 +1335,9 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     vector<int> frequencies;
     
     checkAllMillers(maxResolution, testBandwidth);
+    Logger::mainLogger->addString("Wavelength histogram before refinement", LogLevelDetailed);
     sendLog(LogLevelDetailed);
-    Logger::mainLogger->addString("Wavelength histogram before refinement");
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal);
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     
     double mean = 0;
     double stdev = 0;
@@ -1542,8 +1542,8 @@ MtzPtr IOMRefiner::newMtz(int index)
     double stdev = 0;
     double theScore = 0;
     
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 1);
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 2);
+  //  getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 1);
+  //  getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 2);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 0);
     gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
                  &theScore, true);
@@ -1616,7 +1616,7 @@ MtzPtr IOMRefiner::newMtz(int index)
         mtz->cutToResolutionWithSigma(cutoff);
     
     std::string imgFilename = "img-" + image->filenameRoot() + "_" + i_to_str(index) + ".mtz";
-    mtz->writeToFile(imgFilename, false, true);
+    mtz->writeToFile(imgFilename, true, true);
     mtz->writeToDat();
 
     nearbyMillers.clear();

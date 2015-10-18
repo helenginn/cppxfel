@@ -111,7 +111,8 @@ public:
 
     void setSpaceGroup(int spaceGroupNum);
     void setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_type newSpgType, asu newAsymmetricUnit);
-    
+    void setUnitCellDouble(double *theUnitCell);
+
     void resetFlip();
     void setFlip(int i);
     void setFlipAsActiveAmbiguity();
@@ -145,6 +146,7 @@ public:
 	{
 		this->refIntensity = refIntensity;
 	}
+    
 
     int getReflId()
     {

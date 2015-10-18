@@ -25,6 +25,8 @@ Spot::Spot(Image *image)
     successfulCommonLines = 0;
     correctedX = -1;
     correctedY = -1;
+    x = 0;
+    y = 0;
     
 	makeProbe(500, 1);
 }
@@ -302,18 +304,20 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
 
 vec Spot::estimatedVector()
 {
-    if (lastEstimatedVector.h != 0 && lastEstimatedVector.k != 0 && lastEstimatedVector.l != 0)
+ /*   if (lastEstimatedVector.h != 0 && lastEstimatedVector.k != 0 && lastEstimatedVector.l != 0)
     {
         return lastEstimatedVector;
     }
-    
+    */
     double beamX = parentImage->getBeamX() * parentImage->getMmPerPixel();
     double beamY = parentImage->getBeamY() * parentImage->getMmPerPixel();
     
     double wavelength = parentImage->getWavelength();
     
+    double height = parentImage->getYDim();
+    
     double mmX = getX() * parentImage->getMmPerPixel();
-    double mmY = getY() * parentImage->getMmPerPixel();
+    double mmY = (height - getY()) * parentImage->getMmPerPixel();
     
     double detector_distance = parentImage->getDetectorDistance();
     
@@ -325,9 +329,7 @@ vec Spot::estimatedVector()
     scale_vector_to_distance(&crystalToSpot, 1 / wavelength);
     add_vector_to_vector(&reciprocalCrystalVec, crystalToSpot);
     
-    lastEstimatedVector = reciprocalCrystalVec;
-    
-    return lastEstimatedVector;
+    return reciprocalCrystalVec;
 }
 
 

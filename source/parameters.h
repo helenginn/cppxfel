@@ -115,6 +115,14 @@ class Miller;
 
 using std::vector;
 
+
+typedef struct
+{
+    double h;
+    double k;
+    double l;
+} vec;
+
 typedef enum
 {
     RotationModeHorizontalVertical = 0,
@@ -148,6 +156,7 @@ class CommonLine;
 class Spot;
 class ImageCluster;
 class CommonCircle;
+class SpotVector;
 
 typedef boost::shared_ptr<Miller> MillerPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
@@ -162,6 +171,7 @@ typedef boost::shared_ptr<Image>ImagePtr;
 typedef boost::shared_ptr<ImageCluster>ImageClusterPtr;
 typedef boost::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
+typedef boost::shared_ptr<SpotVector> SpotVectorPtr;
 
 typedef boost::variant<double, double, std::string, bool, int,
 		vector<double>, vector<int> > ParameterVariant;
@@ -175,6 +185,8 @@ typedef double (StatisticsFunction)(MtzManager *, MtzManager *, int, int *,
 		double *, double, double, bool);
 typedef double (RFactorFunction)(RFactorType, MtzManager *, int *, double *,
 		double, double);
+typedef std::pair<vec, double> VectorDistance;
+typedef std::pair<std::pair<SpotVectorPtr, VectorDistance>, double> Match;
 
 
 typedef enum

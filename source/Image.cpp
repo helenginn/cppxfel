@@ -1032,10 +1032,8 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
     }
 }
 
-void Image::compileDistancesFromSpots()
+void Image::compileDistancesFromSpots(double maxReciprocalDistance)
 {
-    double reciprocalDistanceLimit = (4 / 103.5);
-    
     for (int i = 0; i < spots.size(); i++)
     {
         vec spotPos1 = spots[i]->estimatedVector();
@@ -1044,16 +1042,19 @@ void Image::compileDistancesFromSpots()
         {
             vec spotPos2 = spots[j]->estimatedVector();
             
-            bool close = within_vicinity(spotPos1, spotPos2, reciprocalDistanceLimit);
+            bool close = within_vicinity(spotPos1, spotPos2, maxReciprocalDistance);
             
             if (close)
             {
-                double distance = distance_between_vectors(spotPos1, spotPos2);
+                SpotVectorPtr newVec = SpotVectorPtr(new SpotVector(spots[i], spots[j]));
+            
+                double distance = newVec->distance();
                 
-                logged << distance * 103.5 << std::endl;
+                if (distance == 0)
+                    continue;
+                
+                spotVectors.push_back(newVec);
             }
         }
     }
-    
-    sendLog();
 }

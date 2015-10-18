@@ -41,6 +41,7 @@ public:
     bool isIdentity();
     void multiply(double scalar);
     void add(MatrixPtr secondMatrix);
+    void subtract(MatrixPtr secondMatrix);
     Matrix(void);
     Matrix(double *components);
     Matrix(scitbx::mat3<double> unitcell, scitbx::mat3<double> rotation);
@@ -95,6 +96,7 @@ public:
         return false;
     }
     
+    double determinant();
     Matrix operator*=(Matrix &b);
     Matrix operator*(Matrix &b);
     double &operator[](int index) {return components[index]; };

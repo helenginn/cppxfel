@@ -14,6 +14,7 @@
 #include "Image.h"
 #include <fstream>
 #include "AmbiguityBreaker.h"
+#include "IndexManager.h"
 
 #include "FileParser.h"
 #include "parameters.h"
@@ -1439,7 +1440,6 @@ void MtzRefiner::integrate()
         for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
         {
             images[i]->getIOMRefiner(j)->refinementSummary();
-
         }
     }
 }
@@ -1645,6 +1645,7 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
 
 void MtzRefiner::indexImage(int offset, vector<MtzPtr> *mtzSubset)
 {
+    
     for (int i = offset; i < images.size(); i+= MAX_THREADS)
     {/*
         Image *newImage = images[i];
@@ -1670,9 +1671,7 @@ void MtzRefiner::indexImage(int offset, vector<MtzPtr> *mtzSubset)
         mtzSubset->push_back(manager);
         
         newImage->dropImage();*/
-        
-        Image *newImage = images[i];
-        newImage->compileDistancesFromSpots();
+
     }
 }
 
@@ -1689,18 +1688,22 @@ void MtzRefiner::index()
     mtzSubsets.resize(MAX_THREADS);
     
     boost::thread_group threads;
-    
+    /*
     for (int i = 0; i < MAX_THREADS; i++)
     {
         boost::thread *thr = new boost::thread(indexImageWrapper, this, i, &mtzSubsets[i]);
         threads.add_thread(thr);
     }
     
-    threads.join_all();
+    threads.join_all();*/
     
-    std::cout << "Images size: " << images.size() << std::endl;
+    IndexManager *indexManager = new IndexManager(images);
     
-    mtzManagers.reserve(images.size());
+    indexManager->index();
+    
+    mtzManagers = indexManager->getMtzs();
+    
+/*    mtzManagers.reserve(images.size());
     
     unsigned int position = 0;
     
@@ -1710,9 +1713,18 @@ void MtzRefiner::index()
         position += mtzSubsets[i].size();
     }
     
-    std::cout << "Mtzs: " << mtzManagers.size() << std::endl;
+    std::cout << "Mtzs: " << mtzManagers.size() << std::endl;*/
     
-    writeNewOrientations();
+    for (int i = 0; i < images.size(); i++)
+    {
+        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
+        {
+            images[i]->getIOMRefiner(j)->refinementSummary();
+            
+        }
+    }
+    
+    writeNewOrientations(false, true);
 }
 
 // MARK: Miscellaneous

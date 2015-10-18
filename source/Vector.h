@@ -12,13 +12,9 @@
 #include <boost/tuple/tuple.hpp>
 #include "parameters.h"
 
-typedef struct
-{
-	double h;
-	double k;
-	double l;
-} vec;
 
+vec reverseVector(vec vec1);
+bool vectors_are_equal(vec vec1, vec vec2);
 bool within_vicinity(vec vec1, vec vec2, double maxD);
 vec cross_product_for_vectors(vec vec1, vec vec2);
 double dot_product_for_vectors(vec vec1, vec vec2);
@@ -34,6 +30,8 @@ void take_vector_away_from_vector(vec vec1, vec *vec2);
 void scale_vector_to_distance(vec *vec, double new_distance);
 vec perpendicular_for_vectors(vec vec1, vec vec2);
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2);
+MatrixPtr rotation_between_vectors_custom_cross(vec vec1, vec vec2, vec chosenCrossProduct);
+MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle);
 
 double getEwaldSphereNoMatrix(vec index);
 double getEwaldWeightForAxis(vec index, bool isH);

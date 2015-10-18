@@ -13,8 +13,8 @@
 #include "parameters.h"
 #include "Logger.h"
 #include "csymlib.h"
+#include "SpotVector.h"
 
-class CommonLine;
 class IOMRefiner;
 class ImageCluster;
 
@@ -48,11 +48,8 @@ private:
 	double wavelength;
 	bool pinPoint;
 
-    vector<SpotPtr> spots;
-    vector<CommonLinePtr> commonLines;
-    vector<CommonLinePair> commonLinePairs;
-    vector<CommonCirclePtr> commonCircles;
-    vector<CommonCirclePair> commonCirclePairs;
+    std::vector<SpotPtr> spots;
+    std::vector<SpotVectorPtr> spotVectors;
     double commonCircleThreshold;
     bool _hasSeeded;
     std::map<ImageCluster *, bool> unexpectedMatches;
@@ -136,7 +133,21 @@ public:
     
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
-    void compileDistancesFromSpots();
+    void compileDistancesFromSpots(double maxReciprocalDistance);
+    
+    int spotVectorCount()
+    {
+        return (int)spotVectors.size();
+    }
+    
+    int spotCount()
+    {
+        return (int)spots.size();
+    }
+    SpotVectorPtr spotVector(int i)
+    {
+        return spotVectors[i];
+    }
     
     bool hasSeeded()
     {
@@ -156,6 +167,17 @@ public:
     IOMRefinerPtr getIOMRefiner(int i)
     {
         return indexers[i];
+    }
+    
+    void addIOMRefiner(IOMRefinerPtr newRefiner)
+    {
+        indexers.push_back(newRefiner);
+    }
+    
+    void clearIOMRefiners()
+    {
+        indexers.clear();
+        std::vector<IOMRefinerPtr>().swap(indexers);
     }
     
 	int getXDim() const

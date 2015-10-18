@@ -159,6 +159,8 @@ void Reflection::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group
     if (hasSetup)
         return;
     
+    std::cout << hallSymbol << std::endl;
+    
     spaceGroup = space_group(hallSymbol);
     spgType = newSpgType;
     asymmetricUnit = newAsymmetricUnit;
@@ -168,12 +170,12 @@ void Reflection::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group
 
 void Reflection::setSpaceGroup(int spaceGroupNum)
 {
-    if (hasSetup)
-        return;
-    
     spgNum = spaceGroupNum;
     space_group_symbols spaceGroupSymbol = space_group_symbols(spaceGroupNum);
     std::string hallSymbol = spaceGroupSymbol.hall();
+    
+    if (hasSetup)
+        return;
     
     spaceGroup = space_group(hallSymbol);
     spgType = cctbx::sgtbx::space_group_type(spaceGroup);
@@ -218,7 +220,6 @@ void Reflection::generateReflectionIds()
         
         asym_index asymmetricMiller = asym_index(spaceGroup, asymmetricUnit, cctbxTwinnedMiller);
         
-        
     //    sym_equiv_indices equivMaker = sym_equiv_indices(spaceGroup, cctbxTwinnedMiller);
     //    cctbx::miller::index<> asymmetricMiller = equivMaker(0).h();
        
@@ -228,6 +229,22 @@ void Reflection::generateReflectionIds()
         reflectionIds.push_back(newId);
     }
 }
+
+void Reflection::setUnitCellDouble(double *theUnitCell)
+{
+    scitbx::af::double6 params;
+    params[0] = theUnitCell[0];
+    params[1] = theUnitCell[1];
+    params[2] = theUnitCell[2];
+    params[3] = theUnitCell[3];
+    params[4] = theUnitCell[4];
+    params[5] = theUnitCell[5];
+    
+    unitCell = cctbx::uctbx::unit_cell(params);
+    
+    setupUnitCell = true;
+}
+
 
 void Reflection::setUnitCell(float *theUnitCell)
 {
