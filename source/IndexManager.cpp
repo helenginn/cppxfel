@@ -12,6 +12,7 @@
 #include "MtzManager.h"
 #include "Logger.h"
 #include <algorithm>
+#include "parameters.h"
 
 IndexManager::IndexManager(std::vector<Image *> newImages)
 {
@@ -104,6 +105,8 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     
     for (int i = offset; i < indexer->images.size(); i += maxThreads)
     {
+        logged << "Starting image " << i << std::endl;
+        
         indexer->images[i]->compileDistancesFromSpots(indexer->maxDistance);
        
         std::vector<Match> possibleMatches;
