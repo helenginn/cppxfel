@@ -27,7 +27,7 @@ if (not env_etc.no_boost_python and hasattr(env_etc, "boost_adaptbx_include")):
 		"boost_python",
 		"cctbx",
 		"ccp4io"])
-    env.Replace(SHCCFLAGS=['-std=c++0x', '-O3', '-fPIC'])
+    env.Append(SHCCFLAGS=['-std=c++0x'])
     
 if env_etc.clang_version:
   wd = ["-Wno-unused-variable"]
@@ -61,6 +61,7 @@ source = [
 'source/ScalingManager.cpp',
 'source/Shoebox.cpp',
 'source/Spot.cpp',
+'source/SpotVector.cpp',
 'source/StatisticsManager.cpp',
 'source/Vector.cpp',
 'source/Wiki.cpp',
