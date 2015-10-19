@@ -306,6 +306,7 @@ void FileParser::generateFunctionList()
     parserMap["MINIMUM_TRUST_DISTANCE"] = simpleFloat;
     parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;
     parserMap["REJECT_CLOSE_SPOTS"] = simpleBool;
+    parserMap["THOROUGH_SOLUTION_SEARCHING"] = simpleBool;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     parserMap["CLUSTER_MERGE_THRESHOLD"] = simpleFloat;

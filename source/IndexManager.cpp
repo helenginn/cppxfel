@@ -169,6 +169,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         logged << "Total possible vector matches: " << possibleMatches.size() << std::endl;
         Logger::mainLogger->addStream(&logged); logged.str("");
         
+        bool thorough_searching = FileParser::getKey("THOROUGH_SOLUTION_SEARCHING", false);
         
         for (int j = 0; j < possibleMatches.size() && j < 3000; j++)
         {
@@ -253,7 +254,8 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                         
                         possibleSolutions.push_back(fullMat);
                       
-                        j++;
+                        if (!thorough_searching)
+                            j++;
                     }
                 }
             }
