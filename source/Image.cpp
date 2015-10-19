@@ -1034,9 +1034,11 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
 
 void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance)
 {
+    bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
+    
     for (int i = 0; i < spots.size(); i++)
     {
-        if (spots[i]->isRejected())
+        if (spots[i]->isRejected() && rejectCloseSpots)
         {
             i++;
             continue;
@@ -1058,7 +1060,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
             
             bool tooClose = within_vicinity(spotPos1, spotPos2, tooCloseDistance);
             
-            if (tooClose)
+            if (tooClose && rejectCloseSpots)
             {
                 spots[j]->setRejected();
                 spots[i]->setRejected();
