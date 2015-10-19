@@ -173,7 +173,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         for (int j = 0; j < possibleMatches.size() && j < 3000; j++)
         {
-            for (int k = j + 1; k < possibleMatches.size() && j < 3000; k++)
+            for (int k = j + 1; k < possibleMatches.size() && k < 3000; k++)
             {
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair1 = possibleMatches[j].first;
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair2 = possibleMatches[k].first;
@@ -261,9 +261,6 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             }
         }
         
-        if (possibleSolutions.size() == 0)
-            continue;
-        
         // dummy Reflection to give us indexing ambiguity info
         
         MillerPtr miller = MillerPtr(new Miller(NULL, 0, 0, 0));
@@ -274,6 +271,9 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         logged << "Indexing ambiguities for this space group: " << newReflection->ambiguityCount() << std::endl;
         logged << possibleSolutions.size() << " total solutions for image " << indexer->images[i]->getFilename() << std::endl;
+        
+        if (possibleSolutions.size() == 0)
+            continue;
         
         std::ostringstream dummyVecStr;
         

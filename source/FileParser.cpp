@@ -309,9 +309,6 @@ void FileParser::generateFunctionList()
     parserMap["THOROUGH_SOLUTION_SEARCHING"] = simpleBool;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
-    parserMap["CLUSTER_MERGE_THRESHOLD"] = simpleFloat;
-    parserMap["CLUSTER_CYCLES"] = simpleInt;
-    parserMap["COMMON_LINE_ANGLE_TOLERANCE"] = simpleFloat;
     
     parserMap["PIXEL_TOLERANCE"] = simpleFloat;
     parserMap["MINIMUM_CIRCLE_SPOTS"] = simpleInt;
