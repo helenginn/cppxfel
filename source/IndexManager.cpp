@@ -45,6 +45,11 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
     
     unitCellMatrixInverse = unitCellMatrix->inverse3DMatrix();
     
+    minimumTrustAngle = FileParser::getKey("MINIMUM_TRUST_ANGLE", 1.0);
+    minimumTrustDistance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
+
+    solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0);
+    
     maxDistance = 0;
     
     for (int i = -5; i <= 5; i++)
@@ -97,8 +102,8 @@ bool greater_than_scored_matrix(std::pair<MatrixPtr, double> a, std::pair<Matrix
 
 void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset)
 {
-    double angleTolerance = 1.0 * M_PI / 180;
-    double trustTolerance = 5000;
+    double angleTolerance = indexer->minimumTrustAngle * M_PI / 180;
+    double trustTolerance = indexer->minimumTrustDistance;
     int maxThreads = FileParser::getMaxThreads();
     
     std::ostringstream logged;
@@ -287,7 +292,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                     bMat->multiplyVector(&bDummyVec);
                     
                     double angle = fabs(angleBetweenVectors(aDummyVec, bDummyVec));
-                    double tolerance = 8 * M_PI / 180;
+                    double tolerance = indexer->solutionAngleSpread * M_PI / 180;
                     
                     if (angle < tolerance)
                     {

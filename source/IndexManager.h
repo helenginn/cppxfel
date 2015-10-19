@@ -30,6 +30,9 @@ protected:
     CSym::CCP4SPG *spaceGroup;
     int spaceGroupNum;
     std::vector<MtzPtr> mtzs;
+    double minimumTrustDistance;
+    double minimumTrustAngle;
+    double solutionAngleSpread;
     
     double maxDistance;
     std::ostringstream logged;

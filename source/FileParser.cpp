@@ -302,6 +302,10 @@ void FileParser::generateFunctionList()
     parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
     parserMap["SKIP_BAD_PIXELS"] = simpleBool;
 
+    parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
+    parserMap["MINIMUM_TRUST_DISTANCE"] = simpleFloat;
+    parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;
+    
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     parserMap["CLUSTER_MERGE_THRESHOLD"] = simpleFloat;
     parserMap["CLUSTER_CYCLES"] = simpleInt;
