@@ -171,9 +171,11 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         bool thorough_searching = FileParser::getKey("THOROUGH_SOLUTION_SEARCHING", false);
         
-        for (int j = 0; j < possibleMatches.size() && j < 3000; j++)
+        double maxSearchNumber = FileParser::getKey("MAX_SEARCH_NUMBER", 3000);
+        
+        for (int j = 0; j < possibleMatches.size() && j < maxSearchNumber; j++)
         {
-            for (int k = j + 1; k < possibleMatches.size() && k < 3000; k++)
+            for (int k = j + 1; k < possibleMatches.size() && k < maxSearchNumber; k++)
             {
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair1 = possibleMatches[j].first;
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair2 = possibleMatches[k].first;
