@@ -283,7 +283,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         Logger::mainLogger->addStream(&logged); logged.str("");
         
-        for (int j = 0; j < possibleSolutions.size(); j++)
+        for (int j = 0; j < possibleSolutions.size() && j < maxSearchNumber; j++)
         {
             MatrixPtr aMat = possibleSolutions[j];
             vec aDummyVec = new_vector(1, 0, 0);

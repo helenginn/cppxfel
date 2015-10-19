@@ -22,6 +22,7 @@
 ParametersMap FileParser::parameters;
 std::ostringstream FileParser::log;
 int FileParser::threadsFound = 0;
+char FileParser::splitChar = ' ';
 
 int FileParser::getMaxThreads()
 {
@@ -107,9 +108,9 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
 }
 
 void FileParser::doubleVector(ParametersMap *map, std::string command,
-		std::string rest)
+                              std::string rest)
 {
-	vector<std::string> components = FileReader::split(rest, ' ');
+	vector<std::string> components = FileReader::split(rest, splitChar);
 	vector<double> doubleVector;
 
 	log << "Setting " << command << " to ";
@@ -129,7 +130,7 @@ void FileParser::doubleVector(ParametersMap *map, std::string command,
 void FileParser::intVector(ParametersMap *map, std::string command,
 		std::string rest)
 {
-	vector<std::string> components = FileReader::split(rest, ' ');
+	vector<std::string> components = FileReader::split(rest, splitChar);
 	vector<int> intVector;
 
 	log << "Setting " << command << " to ";
