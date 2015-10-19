@@ -35,6 +35,7 @@ protected:
     double solutionAngleSpread;
     
     double maxDistance;
+    double smallestDistance;
     std::ostringstream logged;
     std::vector<VectorDistance> vectorDistances;
 public:

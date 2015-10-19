@@ -79,6 +79,15 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
         }
     }
     
+    smallestDistance = FLT_MAX;
+    
+    if (1 / unitCell[0] < smallestDistance)
+        smallestDistance = 1 / unitCell[0];
+    if (1 / unitCell[1] < smallestDistance)
+        smallestDistance = 1 / unitCell[1];
+    if (1 / unitCell[2] < smallestDistance)
+        smallestDistance = 1 / unitCell[2];
+    
     for (int i = 0; i < vectorDistances.size(); i++)
     {
         logged << vectorDistances[i].first.h << "\t"
@@ -112,7 +121,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     {
         logged << "Starting image " << i << std::endl;
         
-        indexer->images[i]->compileDistancesFromSpots(indexer->maxDistance);
+        indexer->images[i]->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance);
        
         std::vector<Match> possibleMatches;
         std::vector<MatrixPtr> possibleSolutions;
@@ -161,9 +170,9 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         Logger::mainLogger->addStream(&logged); logged.str("");
         
         
-        for (int j = 0; j < possibleMatches.size(); j++)
+        for (int j = 0; j < possibleMatches.size() && j < 3000; j++)
         {
-            for (int k = j + 1; k < possibleMatches.size(); k++)
+            for (int k = j + 1; k < possibleMatches.size() && j < 3000; k++)
             {
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair1 = possibleMatches[j].first;
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair2 = possibleMatches[k].first;

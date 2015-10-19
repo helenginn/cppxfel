@@ -133,7 +133,7 @@ public:
     
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
-    void compileDistancesFromSpots(double maxReciprocalDistance);
+    void compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance);
     
     int spotVectorCount()
     {

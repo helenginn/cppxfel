@@ -1032,18 +1032,39 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
     }
 }
 
-void Image::compileDistancesFromSpots(double maxReciprocalDistance)
+void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance)
 {
     for (int i = 0; i < spots.size(); i++)
     {
+        if (spots[i]->isRejected())
+        {
+            i++;
+            continue;
+        }
+        
         vec spotPos1 = spots[i]->estimatedVector();
         
         for (int j = i + 1; j < spots.size(); j++)
         {
+            if (spots[j]->isRejected())
+            {
+                j++;
+                continue;
+            }
+
             vec spotPos2 = spots[j]->estimatedVector();
             
             bool close = within_vicinity(spotPos1, spotPos2, maxReciprocalDistance);
             
+            bool tooClose = within_vicinity(spotPos1, spotPos2, tooCloseDistance);
+            
+            if (tooClose)
+            {
+                spots[j]->setRejected();
+                spots[i]->setRejected();
+                i++;
+            }
+
             if (close)
             {
                 SpotVectorPtr newVec = SpotVectorPtr(new SpotVector(spots[i], spots[j]));

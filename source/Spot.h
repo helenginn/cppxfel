@@ -26,6 +26,7 @@ private:
     int successfulCommonLines;
     double correctedX; double correctedY;
     double x; double y;
+    bool rejected;
     
 public:
 	Spot(Image *image);
@@ -52,6 +53,16 @@ public:
     Coord getRawXY();
     vec estimatedVector();
 
+    void setRejected(bool isRejected = true)
+    {
+        rejected = isRejected;
+    }
+    
+    bool isRejected()
+    {
+        return rejected;
+    }
+    
     int successfulLineCount()
     {
         return successfulCommonLines;
