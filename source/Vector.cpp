@@ -131,7 +131,7 @@ MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, do
         
         if (angleDiff < 10 && !divided)
         {
-            step /= 10;
+            step /= 100;
             divided = true;
         }
         

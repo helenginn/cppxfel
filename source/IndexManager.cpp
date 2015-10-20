@@ -173,9 +173,9 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         double maxSearchNumber = FileParser::getKey("MAX_SEARCH_NUMBER", 3000);
         
-        for (int j = 0; j < possibleMatches.size() && j < maxSearchNumber; j++)
+        for (int j = 0; j < possibleMatches.size(); j++)
         {
-            for (int k = j + 1; k < possibleMatches.size() && k < maxSearchNumber; k++)
+            for (int k = j + 1; k < possibleMatches.size(); k++)
             {
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair1 = possibleMatches[j].first;
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair2 = possibleMatches[k].first;
@@ -247,7 +247,6 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                         SpotPtr pair2Spot1 = observed2->getFirstSpot();
                         SpotPtr pair2Spot2 = observed2->getSecondSpot();
                         
-                        
                         MatrixPtr rotateFinalMatrix = combinedMatrix->inverse3DMatrix();
                         rotateFinalMatrix->rotate(0, 0, -M_PI/2);
                         
@@ -316,11 +315,13 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             }
             
             logged << j << "\t" << score << "\t" << count << std::endl;
+            dummyVecStr << aDummyVec.h << "\t" << aDummyVec.k << "\t" << aDummyVec.l << std::endl;
             
             scoredSolutions.push_back(std::make_pair(aMat, score));
         }
         
         Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
+        Logger::mainLogger->addStream(&dummyVecStr, LogLevelDetailed); dummyVecStr.str("");
         
         std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
         
