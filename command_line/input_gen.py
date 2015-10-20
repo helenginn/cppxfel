@@ -260,5 +260,18 @@ outputFile.close()
 print "New template input file integrate.txt"
 print "Please check your target unit cell and space group"
 
+refineTxt = StringIO.StringIO()
+
+print >> refineTxt, "ORIENTATION_MATRIX_LIST refine-orientations.dat"
+print >> refineTxt, "NEW_MATRIX_LIST refined.dat\n"
+print >> refineTxt, "\nPARTIALITY_CUTOFF 0.2\n"
+print >> refineTxt, "COMMANDS\n"
+print >> refineTxt, "REFINE_PARTIALITY"
+
+outputFilename = "refine.txt"
+outputFile = open(outputFilename, 'w')
+print >>outputFile, refineTxt.getvalue()
+outputFile.close()
+
 if distance == 0:
 	print "You MUST change the experimental parameters in integrate.txt"
