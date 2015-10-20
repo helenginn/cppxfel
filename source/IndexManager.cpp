@@ -50,13 +50,14 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
 
     solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0);
     
+    maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
     maxDistance = 0;
     
-    for (int i = -5; i <= 5; i++)
+    for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
     {
-        for (int j = -5; j <= 5; j++)
+        for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
         {
-            for (int k = -5; k <= 5; k++)
+            for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
             {
                 if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
                     continue;
@@ -64,7 +65,7 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
                 
-                if (length_of_vector(hkl) > 4)
+                if (length_of_vector(hkl) > maxMillerIndexTrial)
                     continue;
                 
                 unitCellMatrix->multiplyVector(&hkl_transformed);
@@ -171,11 +172,13 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         bool thorough_searching = FileParser::getKey("THOROUGH_SOLUTION_SEARCHING", false);
         
-        double maxSearchNumber = FileParser::getKey("MAX_SEARCH_NUMBER", 3000);
+        double maxSearchNumberMatches = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 5000);
+        double maxSearchNumberSolutions = FileParser::getKey("MAX_SEARCH_NUMBER_SOLUTIONS", 8000);
         
-        for (int j = 0; j < possibleMatches.size(); j++)
+        
+        for (int j = 0; j < possibleMatches.size() && j < maxSearchNumberMatches; j++)
         {
-            for (int k = j + 1; k < possibleMatches.size(); k++)
+            for (int k = j + 1; k < possibleMatches.size() && k < maxSearchNumberMatches; k++)
             {
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair1 = possibleMatches[j].first;
                 std::pair<SpotVectorPtr, VectorDistance> vectorPair2 = possibleMatches[k].first;
@@ -282,7 +285,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         Logger::mainLogger->addStream(&logged); logged.str("");
         
-        for (int j = 0; j < possibleSolutions.size() && j < maxSearchNumber; j++)
+        for (int j = 0; j < possibleSolutions.size() && j < maxSearchNumberSolutions; j++)
         {
             MatrixPtr aMat = possibleSolutions[j];
             vec aDummyVec = new_vector(1, 0, 0);
@@ -290,7 +293,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             double score = 0;
             int count = 0;
             
-            for (int k = 0; k < possibleSolutions.size(); k++)
+            for (int k = 0; k < possibleSolutions.size() && k < maxSearchNumberSolutions; k++)
             {
                 MatrixPtr bMat = possibleSolutions[k];
                 
@@ -308,14 +311,26 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                     
                     if (angle < tolerance)
                     {
-                        score += tolerance - angle;
+                        double addition = pow(tolerance - angle, 2);
+                        score += addition;
                         count++;
                     }
                 }
             }
             
             logged << j << "\t" << score << "\t" << count << std::endl;
-            dummyVecStr << aDummyVec.h << "\t" << aDummyVec.k << "\t" << aDummyVec.l << std::endl;
+            
+            for (int l = 0; l < newReflection->ambiguityCount(); l++)
+            {
+                MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
+                
+                vec bDummyVec = new_vector(1, 0, 0);
+                
+                ambiguity->multiplyVector(&bDummyVec);
+                aMat->multiplyVector(&bDummyVec);
+                
+                dummyVecStr << bDummyVec.h << "\t" << bDummyVec.k << "\t" << bDummyVec.l << std::endl;
+            }
             
             scoredSolutions.push_back(std::make_pair(aMat, score));
         }
@@ -326,6 +341,12 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
         
         logged << "Highest scored solution: " << scoredSolutions[0].second << std::endl;
+        
+        MatrixPtr solution = scoredSolutions[0].first;
+        vec aDummyVec = new_vector(1, 0, 0);
+        solution->multiplyVector(&aDummyVec);
+        
+        logged << "Chosen matrix vector:\t" << aDummyVec.h << "\t" << aDummyVec.k << "\t" << aDummyVec.l << std::endl;
         Logger::mainLogger->addStream(&logged); logged.str("");
         
         indexer->images[i]->setUpIOMRefiner(scoredSolutions[0].first);

@@ -34,6 +34,7 @@ protected:
     double minimumTrustAngle;
     double solutionAngleSpread;
     
+    double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;
     std::ostringstream logged;

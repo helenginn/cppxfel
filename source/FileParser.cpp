@@ -308,7 +308,9 @@ void FileParser::generateFunctionList()
     parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;
     parserMap["REJECT_CLOSE_SPOTS"] = simpleBool;
     parserMap["THOROUGH_SOLUTION_SEARCHING"] = simpleBool;
-    parserMap["MAX_SEARCH_NUMBER"] = simpleInt;
+    parserMap["MAX_SEARCH_NUMBER_MATCHES"] = simpleInt;
+    parserMap["MAX_SEARCH_NUMBER_SOLUTIONS"] = simpleInt;
+    parserMap["MAX_MILLER_INDEX_TRIAL"] = simpleInt;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     
