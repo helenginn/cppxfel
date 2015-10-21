@@ -50,16 +50,16 @@ def indexImages(images):
 	if os.path.isfile(find_spots_phil):
 		find_spots_options_file = open(find_spots_phil, 'r')
 		find_spots_options = find_spots_options_file.read()
-
-		find_spots_options.replace("\n", "")
-		print "Find spots options: ", find_spots_options
+	
+	find_spots_options = find_spots_options.replace("\n", "")
+	print "Find spots options: ", find_spots_options
 	
 	index_options = ""
 	if os.path.isfile(index_phil):
 		index_options_file = open(index_phil, 'r')
 		index_options = index_options_file.read()
 
-	index_options.replace("\n", "")
+	index_options = index_options.replace("\n", "")
 
 	print "Index options: ", index_options
 
