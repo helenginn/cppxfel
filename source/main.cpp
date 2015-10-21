@@ -59,7 +59,14 @@ void new_main(int argc, char *argv[])
 			exit(1);
 		}
 
-        InputFileParser *parser = new InputFileParser(std::string(argv[2]));
+        std::vector<std::string> extras;
+        
+        for (int i = 3; i < argc; i++)
+        {
+            extras.push_back(std::string(argv[i]));
+        }
+        
+        InputFileParser *parser = new InputFileParser(std::string(argv[2]), extras);
 		parser->parse(false);
         
         delete parser;

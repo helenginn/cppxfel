@@ -33,6 +33,7 @@ protected:
 	static void intVector(ParametersMap *map, std::string command,
 			std::string rest);
 
+    std::vector<std::string> extras;
     static char splitChar;
     static int threadsFound;
 	std::string filename;

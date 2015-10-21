@@ -360,7 +360,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
         
-        for (int j = 0; j < 20 && scoredSolutions.size() > 0; j++)
+        for (int j = 0; j < 20 && j < scoredSolutions.size(); j++)
         {
             MatrixPtr solution = scoredSolutions[0].first;
             vec aDummyVec = new_vector(1, 0, 0);

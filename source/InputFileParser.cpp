@@ -12,9 +12,9 @@
 #include "Logger.h"
 //#include <boost/python.hpp>
 
-InputFileParser::InputFileParser(std::string filename) : FileParser(filename)
+InputFileParser::InputFileParser(std::string filename, std::vector<std::string> someExtras) : FileParser(filename)
 {
-    // TODO Auto-generated constructor stub
+    extras = someExtras;
 }
 
 InputFileParser::~InputFileParser()

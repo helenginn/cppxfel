@@ -26,7 +26,7 @@ public:
     virtual void parseFromPython();
 	virtual void parse(bool fromPython = false);
 
-	InputFileParser(std::string filename);
+	InputFileParser(std::string filename, std::vector<std::string> extras = std::vector<std::string>());
 	virtual ~InputFileParser();
     /*
     void setPythonSelf(boost::python::object object)
