@@ -86,7 +86,7 @@ def indexImages(images):
 
 		if skip == False:
 			command = "dials.find_spots " + rootname + ".json output.reflections=_" + rootname + "_strong.pickle "
-			command += find_spots_options
+			command += find_spots_options + " | tee " + rootname + ".find_spots.log"
 			print "Executing command:", command
 			os.system(command)
 		else:
@@ -95,7 +95,7 @@ def indexImages(images):
 		command = "dials.index " + rootname + ".json _" + rootname + "_strong.pickle "
 		command += " output.reflections=_" + rootname + "_indexed.pickle "
 		command += "output.experiments=_" + rootname + "_experiments.json "
-		command += index_options
+		command += index_options + " | tee " + rootname + ".index.log"
 		print "Executing command:", command
 	
 		os.system(command)
