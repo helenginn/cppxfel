@@ -14,6 +14,7 @@
 #include "parameters.h"
 #include <cctbx/miller.h>
 #include <scitbx/mat3.h>
+#include "csymlib.h"
 
 class Matrix
 {
@@ -52,7 +53,8 @@ public:
     MatrixPtr inverse3DMatrix();
     Matrix transpose();
     cctbx::miller::index<double> multiplyIndex(cctbx::miller::index<> *index);
-
+    static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup);
+    
     void translate(double x, double y, double z);
     void rotateHK(double hRot, double kRot);
     void rotateABC(MatrixPtr oldMatrix, double aRot, double bRot, double cRot);

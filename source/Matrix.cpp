@@ -9,6 +9,7 @@
 #include "Matrix.h"
 #include <cmath>
 #include <cstdlib>
+#include "csymlib.h"
 #include <cstring>
 #include "Vector.h"
 #include "misc.h"
@@ -75,21 +76,37 @@ std::string Matrix::description(bool detailed, bool submatrix)
 	description << components[0] << " ";
 	description << components[4] << " ";
 	description << components[8] << " ";
- //   description << components[12] << " ";
 	description << components[1] << " ";
 	description << components[5] << " ";
 	description << components[9] << " ";
- //   description << components[13] << " ";
 	description << components[2] << " ";
 	description << components[6] << " ";
 	description << components[10] << " ";
-  //  description << components[14] << " ";
-   // description << components[3] << " ";
-  //  description << components[7] << " ";
-  //  description << components[11] << " ";
-  //  description << components[15] << " ";
 
 	return description.str();
+}
+
+void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup)
+{
+    int symmetryOperatorCount = spaceGroup->nsymop;
+    
+    for (int i = 0; i < symmetryOperatorCount; i++)
+    {
+        CSym::ccp4_symop symop = spaceGroup->symop[i];
+        MatrixPtr newMat = MatrixPtr(new Matrix());
+        
+        newMat->components[0] = symop.rot[0][0];
+        newMat->components[4] = symop.rot[0][1];
+        newMat->components[8] = symop.rot[0][2];
+        newMat->components[1] = symop.rot[1][0];
+        newMat->components[5] = symop.rot[1][1];
+        newMat->components[9] = symop.rot[1][2];
+        newMat->components[2] = symop.rot[2][0];
+        newMat->components[6] = symop.rot[2][1];
+        newMat->components[10] = symop.rot[2][2];
+        
+        matrices->push_back(newMat);
+    }
 }
 
 void Matrix::printDescription(bool detailed)

@@ -115,6 +115,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     double angleTolerance = indexer->minimumTrustAngle * M_PI / 180;
     double trustTolerance = indexer->minimumTrustDistance;
     int maxThreads = FileParser::getMaxThreads();
+    double finalTolerance = indexer->solutionAngleSpread * M_PI / 180;
     
     std::ostringstream logged;
     
@@ -238,8 +239,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                         combinedMatrix->multiplyVector(&possibleMiller);
                         indexer->unitCellMatrixInverse->multiplyVector(&possibleMiller);
                         
-                        logged << "Possible pair of matches " << j << ", " << k << std::endl;
-                        logged << "Relative Millers (" << simulatedVec1.h << ", " << simulatedVec1.k << ", " << simulatedVec1.l << ") and (" << simulatedVec2.h << ", " << simulatedVec2.k << ", " << simulatedVec2.l << ") from trusts " << possibleMatches[j].second << " and " << possibleMatches[k].second << std::endl;
+                        logged << "Relative Millers (" << simulatedVec1.h << ", " << simulatedVec1.k << ", " << simulatedVec1.l << ") and (" << simulatedVec2.h << ", " << simulatedVec2.k << ", " << simulatedVec2.l << ") from trusts " << possibleMatches[j].second << " and " << possibleMatches[k].second << " with angles " << angleDiff * 180 / M_PI << ", " << resultantAngle * 180 / M_PI << std::endl;
 
                         Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
                     
@@ -285,6 +285,18 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         Logger::mainLogger->addStream(&logged); logged.str("");
         
+        int ambiguityCount = newReflection->ambiguityCount();
+        std::vector<MatrixPtr> symOperators;
+        Matrix::symmetryOperatorsForSpaceGroup(&symOperators, indexer->spaceGroup);
+        
+        for (int m = 0; m < symOperators.size(); m++)
+        {
+            MatrixPtr symOperator = symOperators[m];
+            logged << "Symop: " << symOperator->description() << std::endl;
+        }
+        
+        Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
+        
         for (int j = 0; j < possibleSolutions.size() && j < maxSearchNumberSolutions; j++)
         {
             MatrixPtr aMat = possibleSolutions[j];
@@ -297,30 +309,35 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             {
                 MatrixPtr bMat = possibleSolutions[k];
                 
-                for (int l = 0; l < newReflection->ambiguityCount(); l++)
+                for (int m = 0; m < symOperators.size(); m++)
                 {
-                    MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
+                    MatrixPtr symOperator = symOperators[m];
                     
-                    vec bDummyVec = new_vector(1, 0, 0);
-                    
-                    ambiguity->multiplyVector(&bDummyVec);
-                    bMat->multiplyVector(&bDummyVec);
-                    
-                    double angle = fabs(angleBetweenVectors(aDummyVec, bDummyVec));
-                    double tolerance = indexer->solutionAngleSpread * M_PI / 180;
-                    
-                    if (angle < tolerance)
+                    for (int l = 0; l < ambiguityCount; l++)
                     {
-                        double addition = pow(tolerance - angle, 2);
-                        score += addition;
-                        count++;
+                        MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
+                        
+                        vec bDummyVec = new_vector(1, 0, 0);
+                        
+                        ambiguity->multiplyVector(&bDummyVec);
+                        symOperator->multiplyVector(&bDummyVec);
+                        bMat->multiplyVector(&bDummyVec);
+                        
+                        double angle = fabs(angleBetweenVectors(aDummyVec, bDummyVec));
+                        
+                        if (angle < finalTolerance)
+                        {
+                            double addition = pow(finalTolerance - angle, 2);
+                            score += addition;
+                            count++;
+                        }
                     }
                 }
             }
             
             logged << j << "\t" << score << "\t" << count << std::endl;
             
-            for (int l = 0; l < newReflection->ambiguityCount(); l++)
+            for (int l = 0; l < ambiguityCount; l++)
             {
                 MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
                 
@@ -338,21 +355,123 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
         Logger::mainLogger->addStream(&dummyVecStr, LogLevelDetailed); dummyVecStr.str("");
         
-        std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
+        std::vector<MatrixPtr> chosenSolutions;
         
-        logged << "Highest scored solution: " << scoredSolutions[0].second << std::endl;
+        for (int j = 0; j < 6 && scoredSolutions.size() > 0; j++)
+        {
+            std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
+            logged << "Highest scored solution: " << scoredSolutions[0].second << std::endl;
         
-        MatrixPtr solution = scoredSolutions[0].first;
-        vec aDummyVec = new_vector(1, 0, 0);
-        solution->multiplyVector(&aDummyVec);
+            MatrixPtr solution = scoredSolutions[0].first;
+            vec aDummyVec = new_vector(1, 0, 0);
+            solution->multiplyVector(&aDummyVec);
+            
+            chosenSolutions.push_back(scoredSolutions[0].first);
+            
+            for (int k = 1; k < scoredSolutions.size(); k++)
+            {
+                MatrixPtr secondSol = scoredSolutions[k].first;
+                
+                for (int l = 0; l < 1; l++)
+                {
+                    MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
+                    
+                    vec bDummyVec = new_vector(1, 0, 0);
+            //        ambiguity->multiplyVector(&bDummyVec);
+                    secondSol->multiplyVector(&bDummyVec);
+                    
+                    double angle = angleBetweenVectors(aDummyVec, bDummyVec);
+                    
+                    if (angle < finalTolerance)
+                    {
+                        scoredSolutions.erase(scoredSolutions.begin() + k);
+                        k--;
+                        break;
+                    }
+                }
+            }
+            
+            scoredSolutions.erase(scoredSolutions.begin());
+        }
+        /*
+        // weed out duplicates
         
-        logged << "Chosen matrix vector:\t" << aDummyVec.h << "\t" << aDummyVec.k << "\t" << aDummyVec.l << std::endl;
+        for (int j = 0; j < chosenSolutions.size(); j++)
+        {
+            MatrixPtr chosenSolution = chosenSolutions[j];
+            vec aDummyVec = new_vector(1, 0, 0);
+            chosenSolution->multiplyVector(&aDummyVec);
+            
+            for (int m = j + 1; m < chosenSolutions.size(); m++)
+            {
+                MatrixPtr otherSolution = chosenSolutions[m];
+                
+                bool erase = false;
+                
+                for (int k = 0; k < symOperators.size(); k++)
+                {
+                    MatrixPtr symOperator = symOperators[k];
+                    logged << "Symop: " << symOperator->description() << std::endl;
+                    
+                    for (int l = 0; l < ambiguityCount; l++)
+                    {
+                        MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
+                        
+                        vec bDummyVec = new_vector(1, 0, 0);
+                        otherSolution->multiplyVector(&bDummyVec);
+                        symOperator->multiplyVector(&bDummyVec);
+                        ambiguity->multiplyVector(&bDummyVec);
+                        
+                        double angle = angleBetweenVectors(aDummyVec, bDummyVec);
+                        
+                        if (angle < finalTolerance)
+                        {
+                            logged << "Erasing identical solution due to symop " << k << " and ambiguity " << l << std::endl;
+
+                            erase = true;
+                        }
+                    }
+                }
+                
+                if (erase == true)
+                {
+                    chosenSolutions.erase(chosenSolutions.begin() + m);
+                }
+            }
+        }*/
+        
+        for (int j = 0; j < chosenSolutions.size(); j++)
+        {
+            MatrixPtr solution = chosenSolutions[j];
+            vec aDummyVec = new_vector(1, 0, 0);
+            solution->multiplyVector(&aDummyVec);
+            
+            logged << "Chosen matrix vector:\t" << aDummyVec.h << "\t" << aDummyVec.k << "\t" << aDummyVec.l << std::endl;
+            Logger::mainLogger->addStream(&logged); logged.str("");
+            
+        }
+        
         Logger::mainLogger->addStream(&logged); logged.str("");
         
-        indexer->images[i]->setUpIOMRefiner(scoredSolutions[0].first);
-        IOMRefinerPtr refiner = indexer->images[i]->getIOMRefiner(0);
-        refiner->refineOrientationMatrix();
-        mtzSubset->push_back(refiner->newMtz(0));
+        for (int j = 0; j < chosenSolutions.size(); j++)
+        {
+            indexer->images[i]->setUpIOMRefiner(chosenSolutions[j]);
+            int lastRefiner = indexer->images[i]->IOMRefinerCount() - 1;
+            IOMRefinerPtr refiner = indexer->images[i]->getIOMRefiner(lastRefiner);
+            refiner->refineOrientationMatrix();
+        
+            bool successfulImage = true;
+            
+            if (successfulImage)
+            {
+                mtzSubset->push_back(refiner->newMtz(lastRefiner));
+            }
+            else
+            {
+                indexer->images[i]->removeRefiner(lastRefiner);
+                j--;
+            }
+        }
     }
 }
 

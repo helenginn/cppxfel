@@ -135,6 +135,11 @@ public:
     
     void compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance);
     
+    void removeRefiner(int j)
+    {
+        indexers.erase(indexers.begin() + j);
+    }
+    
     int spotVectorCount()
     {
         return (int)spotVectors.size();
