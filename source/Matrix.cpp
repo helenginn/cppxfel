@@ -92,20 +92,26 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
     
     for (int i = 0; i < symmetryOperatorCount; i++)
     {
-        CSym::ccp4_symop symop = spaceGroup->symop[i];
-        MatrixPtr newMat = MatrixPtr(new Matrix());
-        
-        newMat->components[0] = symop.rot[0][0];
-        newMat->components[4] = symop.rot[0][1];
-        newMat->components[8] = symop.rot[0][2];
-        newMat->components[1] = symop.rot[1][0];
-        newMat->components[5] = symop.rot[1][1];
-        newMat->components[9] = symop.rot[1][2];
-        newMat->components[2] = symop.rot[2][0];
-        newMat->components[6] = symop.rot[2][1];
-        newMat->components[10] = symop.rot[2][2];
-        
-        matrices->push_back(newMat);
+        for (int j = 0; j < 2; j++)
+        {
+            CSym::ccp4_symop symop;
+            
+            if (j == 0) symop = spaceGroup->symop[i];
+            if (j == 1) symop = spaceGroup->invsymop[i];
+            MatrixPtr newMat = MatrixPtr(new Matrix());
+            
+            newMat->components[0] = symop.rot[0][0];
+            newMat->components[4] = symop.rot[0][1];
+            newMat->components[8] = symop.rot[0][2];
+            newMat->components[1] = symop.rot[1][0];
+            newMat->components[5] = symop.rot[1][1];
+            newMat->components[9] = symop.rot[1][2];
+            newMat->components[2] = symop.rot[2][0];
+            newMat->components[6] = symop.rot[2][1];
+            newMat->components[10] = symop.rot[2][2];
+            
+            matrices->push_back(newMat);
+        }
     }
 }
 

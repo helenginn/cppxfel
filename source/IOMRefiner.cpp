@@ -1530,6 +1530,33 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     sendLog(LogLevelNormal);
 }
 
+struct greater { template<class T> bool operator()(T const &a, T const &b) const { return a > b; } };
+
+bool IOMRefiner::isGoodSolution()
+{
+    bool good = false;
+    
+    logged << "Standard deviation: " << lastStdev << std::endl;
+    sendLog(LogLevelNormal);
+    
+    if (lastStdev < 0.045)
+        good = true;
+    
+    vector<double> wavelengths;
+    vector<int> frequencies;
+    
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
+    std::sort(frequencies.begin(), frequencies.end(), greater());
+    
+    if (frequencies[0] > 21)
+        good = true;
+    
+    if (lastScore < 3)
+        good = true;
+    
+    return good;
+}
+
 MtzPtr IOMRefiner::newMtz(int index)
 {
     calculateNearbyMillers(true);
@@ -1655,7 +1682,7 @@ void IOMRefiner::refinementSummary()
     matrix->unitCellLengths(&lengths);
     
     std::cout << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
-    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << std::endl;
+    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << std::endl;
     
 }
 

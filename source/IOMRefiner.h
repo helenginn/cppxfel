@@ -130,6 +130,7 @@ public:
     double getRot(int rotNum);
 	void dropMillers();
 
+    bool isGoodSolution();
     double getDetectorDistance();
     double getWavelength();
     void refinementSummary();
