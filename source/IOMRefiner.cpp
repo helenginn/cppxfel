@@ -1539,7 +1539,7 @@ bool IOMRefiner::isGoodSolution()
     logged << "Standard deviation: " << lastStdev << std::endl;
     sendLog(LogLevelNormal);
     
-    if (lastStdev < 0.045)
+    if (lastStdev < 0.032)
         good = true;
     
     vector<double> wavelengths;

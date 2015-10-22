@@ -206,7 +206,6 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                         MatrixPtr rotateSpotDiffMatrix = rotation_between_vectors(observedVec1, simulatedVec1);
                      
                         vec firstSpotVec = observed1->getFirstSpot()->estimatedVector();
-                        vec secondSpotVec = observed1->getSecondSpot()->estimatedVector();
                         vec reverseSpotVec = reverseVector(firstSpotVec);
                         rotateSpotDiffMatrix->multiplyVector(&reverseSpotVec);
                 //        vec rereversed = reverseVector(reverseSpotVec);
