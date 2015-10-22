@@ -22,7 +22,7 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
     
     if (spaceGroupNum == 0)
     {
-        std::cout << "Please eprovide space group number in SPACE_GROUP" << std::endl;
+        std::cout << "Please provide space group number in SPACE_GROUP" << std::endl;
         exit(1);
     }
     
@@ -116,6 +116,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     double trustTolerance = indexer->minimumTrustDistance;
     int maxThreads = FileParser::getMaxThreads();
     double finalTolerance = indexer->solutionAngleSpread * M_PI / 180;
+    bool alwaysAccept = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     
     std::ostringstream logged;
     
@@ -493,7 +494,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
             bool successfulImage = refiner->isGoodSolution();
             
-            if (successfulImage)
+            if (successfulImage || alwaysAccept)
             {
                 mtzSubset->push_back(refiner->newMtz(lastRefiner));
             }
