@@ -47,6 +47,9 @@ void PanelParser::parse(bool fromPython)
 	std::string fileContents = FileReader::get_file_contents(filename.c_str());
 	vector<std::string> fileLines = FileReader::split(fileContents, '\n');
 
+    splitCharMajor = ' ';
+    splitCharMinor = ' ';
+
 	for (int i = 0; i < fileLines.size(); i++)
 	{
 		std::string line = fileLines[i];

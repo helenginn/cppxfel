@@ -22,7 +22,8 @@
 ParametersMap FileParser::parameters;
 std::ostringstream FileParser::log;
 int FileParser::threadsFound = 0;
-char FileParser::splitChar = ' ';
+char FileParser::splitCharMajor = ' ';
+char FileParser::splitCharMinor = ' ';
 
 int FileParser::getMaxThreads()
 {
@@ -110,7 +111,7 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
 void FileParser::doubleVector(ParametersMap *map, std::string command,
                               std::string rest)
 {
-	vector<std::string> components = FileReader::split(rest, splitChar);
+	vector<std::string> components = FileReader::split(rest, splitCharMinor);
 	vector<double> doubleVector;
 
 	log << "Setting " << command << " to ";
@@ -130,7 +131,7 @@ void FileParser::doubleVector(ParametersMap *map, std::string command,
 void FileParser::intVector(ParametersMap *map, std::string command,
 		std::string rest)
 {
-	vector<std::string> components = FileReader::split(rest, splitChar);
+	vector<std::string> components = FileReader::split(rest, splitCharMinor);
 	vector<int> intVector;
 
 	log << "Setting " << command << " to ";
@@ -327,7 +328,7 @@ void FileParser::generateFunctionList()
 ParserFunction FileParser::splitLine(std::string line, std::string &command,
 		std::string &rest)
 {
-	int space_index = (int)line.find_first_of(" ");
+	int space_index = (int)line.find_first_of(splitCharMajor);
 
 	command = line.substr(0, space_index);
 
@@ -355,7 +356,7 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
 
 bool FileParser::checkSpaces(std::string line)
 {
-	int space_index = (int)line.find_first_of(" ");
+    int space_index = (int)line.find_first_of(splitCharMajor);
 
 	if (space_index == std::string::npos)
 	{
@@ -371,12 +372,14 @@ FileParser::FileParser(void)
     
 }
 
-FileParser::FileParser(std::string name)
+FileParser::FileParser(std::string name, std::vector<std::string> someExtras)
 {
 	std::cout << "Initialising parser" << std::endl;
     
 	this->filename = name;
 	generateFunctionList();
+    
+    extras = someExtras;
 }
 
 FileParser::~FileParser()

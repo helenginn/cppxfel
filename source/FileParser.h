@@ -17,6 +17,7 @@ class MtzRefiner;
 class FileParser
 {
 protected:
+    FileParser(void);
 	ParserMap parserMap;
 	static ParametersMap parameters;
 
@@ -34,7 +35,8 @@ protected:
 			std::string rest);
 
     std::vector<std::string> extras;
-    static char splitChar;
+    static char splitCharMajor;
+    static char splitCharMinor;
     static int threadsFound;
 	std::string filename;
 	void generateFunctionList();
@@ -83,8 +85,7 @@ public:
 		}
 	}
 	static bool hasKey(std::string key);
-    FileParser(void);
-	FileParser(std::string filename);
+    FileParser(std::string filename, std::vector<std::string> someExtras = std::vector<std::string>());
 	virtual ~FileParser();
     virtual void parseFromPython() { parse(true); };
 	virtual void parse(bool fromPython) {};

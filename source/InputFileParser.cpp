@@ -12,9 +12,8 @@
 #include "Logger.h"
 //#include <boost/python.hpp>
 
-InputFileParser::InputFileParser(std::string filename, std::vector<std::string> someExtras) : FileParser(filename)
+InputFileParser::InputFileParser(std::string filename, std::vector<std::string> someExtras) : FileParser(filename, someExtras)
 {
-    extras = someExtras;
 }
 
 InputFileParser::~InputFileParser()
@@ -46,6 +45,45 @@ void InputFileParser::integrate()
     refiner->integrate();
 }
 
+int InputFileParser::processOptions(std::vector<std::string> lines)
+{
+    int continueFrom = -1;
+
+    for (int i = 0; i < lines.size(); i++)
+    {
+        std::string line = lines[i];
+        
+        if (line.length() == 0)
+            continue;
+        
+        if (line.substr(0, 1) == "#")
+            continue;
+        
+        if (line == "COMMANDS")
+        {
+            continueFrom = i;
+            break;
+        }
+        
+        if (!checkSpaces(line))
+            continue;
+        
+        std::string command; std::string rest;
+        ParserFunction function = this->splitLine(line, command, rest);
+        
+        if (parserMap.count(command) == 0)
+        {
+            std::cout << "Warning: Line \"" << line << "\" not recognised."
+            << std::endl;
+            exit(0);
+        }
+        
+        function(&parameters, command, rest);
+    }
+
+    return continueFrom;
+}
+
 void InputFileParser::parse(bool fromPython)
 {
     Logger::mainLogger = LoggerPtr(new Logger());
@@ -55,43 +93,6 @@ void InputFileParser::parse(bool fromPython)
 
 	std::string fileContents = FileReader::get_file_contents(filename.c_str());
 	vector<std::string> fileLines = FileReader::split(fileContents, '\n');
-
-	bool foundCommands = false;
-	int continueFrom = 0;
-
-	for (int i = 0; i < fileLines.size(); i++)
-	{
-		std::string line = fileLines[i];
-
-		if (line.length() == 0)
-			continue;
-
-		if (line.substr(0, 1) == "#")
-			continue;
-
-		if (line == "COMMANDS")
-		{
-			log << "Found COMMANDS section" << std::endl;
-			continueFrom = i;
-			foundCommands = true;
-			break;
-		}
-
-		if (!checkSpaces(line))
-			continue;
-
-		std::string command; std::string rest;
-		ParserFunction function = this->splitLine(line, command, rest);
-
-		if (parserMap.count(command) == 0)
-		{
-            std::cout << "Warning: Line \"" << line << "\" not recognised."
-					<< std::endl;
-			exit(0);
-		}
-        
-		function(&parameters, command, rest);
-	}
 
 	if (fromPython)
     {
@@ -111,7 +112,22 @@ void InputFileParser::parse(bool fromPython)
         return;
     }
     
-	if (foundCommands)
+    splitCharMajor = ' ';
+    splitCharMinor = ' ';
+    
+    int continueFrom = processOptions(fileLines);
+    
+    splitCharMajor = '=';
+    splitCharMinor = ',';
+    
+    log << " --- Overwriting commands from command line ---" << std::endl;
+    processOptions(extras);
+    log << " --- Finished command line options ---" << std::endl;
+
+    Logger::mainLogger->addStream(&log);
+    log.str("");
+    
+	if (continueFrom != -1)
 	{
 		for (int i = continueFrom; i < fileLines.size(); i++)
 		{

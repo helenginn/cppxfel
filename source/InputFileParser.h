@@ -18,6 +18,7 @@ class InputFileParser : public FileParser
 {
 private:
     boost::shared_ptr<MtzRefiner> refiner;
+    int processOptions(std::vector<std::string> lines);
 //    boost::python::object pythonSelf;
 public:
     void refine(int maxCycles);
