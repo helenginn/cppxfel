@@ -101,8 +101,6 @@ void InputFileParser::parse(bool fromPython)
         log << "Imported commands from parameter file. Waiting for commands." << std::endl;
     }
     
-    refiner = boost::shared_ptr<MtzRefiner>(new MtzRefiner());
-    
     Logger::mainLogger->addStream(&log);
     log.str("");
     
@@ -126,6 +124,8 @@ void InputFileParser::parse(bool fromPython)
 
     Logger::mainLogger->addStream(&log);
     log.str("");
+    
+    refiner = boost::shared_ptr<MtzRefiner>(new MtzRefiner());
     
 	if (continueFrom != -1)
 	{
