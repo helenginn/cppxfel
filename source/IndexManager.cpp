@@ -405,7 +405,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
         
-        for (int j = 0; j < 12; j++)
+        for (int j = 0; j < 12 && j < scoredSolutions.size(); j++)
         {
             vec aDummyVec = new_vector(1, 0, 0);
             scoredSolutions[j].first->multiplyVector(&aDummyVec);
