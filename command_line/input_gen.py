@@ -143,9 +143,7 @@ def dumpPanels(image):
 	
 	for i in range(0, len(panels), 4):
 		print >> panelTxt, "PANEL",
-		for j in range(4):
-			print >>panelTxt, panels[i + j],
-		print >>panelTxt, ""
+			print >>panelTxt, panels[1], panels[0], panels[2], panels[3]
 	
 	outputFilename = "panels.txt"
 	file = open(outputFilename, 'w')
@@ -263,6 +261,7 @@ print "Please check your target unit cell and space group"
 refineTxt = StringIO.StringIO()
 
 print >> refineTxt, "ORIENTATION_MATRIX_LIST refine-orientations.dat"
+print >> refineTxt, "MATRIX_LIST_VERSION 2.0"
 print >> refineTxt, "NEW_MATRIX_LIST refined.dat\n"
 print >> refineTxt, "\nPARTIALITY_CUTOFF 0.2\n"
 print >> refineTxt, "COMMANDS\n"
