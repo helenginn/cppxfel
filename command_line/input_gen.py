@@ -143,7 +143,7 @@ def dumpPanels(image):
 	
 	for i in range(0, len(panels), 4):
 		print >> panelTxt, "PANEL",
-		print >>panelTxt, panels[i + 1], panels[i + 0], panels[i + 2], panels[i + 3]
+		print >>panelTxt, panels[i + 1], panels[i + 0], panels[i + 3], panels[i + 2]
 	
 	outputFilename = "panels.txt"
 	file = open(outputFilename, 'w')
