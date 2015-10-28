@@ -515,7 +515,7 @@ void IndexManager::powderPattern()
 {
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance);
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance);
     }
 }
 
