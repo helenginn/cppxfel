@@ -1554,6 +1554,9 @@ bool IOMRefiner::isGoodSolution()
     if (lastScore < 3)
         good = true;
     
+    if (getTotalReflections() < 40)
+        good = false;
+    
     return good;
 }
 
