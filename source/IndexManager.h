@@ -63,4 +63,5 @@ public:
     void sendLog(LogLevel priority = LogLevelNormal);
 };
 
+
 #endif /* defined(__cppxfel__IndexManager__) */
