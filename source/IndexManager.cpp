@@ -511,6 +511,14 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     }
 }
 
+void IndexManager::powderPattern()
+{
+    for (int i = 0; i < images.size(); i++)
+    {
+        images[i]->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance);
+    }
+}
+
 void IndexManager::index()
 {
     int maxThreads = FileParser::getMaxThreads();

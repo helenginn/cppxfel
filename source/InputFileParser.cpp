@@ -257,6 +257,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->index();
             }
             
+            if (line == "POWDER_PATTERN")
+            {
+                understood = true;
+                refiner->powderPattern();
+            }
+            
             if (!understood)
             {
                 log << "Skipping line " << line << std::endl;

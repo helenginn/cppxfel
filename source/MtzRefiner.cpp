@@ -1684,36 +1684,12 @@ void MtzRefiner::index()
 {
     this->readMatricesAndImages();
     loadPanels();
-    vector<vector<MtzPtr> > mtzSubsets;
-    mtzSubsets.resize(MAX_THREADS);
-    
-    boost::thread_group threads;
-    /*
-    for (int i = 0; i < MAX_THREADS; i++)
-    {
-        boost::thread *thr = new boost::thread(indexImageWrapper, this, i, &mtzSubsets[i]);
-        threads.add_thread(thr);
-    }
-    
-    threads.join_all();*/
-    
+   
     IndexManager *indexManager = new IndexManager(images);
     
     indexManager->index();
     
     mtzManagers = indexManager->getMtzs();
-    
-/*    mtzManagers.reserve(images.size());
-    
-    unsigned int position = 0;
-    
-    for (int i = 0; i < MAX_THREADS; i++)
-    {
-        mtzManagers.insert(mtzManagers.begin() + position, mtzSubsets[i].begin(), mtzSubsets[i].end());
-        position += mtzSubsets[i].size();
-    }
-    
-    std::cout << "Mtzs: " << mtzManagers.size() << std::endl;*/
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -1725,6 +1701,15 @@ void MtzRefiner::index()
     }
     
     writeNewOrientations(false, true);
+}
+
+void MtzRefiner::powderPattern()
+{
+    this->readMatricesAndImages();
+    loadPanels();
+    
+    IndexManager *indexManager = new IndexManager(images);
+    indexManager->powderPattern();
 }
 
 // MARK: Miscellaneous

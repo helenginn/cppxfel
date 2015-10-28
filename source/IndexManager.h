@@ -52,6 +52,7 @@ public:
     
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
+    void powderPattern();
     IndexManager(std::vector<Image *>images);
     
     void sendLog(LogLevel priority = LogLevelNormal);

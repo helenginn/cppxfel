@@ -35,6 +35,7 @@ public:
 	virtual ~MtzRefiner();
 
     void index();
+    void powderPattern();
 	bool loadInitialMtz(bool force = false);
 
 	void cycle();
