@@ -519,6 +519,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, filter);
             int extraSolutions = indexer->indexOneImage(image, mtzSubset);
             filter = !filter;
+            image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, filter);
             extraSolutions += indexer->indexOneImage(image, mtzSubset);
             filter = !filter;
             

@@ -1124,19 +1124,11 @@ void Image::filterSpotVectors()
     int totalSpots = spotCount();
     double expectedLatticesFraction = (double)totalSpots / (double)spotsPerLattice;
     int goodHits = round(expectedLatticesFraction);
-    int extraHits = choose(goodHits, 2) * 2;
     int maxVectors = 8000;
     
-    int totalHits = goodHits + extraHits;
-    double goodFraction = (double)goodHits / (double)totalHits;
-    
-    if (extraHits == 0)
-    {
-        logged << "Massive numbers - there may be too many expected lattices" << std::endl;
-    }
+    double goodFraction = proportion(goodHits);
     
     logged << "From " << totalSpots << " spots there is an estimated " << expectedLatticesFraction << " lattices" << std::endl;
-    logged << extraHits << " extra hits to every " << goodHits << " good hits." << std::endl;
     logged << "Fraction of spot vectors which should be good: " << goodFraction << std::endl;
     
     sendLog();

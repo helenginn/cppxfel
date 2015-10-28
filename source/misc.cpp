@@ -83,3 +83,14 @@ unsigned int choose(unsigned long n, unsigned long choose)
     
     return value;
 }
+
+int proportion(int n)
+{
+    double values[] = {0.5, 0.333333333, 0.25, 0.2, 0.166666667, 0.142857143, 0.125, 0.111111111, 0.1, 0.090909091, 0.083333333, 0.076923077, 0.071428571, 0.066666667, 0.0625, 0.058823529, 0.055555556, 0.052631579, 0.05, 0.047619048};
+    int max = 20;
+    
+    if (n > max)
+        n = max;
+    
+    return values[n];
+}

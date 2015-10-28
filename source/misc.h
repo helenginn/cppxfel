@@ -15,3 +15,4 @@ std::string getPath(std::string filename);
 
 unsigned long factorial(unsigned long n);
 unsigned int choose(unsigned long n, unsigned long choose);
+int proportion(int n);
