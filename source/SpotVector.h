@@ -25,7 +25,11 @@ public:
     SpotVector(SpotPtr first, SpotPtr second);
 
     double distance();
+    double angleWithVertical();
     double angleWithVector(SpotVectorPtr spotVector2);
+    double similarityToSpotVector(SpotVectorPtr spotVector2);
+    void projectedXYDisplacement(double *x, double *y);
+    bool isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistance);
     
     vec getVector()
     {

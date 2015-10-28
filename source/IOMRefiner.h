@@ -88,7 +88,7 @@ private:
     
     double orientationTolerance;
     std::ostringstream logged;
-    void sendLog(LogLevel priority);
+    void sendLog(LogLevel priority = LogLevelNormal);
 
 public:
 	IOMRefiner(Image *newImage = NULL, MatrixPtr matrix = MatrixPtr());

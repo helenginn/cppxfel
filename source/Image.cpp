@@ -815,6 +815,18 @@ vector<MtzPtr> Image::currentMtzs()
 	return mtzs;
 }
 
+int Image::throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs)
+{
+    int thrown = 0;
+    
+    for (int i = 0; i < mtzs.size(); i++)
+    {
+        thrown += mtzs[i]->removeStrongSpots(spots);
+    }
+    
+    return thrown;
+}
+
 void Image::setSpaceGroup(CCP4SPG *spg)
 {
     for (int i = 0; i < IOMRefinerCount(); i++)
@@ -1035,6 +1047,8 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
 void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance)
 {
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
+    double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
+    bool filterSpots = FileParser::getKey("FILTER_SPOTS", false);
     
     spotVectors.clear();
     std::vector<SpotVectorPtr>().swap(spotVectors);
@@ -1048,6 +1062,12 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         }
         
         vec spotPos1 = spots[i]->estimatedVector();
+        
+        if (minResolution != 0)
+        {
+            if (length_of_vector(spotPos1) > 1 / minResolution)
+                continue;
+        }
         
         for (int j = i + 1; j < spots.size(); j++)
         {
@@ -1087,4 +1107,94 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         
         sendLog(LogLevelDetailed);
     }
+    
+    int spotsPerLattice = FileParser::getKey("SPOTS_PER_LATTICE", 100);
+    double filterThreshold = FileParser::getKey("FILTER_THRESHOLD", 2.5);
+    int totalSpots = spotCount();
+    double expectedLattices = (double)totalSpots / (double)spotsPerLattice;
+    
+    if (filterSpots && expectedLattices > filterThreshold)
+    {
+        filterSpotVectors();
+    }
+}
+
+void Image::filterSpotVectors()
+{
+    int spotsPerLattice = FileParser::getKey("SPOTS_PER_LATTICE", 100);
+    
+    std::vector<int> scoresOnly;
+    std::map<SpotVectorPtr, int> spotVectorMap;
+    double interDistanceTolerance = 0.0018;
+    
+    int totalSpots = spotCount();
+    double expectedLatticesFraction = (double)totalSpots / (double)spotsPerLattice;
+    int goodHits = round(expectedLatticesFraction);
+    int extraHits = choose(goodHits, 2) * 5;
+    int maxVectors = 8000;
+    
+    int totalHits = goodHits + extraHits;
+    double goodFraction = (double)goodHits / (double)totalHits;
+    
+    if (extraHits == 0)
+    {
+        logged << "Massive numbers - there may be too many expected lattices" << std::endl;
+    }
+    
+    logged << "From " << totalSpots << " spots there is an estimated " << expectedLatticesFraction << " lattices" << std::endl;
+    logged << extraHits << " extra hits to every " << goodHits << " good hits." << std::endl;
+    logged << "Fraction of spot vectors which should be good: " << goodFraction << std::endl;
+    
+    sendLog();
+
+    for (int i = 0; i < spotVectorCount() && i < maxVectors; i++)
+    {
+        SpotVectorPtr spotVec1 = spotVector(i);
+        int score = 0;
+        
+        for (int j = 0; j < spotVectorCount() && j < maxVectors; j++)
+        {
+            if (j == i)
+                continue;
+            
+            SpotVectorPtr spotVec2 = spotVector(j);
+            
+            if (spotVec1->isCloseToSpotVector(spotVec2, interDistanceTolerance))
+            {
+                double interDistance = spotVec1->similarityToSpotVector(spotVec2);
+                
+                if (interDistance < interDistanceTolerance)
+                    score++;
+            }
+        }
+
+        spotVectorMap[spotVec1] = score;
+        scoresOnly.push_back(score);
+    }
+
+    std::sort(scoresOnly.begin(), scoresOnly.end(), std::greater<int>());
+    
+    int vectorsToKeep = int((double)goodFraction * (double)scoresOnly.size());
+    logged << "Keeping vectors: " << vectorsToKeep << " out of total: " << scoresOnly.size() << std::endl;
+    sendLog();
+
+    
+    int threshold = scoresOnly[vectorsToKeep];
+    int deleted = 0;
+    
+    logged << "Threshold: " << threshold << std::endl;
+    
+    for (int i = 0; i < spotVectorCount(); i++)
+    {
+        if (spotVectorMap.count(spotVector(i)) == 0 || spotVectorMap[spotVector(i)] <= threshold)
+        {
+            spotVectors.erase(spotVectors.begin() + i);
+            i--;
+            deleted++;
+        }
+    }
+    
+    logged << "Deleted: " << deleted << std::endl;
+    
+    sendLog();
 }

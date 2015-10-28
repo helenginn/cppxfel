@@ -13,6 +13,7 @@
 #include "Logger.h"
 #include <algorithm>
 #include "parameters.h"
+#include "SpotVector.h"
 
 IndexManager::IndexManager(std::vector<Image *> newImages)
 {
@@ -347,7 +348,11 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                 ambiguity->multiplyVector(&bDummyVec);
                 aMat->multiplyVector(&bDummyVec);
                 
-                dummyVecStr << bDummyVec.h << "\t" << bDummyVec.k << "\t" << bDummyVec.l << std::endl;
+                double theta = acos(bDummyVec.l / length_of_vector(bDummyVec));
+                double psi = atan(bDummyVec.k / bDummyVec.h);
+                
+                
+                dummyVecStr << bDummyVec.h << "\t" << bDummyVec.k << "\t" << bDummyVec.l << "\t" << theta << "\t" << psi << std::endl;
             }
             
             scoredSolutions.push_back(std::make_pair(aMat, score));
@@ -426,8 +431,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             for (int m = j + 1; m < chosenSolutions.size(); m++)
             {
                 MatrixPtr otherSolution = chosenSolutions[m];
-                logged << "Starting checks between " << j << ", " << m << std::endl;
-
+                
                 bool erase = false;
                 
                 for (int k = 0; k < symOperators.size(); k++)
@@ -447,13 +451,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                         
                         if (angle < finalTolerance && !erase)
                         {
-                            logged << "Erasing identical solution (" << j << ", " << m << ") due to symop " << k << " and ambiguity " << l << " angle " << angle * 180 / M_PI << std::endl;
-
                             erase = true;
-                        }
-                        else if (!erase)
-                        {
-                            logged << "Angle between sol " << j << ", " << m << " is " << angle * 180 / M_PI << std::endl;
                         }
                     }
                 }
@@ -496,16 +494,26 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             
             if (successfulImage || alwaysAccept)
             {
+                logged << "Successful crystal " << j + 1 << "/" << chosenSolutions.size() << " for " << indexer->images[i]->getFilename() << std::endl;
                 mtzSubset->push_back(refiner->newMtz(lastRefiner));
+                Logger::mainLogger->addStream(&logged); logged.str("");
             }
             else
             {
-                logged << "Unsuccessful crystal for " << indexer->images[i]->getFilename() << std::endl;
+                logged << "Unsuccessful crystal " << j + 1 << "/" << chosenSolutions.size() << " for " << indexer->images[i]->getFilename() << std::endl;
                 indexer->images[i]->removeRefiner(lastRefiner);
                 Logger::mainLogger->addStream(&logged); logged.str("");
                 
             }
         }
+        
+        int removed = indexer->images[i]->throwAwayIntegratedSpots(*mtzSubset);
+        int spotCount = indexer->images[i]->spotCount();
+        
+        logged << "Removed " << removed << " spots after finding " << mtzSubset->size() << " crystals, leaving " << spotCount << " spots." << std::endl;
+        
+        
+        Logger::mainLogger->addStream(&logged); logged.str("");
         
         indexer->images[i]->dropImage();
     }
@@ -513,10 +521,44 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 
 void IndexManager::powderPattern()
 {
+    std::map<int, int> frequencies;
+    double step = 0.0001;
+    
     for (int i = 0; i < images.size(); i++)
     {
         images[i]->compileDistancesFromSpots(maxDistance, smallestDistance);
+        
+        if (images[i]->spotCount() > 300)
+        for (int j = 0; j < images[i]->spotVectorCount(); j++)
+        {
+            SpotVectorPtr spotVec = images[i]->spotVector(j);
+            
+            double distance = spotVec->distance();
+            int categoryNum = distance / step;
+            double angle = spotVec->angleWithVertical();
+            
+      //      logged << distance << "," << angle << std::endl;
+            
+            double x = distance * sin(angle);
+            double y = distance * cos(angle);
+            
+            logged << x << "," << y << std::endl;
+            
+            frequencies[categoryNum]++;
+        }
     }
+    
+    logged << "******* DISTANCE FREQUENCY *******" << std::endl;
+    
+    for (std::map<int, int>::iterator it = frequencies.begin(); it != frequencies.end(); it++)
+    {
+        double distance = it->first * step;
+        double freq = it->second;
+        
+        logged << distance << "," << freq << std::endl;
+    }
+    
+    sendLog();
 }
 
 void IndexManager::index()

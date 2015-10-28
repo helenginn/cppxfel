@@ -928,6 +928,22 @@ void Reflection::detailedDescription()
     std::cout << std::endl;
 }
 
+int Reflection::checkSpotOverlaps(std::vector<SpotPtr> spots)
+{
+    int count = 0;
+    
+    for (int i = 0; i < millerCount(); i++)
+    {
+        if (miller(i)->isOverlappedWithSpots(spots))
+        {
+            count++;
+            removeMiller(i);
+        }
+    }
+    
+    return count;
+}
+
 int Reflection::checkOverlaps()
 {
     int count = 0;

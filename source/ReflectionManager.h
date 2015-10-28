@@ -37,7 +37,7 @@ public:
 	double contributionToGradient(vector<Scale_factor> Gs, int l);
 	void sortReflections();
 	
-	double psi_contribution(vector<Scale_factor> Gs);
+    double psi_contribution(vector<Scale_factor> Gs);
 	double newGradientContribution(vector<Scale_factor> Gs, int l);
 	
 	double getCorrectedIntensity(vector<Scale_factor> Gs);

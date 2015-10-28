@@ -88,7 +88,7 @@ public:
 	static void applyMaskToImages(vector<Image *> images, int startX,
 			int startY, int endX, int endY);
     void refineDistances();
-
+    
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
 
 	const std::string& getFilename() const
@@ -134,6 +134,8 @@ public:
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
     void compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance);
+    void filterSpotVectors();
+    int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     
     void removeRefiner(int j)
     {

@@ -313,6 +313,10 @@ void FileParser::generateFunctionList()
     parserMap["MAX_SEARCH_NUMBER_SOLUTIONS"] = simpleInt;
     parserMap["MAX_MILLER_INDEX_TRIAL"] = simpleInt;
     parserMap["ACCEPT_ALL_SOLUTIONS"] = simpleBool;
+    parserMap["INDEXING_MIN_RESOLUTION"] = simpleFloat;
+    parserMap["FILTER_SPOTS"] = simpleBool;
+    parserMap["SPOTS_PER_LATTICE"] = simpleInt;
+    parserMap["FILTER_THRESHOLD"] = simpleFloat;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     

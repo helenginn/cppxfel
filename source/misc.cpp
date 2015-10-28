@@ -62,3 +62,22 @@ std::string getPath(std::string filename)
     
     return filename.substr(0, pos + 1);
 }
+
+unsigned long factorial(unsigned long n)
+{
+    unsigned long ret = 1;
+    for(unsigned int i = 1; i <= n; ++i)
+        ret *= i;
+    return ret;
+}
+
+unsigned int choose(unsigned long n, unsigned long choose)
+{
+    unsigned long nFac = factorial(n);
+    unsigned long cFac = factorial(choose);
+    unsigned long ncFac = factorial(n - choose);
+    
+    unsigned int value = nFac / (cFac * ncFac);
+    
+    return value;
+}

@@ -144,6 +144,7 @@ public:
     vector<double> superGaussianTable;
     double bFactor;
     double externalScale;
+    int removeStrongSpots(std::vector<SpotPtr> spots);
     int rejectOverlaps();
 
 	MtzManager(void);

@@ -1539,14 +1539,39 @@ bool IOMRefiner::isGoodSolution()
     logged << "Standard deviation: " << lastStdev << std::endl;
     sendLog(LogLevelNormal);
     
-    if (lastStdev < 0.045)
-        good = true;
-    
     vector<double> wavelengths;
     vector<int> frequencies;
     
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     std::sort(frequencies.begin(), frequencies.end(), greater());
+    
+    double highSum = 0;
+    std::vector<double> lowOnly;
+    int cutoff = 3;
+    
+    for (int i = 0; i < frequencies.size(); i++)
+    {
+        if (i < cutoff)
+        {
+            highSum += frequencies[i];
+            continue;
+        }
+        
+        lowOnly.push_back(frequencies[i]);
+    }
+    
+    highSum /= cutoff;
+    
+    double stdevLow = standard_deviation(&lowOnly);
+    
+    logged << "Stdev low: " << stdevLow << ", highAverage " << highSum << std::endl;
+    sendLog();
+    
+    if (lastStdev < 0.045)
+        good = true;
+
+    if (highSum > stdevLow * 7)
+        good = true;
     
     if (frequencies[0] > 21)
         good = true;

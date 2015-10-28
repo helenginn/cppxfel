@@ -12,3 +12,6 @@ bool replace(std::string& str, const std::string& from, const std::string& to);
 std::string getBaseFilename(std::string filename);
 std::string getFilename(std::string filename);
 std::string getPath(std::string filename);
+
+unsigned long factorial(unsigned long n);
+unsigned int choose(unsigned long n, unsigned long choose);
