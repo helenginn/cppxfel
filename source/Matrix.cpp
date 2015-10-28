@@ -54,6 +54,21 @@ Matrix::Matrix(void)
     rotation = MatrixPtr();
 }
 
+std::string Matrix::summary()
+{
+    vec bDummyVec = new_vector(1, 0, 0);
+    
+    this->multiplyVector(&bDummyVec);
+    
+    double theta = acos(bDummyVec.l / length_of_vector(bDummyVec));
+    double psi = atan(bDummyVec.k / bDummyVec.h);
+    
+    std::ostringstream dummyVecStr;
+    dummyVecStr << bDummyVec.h << "\t" << bDummyVec.k << "\t" << bDummyVec.l << "\t" << theta << "\t" << psi;
+
+    return dummyVecStr.str();
+}
+
 std::string Matrix::description(bool detailed, bool submatrix)
 {
     std::ostringstream description;

@@ -18,15 +18,18 @@
 #include "Vector.h"
 #include "parameters.h"
 #include "Logger.h"
+#include "Holder.h"
 
 class IndexManager
 {
 protected:
     std::vector<Image *> images;
     std::vector<double> unitCell;
+    std::vector<MatrixPtr> symOperators;
     MatrixPtr unitCellOnly;
     MatrixPtr unitCellMatrix;
     MatrixPtr unitCellMatrixInverse;
+    Reflection *newReflection;
     CSym::CCP4SPG *spaceGroup;
     int spaceGroupNum;
     std::vector<MtzPtr> mtzs;
@@ -34,6 +37,8 @@ protected:
     double minimumTrustAngle;
     double solutionAngleSpread;
     
+    bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
+    int indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset);
     double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;

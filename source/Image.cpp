@@ -821,7 +821,7 @@ int Image::throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs)
     
     for (int i = 0; i < mtzs.size(); i++)
     {
-        thrown += mtzs[i]->removeStrongSpots(spots);
+        thrown += mtzs[i]->removeStrongSpots(&spots);
     }
     
     return thrown;
@@ -1044,11 +1044,10 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
     }
 }
 
-void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance)
+void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance, bool filter)
 {
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
     double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
-    bool filterSpots = FileParser::getKey("FILTER_SPOTS", false);
     
     spotVectors.clear();
     std::vector<SpotVectorPtr>().swap(spotVectors);
@@ -1108,12 +1107,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         sendLog(LogLevelDetailed);
     }
     
-    int spotsPerLattice = FileParser::getKey("SPOTS_PER_LATTICE", 100);
-    double filterThreshold = FileParser::getKey("FILTER_THRESHOLD", 2.5);
-    int totalSpots = spotCount();
-    double expectedLattices = (double)totalSpots / (double)spotsPerLattice;
-    
-    if (filterSpots && expectedLattices > filterThreshold)
+    if (filter)
     {
         filterSpotVectors();
     }
@@ -1125,12 +1119,12 @@ void Image::filterSpotVectors()
     
     std::vector<int> scoresOnly;
     std::map<SpotVectorPtr, int> spotVectorMap;
-    double interDistanceTolerance = 0.0018;
+    double interDistanceTolerance = 0.0015;
     
     int totalSpots = spotCount();
     double expectedLatticesFraction = (double)totalSpots / (double)spotsPerLattice;
     int goodHits = round(expectedLatticesFraction);
-    int extraHits = choose(goodHits, 2) * 5;
+    int extraHits = choose(goodHits, 2) * 2;
     int maxVectors = 8000;
     
     int totalHits = goodHits + extraHits;

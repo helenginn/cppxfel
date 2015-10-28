@@ -89,6 +89,7 @@ public:
     double *array();
     void print(void);
     void recalculateOrientationMatrix();
+    std::string summary();
     
     bool isComplex()
     {

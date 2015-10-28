@@ -1054,23 +1054,23 @@ void Miller::incrementOverlapMask(double hRot, double kRot)
 }
 
 
-bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> spots)
+bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
 {
     double x = lastX;
     double y = lastY;
     int count = 0;
     
-    for (int i = 0; i < spots.size(); i++)
+    for (int i = 0; i < spots->size(); i++)
     {
-        int x2 = spots[i]->getX();
-        int y2 = spots[i]->getY();
+        int x2 = (*spots)[i]->getX();
+        int y2 = (*spots)[i]->getY();
         
         double xDiff = fabs(x2 - x);
         double yDiff = fabs(y2 - y);
         
         if (xDiff < 2 && yDiff < 2)
         {
-            spots.erase(spots.begin() + i);
+            spots->erase(spots->begin() + i);
             i--;
             count++;
         }

@@ -73,11 +73,13 @@ unsigned long factorial(unsigned long n)
 
 unsigned int choose(unsigned long n, unsigned long choose)
 {
+    if (n > 18) n = 18;
+    
     unsigned long nFac = factorial(n);
     unsigned long cFac = factorial(choose);
     unsigned long ncFac = factorial(n - choose);
     
-    unsigned int value = nFac / (cFac * ncFac);
+    unsigned int value = (unsigned int)(nFac / (cFac * ncFac));
     
     return value;
 }

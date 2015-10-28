@@ -133,7 +133,7 @@ public:
     
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
-    void compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance);
+    void compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance, bool filter = false);
     void filterSpotVectors();
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     

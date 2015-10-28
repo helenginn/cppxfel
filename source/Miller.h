@@ -119,7 +119,7 @@ public:
 	void printHkl(void);
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
 
-    bool isOverlappedWithSpots(std::vector<SpotPtr> spots);
+    bool isOverlappedWithSpots(std::vector<SpotPtr> *spots);
     double calculateDefaultNorm();
     void setPartialityModel(PartialityModel model);
 	void setData(double _intensity, double _sigma, double _partiality,

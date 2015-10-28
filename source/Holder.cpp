@@ -928,7 +928,7 @@ void Reflection::detailedDescription()
     std::cout << std::endl;
 }
 
-int Reflection::checkSpotOverlaps(std::vector<SpotPtr> spots)
+int Reflection::checkSpotOverlaps(std::vector<SpotPtr> *spots)
 {
     int count = 0;
     

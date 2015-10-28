@@ -64,7 +64,7 @@ public:
     static int reflectionIdForCoordinates(int h, int k, int l);
     
     int checkOverlaps();
-    int checkSpotOverlaps(std::vector<SpotPtr> spots);
+    int checkSpotOverlaps(std::vector<SpotPtr> *spots);
     void reflectionDescription();
 	void calculateResolution(MtzManager *mtz);
 	void clearMillers();
