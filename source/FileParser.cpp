@@ -303,6 +303,7 @@ void FileParser::generateFunctionList()
     parserMap["ROTATION_MODE"] = simpleInt;
     parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
     parserMap["SKIP_BAD_PIXELS"] = simpleBool;
+    parserMap["ROUGH_CALCULATION"] = simpleBool;
 
     parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
     parserMap["MINIMUM_TRUST_DISTANCE"] = simpleFloat;

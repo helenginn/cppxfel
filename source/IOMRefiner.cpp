@@ -50,6 +50,7 @@ IOMRefiner::IOMRefiner(Image *newImage, MatrixPtr matrix)
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                     METROLOGY_SEARCH_SIZE);;
     reference = NULL;
+    roughCalculation = FileParser::getKey("ROUGH_CALCULATION", false);
     hRot = 0;
     kRot = 0;
     lRot = 0;
@@ -72,6 +73,7 @@ IOMRefiner::IOMRefiner(Image *newImage, MatrixPtr matrix)
     refineC = FileParser::getKey("REFINE_UNIT_CELL_C", false);;
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
+    needsReintegrating = true;
     
     int rotationModeInt = FileParser::getKey("ROTATION_MODE", 0);
     rotationMode = (RotationMode)rotationModeInt;
@@ -322,9 +324,10 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     logged << "Rejected " << overRes << " due to being over resolution edge of " << maxResolution << " Å." << std::endl;
     
     sendLog(LogLevelDetailed);
+    needsReintegrating = true;
 }
 
-void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox)
+void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation)
 {
     MatrixPtr matrix = getMatrix();
     
@@ -372,9 +375,24 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         Miller::rotateMatrix(aRot, bRot, cRot, matrix, &newMatrix);
     }
     
-    for (int i = 0; i < nearbyMillers.size(); i++)
+    std::vector<MillerPtr> *chosenMillerArray = &nearbyMillers;
+    
+    if (!perfectCalculation && roughCalculation && !needsReintegrating)
     {
-        MillerPtr miller = nearbyMillers[i];
+        chosenMillerArray = &roughMillers;
+    }
+    else if (needsReintegrating)
+    {
+        bandwidth *= 2;
+        roughMillers.clear();
+        std::vector<MillerPtr>().swap(roughMillers);
+    }
+    
+    logged << "Checking " << chosenMillerArray->size() << " reflections." << std::endl;
+    
+    for (int i = 0; i < chosenMillerArray->size(); i++)
+    {
+        MillerPtr miller = (*chosenMillerArray)[i];
         
         vec hkl = new_vector(miller->getH(), miller->getK(), miller->getL());
         matrix->multiplyVector(&hkl);
@@ -383,7 +401,6 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         int roughY = 0;
         
         miller->setMatrix(matrix);
-        miller->positionOnDetector(matrix, &roughX, &roughY);
         
         double d = length_of_vector(hkl);
         if (d > maxD)
@@ -420,7 +437,11 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             miller->makeComplexShoebox(wavelength, initialBandwidth, initialMosaicity, initialRlpSize);
         }
         
-        miller->integrateIntensity(newMatrix);
+        if (needsReintegrating || !roughCalculation)
+        {
+            miller->positionOnDetector(matrix, &roughX, &roughY);
+            miller->integrateIntensity(newMatrix);
+        }
         
         double rawIntensity = miller->getRawIntensity();
         
@@ -435,6 +456,11 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         averageEwald += miller->getWavelength();
         
         this->millers.push_back(miller);
+        
+        if (needsReintegrating && millerReachesThreshold(miller))
+        {
+            roughMillers.push_back(miller);
+        }
     }
     
     matrix->rotate(0, 0, -lRad);
@@ -446,6 +472,8 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     logged << "Reflections accepted: " << millers.size() << std::endl;
     
     sendLog(LogLevelDetailed);
+    
+    needsReintegrating = false;
 }
 
 double IOMRefiner::minimizeParameter(double *meanStep, double *param, int whichAxis)
@@ -508,6 +536,8 @@ void IOMRefiner::minimizeTwoParameters(double *meanStep1, double *meanStep2,
     double bestParam1 = *param1;
     double bestParam2 = *param2;
     
+    bool perfect = false;
+    
     for (double i = bestParam1 - *meanStep1; j < 3; i += *meanStep1)
     {
         int l = 0;
@@ -516,7 +546,7 @@ void IOMRefiner::minimizeTwoParameters(double *meanStep1, double *meanStep2,
         {
             *param1 = i;
             *param2 = k;
-            this->checkAllMillers(maxResolution, testBandwidth);
+            this->checkAllMillers(maxResolution, testBandwidth, false, perfect);
             param_scores[j * 3 + l] = score();
             param_trials1[j * 3 + l] = i;
             param_trials2[j * 3 + l] = k;

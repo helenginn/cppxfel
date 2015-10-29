@@ -46,10 +46,13 @@ private:
 	Image *image;
 	vector<MillerPtr> millers;
 	vector<MillerPtr> nearbyMillers;
+    vector<MillerPtr> roughMillers;
 	vector<Spot *>spots;
     MatrixPtr matrix;
     std::vector<Match> indexingMatches;
 
+    bool roughCalculation;
+    bool needsReintegrating;
     CCP4SPG *spaceGroup;
     bool complexUnitCell;
     RotationMode rotationMode;
@@ -95,7 +98,7 @@ public:
     void setComplexMatrix();
     virtual ~IOMRefiner();
 
-	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false);
+	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true);
 	MtzPtr newMtz(int i);
 	void getWavelengthHistogram(vector<double> &wavelengths,
 			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
@@ -329,6 +332,16 @@ public:
     double getBestLRot()
     {
         return bestLRot;
+    }
+    
+    bool isCalculatingRough()
+    {
+        return roughCalculation;
+    }
+    
+    void setCalculatingRough(bool rough)
+    {
+        roughCalculation = rough;
     }
 };
 

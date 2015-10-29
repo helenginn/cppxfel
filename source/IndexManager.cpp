@@ -487,7 +487,6 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
             logged << "Unsuccessful crystal " << j + 1 << "/" << chosenSolutions.size() << " for " << image->getFilename() << std::endl;
             image->removeRefiner(lastRefiner);
             Logger::mainLogger->addStream(&logged); logged.str("");
-            
         }
     }
     
@@ -510,7 +509,8 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     {
         Image *image = indexer->images[i];
         logged << "Starting image " << i << std::endl;
-        
+        Logger::mainLogger->addStream(&logged); logged.str("");
+
         bool finished = false;
         bool filter = false;
         
@@ -527,6 +527,9 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                 finished = true;
         }
         
+        logged << "Finishing image " << i << " on " << image->IOMRefinerCount() << " crystals." << std::endl;
+        Logger::mainLogger->addStream(&logged); logged.str("");
+
         image->dropImage();
     }
 }

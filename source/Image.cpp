@@ -1161,9 +1161,18 @@ void Image::filterSpotVectors()
     std::sort(scoresOnly.begin(), scoresOnly.end(), std::greater<int>());
     
     int vectorsToKeep = int((double)goodFraction * (double)scoresOnly.size());
+    
     logged << "Keeping vectors: " << vectorsToKeep << " out of total: " << scoresOnly.size() << std::endl;
     sendLog();
+    
+    if (vectorsToKeep == scoresOnly.size())
+        vectorsToKeep--;
 
+    if (scoresOnly.size() == 0)
+        return;
+    
+    if (vectorsToKeep == 0)
+        return;
     
     int threshold = scoresOnly[vectorsToKeep];
     int deleted = 0;
