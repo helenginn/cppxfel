@@ -1059,6 +1059,7 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
     double x = lastX;
     double y = lastY;
     int count = 0;
+    int tolerance = FileParser::getKey("METROLOGY_SEARCH_SIZE", 1) + 1;
     
     for (int i = 0; i < spots->size(); i++)
     {
@@ -1068,7 +1069,7 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
         double xDiff = fabs(x2 - x);
         double yDiff = fabs(y2 - y);
         
-        if (xDiff < 2 && yDiff < 2)
+        if (xDiff < tolerance && yDiff < tolerance)
         {
             spots->erase(spots->begin() + i);
             i--;

@@ -937,7 +937,6 @@ int Reflection::checkSpotOverlaps(std::vector<SpotPtr> *spots)
         if (miller(i)->isOverlappedWithSpots(spots))
         {
             count++;
-            removeMiller(i);
         }
     }
     

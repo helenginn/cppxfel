@@ -516,8 +516,14 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         
         while (!finished)
         {
-            image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, filter);
-            int extraSolutions = indexer->indexOneImage(image, mtzSubset);
+            int extraSolutions = 1;
+            
+            while (extraSolutions > 0)
+            {
+                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, filter);
+                extraSolutions = indexer->indexOneImage(image, mtzSubset);
+            }
+            
             filter = !filter;
             image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, filter);
             extraSolutions += indexer->indexOneImage(image, mtzSubset);
@@ -541,7 +547,7 @@ void IndexManager::powderPattern()
     
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance);
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, true);
         
         if (images[i]->spotCount() > 300)
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
@@ -551,8 +557,6 @@ void IndexManager::powderPattern()
             double distance = spotVec->distance();
             int categoryNum = distance / step;
             double angle = spotVec->angleWithVertical();
-            
-      //      logged << distance << "," << angle << std::endl;
             
             double x = distance * sin(angle);
             double y = distance * cos(angle);
