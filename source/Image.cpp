@@ -1119,7 +1119,7 @@ void Image::filterSpotVectors()
     
     std::vector<int> scoresOnly;
     std::map<SpotVectorPtr, int> spotVectorMap;
-    double interDistanceTolerance = 0.0015;
+    double reciprocalTolerance = FileParser::getKey("RECIPROCAL_TOLERANCE", 0.0015);
     
     int totalSpots = spotCount();
     double expectedLatticesFraction = (double)totalSpots / (double)spotsPerLattice;
@@ -1145,11 +1145,11 @@ void Image::filterSpotVectors()
             
             SpotVectorPtr spotVec2 = spotVector(j);
             
-            if (spotVec1->isCloseToSpotVector(spotVec2, interDistanceTolerance))
+            if (spotVec1->isCloseToSpotVector(spotVec2, reciprocalTolerance))
             {
                 double interDistance = spotVec1->similarityToSpotVector(spotVec2);
                 
-                if (interDistance < interDistanceTolerance)
+                if (interDistance < reciprocalTolerance)
                     score++;
             }
         }
