@@ -45,6 +45,11 @@ public:
     {
         return secondSpot;
     }
+    
+    vec getSpotDiff()
+    {
+        return spotDiff;
+    }
 };
 
 #endif /* defined(__cppxfel__SpotVector__) */

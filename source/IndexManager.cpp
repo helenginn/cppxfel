@@ -545,9 +545,11 @@ void IndexManager::powderPattern()
     std::map<int, int> frequencies;
     double step = 0.0001;
     
+    std::ostringstream pdbLog;
+    
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, true);
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, false);
         
         if (images[i]->spotCount() > 300)
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
@@ -557,15 +559,34 @@ void IndexManager::powderPattern()
             double distance = spotVec->distance();
             int categoryNum = distance / step;
             double angle = spotVec->angleWithVertical();
+            vec spotDiff = spotVec->getSpotDiff();
+            spotDiff.h *= 106 * 20;
+            spotDiff.k *= 106 * 20;
+            spotDiff.l *= 106 * 20;
             
             double x = distance * sin(angle);
             double y = distance * cos(angle);
             
             logged << x << "," << y << std::endl;
+            pdbLog << "HETATM";
+            pdbLog << std::fixed;
+            pdbLog << std::setw(5) << j << "                   ";
+            pdbLog << std::setprecision(2) << std::setw(8)  << spotDiff.h;
+            pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.k;
+            pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.l;
+            pdbLog << "                       O" << std::endl;
             
             frequencies[categoryNum]++;
         }
     }
+    
+    pdbLog << "HETATM";
+    pdbLog << std::fixed;
+    pdbLog << std::setw(5) << images[0]->spotVectorCount() + 1 << "                   ";
+    pdbLog << std::setw(8) << std::setprecision(2) << 0;
+    pdbLog << std::setw(8) << std::setprecision(2) << 0;
+    pdbLog << std::setw(8) << std::setprecision(2) << 0;
+    pdbLog << "                       N" << std::endl;
     
     logged << "******* DISTANCE FREQUENCY *******" << std::endl;
     
@@ -577,7 +598,11 @@ void IndexManager::powderPattern()
         logged << distance << "," << freq << std::endl;
     }
     
+    logged << "******* PDB *******" << std::endl;
     sendLog();
+    
+    Logger::mainLogger->addStream(&pdbLog); logged.str("");
+    
 }
 
 void IndexManager::index()
