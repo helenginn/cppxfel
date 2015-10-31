@@ -1386,7 +1386,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
-        double lRotStep = initialStep;
+        double lRotStep = initialStep / 3;
         double aRotStep = initialStep;
         double bRotStep = initialStep;
         double cRotStep = initialStep;
@@ -1415,16 +1415,12 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                 this->minimizeParameter(&lRotStep, &lRot);
                 refinement = refinementType;
             }
-            if (refinementType != RefinementTypeOrientationMatrixEarlySeparated && !refinedH && !refinedK)
+            if (refinementType == RefinementTypeOrientationMatrixEarly && !refinedH && !refinedK)
             {
                 this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
+                checkAllMillers(maxResolution, testBandwidth);
             }
-            else if (refinementType == RefinementTypeOrientationMatrixEarly && !(refinedH && refinedK))
-            {
-                this->minimizeParameter(&kRotStep, &kRot, 2);
-                this->minimizeParameter(&hRotStep, &hRot, 1);
-            }
-            
+           
             if (!refinedARot && !refinedBRot && !refinedCRot)
             {
                 this->minimizeTwoParameters(&aRotStep, &bRotStep, &aRot, &bRot);

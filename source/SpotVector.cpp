@@ -56,11 +56,10 @@ void SpotVector::projectedXYDisplacement(double *x, double *y)
 
 bool SpotVector::isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistance)
 {
-    double x1, y1, x2, y2;
-    projectedXYDisplacement(&x1, &y1);
-    spotVector2->projectedXYDisplacement(&x2, &y2);
+    vec spotDiff2 = spotVector2->getSpotDiff();
     
-    if (fabs(x1 - x2) > maxDistance || fabs(y1 - y2) > maxDistance)
+    if (fabs(spotDiff2.h - spotDiff.h) > maxDistance || fabs(spotDiff2.k - spotDiff.k) > maxDistance
+        || fabs(spotDiff2.l - spotDiff.l) > maxDistance)
         return false;
     
     return true;
@@ -68,13 +67,8 @@ bool SpotVector::isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistan
 
 double SpotVector::similarityToSpotVector(SpotVectorPtr spotVector2)
 {
-    double x1, y1, x2, y2;
-    projectedXYDisplacement(&x1, &y1);
-    spotVector2->projectedXYDisplacement(&x2, &y2);
+    vec displace = copy_vector(spotDiff);
+    take_vector_away_from_vector(spotVector2->getSpotDiff(), &displace);
     
-    vec displace1 = new_vector(x1, y1, 0);
-    vec displace2 = new_vector(x2, y2, 0);
-    take_vector_away_from_vector(displace1, &displace2);
-    
-    return length_of_vector(displace2);
+    return length_of_vector(displace);
 }

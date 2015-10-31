@@ -1059,7 +1059,7 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
     double x = lastX;
     double y = lastY;
     int count = 0;
-    int tolerance = FileParser::getKey("METROLOGY_SEARCH_SIZE", 1) + 1;
+    int tolerance = FileParser::getKey("METROLOGY_SEARCH_SIZE", 1) + 2;
     
     for (int i = 0; i < spots->size(); i++)
     {

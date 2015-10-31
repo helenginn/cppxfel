@@ -378,11 +378,11 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     
     for (int j = 0; j < trialCount && j < scoredSolutions.size(); j++)
     {
-        MatrixPtr solution = scoredSolutions[0].first;
+        MatrixPtr solution = scoredSolutions[j].first;
         vec aDummyVec = new_vector(1, 0, 0);
         solution->multiplyVector(&aDummyVec);
         
-        for (int k = 0; k < scoredSolutions.size() && k < maxSearchNumberSolutions; k++)
+        for (int k = j + 1; k < scoredSolutions.size() && k < j + trialCount; k++)
         {
             MatrixPtr secondSol = scoredSolutions[k].first;
             
@@ -512,7 +512,6 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         Logger::mainLogger->addStream(&logged); logged.str("");
 
         bool finished = false;
-        bool filter = false;
         
         while (!finished)
         {
@@ -520,14 +519,12 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             
             while (extraSolutions > 0)
             {
-                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, filter);
+                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, false);
                 extraSolutions = indexer->indexOneImage(image, mtzSubset);
             }
             
-            filter = !filter;
-            image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, filter);
+            image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, true);
             extraSolutions += indexer->indexOneImage(image, mtzSubset);
-            filter = !filter;
             
             if (extraSolutions == 0)
                 finished = true;
@@ -549,7 +546,7 @@ void IndexManager::powderPattern()
     
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, false);
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, true);
         
         if (images[i]->spotCount() > 300)
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
