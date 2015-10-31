@@ -783,10 +783,10 @@ void Panel::findShift(double windowSize, double step, double x, double y)
 {
     vector<std::pair<Coord, double> > scores;
     
-    int minX = -defaultShift + originalShift.first + x - windowSize;
-    int maxX = defaultShift + originalShift.first + x + windowSize;
-    int minY = -defaultShift + originalShift.second + y - windowSize;
-    int maxY = defaultShift + originalShift.second + y + windowSize;
+    double minX = -defaultShift + originalShift.first + x + 0.5;
+    double maxX = defaultShift + originalShift.first + x - 0.5;
+    double minY = -defaultShift + originalShift.second + y + 0.5;
+    double maxY = defaultShift + originalShift.second + y - 0.5;
     
     logged << "Finding best shift within window (" << minX << ", " << minY << "), (" << maxX << ", " << maxY << ")" << std::endl;
     
@@ -813,7 +813,9 @@ void Panel::findShift(double windowSize, double step, double x, double y)
                 bool inWindow = isCoordInPanel(millerShift, &windowTopLeft,
                                                &windowBottomRight);
                 
-                if (inWindow)
+                bool strong = millers[k]->getRawIntensity() / millers[k]->getCountingSigma() > 12;
+                
+                if (inWindow && strong)
                 {
                     score++;
                 }
