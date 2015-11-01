@@ -372,7 +372,7 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     
     std::vector<MatrixPtr> chosenSolutions;
     double expectedLattices = (double)spotNum / (double)spotsPerLattice;
-    int trialCount = sqrt(expectedLattices) * 12;
+    int trialCount = 12;
     
     std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
     
@@ -520,7 +520,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             
             while (extraSolutions > 0)
             {
-                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, true);
+                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, false);
                 extraSolutions = indexer->indexOneImage(image, mtzSubset);
                 
                 if (alwaysAccept)

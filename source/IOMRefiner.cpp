@@ -1593,19 +1593,22 @@ bool IOMRefiner::isGoodSolution()
     logged << "Stdev low: " << stdevLow << ", highAverage " << highSum << std::endl;
     sendLog();
     
-    if (lastStdev < 0.045)
+    if (lastStdev < 0.066)
         good = true;
 
-    if (highSum > stdevLow * 7)
+    if (highSum > stdevLow * 6.5)
         good = true;
     
-    if (frequencies[0] > 21)
+    if (highSum <= 4)
+        good = false;
+    
+    if (frequencies[0] > 17)
         good = true;
     
     if (lastScore < 3)
         good = true;
     
-    if (getTotalReflections() < 40)
+    if (getTotalReflections() < 30)
         good = false;
     
     return good;
