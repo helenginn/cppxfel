@@ -137,6 +137,7 @@ public:
     double getDetectorDistance();
     double getWavelength();
     void refinementSummary();
+    static void refinementSummaryHeader();
     
     void getBestRots(double *rot1, double *rot2, double *rot3)
     {

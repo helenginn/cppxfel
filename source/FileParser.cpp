@@ -257,6 +257,7 @@ void FileParser::generateFunctionList()
 
 	// Indexing parameters
 
+    parserMap["DETECTOR_GAIN"] = simpleFloat;
     parserMap["BITS_PER_PIXEL"] = simpleInt;
 	parserMap["SPACE_GROUP"] = simpleInt;
 	parserMap["INTEGRATION_WAVELENGTH"] = simpleFloat;

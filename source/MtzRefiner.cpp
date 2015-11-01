@@ -1435,6 +1435,8 @@ void MtzRefiner::integrate()
         mtzManagers[i]->writeToDat();
     }
     
+    IOMRefiner::refinementSummaryHeader();
+
     for (int i = 0; i < images.size(); i++)
     {
         for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
@@ -1690,6 +1692,8 @@ void MtzRefiner::index()
     indexManager->index();
     
     mtzManagers = indexManager->getMtzs();
+    
+    IOMRefiner::refinementSummaryHeader();
     
     for (int i = 0; i < images.size(); i++)
     {

@@ -43,6 +43,7 @@ private:
 	int beamY;
 	double mmPerPixel;
     bool noCircles;
+    double detectorGain;
 
 	double detectorDistance; // mm
 	double wavelength;
@@ -270,6 +271,16 @@ public:
 	}
    
     void setImageData(vector<int> newData);
+    
+    double getDetectorGain()
+    {
+        return detectorGain;
+    }
+    
+    void setDetectorGain(double newGain)
+    {
+        detectorGain = newGain;
+    }
     
     void sendLog(LogLevel priority = LogLevelNormal);
 

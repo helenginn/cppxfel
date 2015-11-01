@@ -1724,6 +1724,11 @@ void IOMRefiner::sendLog(LogLevel priority)
     logged.clear();
 }
 
+void IOMRefiner::refinementSummaryHeader()
+{
+    std::cout << "Filename\tRefl num\tScore\tHoriz rot\tVert rot\tBeam rot\tStdev\tWavelength\tDistance\tUnitCellA\tUnitCellB\tUnitCellC" << std::endl;
+}
+
 void IOMRefiner::refinementSummary()
 {
     std::string filename = image->getFilename();

@@ -47,6 +47,8 @@ Image::Image(std::string filename, double wavelength,
     if (shouldMaskValue)
         maskedValue = FileParser::getKey("IMAGE_MASKED_VALUE", 0);
 
+    detectorGain = FileParser::getKey("DETECTOR_GAIN", 1.0);
+    
     if (beam.size() == 0)
     {
         beam.push_back(BEAM_CENTRE_X);
@@ -275,7 +277,7 @@ int Image::valueAt(int x, int y)
 	if (position < 0 || position >= data.size())
 		return 0;
     
-	return data[position];
+	return data[position] * detectorGain;
 }
 
 void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
@@ -655,30 +657,17 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
     double totalPhotons = foreground;
     *error = sqrt(totalPhotons);
     
-    
+/*
     std::ostringstream logged;
     logged << "Photons (back/fore/back-in-fore): " << background << "\t" << foreground << "\t" << "; weights: " << backNum << "\t" << foreNum << std::endl;
-//    Logger::mainLogger->addStream(&logged, LogLevelDebug);
-    
+    */
     double intensity = (foreground - backgroundInForeground);
-    
-    if (!std::isfinite(intensity))
-    {
-        Logger::mainLogger->addString("Infinite intensity", LogLevelDebug);
-    }
     
     return intensity;
 }
 
 double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *error)
 {
-    double oneError, twoError;
-    
-    double one = integrateSimpleSummation(x, y, shoebox, &oneError);
-    double two = integrateFitBackgroundPlane(x, y, shoebox, &twoError);
-    
- //   std::cout << one << "\t" << oneError << "\t" << two << "\t" << twoError << std::endl;
-    
     if (!fitBackgroundAsPlane)
     {
         return integrateSimpleSummation(x, y, shoebox, error);
