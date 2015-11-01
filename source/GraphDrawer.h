@@ -50,7 +50,7 @@ public:
 
     void plotPolarisation(vector<MtzPtr> mtzs);
 	void correlationPlot(std::string filename, double xMax = 0, double yMax = 0);
-	void partialityPlot(std::string filename, GraphMap properties = GraphMap());
+	void partialityPlot(std::string filename, GraphMap properties = GraphMap(), double maxRes = 1.6);
 	void bFactorPlot(vector<MtzManager *>& managers,
                      std::string filename = "all_gradients", GraphMap properties = GraphMap());
     

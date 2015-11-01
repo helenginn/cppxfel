@@ -857,7 +857,7 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 
 	(*test_image)->findCommonReflections(*image, imageReflections, refReflections, NULL, true);
 
-    std::cout << refReflections.size() << " common reflections." << std::endl;
+    std::cout << refReflections.size() << " reflections in common with reference MTZ." << std::endl;
     
 	for (int i = 0; i < refReflections.size(); i++)
 	{

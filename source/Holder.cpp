@@ -159,8 +159,6 @@ void Reflection::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group
     if (hasSetup)
         return;
     
-    std::cout << hallSymbol << std::endl;
-    
     spaceGroup = space_group(hallSymbol);
     spgType = newSpgType;
     asymmetricUnit = newAsymmetricUnit;

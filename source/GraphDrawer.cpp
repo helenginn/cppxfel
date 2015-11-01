@@ -807,7 +807,7 @@ void GraphDrawer::plotPolarisation(vector<MtzPtr> mtzs)
     plot("polarisation", graphMap, xs, ys);
 }
 
-void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
+void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, double maxRes)
 {
     double correl = mtz->correlation();
     mtz->setActiveAmbiguity(1);
@@ -819,15 +819,13 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
     double gradient = mtz->gradientAgainstManager(MtzManager::getReferenceManager());
     mtz->applyScaleFactor(gradient);
     
-    std::cout << "Correlations: " << correl << ", " << invCorrel << std::endl;
-    
-	properties["title"] = "Partiality plot " + mtz->getFilename();
+    properties["title"] = "Partiality plot " + mtz->getFilename();
 	properties["xTitle"] = "Wavelength (Å)";
 	properties["yTitle"] = "Fraction of merged data set (%)";
 	properties["plotType"] = "fill";
 
 	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, 1.6, 4, &resolutions);
+	StatisticsManager::generateResolutionBins(0, maxRes, 4, &resolutions);
 
 	vector<std::string> files;
 
@@ -835,7 +833,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 	StatisticsManager::twoImagePartialityStatsWritten(&partials,
 			&MtzManager::getReferenceManager(), &mtz);
 
-	std::cout << "Hits: " << partials.size() << std::endl;
+	std::cout << "Total number of reflections in MTZ: " << partials.size() << std::endl;
 
 	double maxPercentage = 1000;
 	std::sort(partials.begin(), partials.end(), sortByPercentage);
@@ -855,7 +853,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
     double wantedWidth = 0.08;
     
-    std::cout << "minX: " << minX << ", maxX: " << maxX << ", middle: " << middle << std::endl;
+  //  std::cout << "minX: " << minX << ", maxX: " << maxX << ", middle: " << middle << std::endl;
     
 	if (maxX - minX > wantedWidth)
 	{
@@ -873,6 +871,8 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 
 	vector<double> xs, xs2, xs3, xs4, ys, ys2, ys3, ys4, scatterX, scatterY;
 
+    std::cout << std::setw(12) << "Low res" << std::setw(12) << "High res" << std::setw(12) << "Num refl." << std::endl;
+    
 	for (int shell = 0; shell < resCount - 1; shell++)
 	{
 		xs.clear();
@@ -897,13 +897,8 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
                 
                 if (partials[i].percentage > maxPercentage)
                     continue;
-                /*
-                double mValue = (partials[i].miller->getH());
-                
-                if (fabs(mValue) < 7)
-                    continue;
-                */
-				xs.push_back(partials[i].wavelength);
+
+                xs.push_back(partials[i].wavelength);
                 ys.push_back(partials[i].percentage);
                 xs2.push_back(partials[i].partiality);
                 ys2.push_back(partials[i].resolution);
@@ -918,7 +913,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties)
 		if (xs.size() <= 1)
 			continue;
 
-		std::cout << lowRes << "\t" << highRes << "\t" << xs.size()
+		std::cout << std::setw(12) << 1 / lowRes << std::setw(12) <<  1 / highRes << std::setw(12) << xs.size()
 				<< std::endl;
         
         std::vector<std::vector<double> > allXs, allYs;

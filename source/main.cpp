@@ -49,7 +49,7 @@ void new_main(int argc, char *argv[])
 //	std::cout << getenv("SYMINFO") << std::endl;
 #endif
     
-	std::cout << "Welcome to Helen's XFEL tasks" << std::endl;
+	std::cout << "Welcome to cppxfel!" << std::endl;
     
 	if (strcmp(argv[1], "-i") == 0)
 	{
@@ -307,11 +307,11 @@ void new_main(int argc, char *argv[])
     }
 
 #ifdef MAC
-    if (strcmp(argv[1], "-partimg") == 0)
+    if (strcmp(argv[1], "-partiality") == 0)
 	{
 		if (argc <= 3)
 		{
-			std::cout << "arguments: -partimg <ref> <filein>." << std::endl;
+			std::cout << "arguments: -partiality <ref> <filein> {<maxres>}." << std::endl;
 			exit(1);
 		}
 
@@ -319,22 +319,27 @@ void new_main(int argc, char *argv[])
 		reference->setFilename(argv[2]);
 		reference->loadReflections(1);
 		MtzManager::setReference(reference);
-
-		for (int i = 3; i < argc; i++)
-		{
-			MtzManager *mtz = new MtzManager();
-			mtz->setFilename(argv[i]);
-            std::cout << argv[i] << std::endl;
-			mtz->loadReflections(PartialityModelNone, true);
-
-            vector<Reflection *>refReflections, imageReflections;
-            
-			GraphDrawer graph = GraphDrawer(mtz);
-
-			graph.partialityPlot("partiality", GraphMap());
-
-			delete mtz;
-		}
+        
+        double maxRes = 1.6;
+        
+        if (argc > 4)
+        {
+            maxRes = atof(argv[4]);
+        }
+        
+        
+        MtzManager *mtz = new MtzManager();
+        mtz->setFilename(argv[3]);
+        std::cout << "Partiality plot for " << argv[3] << std::endl;
+        mtz->loadReflections(PartialityModelNone, true);
+        
+        vector<Reflection *>refReflections, imageReflections;
+        
+        GraphDrawer graph = GraphDrawer(mtz);
+        
+        graph.partialityPlot("partiality", GraphMap(), maxRes);
+        
+        delete mtz;
 
 		delete reference;
 	}
