@@ -25,6 +25,7 @@ Spot::Spot(Image *image)
     successfulCommonLines = 0;
     correctedX = -1;
     correctedY = -1;
+    rejected = false;
     x = 0;
     y = 0;
     
