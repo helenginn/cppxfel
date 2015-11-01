@@ -335,7 +335,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         int finalSeconds = (int) seconds % 60;
         int minutes = seconds / 60;
         
-        std::cout << "N: Clock time " << minutes << " minutes, " << finalSeconds << " seconds to merge full data set" << std::endl;
+        logged << "N: Clock time " << minutes << " minutes, " << finalSeconds << " seconds to merge full data set" << std::endl;
         
         merge(&idxMerge, unmerged, true, false);
 		merge(&invMerge, unmerged, false, false);

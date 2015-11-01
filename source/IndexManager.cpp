@@ -504,6 +504,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 {
     std::ostringstream logged;
     int maxThreads = FileParser::getMaxThreads();
+    bool alwaysAccept = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     
     for (int i = offset; i < indexer->images.size(); i += maxThreads)
     {
@@ -519,14 +520,20 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             
             while (extraSolutions > 0)
             {
-                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, false);
+                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, true);
                 extraSolutions = indexer->indexOneImage(image, mtzSubset);
+                
+                if (alwaysAccept)
+                    break;
             }
             
-            image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, true);
-            extraSolutions += indexer->indexOneImage(image, mtzSubset);
+            if (!alwaysAccept)
+            {
+                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, true);
+                extraSolutions += indexer->indexOneImage(image, mtzSubset);
+            }
             
-            if (extraSolutions == 0)
+            if (extraSolutions == 0 || alwaysAccept)
                 finished = true;
         }
         
@@ -540,7 +547,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 void IndexManager::powderPattern()
 {
     std::map<int, int> frequencies;
-    double step = 0.0001;
+    double step = 0.0003;
     
     std::ostringstream pdbLog;
     
@@ -564,14 +571,17 @@ void IndexManager::powderPattern()
             double x = distance * sin(angle);
             double y = distance * cos(angle);
             
-            logged << x << "," << y << std::endl;
-            pdbLog << "HETATM";
-            pdbLog << std::fixed;
-            pdbLog << std::setw(5) << j << "                   ";
-            pdbLog << std::setprecision(2) << std::setw(8)  << spotDiff.h;
-            pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.k;
-            pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.l;
-            pdbLog << "                       O" << std::endl;
+            if (i == 0)
+            {
+                logged << x << "," << y << std::endl;
+                pdbLog << "HETATM";
+                pdbLog << std::fixed;
+                pdbLog << std::setw(5) << j << "                   ";
+                pdbLog << std::setprecision(2) << std::setw(8)  << spotDiff.h;
+                pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.k;
+                pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.l;
+                pdbLog << "                       O" << std::endl;
+            }
             
             frequencies[categoryNum]++;
         }
@@ -598,7 +608,7 @@ void IndexManager::powderPattern()
     logged << "******* PDB *******" << std::endl;
     sendLog();
     
-    Logger::mainLogger->addStream(&pdbLog); logged.str("");
+   // Logger::mainLogger->addStream(&pdbLog); logged.str("");
     
 }
 

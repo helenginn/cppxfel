@@ -1106,14 +1106,14 @@ void Image::filterSpotVectors()
 {
     int spotsPerLattice = FileParser::getKey("SPOTS_PER_LATTICE", 100);
     
-    std::vector<int> scoresOnly;
-    std::map<SpotVectorPtr, int> spotVectorMap;
+    std::vector<double> scoresOnly;
+    std::map<SpotVectorPtr, double> spotVectorMap;
     double reciprocalTolerance = FileParser::getKey("RECIPROCAL_TOLERANCE", 0.0015);
     
     int totalSpots = spotCount();
     double expectedLatticesFraction = (double)totalSpots / (double)spotsPerLattice;
     int goodHits = round(expectedLatticesFraction);
-    int maxVectors = 8000;
+    int maxVectors = 12000;
     
     double goodFraction = proportion(goodHits);
     
@@ -1125,7 +1125,7 @@ void Image::filterSpotVectors()
     for (int i = 0; i < spotVectorCount() && i < maxVectors; i++)
     {
         SpotVectorPtr spotVec1 = spotVector(i);
-        int score = 0;
+        double score = 0;
         
         for (int j = 0; j < spotVectorCount() && j < maxVectors; j++)
         {
@@ -1139,7 +1139,7 @@ void Image::filterSpotVectors()
                 double interDistance = spotVec1->similarityToSpotVector(spotVec2);
                 
                 if (interDistance < reciprocalTolerance)
-                    score++;
+                    score += reciprocalTolerance - interDistance;
             }
         }
 
@@ -1163,7 +1163,7 @@ void Image::filterSpotVectors()
     if (vectorsToKeep == 0)
         return;
     
-    int threshold = scoresOnly[vectorsToKeep];
+    double threshold = scoresOnly[vectorsToKeep];
     int deleted = 0;
     
     logged << "Threshold: " << threshold << std::endl;
