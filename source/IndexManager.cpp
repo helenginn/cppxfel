@@ -66,8 +66,8 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
         {
             for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
             {
-           //     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
-           //         continue;
+                if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
+                    continue;
                 
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
