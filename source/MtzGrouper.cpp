@@ -315,8 +315,8 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     if (cycle >= 0)
     {
         unmergedName = std::string("unmerged") + i_to_str(cycle) + std::string(".mtz");
-        idxName = std::string("idxMerge") + i_to_str(cycle) + std::string(".mtz");
-        invName = std::string("invMerge") + i_to_str(cycle) + std::string(".mtz");
+        idxName = std::string("half1Merge") + i_to_str(cycle) + std::string(".mtz");
+        invName = std::string("half2Merge") + i_to_str(cycle) + std::string(".mtz");
     }
     
 	if (anom == false)
