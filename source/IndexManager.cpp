@@ -141,8 +141,8 @@ bool IndexManager::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
             
             double angle = mat1->similarityToRotationMatrix(mat3);
             
-            logged << "Angle: " << angle * 180 / M_PI << std::endl;
-            Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
+        //    logged << "Angle: " << angle * 180 / M_PI << std::endl;
+        //    Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
             
             if (angle < solutionAngleSpread * M_PI / 180)
             {
@@ -326,8 +326,8 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     for (int j = 0; j < possibleSolutions.size() && j < maxSearchNumberSolutions - 1; j++)
     {
         MatrixPtr aMat = possibleSolutions[j];
-        vec aDummyVec = new_vector(1, 0, 0);
-        aMat->multiplyVector(&aDummyVec);
+      //  vec aDummyVec = new_vector(1, 0, 0);
+      //  aMat->multiplyVector(&aDummyVec);
         double score = 0;
         int count = 0;
         
@@ -335,32 +335,14 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
         {
             MatrixPtr bMat = possibleSolutions[k]->copy();
             
-            for (int m = 0; m < 1; m++)
+            double angle = bMat->similarityToRotationMatrix(aMat);
+            //   double angle = angleBetweenVectors(aMat, bMat);
+            
+            if (angle < finalTolerance)
             {
-                MatrixPtr symOperator = symOperators[m];
-                
-                for (int l = 0; l < ambiguityCount; l++)
-                {
-                    MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
-               //     bMat->preMultiply(*symOperator);
-               //     bMat->preMultiply(*ambiguity);
-                    
-                    vec bDummyVec = new_vector(1, 0, 0);
-                    
-                    ambiguity->multiplyVector(&bDummyVec);
-                    symOperator->multiplyVector(&bDummyVec);
-                    bMat->multiplyVector(&bDummyVec);
-                    
-                    double angle = bMat->similarityToRotationMatrix(aMat);
-                 //   double angle = angleBetweenVectors(aMat, bMat);
-                    
-                    if (angle < finalTolerance)
-                    {
-                        double addition = pow(finalTolerance - angle, 2);
-                        score += addition;
-                        count++;
-                    }
-                }
+                double addition = pow(finalTolerance - angle, 2);
+                score += addition;
+                count++;
             }
         }
         
@@ -369,9 +351,15 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
         for (int l = 0; l < ambiguityCount; l++)
         {
             MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
-            ambiguity->multiply(*aMat);
+            for (int m = 0; m < 1; m++)
+            {
+                MatrixPtr symOperator = symOperators[m];
+                
+                ambiguity->preMultiply(*symOperator);
+                ambiguity->multiply(*aMat);
             
-            dummyVecStr << ambiguity->summary() << std::endl;
+                dummyVecStr << ambiguity->summary() << std::endl;
+            }
         }
         
         scoredSolutions.push_back(std::make_pair(aMat, score));

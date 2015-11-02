@@ -1561,9 +1561,9 @@ struct greater { template<class T> bool operator()(T const &a, T const &b) const
 bool IOMRefiner::isGoodSolution()
 {
     bool good = false;
-    double goodSolutionStdev = FileParser::getKey("GOOD_SOLUTION_ST_DEV", 0.045);
-    double goodSolutionSumRatio = FileParser::getKey("GOOD_SOLUTION_SUM_RATIO", 7.0);
-    int goodSolutionHighestPeak = FileParser::getKey("GOOD_SOLUTION_HIGHEST_PEAK", 21);
+    double goodSolutionStdev = FileParser::getKey("GOOD_SOLUTION_ST_DEV", 0.066);
+    double goodSolutionSumRatio = FileParser::getKey("GOOD_SOLUTION_SUM_RATIO", 6.5);
+    int goodSolutionHighestPeak = FileParser::getKey("GOOD_SOLUTION_HIGHEST_PEAK", 17);
     int minimumReflections = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", 30);
     
     logged << "Standard deviation: " << lastStdev << std::endl;
