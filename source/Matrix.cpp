@@ -101,6 +101,35 @@ std::string Matrix::description(bool detailed, bool submatrix)
 	return description.str();
 }
 
+void Matrix::eulerAngles(double *theta, double *phi, double *psi)
+{
+    double sinTheta = components[2];
+    *theta = asin(sinTheta);
+    double cosTheta = cos(*theta);
+    
+    *psi = atan2((components[6] / cosTheta), (components[10] / cosTheta));
+    *phi = atan2((components[1] / cosTheta), (components[0] / cosTheta));
+    
+}
+
+double Matrix::similarityToRotationMatrix(MatrixPtr mat2)
+{
+    double theta1, psi1, phi1;
+    eulerAngles(&theta1, &phi1, &psi1);
+    
+    double theta2, psi2, phi2;
+    mat2->eulerAngles(&theta2, &phi2, &psi2);
+    
+    std::ostringstream logged;
+    
+  ///  logged << "Angle: " << theta1 << "\t" << theta2 << "\t" << psi1 << "\t" << psi2 << "\t" << phi1 << "\t" << phi2 << std::endl;
+  //  Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
+    
+    double sumSqr = pow(theta1 - theta2, 2) + pow(psi1 - psi2, 2) + pow(phi1 - phi2, 2);
+    
+    return sqrt(sumSqr);
+}
+
 void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup)
 {
     int symmetryOperatorCount = spaceGroup->nsymop;

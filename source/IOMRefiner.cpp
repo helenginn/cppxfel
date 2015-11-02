@@ -1561,6 +1561,10 @@ struct greater { template<class T> bool operator()(T const &a, T const &b) const
 bool IOMRefiner::isGoodSolution()
 {
     bool good = false;
+    double goodSolutionStdev = FileParser::getKey("GOOD_SOLUTION_ST_DEV", 0.045);
+    double goodSolutionSumRatio = FileParser::getKey("GOOD_SOLUTION_SUM_RATIO", 7.0);
+    int goodSolutionHighestPeak = FileParser::getKey("GOOD_SOLUTION_HIGHEST_PEAK", 21);
+    int minimumReflections = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", 30);
     
     logged << "Standard deviation: " << lastStdev << std::endl;
     sendLog(LogLevelNormal);
@@ -1593,22 +1597,22 @@ bool IOMRefiner::isGoodSolution()
     logged << "Stdev low: " << stdevLow << ", highAverage " << highSum << std::endl;
     sendLog();
     
-    if (lastStdev < 0.066)
+    if (lastStdev < goodSolutionStdev)
         good = true;
 
-    if (highSum > stdevLow * 6.5)
+    if (highSum > stdevLow * goodSolutionSumRatio)
         good = true;
     
-    if (highSum <= 4)
+    if (highSum <= 5)
         good = false;
     
-    if (frequencies[0] > 17)
+    if (frequencies[0] > goodSolutionHighestPeak)
         good = true;
     
     if (lastScore < 3)
         good = true;
     
-    if (getTotalReflections() < 30)
+    if (getTotalReflections() < minimumReflections)
         good = false;
     
     return good;

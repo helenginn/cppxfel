@@ -53,7 +53,7 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
     minimumTrustAngle = FileParser::getKey("MINIMUM_TRUST_ANGLE", 1.0);
     minimumTrustDistance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
 
-    solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0);
+    solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 10.0);
     
     maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
     maxDistance = 0;
@@ -119,8 +119,10 @@ bool greater_than_scored_matrix(std::pair<MatrixPtr, double> a, std::pair<Matrix
 
 bool IndexManager::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
 {
-    vec aDummyVec = new_vector(1, 0, 0);
-    mat1->multiplyVector(&aDummyVec);
+  //  vec aDummyVec = new_vector(1, 0, 0);
+  //  mat1->multiplyVector(&aDummyVec);
+    std::ostringstream logged;
+    MatrixPtr mat3 = mat2->copy();
     
     for (int k = 0; k < symOperators.size(); k++)
     {
@@ -129,13 +131,18 @@ bool IndexManager::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
         for (int l = 0; l < newReflection->ambiguityCount(); l++)
         {
             MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
+            mat3->preMultiply(*symOperator);
+            mat3->preMultiply(*ambiguity);
             
-            vec bDummyVec = new_vector(1, 0, 0);
-            symOperator->multiplyVector(&bDummyVec);
-            ambiguity->multiplyVector(&bDummyVec);
-            mat2->multiplyVector(&bDummyVec);
+       //     vec bDummyVec = new_vector(1, 0, 0);
+       //     symOperator->multiplyVector(&bDummyVec);
+        //    ambiguity->multiplyVector(&bDummyVec);
+        //    mat2->multiplyVector(&bDummyVec);
             
-            double angle = fabs(angleBetweenVectors(aDummyVec, bDummyVec));
+            double angle = mat1->similarityToRotationMatrix(mat3);
+            
+            logged << "Angle: " << angle * 180 / M_PI << std::endl;
+            Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
             
             if (angle < solutionAngleSpread * M_PI / 180)
             {
@@ -326,7 +333,7 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
         
         for (int k = 0; k < possibleSolutions.size() && k < maxSearchNumberSolutions; k++)
         {
-            MatrixPtr bMat = possibleSolutions[k];
+            MatrixPtr bMat = possibleSolutions[k]->copy();
             
             for (int m = 0; m < 1; m++)
             {
@@ -335,6 +342,8 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
                 for (int l = 0; l < ambiguityCount; l++)
                 {
                     MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
+               //     bMat->preMultiply(*symOperator);
+               //     bMat->preMultiply(*ambiguity);
                     
                     vec bDummyVec = new_vector(1, 0, 0);
                     
@@ -342,7 +351,8 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
                     symOperator->multiplyVector(&bDummyVec);
                     bMat->multiplyVector(&bDummyVec);
                     
-                    double angle = fabs(angleBetweenVectors(aDummyVec, bDummyVec));
+                    double angle = bMat->similarityToRotationMatrix(aMat);
+                 //   double angle = angleBetweenVectors(aMat, bMat);
                     
                     if (angle < finalTolerance)
                     {
@@ -379,14 +389,19 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     for (int j = 0; j < trialCount && j < scoredSolutions.size(); j++)
     {
         MatrixPtr solution = scoredSolutions[j].first;
-        vec aDummyVec = new_vector(1, 0, 0);
-        solution->multiplyVector(&aDummyVec);
+    //    vec aDummyVec = new_vector(1, 0, 0);
+     //   solution->multiplyVector(&aDummyVec);
         
         for (int k = j + 1; k < scoredSolutions.size() && k < j + trialCount; k++)
         {
             MatrixPtr secondSol = scoredSolutions[k].first;
             
+    //        logged << solution->description() << std::endl;
+    //        logged << secondSol->description() << std::endl;
+            
             bool erase = matrixSimilarToMatrix(solution, secondSol);
+            
+       //     logged << erase << std::endl;
             
             if (erase)
             {
@@ -396,6 +411,9 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
             }
         }
     }
+    
+    logged << "Scored solution size: " << scoredSolutions.size() << std::endl;
+    Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
     
     std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
     

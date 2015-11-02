@@ -81,6 +81,8 @@ public:
     double getEwaldSphere(vec *vector);
     double getEwaldSphereNoMatrix(vec index);
     
+    void eulerAngles(double *theta, double *phi, double *psi);
+    double similarityToRotationMatrix(MatrixPtr mat2);
     void unitCellLengths(double **lengths);
     scitbx::mat3<double> cctbxMatrix(MatrixPtr theMatrix = MatrixPtr());
     void threeDimComponents(double **componentArray);
