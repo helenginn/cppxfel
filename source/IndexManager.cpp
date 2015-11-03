@@ -13,6 +13,7 @@
 #include "Logger.h"
 #include <algorithm>
 #include "parameters.h"
+#include <fstream>
 #include "SpotVector.h"
 
 IndexManager::IndexManager(std::vector<Image *> newImages)
@@ -370,7 +371,7 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     
     std::vector<MatrixPtr> chosenSolutions;
     double expectedLattices = (double)spotNum / (double)spotsPerLattice;
-    int trialCount = 12;
+    int trialCount = FileParser::getKey("SOLUTION_ATTEMPTS", 12);
     
     std::sort(scoredSolutions.begin(), scoredSolutions.end(), greater_than_scored_matrix);
     
@@ -553,13 +554,13 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 void IndexManager::powderPattern()
 {
     std::map<int, int> frequencies;
-    double step = 0.0003;
+    double step = 0.0001;
     
     std::ostringstream pdbLog;
     
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, true);
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, false);
         
         if (images[i]->spotCount() > 300)
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
@@ -603,13 +604,18 @@ void IndexManager::powderPattern()
     
     logged << "******* DISTANCE FREQUENCY *******" << std::endl;
     
+    std::ofstream powderLog;
+    powderLog.open("powder.csv");
+    
     for (std::map<int, int>::iterator it = frequencies.begin(); it != frequencies.end(); it++)
     {
         double distance = it->first * step;
         double freq = it->second;
         
-        logged << distance << "," << freq << std::endl;
+        powderLog << distance << "," << freq << std::endl;
     }
+    
+    powderLog.close();
     
     logged << "******* PDB *******" << std::endl;
     sendLog();
