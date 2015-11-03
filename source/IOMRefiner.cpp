@@ -411,7 +411,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             continue;
         }
         
-        miller->recalculatePartiality(newMatrix, 0.03, testSpotSize,
+        miller->recalculatePartiality(newMatrix, 0.0, testSpotSize,
                                       wavelength, bandwidth, 1.5);
         
         if (i == 0)
@@ -547,7 +547,7 @@ void IOMRefiner::minimizeTwoParameters(double *meanStep1, double *meanStep2,
             *param1 = i;
             *param2 = k;
             this->checkAllMillers(maxResolution, testBandwidth, false, perfect);
-            param_scores[j * 3 + l] = score();
+            param_scores[j * 3 + l] = score(0, true);
             param_trials1[j * 3 + l] = i;
             param_trials2[j * 3 + l] = k;
             l++;
@@ -858,7 +858,7 @@ double IOMRefiner::medianIntensity()
     
 }
 
-double IOMRefiner::score(int whichAxis)
+double IOMRefiner::score(int whichAxis, bool silent)
 {
     if (refinement == RefinementTypeDetectorWavelength)
         return 0 - getTotalReflections();
@@ -881,7 +881,10 @@ double IOMRefiner::score(int whichAxis)
                 break;
         }
         
-        getWavelengthHistogram(wavelengths, frequencies, whichAxis == 0 ? LogLevelDetailed : LogLevelDebug, whichAxis);
+        LogLevel level = silent ? LogLevelDebug : LogLevelDetailed;
+        if (whichAxis != 0 && silent == 0) level = LogLevelDebug;
+        
+        getWavelengthHistogram(wavelengths, frequencies, level, whichAxis);
         
         double mean = 0;
         double stdev = 0;
@@ -1418,7 +1421,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
             if (refinementType == RefinementTypeOrientationMatrixEarly && !refinedH && !refinedK)
             {
                 this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
-                checkAllMillers(maxResolution, testBandwidth);
+          //      checkAllMillers(maxResolution, testBandwidth);
             }
            
             if (!refinedARot && !refinedBRot && !refinedCRot)

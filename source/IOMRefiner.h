@@ -102,7 +102,7 @@ public:
 	MtzPtr newMtz(int i);
 	void getWavelengthHistogram(vector<double> &wavelengths,
 			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
-	double score(int whichAxis = 0);
+	double score(int whichAxis = 0, bool silent = false);
 
 	static bool millerReachesThreshold(MillerPtr miller);
 	void findSpots();
