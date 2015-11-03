@@ -980,7 +980,19 @@ bool Image::checkUnitCell(double trueA, double trueB, double trueC, double toler
 
 void Image::processSpotList()
 {
-    std::string spotContents = FileReader::get_file_contents(spotsFile.c_str());
+    std::string spotContents;
+    
+    try
+    {
+        spotContents = FileReader::get_file_contents(spotsFile.c_str());
+    }
+    catch(int e)
+    {
+        logged << "Cannot find spot file - not loading spots for " << filename << std::endl;
+        sendLog();
+        return;
+    }
+    
     vector<std::string> spotLines = FileReader::split(spotContents, '\n');
     
     for (int i = 0; i < spotLines.size(); i++)
