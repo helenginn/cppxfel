@@ -592,6 +592,8 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
         
         std::string imgName = components[1];
         
+        imgName.erase(std::remove(imgName.begin(), imgName.end(), '\r'), imgName.end());
+        
         if (newImages)
             imgName += ".img";
         else if (newMtzs)

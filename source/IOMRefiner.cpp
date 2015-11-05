@@ -1363,7 +1363,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     testDistance = image->getDetectorDistance();
     testWavelength = image->getWavelength();
     
-    
     vector<double> wavelengths;
     vector<int> frequencies;
     
@@ -1619,6 +1618,21 @@ bool IOMRefiner::isGoodSolution()
         good = false;
     
     return good;
+}
+
+void IOMRefiner::calculateOnce()
+{
+    calculateNearbyMillers(true);
+    setSearch(searchSize);
+    checkAllMillers(maxResolution, testBandwidth);
+    
+    vector<double> wavelengths;
+    vector<int> frequencies;
+    
+    double mean = 0;
+    double stdev = 0;
+    
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 0);
 }
 
 MtzPtr IOMRefiner::newMtz(int index)

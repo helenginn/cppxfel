@@ -165,6 +165,7 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     bool alwaysAccept = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     int spotsPerLattice = FileParser::getKey("SPOTS_PER_LATTICE", 100);
     std::ostringstream logged;
+    bool refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
     
     std::vector<Match> possibleMatches;
     std::vector<MatrixPtr> possibleSolutions;
@@ -478,7 +479,14 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
         image->setUpIOMRefiner(chosenSolutions[j]);
         int lastRefiner = image->IOMRefinerCount() - 1;
         IOMRefinerPtr refiner = image->getIOMRefiner(lastRefiner);
-        refiner->refineOrientationMatrix();
+        if (refineOrientations)
+        {
+            refiner->refineOrientationMatrix();
+        }
+        else
+        {
+            refiner->calculateOnce();
+        }
         
         bool successfulImage = refiner->isGoodSolution();
         
@@ -560,7 +568,7 @@ void IndexManager::powderPattern()
     
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, false);
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, true);
         
         if (images[i]->spotCount() > 300)
         for (int j = 0; j < images[i]->spotVectorCount(); j++)

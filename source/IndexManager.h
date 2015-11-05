@@ -42,6 +42,7 @@ protected:
     double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;
+    double minReciprocalDistance;
     std::ostringstream logged;
     std::vector<VectorDistance> vectorDistances;
 public:

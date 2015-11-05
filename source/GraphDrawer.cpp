@@ -813,6 +813,8 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, doub
     mtz->setActiveAmbiguity(1);
     double invCorrel = mtz->correlation();
     
+    std::cout << "Ambiguity 0: " << correl << ", ambiguity 1: " << invCorrel << std::endl;
+    
     if (correl > invCorrel)
         mtz->setActiveAmbiguity(0);
     

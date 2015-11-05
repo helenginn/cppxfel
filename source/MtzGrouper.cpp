@@ -875,10 +875,10 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 		fdata[0] = _h;
 		fdata[1] = _k;
 		fdata[2] = _l;
-		fdata[3] = intensityPlus;
-		fdata[4] = sigmaPlus;
-		fdata[5] = intensityMinus;
-		fdata[6] = sigmaMinus;
+		fdata[3] = intensityMinus;
+		fdata[4] = sigmaMinus;
+		fdata[5] = intensityPlus;
+		fdata[6] = sigmaPlus;
 		fdata[7] = intensity;
 		fdata[8] = sigma;
 		ccp4_lwrefl(mtzout, fdata, colout, 9, num);

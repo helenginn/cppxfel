@@ -41,14 +41,6 @@ void new_main(int argc, char *argv[])
 		exit(1);
 	}
     
-#ifdef MAC
-//	std::cout << "Original: " << getenv("SYMINFO") << std::endl;
-
-//	setenv("SYMINFO", "/Applications/ccp4-6.4.0/lib/data/syminfo.lib", 1);
-
-//	std::cout << getenv("SYMINFO") << std::endl;
-#endif
-    
 	std::cout << "Welcome to cppxfel!" << std::endl;
     
 	if (strcmp(argv[1], "-i") == 0)

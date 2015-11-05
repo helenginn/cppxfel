@@ -98,6 +98,7 @@ public:
     void setComplexMatrix();
     virtual ~IOMRefiner();
 
+    void calculateOnce();
 	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true);
 	MtzPtr newMtz(int i);
 	void getWavelengthHistogram(vector<double> &wavelengths,

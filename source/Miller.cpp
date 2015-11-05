@@ -1041,8 +1041,6 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
         Logger::mainLogger->addStream(&logged, LogLevelDebug);
         image->printBox(x, y, 10);
     }
-    
-    
 }
 
 void Miller::incrementOverlapMask(double hRot, double kRot)
