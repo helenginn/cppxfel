@@ -23,8 +23,36 @@ void new_main(int argc, char *argv[])
     
 	if (argc == 1)
 	{
-		std::cout << "No tasks selected. Try -i {input_file}." << std::endl;
-		exit(1);
+        std::cout << "Welcome to cppxfel version 1.0!" << std::endl;
+        std::cout << "Please refer to & cite paper in Journal of Applied Crystallography (unpublished)" << std::endl << std::endl;
+        std::cout << "Command order for regular structure solution:" << std::endl;
+        std::cout << "\tcppxfel.run_dials shot*.pickle" << std::endl;
+        std::cout << "\tcppxfel.input_gen" << std::endl;
+        std::cout << "\tcppxfel.run -i integrate.txt" << std::endl;
+        std::cout << "\tcppxfel.run -i refine.txt" << std::endl;
+        std::cout << "\tcppxfel.run -i merge.txt" << std::endl << std::endl;;
+        std::cout << "Other functions for assessing data quality:" << std::endl << std::endl;
+        
+        std::cout << "Correlation between two MTZ files:" << std::endl << std::endl;
+        std::cout << "\tcppxfel.run -cc firstFile.mtz secondFile.mtz [ambiguity] [lowRes] [highRes] [bins]" << std::endl << std::endl;
+        std::cout << "ambiguity: 0, 1, 2 or 3 - will compare different indexing solutions where the Bravais lattice symmetry is higher than that of the point group for certain space groups. Default 0" << std::endl;
+        std::cout << "lowRes and highRes: set to resolution in Angstroms to bound the results, or set to 0 to take lowest/highest resolution data. Default 0, 0" << std::endl;
+        std::cout << "bins: number of bins to report correlation statistics. Default 20." << std::endl << std::endl;
+        
+        std::cout << "Partiality CSV files:" << std::endl << std::endl;
+        std::cout << "\tcppxfel.run -partiality reference.mtz ref-img-shot-number.mtz [highRes]" << std::endl << std::endl;
+        std::cout << "highRes: 0, 1, 2 or 3 - highest resolution reflection to report results on. Default 1.4" << std::endl;
+        std::cout << "This outputs partiality_[m].csv where m is bin number, which can be imported into other graphing softwares such as R." << std::endl << std::endl;;
+
+        
+        std::cout << "Merging statistics:" << std::endl << std::endl;
+        std::cout << "\tcppxfel.run -rpim unmerged_file.mtz [lowRes] [highRes] [bins]" << std::endl;
+        std::cout << "\tcppxfel.run -rmeas unmerged_file.mtz [lowRes] [highRes] [bins]" << std::endl;
+        std::cout << "\tcppxfel.run -rmerge unmerged_file.mtz [lowRes] [highRes] [bins]" << std::endl << std::endl;
+        std::cout << "lowRes and highRes: set to resolution in Angstroms to bound the results, or set to 0 to take lowest/highest resolution data. Default 0, 0" << std::endl;
+        std::cout << "bins: number of bins to report correlation statistics. Default 20." << std::endl << std::endl;
+        
+        exit(1);
 	}
 
 	if (strcmp(argv[1], "-wiki") == 0)
