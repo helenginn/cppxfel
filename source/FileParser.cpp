@@ -322,6 +322,7 @@ void FileParser::generateFunctionList()
     parserMap["GOOD_SOLUTION_SUM_RATIO"] = simpleFloat;
     parserMap["GOOD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
     parserMap["SOLUTION_ATTEMPTS"] = simpleInt;
+    parserMap["ONE_INDEXING_CYCLE_ONLY"] = simpleBool;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     

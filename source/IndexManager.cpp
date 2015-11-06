@@ -520,6 +520,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     std::ostringstream logged;
     int maxThreads = FileParser::getMaxThreads();
     bool alwaysAccept = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
+    bool oneCycleOnly = FileParser::getKey("ONE_INDEXING_CYCLE_ONLY", false);
     
     for (int i = offset; i < indexer->images.size(); i += maxThreads)
     {
@@ -540,15 +541,18 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                 
                 if (alwaysAccept)
                     break;
+                
+                if (oneCycleOnly)
+                    break;
             }
             
-            if (!alwaysAccept)
+            if (!alwaysAccept && !oneCycleOnly)
             {
                 image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, true);
                 extraSolutions += indexer->indexOneImage(image, mtzSubset);
             }
             
-            if (extraSolutions == 0 || alwaysAccept)
+            if (extraSolutions == 0 || alwaysAccept || oneCycleOnly)
                 finished = true;
         }
         
