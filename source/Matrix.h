@@ -35,6 +35,9 @@ private:
     
     MatrixPtr unitCell;
     MatrixPtr rotation;
+    double eulerA;
+    double eulerB;
+    double eulerC;
     
 public:
     double components[16];

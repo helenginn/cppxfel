@@ -103,6 +103,13 @@ std::string Matrix::description(bool detailed, bool submatrix)
 
 void Matrix::eulerAngles(double *theta, double *phi, double *psi)
 {
+    if (!(eulerA == 0 && eulerB == 0 && eulerC == 0))
+    {
+        *theta = eulerA;
+        *phi = eulerB;
+        *psi = eulerC;
+    }
+    
     double sinTheta = components[2];
     *theta = asin(sinTheta);
     double cosTheta = cos(*theta);
@@ -110,6 +117,9 @@ void Matrix::eulerAngles(double *theta, double *phi, double *psi)
     *psi = atan2((components[6] / cosTheta), (components[10] / cosTheta));
     *phi = atan2((components[1] / cosTheta), (components[0] / cosTheta));
     
+    eulerA = *theta;
+    eulerB = *phi;
+    eulerC = *psi;
 }
 
 double Matrix::similarityToRotationMatrix(MatrixPtr mat2)
@@ -119,11 +129,6 @@ double Matrix::similarityToRotationMatrix(MatrixPtr mat2)
     
     double theta2, psi2, phi2;
     mat2->eulerAngles(&theta2, &phi2, &psi2);
-    
-    std::ostringstream logged;
-    
-  ///  logged << "Angle: " << theta1 << "\t" << theta2 << "\t" << psi1 << "\t" << psi2 << "\t" << phi1 << "\t" << phi2 << std::endl;
-  //  Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
     
     double sumSqr = pow(theta1 - theta2, 2) + pow(psi1 - psi2, 2) + pow(phi1 - phi2, 2);
     
@@ -469,6 +474,10 @@ MatrixPtr Matrix::copy(void)
         newMat->rotation = rotation->copy();
     }
     
+    newMat->eulerA = eulerA;
+    newMat->eulerB = eulerB;
+    newMat->eulerC = eulerC;
+    
 	return newMat;
 }
 
@@ -493,6 +502,10 @@ Matrix::Matrix(double *newComponents)
 	components[13] = 0;
 	components[14] = 0;
 	components[15] = 1;
+    
+    eulerA = 0;
+    eulerB = 0;
+    eulerC = 0;
 }
 
 void Matrix::translate(double x, double y, double z)
