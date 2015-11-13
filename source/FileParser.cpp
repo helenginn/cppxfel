@@ -151,21 +151,53 @@ void FileParser::intVector(ParametersMap *map, std::string command,
 void FileParser::generateFunctionList()
 {
 	parserMap = ParserMap();
-
+    
+    ///Detail of standard output.
+    /// 0-> Normal[DEFAULT]; 1-> Detailed; 2-> Debug
     parserMap["VERBOSITY_LEVEL"] = simpleInt;
+    
+    ///Set number of threads to spread calculations.
+    ///Note: overridden by environment variable NSLOTS.
     parserMap["MAX_THREADS"] = simpleInt;
     
-	// Refinement parameters
+    
+    //////////////////////////
+	// REFINEMENT PARAMETERS//
+    //////////////////////////
+    
 	parserMap["REMOVE_WEDGE"] = simpleFloat;
 
+    ///Lowest number of post refinement cycles.
+    ///[DEFAULT 6].
+    ///Note that additional cycles performed if fails to converge.
     parserMap["MINIMUM_CYCLES"] = simpleInt;
+    
+    ///Maximum number of cylces of post-refinement to execute.
+    ///[DEFAULT 0]
+    ///Note EVEN if NOT converged.
     parserMap["MAXIMUM_CYCLES"] = simpleInt;
+    
+    //If OFF, post-refinement continues indefinitely.
     parserMap["STOP_REFINEMENT"] = simpleBool;
 
+    
+    /// 0-> Step search algorithm; 1-> Nelder-Mead algorithm [DEFAULT].
     parserMap["MINIMIZATION_METHOD"] = simpleInt;
+    
+    ///Number of N-M cycles to perform before finishing post-refinement of a single image per macrocycle.
+    ///[DEFAULT 50].
     parserMap["NELDER_MEAD_CYCLES"] = simpleInt;
+    
+    //Calculate starting X-ray beam wavelength for image post-refinement using median excitation wavelength of all strong reflections.
+    //[DEFAULT OFF].
+    ///Otherwise mean average used.
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
+    
+    //Start and end for range of wavelengths to consider when calculating the starting X-ray beam wavelenghth.
+    //[DEFAULT 0 0] i.e. not applied.
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
+    
+    
     parserMap["LANDSCAPE_DIVISIONS"] = simpleInt;
     parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
     parserMap["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = simpleFloat;
@@ -264,6 +296,7 @@ void FileParser::generateFunctionList()
 	parserMap["DETECTOR_DISTANCE"] = simpleFloat;
     parserMap["BEAM_CENTRE"] = doubleVector;
     parserMap["MM_PER_PIXEL"] = simpleFloat;
+    parserMap["DETECTOR_ROTATION_X"] = simpleFloat;
     parserMap["DETECTOR_SIZE"] = doubleVector;
 	parserMap["OVER_PRED_BANDWIDTH"] = simpleFloat;
 	parserMap["OVER_PRED_RLP_SIZE"] = simpleFloat;

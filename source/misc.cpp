@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sys/wait.h>
 #include <unistd.h>
+#import <math.h>
 
 std::string f_to_str(double val)
 {
@@ -83,6 +84,18 @@ unsigned int choose(unsigned long n, unsigned long choose)
     
     return value;
 }
+
+///
+double deg2rad (double deg)
+{
+    return deg * M_PI / 180.0;
+}
+
+double rad2deg (double rad)
+{
+    return rad * 180.0 / M_PI;
+}
+///
 
 double proportion(int n)
 {

@@ -24,6 +24,8 @@
 #include "Logger.h"
 #include "XManager.h"
 
+#include "DetectorPanel.hpp"
+
 bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
 int MtzRefiner::cycleNum;
@@ -1377,6 +1379,7 @@ void MtzRefiner::loadImageFiles()
 
 void MtzRefiner::integrate()
 {
+    DetectorPanel::getMasterPanel()->descriptionPanel();
     bool orientation = FileParser::getKey("REFINE_ORIENTATIONS", false);
    
     loadImageFiles();

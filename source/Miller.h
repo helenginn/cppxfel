@@ -18,6 +18,7 @@
 #include "parameters.h"
 #include <cctbx/miller/asu.h>
 #include "Holder.h"
+#import <boost/weak_ptr.hpp>
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
