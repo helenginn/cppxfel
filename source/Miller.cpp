@@ -584,7 +584,7 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
     
     double stdev = wavelength * bandwidth / 2;
     
-    double limit = 3 * stdev;
+    double limit = 4 * stdev;
     double inwardsLimit = wavelength + limit;
     double outwardsLimit = wavelength - limit;
     
@@ -926,7 +926,8 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     
     double distance = image->getDetectorDistance();
     double wavelength = image->getWavelength();
-    
+    bool even = shoebox->isEven();
+
     int beamX = image->getBeamX();
     int beamY = image->getBeamY();
     double mmPerPixel = image->getMmPerPixel();
@@ -934,18 +935,19 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     calculatePosition(distance, wavelength, beamX, beamY, mmPerPixel,
                       transformedMatrix, &x_coord, &y_coord);
     
-    int intLastX = (int)x_coord;
-    int intLastY = (int)y_coord;
+    int intLastX = int(x_coord);
+    int intLastY = int(y_coord);
     
-    bool focusOnAverageMax = true; // FIX ME
+    if (even)
+    {
+        intLastX = round(x_coord);
+        intLastY = round(y_coord);
+    }
     
     if (!Panel::shouldUsePanelInfo())
     {
         int search = indexer->getSearchSize();
-        if (focusOnAverageMax)
-            image->focusOnAverageMax(&intLastX, &intLastY, search, 1);
-        else
-            image->focusOnMaximum(&intLastX, &intLastY, search);
+        image->focusOnAverageMax(&intLastX, &intLastY, search, 1, shoebox->isEven());
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
         
@@ -965,10 +967,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             int xInt = shiftedX;
             int yInt = shiftedY;
             
-            if (focusOnAverageMax)
-                image->focusOnAverageMax(&xInt, &yInt, search, 1);
-            else
-                image->focusOnMaximum(&xInt, &yInt, search);
+            image->focusOnAverageMax(&xInt, &yInt, search, 1, even);
             
             shift = std::make_pair(xInt + 0.5 - x_coord, yInt + 0.5 - y_coord);
             
@@ -979,10 +978,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         {
             int search = indexer->getSearchSize();
             
-            if (focusOnAverageMax)
-                image->focusOnAverageMax(&intLastX, &intLastY, search, 1);
-            else
-                image->focusOnMaximum(&intLastX, &intLastY, search);
+            image->focusOnAverageMax(&intLastX, &intLastY, search, 1, even);
             
             *x = intLastX;
             *y = intLastY;
@@ -1016,13 +1012,11 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
                                                SHOEBOX_NEITHER_RADIUS);
         int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_RADIUS",
                                                   SHOEBOX_BACKGROUND_RADIUS);
-        
+        bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
         
         logged << "Shoebox created from values " << foregroundLength << ", " << neitherLength << ", " << backgroundLength << std::endl;
         
-        shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength);
-        
-        
+        shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
     }
     
     int x = 0;
@@ -1035,11 +1029,12 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     rawIntensity = image->intensityAt(x, y, shoebox, &countingSigma, 0);
 
     
-    if (rawIntensity > 200)
+    if (rawIntensity > 1000)
     {
         logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
         Logger::mainLogger->addStream(&logged, LogLevelDebug);
-        image->printBox(x, y, 10);
+        image->printBox(x, y, 5);
+        shoebox->printShoebox();
     }
 }
 
