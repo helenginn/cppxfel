@@ -97,6 +97,8 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
     if (1 / unitCell[2] < smallestDistance)
         smallestDistance = 1 / unitCell[2];
     
+    smallestDistance *= 0.85;
+    
     for (int i = 0; i < vectorDistances.size(); i++)
     {
         logged << vectorDistances[i].first.h << "\t"
@@ -140,12 +142,13 @@ bool IndexManager::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
         //    ambiguity->multiplyVector(&bDummyVec);
         //    mat2->multiplyVector(&bDummyVec);
             
-            double angle = mat1->similarityToRotationMatrix(mat3);
+            double radianSpread = solutionAngleSpread * M_PI / 180;
+            double angle = mat1->similarityToRotationMatrix(mat3, radianSpread);
             
         //    logged << "Angle: " << angle * 180 / M_PI << std::endl;
         //    Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
             
-            if (angle < solutionAngleSpread * M_PI / 180)
+            if (angle < radianSpread && angle != -1)
             {
                 return true;
             }
@@ -215,8 +218,8 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     
     bool thorough_searching = FileParser::getKey("THOROUGH_SOLUTION_SEARCHING", false);
     
-    double maxSearchNumberMatches = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 5000);
-    double maxSearchNumberSolutions = FileParser::getKey("MAX_SEARCH_NUMBER_SOLUTIONS", 8000);
+    int maxSearchNumberMatches = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 5000);
+    int maxSearchNumberSolutions = FileParser::getKey("MAX_SEARCH_NUMBER_SOLUTIONS", 8000);
     
     
     for (int j = 0; j < possibleMatches.size() && j < maxSearchNumberMatches; j++)
@@ -284,7 +287,6 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
                     
                     Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
                     
-                    
                     SpotPtr pair1Spot1 = observed1->getFirstSpot();
                     SpotPtr pair1Spot2 = observed1->getSecondSpot();
                     
@@ -337,10 +339,10 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
         {
             MatrixPtr bMat = possibleSolutions[k]->copy();
             
-            double angle = bMat->similarityToRotationMatrix(aMat);
+            double angle = bMat->similarityToRotationMatrix(aMat, finalTolerance);
             //   double angle = angleBetweenVectors(aMat, bMat);
             
-            if (angle < finalTolerance)
+            if (angle < finalTolerance && angle != -1)
             {
                 double addition = pow(finalTolerance - angle, 2);
                 score += addition;
@@ -572,9 +574,8 @@ void IndexManager::powderPattern()
     
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, true);
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, false);
         
-        if (images[i]->spotCount() > 300)
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
         {
             SpotVectorPtr spotVec = images[i]->spotVector(j);
@@ -668,11 +669,4 @@ void IndexManager::index()
                            managerSubsets[i].begin(), managerSubsets[i].end());
         lastPos += managerSubsets[i].size();
     }
-}
-
-void IndexManager::sendLog(LogLevel priority)
-{
-    Logger::mainLogger->addStream(&logged, priority);
-    logged.str("");
-    logged.clear();
 }

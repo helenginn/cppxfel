@@ -19,8 +19,9 @@
 #include "parameters.h"
 #include "Logger.h"
 #include "Holder.h"
+#include "LoggableObject.h"
 
-class IndexManager
+class IndexManager : LoggableObject
 {
 protected:
     std::vector<Image *> images;
@@ -43,7 +44,6 @@ protected:
     double maxDistance;
     double smallestDistance;
     double minReciprocalDistance;
-    std::ostringstream logged;
     std::vector<VectorDistance> vectorDistances;
 public:
     Image *getImage(int i)
@@ -60,8 +60,6 @@ public:
     void index();
     void powderPattern();
     IndexManager(std::vector<Image *>images);
-    
-    void sendLog(LogLevel priority = LogLevelNormal);
 };
 
 
