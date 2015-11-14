@@ -45,7 +45,7 @@ private:
     static bool hasSetup;
     static bool setupUnitCell;
     int activeAmbiguity;
-    vector<int> reflectionIds;
+    vector<long unsigned int> reflectionIds;
     static cctbx::uctbx::unit_cell unitCell;
 public:
     Reflection(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
@@ -149,7 +149,7 @@ public:
 	}
     
 
-    int getReflId()
+    long unsigned int getReflId()
     {
    /*     if (activeAmbiguity > ambiguityCount())
         {
