@@ -45,6 +45,7 @@ source = [
 'source/IOMRefiner.cpp',
 'source/InputFileParser.cpp',
 'source/Logger.cpp',
+'source/LoggableObject.cpp',
 'source/Matrix.cpp',
 'source/Miller.cpp',
 'source/MtzGrouper.cpp',

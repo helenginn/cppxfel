@@ -308,7 +308,7 @@ void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
 	*y = maxY;
 }
 
-void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2)
+void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even)
 {
 //	focusOnSpot(x, y, tolerance1, tolerance2);
 //	return;
@@ -316,6 +316,7 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2)
 	int maxValue = 0;
 	int newX = *x;
 	int newY = *y;
+    int adjustment = (even ? -1 : 0);
 
 	for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
 	{
@@ -323,9 +324,9 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2)
 		{
 			double newValue = 0;
 
-			for (int h = i - tolerance2; h <= i + tolerance2; h++)
+            for (int h = i - tolerance2; h <= i + tolerance2 + adjustment; h++)
 			{
-				for (int k = j - tolerance2; k <= j + tolerance2; k++)
+				for (int k = j - tolerance2; k <= j + tolerance2 + adjustment; k++)
 				{
 					int addition = valueAt(h, k);
 					newValue += addition;
@@ -341,6 +342,9 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2)
 		}
 	}
 
+  //  logged << "Value of pixel chosen: " << valueAt(newX, newY) << std::endl;
+  //  sendLog(LogLevelDebug);
+    
 	*x = newX;
 	*y = newY;
 }
@@ -455,8 +459,9 @@ void Image::printBox(int x, int y, int tolerance)
 	{
 		for (int j = y - tolerance; j <= y + tolerance; j++)
 		{
-            logged << i << ", " << j << ", " << valueAt(i, j) << std::endl;
-		}
+            logged << valueAt(i, j) << "\t";
+ 		}
+        logged << std::endl;
 	}
     
     logged << std::endl;
@@ -479,7 +484,7 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     int startX = x - slowTol;
     int startY = y - fastTol;
     
-    std::vector<double> xxs, xys, xs, yys, ys, xzs, yzs, zs;
+    std::vector<double> xxs, xys, xs, yys, ys, xzs, yzs, zs, allXs, allYs, allZs;
     
     for (int i = startX; i < startX + slowSide; i++)
     {
@@ -496,15 +501,43 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
             double newY = j;
             double newZ = valueAt(i, j);
             
-            xxs.push_back(newX * newX);
-            yys.push_back(newY * newY);
-            xys.push_back(newX * newY);
-            xs.push_back(newX);
-            ys.push_back(newY);
-            xzs.push_back(newX * newZ);
-            yzs.push_back(newY * newZ);
-            zs.push_back(newZ);
+            allXs.push_back(newX);
+            allYs.push_back(newY);
+            allZs.push_back(newZ);
         }
+    }
+    
+    double meanZ = weighted_mean(&allZs);
+    double stdevZ = standard_deviation(&allZs);
+    
+    for (int i = 0; i < allZs.size(); i++)
+    {
+        double newZ = allZs[i];
+        double diffZ = fabs(newZ - meanZ);
+        
+        if (diffZ - stdevZ > 1.6)
+        {
+            allXs.erase(allXs.begin() + i);
+            allYs.erase(allYs.begin() + i);
+            allZs.erase(allZs.begin() + i);
+            i--;
+        }
+    }
+    
+    for (int i = 0; i < allZs.size(); i++)
+    {
+        double newX = allXs[i];
+        double newY = allYs[i];
+        double newZ = allZs[i];
+        
+        xxs.push_back(newX * newX);
+        yys.push_back(newY * newY);
+        xys.push_back(newX * newY);
+        xs.push_back(newX);
+        ys.push_back(newY);
+        xzs.push_back(newX * newZ);
+        yzs.push_back(newY * newZ);
+        zs.push_back(newZ);
     }
 
     double xxSum = sum(xxs);
@@ -572,6 +605,8 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     double foreground = 0;
     int num = 0;
     
+    logged << "Foreground pixels: ";
+    
     for (int i = startX; i < startX + slowSide; i++)
     {
         for (int j = startY; j < startY + fastSide; j++)
@@ -587,17 +622,20 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
             double total = valueAt(i, j);
             num++;
             
+            logged << total << ", ";
+            
             foreground += total * weight;
         }
     }
     
+    logged << std::endl;
+    sendLog(LogLevelDebug);
+    
     double signalOnly = foreground - backgroundInSignal;
     *error = sqrt(foreground);
     
-    if (!std::isfinite(signalOnly))
-    {
-        Logger::mainLogger->addString("Infinite intensity", LogLevelDebug);
-    }
+    if (signalOnly > 1000)
+        sendLog();
     
     return signalOnly;
 }
@@ -690,7 +728,7 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int t
 		if (pinPoint)
 			focusOnMaximum(&x1, &y1, tolerance);
 		else
-			focusOnAverageMax(&x1, &y1, tolerance, 2);
+			focusOnAverageMax(&x1, &y1, tolerance, 2, shoebox->isEven());
 	}
 
 	if (checkShoebox(shoebox, x1, y1) == 0)
@@ -1018,12 +1056,6 @@ void Image::processSpotList()
     sendLog(LogLevelNormal);
 }
 
-void Image::sendLog(LogLevel priority)
-{
-    Logger::mainLogger->addStream(&logged, priority);
-    logged.str("");
-    logged.clear();
-}
 
 void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements)
 {
