@@ -106,46 +106,67 @@ MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, do
     bool close = false;
     double lastAngle = fabs(angleBetweenVectors(vec1, vec2));
     MatrixPtr mat = MatrixPtr(new Matrix());
-    double step = 1 * M_PI / 180;
+    double step = 0.1 * M_PI / 180;
     bool switchedOnce = false;
     bool divided = false;
     double secondLastAngle = lastAngle;
     
-    std::ostringstream logged;
+ /*   std::ostringstream logged;
     
-    while (!close)
+    double minResult = FLT_MAX;
+    double minAngle = 0;
+    
+    for (double i = 0; i < 2 * M_PI; i += step)
     {
         mat->rotateRoundUnitVector(chosenCrossProduct, step);
         vec vec1Copy = copy_vector(vec1);
         mat->multiplyVector(&vec1Copy);
         double angleDiff = fabs(angleBetweenVectors(vec1Copy, vec2));
         
-        if (angleDiff > lastAngle)
+        if (angleDiff < minResult)
         {
-            if (switchedOnce)
-                close = true;
-            
-            step = -step;
-            switchedOnce = true;
+            minAngle = i;
+            minResult = angleDiff;
         }
-        
-        if (angleDiff < 10 && !divided)
-        {
-            step /= 100;
-            divided = true;
-        }
-        
-        secondLastAngle = lastAngle;
-        lastAngle = angleDiff;
     }
     
-    *resultantAngle = secondLastAngle;
+    MatrixPtr mat2 = MatrixPtr(new Matrix());
+    mat2->rotateRoundUnitVector(chosenCrossProduct, minAngle);*/
     
-    mat->rotateRoundUnitVector(chosenCrossProduct, -step);
+    int cycles = 0;
+    
+     while (!close && cycles < 5000000)
+     {
+     mat->rotateRoundUnitVector(chosenCrossProduct, step);
+     vec vec1Copy = copy_vector(vec1);
+     mat->multiplyVector(&vec1Copy);
+     double angleDiff = fabs(angleBetweenVectors(vec1Copy, vec2));
+     
+     if (angleDiff > lastAngle)
+     {
+     if (switchedOnce)
+     close = true;
+     
+     step = -step;
+     switchedOnce = true;
+     }
+     
+     if (angleDiff < 10 && !divided)
+     {
+     step /= 10;
+     divided = true;
+     }
+     
+     secondLastAngle = lastAngle;
+     lastAngle = angleDiff;
+         cycles++;
+     }
+     
+ //   *resultantAngle = minResult;
+    
     
     return mat;
 }
-
 
 MatrixPtr rotation_between_vectors_custom_cross(vec vec1, vec vec2, vec chosenCrossProduct)
 {
@@ -717,7 +738,13 @@ double least_squares_gaussian_fit(vector<double> *means,
 
 double standard_deviation(vector<double> *values, vector<double> *weights)
 {
-	double mean = weighted_mean(values, NULL);
+    double mean = weighted_mean(values, NULL);
+    
+    return standard_deviation(values, weights, mean);
+}
+
+double standard_deviation(vector<double> *values, vector<double> *weights, double mean)
+{
 	double squaredSum = 0;
 	double weightSqSum = 0;
 
