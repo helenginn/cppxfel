@@ -1689,6 +1689,7 @@ void MtzRefiner::index()
 {
     this->readMatricesAndImages();
     loadPanels();
+    std::cout << "N: Total images loaded: " << images.size() << std::endl;
    
     IndexManager *indexManager = new IndexManager(images);
     
