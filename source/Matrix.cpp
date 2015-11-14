@@ -122,13 +122,28 @@ void Matrix::eulerAngles(double *theta, double *phi, double *psi)
     eulerC = *psi;
 }
 
-double Matrix::similarityToRotationMatrix(MatrixPtr mat2)
+double Matrix::similarityToRotationMatrix(MatrixPtr mat2, double tolerance)
 {
     double theta1, psi1, phi1;
     eulerAngles(&theta1, &phi1, &psi1);
     
     double theta2, psi2, phi2;
     mat2->eulerAngles(&theta2, &phi2, &psi2);
+    
+    double thetaDiff = fabs(theta2 - theta1);
+    
+    if (thetaDiff > tolerance)
+        return -1;
+    
+    double psiDiff = fabs(psi2 - psi1);
+
+    if (psiDiff > tolerance)
+        return -1;
+    
+    double phiDiff = fabs(phi2 - phi1);
+    
+    if (phiDiff > tolerance)
+        return -1;
     
     double sumSqr = pow(theta1 - theta2, 2) + pow(psi1 - psi2, 2) + pow(phi1 - phi2, 2);
     
