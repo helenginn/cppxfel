@@ -185,7 +185,7 @@ public:
 	virtual void loadReflections(PartialityModel model, bool special = false);
 	void loadReflections(int partiality);
 	static void setReference(MtzManager *reference);
-	int findReflectionWithId(int refl_id, Reflection **reflection, bool insertionPoint = false);
+	int findReflectionWithId(long unsigned int refl_id, Reflection **reflection, bool insertionPoint = false);
 	void findCommonReflections(MtzManager *other,
 			vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
 			int *num = NULL, bool force = false);

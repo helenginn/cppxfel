@@ -814,7 +814,7 @@ void MtzManager::setSpaceGroup(int spgnum)
     low_group = ccp4spg_load_by_ccp4_num(spgnum);
 }
 
-int MtzManager::findReflectionWithId(int refl_id, Reflection **reflection, bool insertionPoint)
+int MtzManager::findReflectionWithId(long unsigned int refl_id, Reflection **reflection, bool insertionPoint)
 {
     if (reflectionCount() == 0)
     {
@@ -948,7 +948,7 @@ void MtzManager::applyScaleFactorsForBins(int binCount)
     
     if (highRes == 0)
     {
-        highRes = this->maxResolution();
+        highRes = 1 / this->maxResolution();
     }
     
     vector<double> bins;
@@ -971,17 +971,15 @@ void MtzManager::applyScaleFactorsForBins(int binCount)
         
         for (int i = 0; i < imgReflections.size(); i++)
         {
-            if (!imgReflections[i]->anyAccepted())
-                continue;
-            
             if (imgReflections[i]->betweenResolutions(low, high))
             {
-                weights++;
                 double refIntensity = refReflections[i]->meanIntensity();
                 double imgIntensity = imgReflections[i]->meanIntensity();
                 
                 if (refIntensity != refIntensity || imgIntensity != imgIntensity)
                     continue;
+                
+                weights++;
                 
                 refMean += refIntensity;
                 imgMean += imgIntensity;
@@ -992,6 +990,8 @@ void MtzManager::applyScaleFactorsForBins(int binCount)
         
         refMean /= weights;
         imgMean /= weights;
+        
+        std::cout << refMean << ", " << imgMean << ", " << weights << ", " << low << ", " << high << std::endl;
         
         double ratio = refMean / imgMean;
         
