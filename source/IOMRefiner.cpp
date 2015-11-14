@@ -397,16 +397,14 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         vec hkl = new_vector(miller->getH(), miller->getK(), miller->getL());
         matrix->multiplyVector(&hkl);
         
-        int roughX = 0;
-        int roughY = 0;
+    //    int roughX = 0;
+    //    int roughY = 0;
         
         miller->setMatrix(matrix);
         
         double d = length_of_vector(hkl);
         if (d > maxD)
         {
-            logged << "Rejected Miller unacceptable resolution at\t" << roughX << "\t" << roughY << std::endl;
-            sendLog(LogLevelDebug);
             cutResolution++;
             continue;
         }
@@ -439,7 +437,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         if (needsReintegrating || !roughCalculation)
         {
-            miller->positionOnDetector(matrix, &roughX, &roughY);
+       //     miller->positionOnDetector(matrix, &roughX, &roughY);
             miller->integrateIntensity(newMatrix);
         }
         
@@ -447,8 +445,6 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         if (rawIntensity != rawIntensity || (int) rawIntensity == 0 || rawIntensity < -500)
         {
-            logged << "Rejected Miller with non-intensity at\t" << roughX << "\t" << roughY << std::endl;
-            sendLog(LogLevelDebug);
             unacceptableIntensity++;
             continue;
         }
@@ -547,7 +543,7 @@ void IOMRefiner::minimizeTwoParameters(double *meanStep1, double *meanStep2,
             *param1 = i;
             *param2 = k;
             this->checkAllMillers(maxResolution, testBandwidth, false, perfect);
-            param_scores[j * 3 + l] = score(0, true);
+            param_scores[j * 3 + l] = score(0, false);
             param_trials1[j * 3 + l] = i;
             param_trials2[j * 3 + l] = k;
             l++;
@@ -1388,7 +1384,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
-        double lRotStep = initialStep / 3;
+        double lRotStep = initialStep;
         double aRotStep = initialStep;
         double bRotStep = initialStep;
         double cRotStep = initialStep;
@@ -1567,6 +1563,7 @@ bool IOMRefiner::isGoodSolution()
     double goodSolutionSumRatio = FileParser::getKey("GOOD_SOLUTION_SUM_RATIO", 6.5);
     int goodSolutionHighestPeak = FileParser::getKey("GOOD_SOLUTION_HIGHEST_PEAK", 17);
     int minimumReflections = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", 30);
+    std::ostringstream details;
     
     logged << "Standard deviation: " << lastStdev << std::endl;
     sendLog(LogLevelNormal);
@@ -1594,28 +1591,45 @@ bool IOMRefiner::isGoodSolution()
     
     highSum /= cutoff;
     
-    double stdevLow = standard_deviation(&lowOnly);
+    double stdevLow = standard_deviation(&lowOnly, NULL, 0);
     
     logged << "Stdev low: " << stdevLow << ", highAverage " << highSum << std::endl;
     sendLog();
     
     if (lastStdev < goodSolutionStdev)
+    {
         good = true;
+        details << "Standard deviation is sufficiently low (" << lastStdev << " vs " << goodSolutionStdev << ")" << std::endl;
+    }
 
     if (highSum > stdevLow * goodSolutionSumRatio)
+    {
         good = true;
+        details << "Sum ratio is sufficiently high (" << highSum << " vs " << stdevLow << ")" << std::endl;
+    }
     
     if (highSum <= 5)
+    {
+        details << "However, high sum not high enough (" << highSum << ")" << std::endl;
         good = false;
+    }
     
     if (frequencies[0] > goodSolutionHighestPeak)
+    {
+        details << "Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;
         good = true;
+    }
     
-    if (lastScore < 3)
-        good = true;
+//    if (lastScore < 3)
+ //       good = true;
     
     if (getTotalReflections() < minimumReflections)
+    {
+        details << "However, not enough reflections (" << getTotalReflections() << " vs " << minimumReflections << ")" << std::endl;
         good = false;
+    }
+    
+    Logger::mainLogger->addStream(&details, LogLevelNormal);
     
     return good;
 }
