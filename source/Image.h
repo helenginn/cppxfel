@@ -14,11 +14,12 @@
 #include "Logger.h"
 #include "csymlib.h"
 #include "SpotVector.h"
+#include "LoggableObject.h"
 
 class IOMRefiner;
 class ImageCluster;
 
-class Image
+class Image : LoggableObject
 {
 private:
     int pixelCountCutoff;
@@ -31,7 +32,6 @@ private:
     bool maskedValue;
     bool fitBackgroundAsPlane;
     std::string spotsFile;
-    std::ostringstream logged;
     
 	/* Shoebox must be n by n where n is an odd number */
 	int shoebox[7][7];
@@ -75,8 +75,8 @@ public:
 	Image(std::string filename = "", double wavelength = 0,
 			double distance = 0);
 	void focusOnSpot(int *x, int *y, int tolerance1, int tolerance2);
-	void focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2);
-	void focusOnMaximum(int *x, int *y, int tolerance = 0, double shiftX = 0, double shiftY = 0);
+	void focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even);
+    void focusOnMaximum(int *x, int *y, int tolerance = 0, double shiftX = 0, double shiftY = 0);
 	void dropImage();
 	virtual ~Image();
 	void setUpIOMRefiner(MatrixPtr matrix);
@@ -281,9 +281,6 @@ public:
     {
         detectorGain = newGain;
     }
-    
-    void sendLog(LogLevel priority = LogLevelNormal);
-
 };
 
 #endif /* IMAGE_H_ */

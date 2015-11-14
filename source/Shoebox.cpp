@@ -40,31 +40,40 @@ void Shoebox::sideLengths(int *slowSide, int *fastSide)
     *fastSide = (int)shoebox[0].size();
 }
 
-void Shoebox::simpleShoebox(int foregroundLength, int neitherLength, int backgroundLength)
+void Shoebox::simpleShoebox(int foregroundLength, int neitherLength, int backgroundLength, bool shoeboxEven)
 {
     int centre = backgroundLength;
+    int adjustment1 = shoeboxEven ? 0 : 1;
+    int adjustment2 = shoeboxEven ? -1 : 0;
+    
+    sendLog();
     
     clearShoebox();
     
-    for (int i = 0; i < backgroundLength * 2 + 1; i++)
+    for (int i = 0; i < backgroundLength * 2 + adjustment1; i++)
     {
         shoebox.push_back(vector<double>());
         
-        for (int j = 0; j < backgroundLength * 2 + 1; j++)
+        for (int j = 0; j < backgroundLength * 2 + adjustment1; j++)
+        {
             shoebox[i].push_back(-1);
+        }
     }
     
-    for (int i = centre - neitherLength; i <= centre + neitherLength; i++)
+    for (int i = centre - neitherLength; i <= centre + neitherLength + adjustment2; i++)
     {
-        for (int j = centre - neitherLength; j <= centre + neitherLength; j++)
+        for (int j = centre - neitherLength; j <= centre + neitherLength + adjustment2; j++)
+        {
             shoebox[i][j] = 0;
+        }
     }
     
-    for (int i = centre - foregroundLength; i <= centre + foregroundLength; i++)
+    for (int i = centre - foregroundLength; i <= centre + foregroundLength + adjustment2; i++)
     {
-        for (int j = centre - foregroundLength; j <= centre + foregroundLength;
-             j++)
+        for (int j = centre - foregroundLength; j <= centre + foregroundLength  + adjustment2; j++)
+        {
             shoebox[i][j] = 1;
+        }
     }
 }
 
@@ -85,17 +94,17 @@ void shoeboxCoordinates(double largeDim, double resolution, int i, int j, double
     *y *= extremeCoord;
 }
 
-void Shoebox::printShoebox(Box &smallBox)
+void Shoebox::printShoebox()
 {
     std::ostringstream logged;
     
     logged << "Shoebox for Miller" << std::endl;
     
-    for (int i = 0; i < smallBox.size(); i++)
+    for (int i = 0; i < shoebox.size(); i++)
     {
-        for (int j = 0; j < smallBox[i].size(); j++)
+        for (int j = 0; j < shoebox[i].size(); j++)
         {
-            logged << smallBox[i][j] << "\t";
+            logged << shoebox[i][j] << "\t";
         }
         
         logged << std::endl;
@@ -388,7 +397,7 @@ void Shoebox::complexShoebox(double wavelength, double bandwidth, double radius)
     putBoxOnPaddedBackground(smallBox, newShoebox);
 
     shoebox = newShoebox;
-    printShoebox(shoebox);
+    printShoebox();
 }
 
 void Shoebox::clearShoebox()

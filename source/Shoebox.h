@@ -13,10 +13,11 @@
 #include "parameters.h"
 #include <vector>
 #include <boost/weak_ptr.hpp>
+#include "LoggableObject.h"
 
 typedef vector<vector<double> > Box;
 
-class Shoebox
+class Shoebox : LoggableObject
 {
 private:
     boost::weak_ptr<Miller> miller;
@@ -28,16 +29,17 @@ private:
     double pixelLeak;
     double bandwidthMultiplier;
     
+    bool even;
     void putBoxOnPaddedBackground(Box &smallBox, Box &newShoebox);
     void putBoxOnBackground(Box &smallBox, Box &newShoebox);
-    void printShoebox(Box &smallBox);
     void centreShoebox(Box &smallBox);
     void chopBox(Box &smallBox);
     void compressBigShoebox(double width, double height, double angle, Box &smallBox);
 public:
     Shoebox(MillerPtr parent);
     
-    void simpleShoebox(int foregroundLength, int neitherLength, int backgroundLength);
+    void printShoebox();
+    void simpleShoebox(int foregroundLength, int neitherLength, int backgroundLength, bool shoeboxEven);
     void complexShoebox(double wavelength, double bandwidth, double radius);
     void clearShoebox();
     void sideLengths(int *slowSide, int *fastSide);
@@ -55,6 +57,11 @@ public:
     void setMiller(MillerPtr miller)
     {
         this->miller = miller;
+    }
+    
+    bool isEven()
+    {
+        return even;
     }
 };
 
