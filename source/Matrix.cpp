@@ -770,8 +770,15 @@ double invertValue(double topLeft, double bottomRight, double topRight, double b
 
 MatrixPtr Matrix::inverse3DMatrix()
 {
+    scitbx::mat3<double> inverse;
+    
     scitbx::mat3<double> cctbxMat = cctbxMatrix();
-    scitbx::mat3<double> inverse = cctbxMat.inverse();
+    try {
+        inverse = cctbxMat.inverse();
+    } catch (scitbx::error) {
+        MatrixPtr newMat = MatrixPtr(new Matrix());
+        return newMat;
+    }
     
     MatrixPtr newMat = MatrixPtr(new Matrix());
     newMat->assignFromCctbxMatrix(inverse);

@@ -568,6 +568,12 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     vec b = new_vector(xzSum, yzSum, zSum);
     
     MatrixPtr inverse = matrix->inverse3DMatrix();
+    
+    if (inverse->isIdentity())
+    {
+        return nan(" ");
+    }
+    
     inverse->multiplyVector(&b);
     
     // plane is now pa + qb + rc (components of b)
