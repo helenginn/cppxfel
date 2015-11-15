@@ -216,7 +216,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         
 		logged << mtzManagers[i]->getFilename() << "\t" << correl << "\t" << rSplit << "\t" << partCorrel << "\t"
 				<< mtzManagers[i]->accepted() << "\t"
-				/*<< mtzManagers[i]->getMosaicity() << "\t"*/
+				<< mtzManagers[i]->getMosaicity() << "\t"
 				<< mtzManagers[i]->getWavelength() << "\t"
 				<< mtzManagers[i]->getBandwidth() << "\t";
         if (mode == RotationModeHorizontalVertical)
@@ -553,7 +553,7 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 			if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
 				continue;
 
-			int refl_id = mtzManagers[i]->reflection(j)->getReflId();
+			long unsigned int refl_id = mtzManagers[i]->reflection(j)->getReflId();
 
 			Reflection *reflection = NULL;
 			(*mergeMtz)->findReflectionWithId(refl_id, &reflection);
@@ -576,7 +576,7 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		}
 	}
 
-	int last_refl_id = 0;
+	long unsigned int last_refl_id = 0;
 
 	for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
 	{
