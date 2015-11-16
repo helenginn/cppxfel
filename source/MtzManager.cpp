@@ -1801,7 +1801,6 @@ void MtzManager::setParamLine(std::string line)
     
     if (components.size() < 8)
     {
-        Logger::mainLogger->addString("Not enough components on params line");
         return;
     }
     

@@ -985,6 +985,21 @@ void GraphDrawer::plotPartialityStats()
     
     for (int i = 0; i < mtz->reflectionCount(); i++)
     {
+        bool okay = false;
+        
+        for (int j = 0; j < mtz->reflection(i)->millerCount(); j++)
+        {
+            MillerPtr miller = mtz->reflection(i)->miller(j);
+            
+            if (miller->getH() == 1 && miller->getK() == 0 && miller->getL() == 4)
+            {
+                okay = true;
+            }
+        }
+        
+        if (okay == false)
+            continue;
+    /*
         if (mtz->reflection(i)->millerCount() < 2)
             continue;
         
@@ -996,20 +1011,20 @@ void GraphDrawer::plotPartialityStats()
         
         if (!mtz->reflection(i)->betweenResolutions(0, 2.0))
             continue;
-        
+        */
         double max_intensity = mtz->reflection(i)->meanIntensity();
         
         for (int j = 0; j < mtz->reflection(i)->millerCount(); j++)
         {
             double partiality = mtz->reflection(i)->miller(j)->getPartiality();
-            
+/*
             if (partiality < 0.2 || partiality > 1)
-            	continue;
+            	continue;*/
+            double wavelength = mtz->reflection(i)->miller(j)->getWavelength();
             
-            double percentage = mtz->reflection(i)->miller(j)->getRawIntensity()
-            / max_intensity;
-            if (percentage < 0)
-                percentage = 0;
+            double percentage = mtz->reflection(i)->miller(j)->getRawIntensity();
+/*            if (percentage < 0)
+                percentage = 0;*/
             
         //    if (rand() % 20 == 0)
             {
@@ -1087,7 +1102,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
         {
             Reflection *refl = mtz->reflection(j);
             
-            int thisID = refl->getReflId();
+            long unsigned int thisID = refl->getReflId();
             
             if (thisID != index)
             {

@@ -509,20 +509,25 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     
     double meanZ = weighted_mean(&allZs);
     double stdevZ = standard_deviation(&allZs);
+    int rejected = 0;
     
     for (int i = 0; i < allZs.size(); i++)
     {
         double newZ = allZs[i];
         double diffZ = fabs(newZ - meanZ);
         
-        if (diffZ - stdevZ > 1.6)
+        if (diffZ > stdevZ * 2.2)
         {
             allXs.erase(allXs.begin() + i);
             allYs.erase(allYs.begin() + i);
             allZs.erase(allZs.begin() + i);
             i--;
+            rejected++;
         }
     }
+    
+    logged << "Rejected background pixels: " << rejected << std::endl;
+    sendLog(LogLevelDebug);
     
     for (int i = 0; i < allZs.size(); i++)
     {
@@ -734,7 +739,7 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int t
 		if (pinPoint)
 			focusOnMaximum(&x1, &y1, tolerance);
 		else
-			focusOnAverageMax(&x1, &y1, tolerance, 2, shoebox->isEven());
+			focusOnAverageMax(&x1, &y1, tolerance, 1, shoebox->isEven());
 	}
 
 	if (checkShoebox(shoebox, x1, y1) == 0)
