@@ -276,6 +276,7 @@ void FileParser::generateFunctionList()
 	parserMap["SHOEBOX_FOREGROUND_RADIUS"] = simpleInt;
 	parserMap["SHOEBOX_NEITHER_RADIUS"] = simpleInt;
 	parserMap["SHOEBOX_BACKGROUND_RADIUS"] = simpleInt;
+    parserMap["SHOEBOX_MAKE_EVEN"] = simpleBool;
     parserMap["COMPLEX_SHOEBOX"] = simpleBool;
     parserMap["MAX_INTEGRATED_RESOLUTION"] = simpleFloat;
 	parserMap["UNIT_CELL"] = doubleVector;
