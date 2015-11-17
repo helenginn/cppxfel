@@ -43,6 +43,7 @@ public:
     void complexShoebox(double wavelength, double bandwidth, double radius);
     void clearShoebox();
     void sideLengths(int *slowSide, int *fastSide);
+    void centre(int *centreX, int *centreY);
     
     vector<double>& operator[](std::size_t index)
     {

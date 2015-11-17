@@ -28,6 +28,15 @@ Shoebox::Shoebox(MillerPtr parent)
     bandwidthMultiplier = FileParser::getKey("SHOEBOX_BANDWIDTH_MULTIPLIER", SHOEBOX_BANDWIDTH_MULTIPLIER);
 }
 
+void Shoebox::centre(int *centreX, int *centreY)
+{
+    int slowSide = 0; int fastSide = 0;
+    sideLengths(&slowSide, &fastSide);
+    
+    *centreX = (slowSide % 2 == 0) ? slowSide / 2 : (slowSide - 1) / 2;
+    *centreY = (fastSide % 2 == 0) ? fastSide / 2 : (fastSide - 1) / 2;
+}
+
 void Shoebox::sideLengths(int *slowSide, int *fastSide)
 {
     *slowSide = (int)shoebox.size();
@@ -45,6 +54,7 @@ void Shoebox::simpleShoebox(int foregroundLength, int neitherLength, int backgro
     int centre = backgroundLength;
     int adjustment1 = shoeboxEven ? 0 : 1;
     int adjustment2 = shoeboxEven ? -1 : 0;
+    even = shoeboxEven;
     
     sendLog();
     

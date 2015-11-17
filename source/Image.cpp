@@ -310,40 +310,51 @@ void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
 
 void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even)
 {
-//	focusOnSpot(x, y, tolerance1, tolerance2);
-//	return;
-
 	int maxValue = 0;
 	int newX = *x;
 	int newY = *y;
     int adjustment = (even ? -1 : 0);
-
+    int latestCount = 0;
+    std::string bestPixels;
+    
+    
 	for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
 	{
 		for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
 		{
 			double newValue = 0;
-
+            int count = 0;
+            std::ostringstream pixelLog;
+            pixelLog << "Metrology pixels: ";
+            
             for (int h = i - tolerance2; h <= i + tolerance2 + adjustment; h++)
 			{
 				for (int k = j - tolerance2; k <= j + tolerance2 + adjustment; k++)
 				{
 					int addition = valueAt(h, k);
 					newValue += addition;
+                    count++;
+                    
+                    pixelLog << addition << ", ";
 				}
 			}
+            
+            pixelLog << std::endl;
 
 			if (newValue > maxValue)
 			{
 				newX = i;
 				newY = j;
 				maxValue = newValue;
+                latestCount = count;
+                bestPixels = pixelLog.str();
 			}
 		}
 	}
 
-  //  logged << "Value of pixel chosen: " << valueAt(newX, newY) << std::endl;
-  //  sendLog(LogLevelDebug);
+    logged << bestPixels << std::endl;
+    logged << "Sum of best pixels: " << maxValue << " over " << latestCount << " pixels." << std::endl;
+    sendLog(LogLevelDebug);
     
 	*x = newX;
 	*y = newY;
@@ -401,10 +412,10 @@ double Image::weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
 {
     double value = (*shoebox)[x][y];
     
-    if (value < 0 && value > 1)
+    if (value == 0)
         return 0;
     
-    return value;
+    return 1;
 }
 
 
@@ -415,26 +426,33 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
     int fastSide = 0;
     
 	shoebox->sideLengths(&slowSide, &fastSide);
-	int slowTol = (slowSide - 1) / 2;
-    int fastTol = (fastSide - 1) / 2;
+	
+    int centreX = 0;
+    int centreY = 0;
+    
+    shoebox->centre(&centreX, &centreY);
     
     int zeroCount = 0;
     int count = 0;
 
-	for (int i = x - slowTol; i < x + slowTol; i++)
-	{
-		for (int j = y - fastTol; j <= y + fastTol; j++)
-		{
-			if (!accepted(i, j))
+    for (int i = 0; i < slowSide; i++)
+    {
+        int panelPixelX = (i - centreX) + x;
+        
+        for (int j = 0; j < fastSide; j++)
+        {
+            int panelPixelY = (j - centreY) + y;
+            
+			if (!accepted(panelPixelX, panelPixelY))
 			{
                 std::ostringstream logged;
-                logged << "Rejecting miller - too many zeros" << std::endl;
+                logged << "Rejecting miller - pixel not acceptable" << std::endl;
                 Logger::mainLogger->addStream(&logged, LogLevelDebug);
                 return false;
 			}
             
             count++;
-            if (valueAt(i, j) == 0)
+            if (valueAt(panelPixelX, panelPixelY) == 0)
                 zeroCount++;
 		}
 	}
@@ -472,34 +490,37 @@ void Image::printBox(int x, int y, int tolerance)
 
 double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, double *error)
 {
+    int centreX = 0;
+    int centreY = 0;
+    
+    shoebox->centre(&centreX, &centreY);
+    
     int slowSide = 0;
     int fastSide = 0;
     
-    int foregroundWidth = FileParser::getKey("SHOEBOX_FOREGROUND_RADIUS", 2) * 2 + 1;
-    
     shoebox->sideLengths(&slowSide, &fastSide);
-    int slowTol = (slowSide - 1) / 2;
-    int fastTol = (fastSide - 1) / 2;
     
-    int startX = x - slowTol;
-    int startY = y - fastTol;
+    int startX = x - centreX;
+    int startY = y - centreY;
     
     std::vector<double> xxs, xys, xs, yys, ys, xzs, yzs, zs, allXs, allYs, allZs;
     
-    for (int i = startX; i < startX + slowSide; i++)
+    for (int i = 0; i < slowSide; i++)
     {
-        for (int j = startY; j < startY + fastSide; j++)
+        int panelPixelX = (i - centreX) + x;
+        
+        for (int j = 0; j < fastSide; j++)
         {
-            double sX = i - startX;
-            double sY = j - startY;
-            Mask flag = flagAtShoeboxIndex(shoebox, sX, sY);
+            int panelPixelY = (j - centreY) + y;
+            
+            Mask flag = flagAtShoeboxIndex(shoebox, i, j);
             
             if (flag == MaskForeground || flag == MaskNeither)
                 continue;
             
-            double newX = i;
-            double newY = j;
-            double newZ = valueAt(i, j);
+            double newX = panelPixelX;
+            double newY = panelPixelY;
+            double newZ = valueAt(panelPixelX, panelPixelY);
             
             allXs.push_back(newX);
             allYs.push_back(newY);
@@ -592,11 +613,11 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     double lowestPoint = FLT_MAX;
     double highestPoint = -FLT_MAX;
     std::vector<double> corners;
-    
+    /*
     corners.push_back(p * (startX) + q * (startY) + r);
-    corners.push_back(p * (startX + foregroundWidth) + q * (startY) + r);
-    corners.push_back(p * (startX) + q * (startY + foregroundWidth) + r);
-    corners.push_back(p * (startX + foregroundWidth) + q * (startY + foregroundWidth) + r);
+    corners.push_back(p * (startX + slowSide) + q * (startY) + r);
+    corners.push_back(p * (startX) + q * (startY + fastSide) + r);
+    corners.push_back(p * (startX + slowSide) + q * (startY + fastSide) + r);
 
     for (int i = 0; i < corners.size(); i++)
     {
@@ -608,61 +629,74 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     
     double topHeight = (highestPoint - lowestPoint);
     
-    double bottomVolume = lowestPoint * foregroundWidth * foregroundWidth;
-    double topVolume = 0.5 * topHeight * foregroundWidth * foregroundWidth;
+    double bottomVolume = lowestPoint * slowSide * fastSide;
+    double topVolume = 0.5 * topHeight * slowSide * fastSide;
     
     backgroundInSignal = topVolume + bottomVolume;
-    
+    */
     double foreground = 0;
     int num = 0;
     
     logged << "Foreground pixels: ";
     
-    for (int i = startX; i < startX + slowSide; i++)
+    for (int i = 0; i < slowSide; i++)
     {
-        for (int j = startY; j < startY + fastSide; j++)
+        int panelPixelX = (i - centreX) + x;
+        
+        for (int j = 0; j < fastSide; j++)
         {
-            double sX = i - startX;
-            double sY = j - startY;
-            Mask flag = flagAtShoeboxIndex(shoebox, sX, sY);
+            int panelPixelY = (j - centreY) + y;
             
-            if (flag == MaskNeither || flag == MaskBackground)
+            Mask flag = flagAtShoeboxIndex(shoebox, i, j);
+            
+            if (flag == MaskNeither)
                 continue;
             
-            double weight = weightAtShoeboxIndex(shoebox, sX, sY);
-            double total = valueAt(i, j);
-            num++;
+            else if (flag == MaskForeground)
+            {
+                double weight = weightAtShoeboxIndex(shoebox, i, j);
+                double total = valueAt(panelPixelX, panelPixelY);
+                
+                logged << "F:" << total << ", ";
+                
+                foreground += total * weight;
+                num++;
+                
+                double backTotal = (p * panelPixelX + q * panelPixelY + r);
+                logged << "B:" << backTotal << ", ";
+                
+                backgroundInSignal += backTotal * weight;
+            }
             
-            logged << total << ", ";
-            
-            foreground += total * weight;
+           
         }
     }
     
-    logged << std::endl;
-    sendLog(LogLevelDebug);
+    
+    logged << "Background: " << backgroundInSignal << std::endl;
+    logged << "Foreground: " << foreground << std::endl;
     
     double signalOnly = foreground - backgroundInSignal;
     *error = sqrt(foreground);
-    
-    if (signalOnly > 1000)
-        sendLog();
+
+    logged << std::endl;
+    sendLog(LogLevelDebug);
     
     return signalOnly;
 }
 
 double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double *error)
 {
+    int centreX = 0;
+    int centreY = 0;
+
+    shoebox->centre(&centreX, &centreY);
+    
     int slowSide = 0;
     int fastSide = 0;
     
     shoebox->sideLengths(&slowSide, &fastSide);
-    int slowTol = (slowSide - 1) / 2;
-    int fastTol = (fastSide - 1) / 2;
-    
-    int startX = x - slowTol;
-    int startY = y - fastTol;
-    
+
     int foreground = 0;
     int foreNum = 0;
     
@@ -670,23 +704,29 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
     int backNum = 0;
     
     //	print = true;
+    logged << "Foreground pixels: ";
     
-    for (int i = startX; i < startX + slowSide; i++)
+    
+    for (int i = 0; i < slowSide; i++)
     {
-        for (int j = startY; j < startY + fastSide; j++)
+        int panelPixelX = (i - centreX) + x;
+        
+        for (int j = 0; j < fastSide; j++)
         {
-            double sX = i - startX;
-            double sY = j - startY;
-            double value = valueAt(i, j);
+            int panelPixelY = (j - centreY) + y;
+
+            double value = valueAt(panelPixelX, panelPixelY);
             
-            Mask flag = flagAtShoeboxIndex(shoebox, sX, sY);
+            Mask flag = flagAtShoeboxIndex(shoebox, i, j);
             
             if (flag == MaskForeground)
             {
-                double weight = weightAtShoeboxIndex(shoebox, sX, sY);
+                double weight = weightAtShoeboxIndex(shoebox, i, j);
                 foreNum += weight;
                 foreground += value * weight;
                 
+                logged << value << ", ";
+            
                 if (value > pixelCountCutoff && pixelCountCutoff > 0)
                 {
                     return isnan(' ');
@@ -700,17 +740,19 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
         }
     }
     
+    logged << std::endl;
+    sendLog(LogLevelDebug);
+    
     double aveBackground = (double) background / (double) backNum;
     double backgroundInForeground = aveBackground * (double) foreNum;
     
     double totalPhotons = foreground;
     *error = sqrt(totalPhotons);
-    
-/*
-    std::ostringstream logged;
-    logged << "Photons (back/fore/back-in-fore): " << background << "\t" << foreground << "\t" << "; weights: " << backNum << "\t" << foreNum << std::endl;
-    */
+  
     double intensity = (foreground - backgroundInForeground);
+  
+    if (intensity > 1000)
+        printBox(x, y, 3);
     
     return intensity;
 }

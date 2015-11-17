@@ -947,7 +947,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     if (!Panel::shouldUsePanelInfo())
     {
         int search = indexer->getSearchSize();
-        image->focusOnAverageMax(&intLastX, &intLastY, search, 1, shoebox->isEven());
+        image->focusOnAverageMax(&intLastX, &intLastY, search, 1, even);
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
         
@@ -1029,7 +1029,7 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     rawIntensity = image->intensityAt(x, y, shoebox, &countingSigma, 0);
 
     
-    if (rawIntensity > 1000)
+    if (rawIntensity > 1000 && false)
     {
         logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
         Logger::mainLogger->addStream(&logged, LogLevelDebug);
