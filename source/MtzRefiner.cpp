@@ -1049,7 +1049,7 @@ void MtzRefiner::readMatricesAndMtzs()
     std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
                                               std::string(""));
     
-    double version = FileParser::getKey("MATRIX_LIST_VERSION", 1.0);
+    double version = FileParser::getKey("MATRIX_LIST_VERSION", 2.0);
     
     if (version == 2.0)
     {
