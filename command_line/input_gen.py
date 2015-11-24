@@ -278,13 +278,13 @@ mergeTxt = StringIO.StringIO()
 
 print >> mergeTxt, "ORIENTATION_MATRIX_LIST merge-orientations.dat"
 print >> mergeTxt, "MATRIX_LIST_VERSION 2.0"
-print >> refineTxt, "INITIAL_MTZ allMerge5.mtz\n"
-print >> refineTxt, "OUTLIER_REJECTION_SIGMA 1.6"
-print >> refineTxt, "MERGE_ANOMALOUS OFF"
-print >> refineTxt, "RECALCULATE_SIGMA ON"
-print >> refineTxt, "CORRELATION_THRESHOLD 0.9"
-print >> refineTxt, "COMMANDS\n"
-print >> refineTxt, "MERGE"
+print >> mergeTxt, "INITIAL_MTZ allMerge5.mtz\n"
+print >> mergeTxt, "OUTLIER_REJECTION_SIGMA 1.6"
+print >> mergeTxt, "MERGE_ANOMALOUS OFF"
+print >> mergeTxt, "RECALCULATE_SIGMA ON"
+print >> mergeTxt, "CORRELATION_THRESHOLD 0.9"
+print >> mergeTxt, "COMMANDS\n"
+print >> mergeTxt, "MERGE"
 
 outputFilename = "merge.txt"
 outputFile = open(outputFilename, 'w')
