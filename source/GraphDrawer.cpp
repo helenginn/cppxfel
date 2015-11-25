@@ -892,6 +892,8 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, doub
         partLog.open("partiality_" + i_to_str(shell) + ".csv");
         partLog << "h,k,l,wavelength,partiality,percentage,intensity,resolution" << std::endl;
         
+        int count = 0;
+        
 		for (int i = 0; i < partials.size(); i++)
 		{
 			if (partials[i].resolution > lowRes
@@ -916,29 +918,14 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, doub
 
                 partLog << h << "," << k << "," << l << "," << wavelength << "," << partiality << "," <<
                 percentage << "," << intensity << "," << resolution << std::endl;
+                count++;
             }
 		}
         
         partLog.close();
 
-		if (xs.size() <= 1)
-			continue;
-
-		std::cout << std::setw(12) << 1 / lowRes << std::setw(12) <<  1 / highRes << std::setw(12) << xs.size()
+		std::cout << std::setw(12) << 1 / lowRes << std::setw(12) <<  1 / highRes << std::setw(12) << count
 				<< std::endl;
-        
-        std::vector<std::vector<double> > allXs, allYs;
-        allXs.push_back(xs);
-        allXs.push_back(xs2);
-        allXs.push_back(xs3);
-        allXs.push_back(xs4);
-
-        allYs.push_back(ys);
-        allYs.push_back(ys2);
-        allYs.push_back(ys3);
-        allYs.push_back(ys4);
-
-//        plot(filename + "_" + i_to_str(shell), properties, allXs, allYs);
 	}
 /*
 	int milliseconds = 1200 / resCount;
