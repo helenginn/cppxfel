@@ -45,6 +45,8 @@ IOMRefiner::IOMRefiner(Image *newImage, MatrixPtr matrix)
                                       OVER_PRED_SPOT_SIZE);;
     maxResolution = FileParser::getKey(
                                        "MAX_INTEGRATED_RESOLUTION", MAX_INTEGRATED_RESOLUTION);;
+    minResolution = FileParser::getKey(
+                                       "MIN_INTEGRATED_RESOLUTION", 0.0);;
     search = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                 METROLOGY_SEARCH_SIZE);;
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
@@ -261,6 +263,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     logged << "Integrating to maximum Miller indices: (" << maxMillers[0] << ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
     
     int overRes = 0;
+    int underRes = 0;
     
     for (int h = -maxMillers[0]; h < maxMillers[0]; h++)
     {
@@ -302,7 +305,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                         continue;
                     }
                     
-                    continue;
+//                    continue;
                 }
                 
                 double res = length_of_vector(hkl);
@@ -310,6 +313,12 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                 if (res > 1 / maxResolution)
                 {
                     overRes++;
+                    continue;
+                }
+                
+                if (minResolution > 0 && res < 1 / minResolution)
+                {
+                    underRes++;
                     continue;
                 }
 
@@ -323,6 +332,9 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     
     logged << "Rejected " << overRes << " due to being over resolution edge of " << maxResolution << " Å." << std::endl;
     
+    if (minResolution > 0)
+        logged << "Rejected " << underRes << " due to being under resolution edge of " << minResolution << " Å." << std::endl;
+    
     sendLog(LogLevelDetailed);
     needsReintegrating = true;
 }
@@ -330,15 +342,12 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
 void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation)
 {
     MatrixPtr matrix = getMatrix();
-    
-    double lRad = lRot * M_PI / 180;
 
     if (complexUnitCell)
     {
    //     unitCell[1] = unitCell[0];
         
         matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
-        matrix->rotate(0, 0, lRad);
     }
     double wavelength = image->getWavelength();
     double maxD = 1 / maxResolution;
@@ -368,11 +377,11 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     
     if (rotationMode == RotationModeHorizontalVertical)
     {
-        Miller::rotateMatrix(hRot, kRot, matrix, &newMatrix);
+        Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &newMatrix);
     }
     else if (rotationMode == RotationModeUnitCellABC)
     {
-        Miller::rotateMatrix(aRot, bRot, cRot, matrix, &newMatrix);
+        Miller::rotateMatrixABC(aRot, bRot, cRot, matrix, &newMatrix);
     }
     
     std::vector<MillerPtr> *chosenMillerArray = &nearbyMillers;
@@ -443,9 +452,11 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         double rawIntensity = miller->getRawIntensity();
         
-        if (rawIntensity != rawIntensity || (int) rawIntensity == 0 || rawIntensity < -500)
+        if (rawIntensity != rawIntensity)
         {
             unacceptableIntensity++;
+            chosenMillerArray->erase(chosenMillerArray->begin() + i);
+            i--;
             continue;
         }
         
@@ -459,8 +470,6 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         }
     }
     
-    matrix->rotate(0, 0, -lRad);
-
     logged << "Using wavelength " << wavelength << " Å and distance " << image->getDetectorDistance() << " mm" << std::endl;
     logged << "Beyond resolution cutoff: " << cutResolution << std::endl;
     logged << "Partiality equal to 0: " << partialityTooLow << std::endl;
@@ -1384,14 +1393,14 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
-        double lRotStep = initialStep;
+        double lRotStep = initialStep / 2;
         double aRotStep = initialStep;
         double bRotStep = initialStep;
         double cRotStep = initialStep;
         
         double aStep = FileParser::getKey("STEP_UNIT_CELL_A", 0.2);
-        double bStep = FileParser::getKey("STEP_UNIT_CELL_B", 0.2);;
-        double cStep = FileParser::getKey("STEP_UNIT_CELL_C", 0.2);;
+        double bStep = FileParser::getKey("STEP_UNIT_CELL_B", 0.2);
+        double cStep = FileParser::getKey("STEP_UNIT_CELL_C", 0.2);
         
         bool refinedH = (rotationMode == RotationModeHorizontalVertical) ? false : true;
         bool refinedK = (rotationMode == RotationModeHorizontalVertical) ? false : true;

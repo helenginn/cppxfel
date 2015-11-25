@@ -68,7 +68,11 @@ int InputFileParser::processOptions(std::vector<std::string> lines)
         if (!checkSpaces(line))
             continue;
         
+        if (line.length() == 0)
+            continue;
+        
         std::string command; std::string rest;
+        
         ParserFunction function = this->splitLine(line, command, rest);
         
         if (parserMap.count(command) == 0)

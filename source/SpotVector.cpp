@@ -7,11 +7,32 @@
 //
 
 #include "SpotVector.h"
+#include "Matrix.h"
+
+double SpotVector::trustComparedToStandardVector(SpotVectorPtr standardVector)
+{
+    double standardDistance = standardVector->distance();
+    double diff = fabs(standardDistance - distance());
+    
+    return 1 / diff;
+}
+
+SpotVector::SpotVector(vec transformedHKL, vec normalHKL)
+{
+    firstSpot = SpotPtr();
+    secondSpot = SpotPtr();
+    
+    hkl = normalHKL;
+    spotDiff = copy_vector(transformedHKL);
+}
 
 SpotVector::SpotVector(SpotPtr first, SpotPtr second)
 {
     firstSpot = first;
     secondSpot = second;
+    
+    if (!first || !second)
+        return;
     
     vec firstVector = first->estimatedVector();
     vec secondVector = second->estimatedVector();
@@ -25,9 +46,14 @@ double SpotVector::distance()
     return length_of_vector(spotDiff);
 }
 
-double SpotVector::angleWithVector(SpotVectorPtr spotVector2)
+double SpotVector::angleWithVector(SpotVectorPtr spotVector2, MatrixPtr mat)
 {
-    vec otherDiff = spotVector2->spotDiff;
+    vec otherDiff = copy_vector(spotVector2->spotDiff);
+    
+    if (mat)
+    {
+        mat->multiplyVector(&otherDiff);
+    }
     
     return angleBetweenVectors(spotDiff, otherDiff);
 }
@@ -71,4 +97,38 @@ double SpotVector::similarityToSpotVector(SpotVectorPtr spotVector2)
     take_vector_away_from_vector(spotVector2->getSpotDiff(), &displace);
     
     return length_of_vector(displace);
+}
+
+SpotVectorPtr SpotVector::copy()
+{
+    SpotVectorPtr newPtr = SpotVectorPtr(new SpotVector(firstSpot, secondSpot));
+    newPtr->hkl = copy_vector(hkl);
+    newPtr->spotDiff = copy_vector(spotDiff);
+    
+    return newPtr;
+}
+
+SpotVectorPtr SpotVector::vectorRotatedByMatrix(MatrixPtr mat)
+{
+    SpotVectorPtr newVec = copy();
+    
+    mat->multiplyVector(&newVec->hkl);
+    mat->multiplyVector(&newVec->spotDiff);
+    
+    return newVec;
+}
+
+bool SpotVector::hasCommonSpotWithVector(SpotVectorPtr spotVector2)
+{
+    if (firstSpot == spotVector2->firstSpot || firstSpot == spotVector2->secondSpot)
+    {
+        return true;
+    }
+    
+    if (secondSpot == spotVector2->firstSpot || secondSpot == spotVector2->secondSpot)
+    {
+        return true;
+    }
+    
+    return false;
 }

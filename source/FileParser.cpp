@@ -278,6 +278,7 @@ void FileParser::generateFunctionList()
 	parserMap["SHOEBOX_BACKGROUND_RADIUS"] = simpleInt;
     parserMap["SHOEBOX_MAKE_EVEN"] = simpleBool;
     parserMap["COMPLEX_SHOEBOX"] = simpleBool;
+    parserMap["MIN_INTEGRATED_RESOLUTION"] = simpleFloat;
     parserMap["MAX_INTEGRATED_RESOLUTION"] = simpleFloat;
 	parserMap["UNIT_CELL"] = doubleVector;
     parserMap["FIX_UNIT_CELL"] = simpleBool;
@@ -324,6 +325,10 @@ void FileParser::generateFunctionList()
     parserMap["GOOD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
     parserMap["SOLUTION_ATTEMPTS"] = simpleInt;
     parserMap["ONE_INDEXING_CYCLE_ONLY"] = simpleBool;
+    parserMap["NEW_INDEXING_METHOD"] = simpleBool;
+    parserMap["MAX_RECIPROCAL_DISTANCE"] = simpleFloat;
+    parserMap["ALWAYS_FILTER_SPOTS"] = simpleBool;
+    parserMap["MINIMUM_NEIGHBOURS"] = simpleInt;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     

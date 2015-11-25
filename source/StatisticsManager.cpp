@@ -144,6 +144,10 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 
 	if (!silent)
 	{
+        std::ostringstream logged;
+        
+        logged << "h k l\tFirst intensity\tSecond intensity\tResolution" << std::endl;
+        
 		for (int i = 0; i < num; i++)
 		{
             int h = reflections1[i]->miller(0)->getH();
@@ -162,8 +166,20 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
             
             double resolution = 1 / reflections1[i]->getResolution();
 
-			std::cout << h << " " << k << " " << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << std::endl;
+			logged << h << " " << k << " " << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << std::endl;
 		}
+
+        std::string logString = logged.str();
+        std::replace(logString.begin(), logString.end(), '\t', ',');
+        
+        std::ofstream correlationDataLog;
+        correlationDataLog.open("correlation.csv");
+        correlationDataLog << logString << std::endl;
+        correlationDataLog.close();
+        
+        logged << "Data logged to correlation.csv" << std::endl;
+        Logger::mainLogger->addStream(&logged);
+        
 	}
 
 	double sum_x = 0;

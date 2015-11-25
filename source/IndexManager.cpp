@@ -15,6 +15,7 @@
 #include "parameters.h"
 #include <fstream>
 #include "SpotVector.h"
+#include "IndexingSolution.h"
 
 IndexManager::IndexManager(std::vector<Image *> newImages)
 {
@@ -67,8 +68,9 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
         {
             for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
             {
-                if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
-                    continue;
+                if (spaceGroupNum != 19)
+                    if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
+                        continue;
                 
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
@@ -115,15 +117,13 @@ bool match_greater_than_match(Match a, Match b)
     return a.second > b.second;
 }
 
-bool greater_than_scored_matrix(std::pair<MatrixPtr, double> a, std::pair<MatrixPtr, double> b)
+bool greater_than_scored_matrix(std::pair<MatrixPtr, std::pair<double, double> > a, std::pair<MatrixPtr, std::pair<double, double> > b)
 {
-    return a.second > b.second;
+    return a.second.first > b.second.first;
 }
 
 bool IndexManager::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
 {
-  //  vec aDummyVec = new_vector(1, 0, 0);
-  //  mat1->multiplyVector(&aDummyVec);
     std::ostringstream logged;
     MatrixPtr mat3 = mat2->copy();
     
@@ -137,16 +137,8 @@ bool IndexManager::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
             mat3->preMultiply(*symOperator);
             mat3->preMultiply(*ambiguity);
             
-       //     vec bDummyVec = new_vector(1, 0, 0);
-       //     symOperator->multiplyVector(&bDummyVec);
-        //    ambiguity->multiplyVector(&bDummyVec);
-        //    mat2->multiplyVector(&bDummyVec);
-            
             double radianSpread = solutionAngleSpread * M_PI / 180;
             double angle = mat1->similarityToRotationMatrix(mat3, radianSpread);
-            
-        //    logged << "Angle: " << angle * 180 / M_PI << std::endl;
-        //    Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
             
             if (angle < radianSpread && angle != -1)
             {
@@ -224,7 +216,7 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     
     for (int j = 0; j < possibleMatches.size() && j < maxSearchNumberMatches; j++)
     {
-        for (int k = j + 1; k < possibleMatches.size() && k < maxSearchNumberMatches; k++)
+        for (int k = j - 1; k >= 0 && j < possibleMatches.size(); k--)
         {
             std::pair<SpotVectorPtr, VectorDistance> vectorPair1 = possibleMatches[j].first;
             std::pair<SpotVectorPtr, VectorDistance> vectorPair2 = possibleMatches[k].first;
@@ -319,13 +311,15 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     
     std::ostringstream dummyVecStr;
     
-    std::vector<std::pair<MatrixPtr, double> > scoredSolutions;
+    std::vector<std::pair<MatrixPtr, std::pair<double, double> > > scoredSolutions;
     
     Logger::mainLogger->addStream(&logged); logged.str("");
     
     int ambiguityCount = newReflection->ambiguityCount();
     
     Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
+    double countSum = 0;
+    int solutionsSearched = 0;
     
     for (int j = 0; j < possibleSolutions.size() && j < maxSearchNumberSolutions - 1; j++)
     {
@@ -334,6 +328,7 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
       //  aMat->multiplyVector(&aDummyVec);
         double score = 0;
         int count = 0;
+        solutionsSearched ++;
         
         for (int k = 0; k < possibleSolutions.size() && k < maxSearchNumberSolutions; k++)
         {
@@ -347,27 +342,16 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
                 double addition = pow(finalTolerance - angle, 2);
                 score += addition;
                 count++;
+                countSum++;
             }
         }
         
-        logged << j << "\t" << score << "\t" << count << std::endl;
+        logged << j << "\t" << aMat->summary() << "\t" << score << "\t" << count << std::endl;
         
-        for (int l = 0; l < ambiguityCount; l++)
-        {
-            MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
-            for (int m = 0; m < 1; m++)
-            {
-                MatrixPtr symOperator = symOperators[m];
-                
-                ambiguity->preMultiply(*symOperator);
-                ambiguity->multiply(*aMat);
-            
-                dummyVecStr << ambiguity->summary() << std::endl;
-            }
-        }
-        
-        scoredSolutions.push_back(std::make_pair(aMat, score));
+        scoredSolutions.push_back(std::make_pair(aMat, std::make_pair(score, count)));
     }
+    
+    countSum /= solutionsSearched;
     
     Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
     Logger::mainLogger->addStream(&dummyVecStr, LogLevelDetailed); dummyVecStr.str("");
@@ -413,11 +397,24 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     {
         vec aDummyVec = new_vector(1, 0, 0);
         scoredSolutions[j].first->multiplyVector(&aDummyVec);
-        logged << "High score solution:\t" << scoredSolutions[j].second << "\t" << aDummyVec.h << "\t" << aDummyVec.k << "\t" << aDummyVec.l << std::endl;
+        double score = scoredSolutions[j].second.first;
+        logged << "High score solution:\t" << score << "\t" << aDummyVec.h << "\t" << aDummyVec.k << "\t" << aDummyVec.l << std::endl;
         chosenSolutions.push_back(scoredSolutions[j].first);
     }
     
     Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
+    int minNeighbours = FileParser::getKey("MINIMUM_NEIGHBOURS", 0);
+    
+    if (scoredSolutions.size() > 0)
+    {
+        double score = scoredSolutions[0].second.first;
+        double count = scoredSolutions[0].second.second;
+        logged << "Top solution score for " << image->getFilename() << ": " << score << " from " << count << " solutions. Average solution count: " << countSum << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelNormal); logged.str("");
+        
+        if (count < minNeighbours)
+            return 0;
+    }
     
     // weed out duplicates from previous solutions
     
@@ -519,10 +516,25 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
 
 void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset)
 {
-    std::ostringstream logged;
+    bool newMethod = FileParser::getKey("NEW_INDEXING_METHOD", false);
     int maxThreads = FileParser::getMaxThreads();
+    
+    if (newMethod)
+    {
+        for (int i = offset; i < indexer->images.size(); i += maxThreads)
+        {
+            Image *image = indexer->images[i];
+            
+            image->findIndexingSolutions();
+        }
+        
+        return;
+    }
+    
+    std::ostringstream logged;
     bool alwaysAccept = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     bool oneCycleOnly = FileParser::getKey("ONE_INDEXING_CYCLE_ONLY", false);
+    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     
     for (int i = offset; i < indexer->images.size(); i += maxThreads)
     {
@@ -538,7 +550,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             
             while (extraSolutions > 0)
             {
-                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, false);
+                image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, alwaysFilterSpots);
                 extraSolutions = indexer->indexOneImage(image, mtzSubset);
                 
                 if (alwaysAccept)
@@ -548,7 +560,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                     break;
             }
             
-            if (!alwaysAccept && !oneCycleOnly)
+            if (!alwaysAccept && !oneCycleOnly && !alwaysFilterSpots)
             {
                 image->compileDistancesFromSpots(indexer->maxDistance, indexer->smallestDistance, true);
                 extraSolutions += indexer->indexOneImage(image, mtzSubset);
@@ -568,22 +580,32 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 void IndexManager::powderPattern()
 {
     std::map<int, int> frequencies;
-    double step = 0.0001;
+    double step = 0.00025;
+    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
+    
+    double maxCatDistance = 0.05;
+    int maxCategory = maxCatDistance / step;
+    
+    for (int i = 0; i < maxCategory; i++)
+    {
+        frequencies[i] = 0;
+    }
     
     std::ostringstream pdbLog;
     
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, false);
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
         
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
         {
             SpotVectorPtr spotVec = images[i]->spotVector(j);
             
             double distance = spotVec->distance();
+            
             int categoryNum = distance / step;
             double angle = spotVec->angleWithVertical();
-            vec spotDiff = spotVec->getSpotDiff();
+            vec spotDiff = copy_vector(spotVec->getSpotDiff());
             spotDiff.h *= 106 * 20;
             spotDiff.k *= 106 * 20;
             spotDiff.l *= 106 * 20;
@@ -615,6 +637,32 @@ void IndexManager::powderPattern()
     pdbLog << std::setw(8) << std::setprecision(2) << 0;
     pdbLog << "                       N" << std::endl;
     
+    std::ofstream pdbLog2;
+    pdbLog2.open("projection.pdb");
+    
+    for (int j = 0; j < images[0]->spotCount(); j++)
+    {
+        vec estimatedVector = images[0]->spot(j)->estimatedVector();
+        
+        pdbLog2 << "HETATM";
+        pdbLog2 << std::fixed;
+        pdbLog2 << std::setw(5) << j << "                   ";
+        pdbLog2 << std::setw(8) << std::setprecision(2) << estimatedVector.h * 106;
+        pdbLog2 << std::setw(8) << std::setprecision(2) << estimatedVector.k * 106;
+        pdbLog2 << std::setw(8) << std::setprecision(2) << estimatedVector.l * 106;
+        pdbLog2 << "                       O" << std::endl;
+    }
+    
+    pdbLog2 << "HETATM";
+    pdbLog2 << std::fixed;
+    pdbLog2 << std::setw(5) << images[0]->spotCount() + 1 << "                   ";
+    pdbLog2 << std::setw(8) << std::setprecision(2) << 0;
+    pdbLog2 << std::setw(8) << std::setprecision(2) << 0;
+    pdbLog2 << std::setw(8) << std::setprecision(2) << 0;
+    pdbLog2 << "                       N" << std::endl;
+    
+    pdbLog2.close();
+    
     logged << "******* DISTANCE FREQUENCY *******" << std::endl;
     
     std::ofstream powderLog;
@@ -640,6 +688,7 @@ void IndexManager::powderPattern()
 void IndexManager::index()
 {
     int maxThreads = FileParser::getMaxThreads();
+    IndexingSolution::setupStandardVectors();
     
     boost::thread_group threads;
     vector<vector<MtzPtr> > managerSubsets;

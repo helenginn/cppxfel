@@ -426,7 +426,7 @@ vec Miller::getTransformedHKL(MatrixPtr matrix)
 vec Miller::getTransformedHKL(double hRot, double kRot)
 {
     MatrixPtr newMatrix = MatrixPtr();
-    rotateMatrix(hRot, kRot, matrix, &newMatrix);
+    rotateMatrixHKL(hRot, kRot, 0, matrix, &newMatrix);
     
     vec hkl = getTransformedHKL(newMatrix);
     return hkl;
@@ -494,21 +494,22 @@ double Miller::getWeight(bool cutoff, WeightType weighting)
     return weight;
 }
 
-void Miller::rotateMatrix(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
+void Miller::rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
 {
     (*newMatrix) = oldMatrix->copy();
     
     (*newMatrix)->rotateABC(oldMatrix, aRot, bRot, cRot);
 }
 
-void Miller::rotateMatrix(double hRot, double kRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
+void Miller::rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
 {
     (*newMatrix) = oldMatrix->copy();
     
     double hRad = hRot * M_PI / 180;
     double kRad = kRot * M_PI / 180;
+    double lRad = lRot * M_PI / 180;
     
-    (*newMatrix)->rotate(hRad, kRad, 0);
+    (*newMatrix)->rotate(hRad, kRad, lRad);
 }
 
 double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
@@ -518,7 +519,7 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
     if (hkl == NULL)
     {
         MatrixPtr newMatrix = MatrixPtr();
-        rotateMatrix(latestHRot, latestKRot, matrix, &newMatrix);
+        rotateMatrixHKL(latestHRot, latestKRot, 0, matrix, &newMatrix);
         
         usedHKL = new_vector(h, k, l);
         hkl = &usedHKL;
@@ -1023,8 +1024,6 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     int y = 0;
     
     positionOnDetector(transformedMatrix, &x, &y);
-    
-    gainScale = Panel::scaleForMiller(this);
     
     rawIntensity = image->intensityAt(x, y, shoebox, &countingSigma, 0);
 

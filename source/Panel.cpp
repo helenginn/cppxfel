@@ -56,6 +56,11 @@ Panel::Panel(vector<double> dimensions)
     {
         swivel = dimensions[8];
     }
+    
+    if (dimensions.size() >= 10)
+    {
+        gainScale = dimensions[9];
+    }
 }
 
 void Panel::setupPanel(PanelPtr panel)
@@ -399,7 +404,7 @@ double Panel::scaleForMiller(Miller *miller)
     if (panel)
         return panel->gainScale;
     
-    return nan(" ");
+    return 1;
 }
 
 void Panel::plotAll(PlotType plotType)
@@ -418,11 +423,11 @@ void Panel::plotVectors(int i, PlotType plotType)
     vector<double> bins;
     if (splitResolution)
     {
-        StatisticsManager::generateResolutionBins(0, 1.6, 4, &bins);
+        StatisticsManager::generateResolutionBins(0, 1.0, 4, &bins);
     }
     else
     {
-        StatisticsManager::generateResolutionBins(0, 1.6, 1, &bins);
+        StatisticsManager::generateResolutionBins(0, 1.0, 1, &bins);
     }
     
     for (int j = 0; j < bins.size(); j++)
@@ -782,6 +787,7 @@ void Panel::findAllParameters()
 void Panel::findShift(double windowSize, double step, double x, double y)
 {
     vector<std::pair<Coord, double> > scores;
+    logged << "Miller count: " << millers.size() << std::endl;
     
     double minX = -defaultShift + originalShift.first + x + 0.5;
     double maxX = defaultShift + originalShift.first + x - 0.5;

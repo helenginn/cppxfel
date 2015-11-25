@@ -128,6 +128,11 @@ public:
 	{
 		this->bestShift = bestShift;
 	}
+    
+    double getGainScale()
+    {
+        return gainScale;
+    }
 };
 
 #endif /* PANEL_H_ */

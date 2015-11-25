@@ -17,6 +17,7 @@
 #include "lbfgs_scaling.h"
 #include "ccp4_general.h"
 #include "ccp4_parser.h"
+#include <fstream>
 
 #include "FileParser.h"
 #include "GraphDrawer.h"
@@ -169,8 +170,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     RotationMode mode = (RotationMode)rotMode;
 
     
-    
-    logged << "Filename\tCorrel\tRsplit\tRefcount\tMosaicity\tWavelength\tBandwidth\t";
+    logged << "Filename\tCorrel\tRsplit\tPartcorrel\tRefcount\tMosaicity\tWavelength\tBandwidth\t";
     
     logged << (mode == RotationModeHorizontalVertical ? "hRot\tkRot\t" : "aRot\tbRot\tcRot\t");
     
@@ -214,6 +214,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         mtzManagers[i]->getMatrix()->unitCellLengths(&cellDims);
         
         
+        
 		logged << mtzManagers[i]->getFilename() << "\t" << correl << "\t" << rSplit << "\t" << partCorrel << "\t"
 				<< mtzManagers[i]->accepted() << "\t"
 				<< mtzManagers[i]->getMosaicity() << "\t"
@@ -229,6 +230,17 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         
         delete [] cellDims;
 	}
+    
+    std::string tabbedParams = logged.str();
+    std::replace(tabbedParams.begin(), tabbedParams.end(), '\t', ',');
+    
+    std::ofstream paramLog;
+    std::string paramLogName = "params_cycle_" + i_to_str(cycle) + ".csv";
+    paramLog.open(paramLogName);
+    paramLog << tabbedParams << std::endl;
+    paramLog.close();
+    
+    logged << "Written parameter table to " << paramLogName << "." << std::endl;
 
 	averageCorrelation /= mtzManagers.size();
 	rotationCorrection /= mtzManagers.size();
@@ -324,6 +336,8 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         time_t startcputime;
         time(&startcputime);
         
+        logged << "**** MERGING ALL DATA ****" << std::endl;
+        sendLog();
         merge(mergeMtz, unmergedMtz, false, true, &unmergedName);
 		
         time_t endcputime;
@@ -337,8 +351,13 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         
         logged << "N: Clock time " << minutes << " minutes, " << finalSeconds << " seconds to merge full data set" << std::endl;
         
+        logged << "**** MERGING HALF DATA (1) ****" << std::endl;
+        sendLog();
         merge(&idxMerge, unmerged, true, false);
-		merge(&invMerge, unmerged, false, false);
+
+        logged << "**** MERGING HALF DATA (2) ****" << std::endl;
+        sendLog();
+        merge(&invMerge, unmerged, false, false);
 	}
 	else
 	{

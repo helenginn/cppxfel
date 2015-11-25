@@ -875,6 +875,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, doub
 
     std::cout << std::setw(12) << "Low res" << std::setw(12) << "High res" << std::setw(12) << "Num refl." << std::endl;
     
+    
 	for (int shell = 0; shell < resCount - 1; shell++)
 	{
 		xs.clear();
@@ -887,6 +888,10 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, doub
 		double lowRes = 1 / resolutions[shell];
 		double highRes = 1 / resolutions[shell + 1];
 
+        std::ofstream partLog;
+        partLog.open("partiality_" + i_to_str(shell) + ".csv");
+        partLog << "h,k,l,wavelength,partiality,percentage,intensity,resolution" << std::endl;
+        
 		for (int i = 0; i < partials.size(); i++)
 		{
 			if (partials[i].resolution > lowRes
@@ -900,17 +905,21 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, doub
                 if (partials[i].percentage > maxPercentage)
                     continue;
 
-                xs.push_back(partials[i].wavelength);
-                ys.push_back(partials[i].percentage);
-                xs2.push_back(partials[i].partiality);
-                ys2.push_back(partials[i].resolution);
-                xs3.push_back(abs(partials[i].miller->getH()));
-                ys3.push_back(abs(partials[i].miller->getK()));
-                xs4.push_back(abs(partials[i].miller->getL()));
-                ys4.push_back(partials[i].miller->getRawestIntensity());
-                
+                double h = partials[i].miller->getH();
+                double k = partials[i].miller->getK();
+                double l = partials[i].miller->getL();
+                double wavelength = partials[i].wavelength;
+                double partiality = partials[i].partiality;
+                double percentage = partials[i].percentage;
+                double intensity = partials[i].miller->getRawestIntensity();
+                double resolution = partials[i].resolution;
+
+                partLog << h << "," << k << "," << l << "," << wavelength << "," << partiality << "," <<
+                percentage << "," << intensity << "," << resolution << std::endl;
             }
 		}
+        
+        partLog.close();
 
 		if (xs.size() <= 1)
 			continue;
@@ -929,7 +938,7 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, doub
         allYs.push_back(ys3);
         allYs.push_back(ys4);
 
-        plot(filename + "_" + i_to_str(shell), properties, allXs, allYs);
+//        plot(filename + "_" + i_to_str(shell), properties, allXs, allYs);
 	}
 /*
 	int milliseconds = 1200 / resCount;

@@ -160,8 +160,8 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double aRot, doub
     
     MatrixPtr firstMatrix = MatrixPtr();
     MatrixPtr newMatrix = MatrixPtr();
-    Miller::rotateMatrix(aRot, bRot, cRot, matrix, &firstMatrix);
-    Miller::rotateMatrix(hRot, kRot, firstMatrix, &newMatrix);
+    Miller::rotateMatrixABC(aRot, bRot, cRot, matrix, &firstMatrix);
+    Miller::rotateMatrixHKL(hRot, kRot, 0, firstMatrix, &newMatrix);
     
 	for (int i = 0; i < reflections.size(); i++)
 	{

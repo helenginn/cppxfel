@@ -1593,6 +1593,8 @@ int MtzManager::rejectOverlaps()
 
 int MtzManager::removeStrongSpots(std::vector<SpotPtr> *spots)
 {
+    int before = (int)spots->size();
+    
     int count = 0;
     
     for (int i = 0; i < reflectionCount(); i++)
@@ -1601,6 +1603,11 @@ int MtzManager::removeStrongSpots(std::vector<SpotPtr> *spots)
         
         count += ref->checkSpotOverlaps(spots);
     }
+    
+    int after = (int)spots->size();
+    
+    logged << "Before spot removal: " << before << " - after: " << after << std::endl;
+    sendLog(LogLevelDetailed);
     
     return count;
 }

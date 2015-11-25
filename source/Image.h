@@ -134,7 +134,8 @@ public:
     
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
-    void compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance, bool filter = false);
+    void findIndexingSolutions();
+    void compileDistancesFromSpots(double maxReciprocalDistance = 0, double tooCloseDistance = 0, bool filter = false);
     void filterSpotVectors();
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     
@@ -146,6 +147,11 @@ public:
     int spotVectorCount()
     {
         return (int)spotVectors.size();
+    }
+    
+    SpotPtr spot(int i)
+    {
+        return spots[i];
     }
     
     int spotCount()

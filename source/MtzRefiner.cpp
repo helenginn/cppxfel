@@ -168,6 +168,10 @@ void MtzRefiner::cycle()
     
     int maxThreads = FileParser::getMaxThreads();
     
+    std::ostringstream logged;
+    logged << "Filename\tScore type\t\tCorrel\tRfactor\tPart correl\tRmerge\tB factor\tHits" << std::endl;
+    Logger::mainLogger->addStream(&logged);
+    
     for (int i = 0; i < maxThreads; i++)
     {
         boost::thread *thr = new boost::thread(cycleThreadWrapper, this, i);
@@ -440,7 +444,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
     
     std::ostringstream logged;
     
-    logged << "Initial orientation matrix has "
+    logged << "Initial MTZ has "
     << (hasInitialMtz ? "" : "not ") << "been provided." << std::endl;
     
     Logger::mainLogger->addStream(&logged);
@@ -555,19 +559,16 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
     
     if (wavelength == 0 && newImages != NULL)
     {
-        std::cout
-        << "Please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH"
-        << std::endl;
-        exit(1);
+        std::cout << "No integration wavelength provided. If this is not deliberate, please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH" << std::endl;
     }
     
     if (detectorDistance == 0 && newImages != NULL)
     {
-        std::cout
-        << "Please provide detector distance for integration under keyword DETECTOR_DISTANCE"
-        << std::endl;
-        exit(1);
+        std::cout << "No detector distance provided. If this is not deliberate, please provide detector distance for integration under keyword DETECTOR_DISTANCE" << std::endl;
+
     }
+    
+    bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
     bool ignoreMissing = FileParser::getKey("IGNORE_MISSING_IMAGES", false);
     const std::string contents = FileReader::get_file_contents(
@@ -662,7 +663,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 continue;
             }
             
-            if (components[0] == "wavelength")
+            if (components[0] == "wavelength" && wavelength == 0)
             {
                 double newWavelength = wavelength;
                 
@@ -672,7 +673,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                 newImage->setWavelength(newWavelength);
             }
             
-            if (components[0] == "distance")
+            if (components[0] == "distance" && detectorDistance == 0)
             {
                 double newDistance = detectorDistance;
                 
@@ -683,7 +684,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
             }
             
             
-            if (components[0] == "centre")
+            if (components[0] == "centre" && !hasBeamCentre)
             {
                 if (components.size() < 3)
                     continue;
@@ -1724,7 +1725,7 @@ void MtzRefiner::powderPattern()
 
 void MtzRefiner::refineMetrology()
 {
-    loadInitialMtz();
+ //   loadInitialMtz();
     
     if (!Panel::hasMillers())
     {

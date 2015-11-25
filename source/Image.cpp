@@ -18,15 +18,16 @@
 #include "Shoebox.h"
 #include "Spot.h"
 #include "Vector.h"
+#include "IndexingSolution.h"
 
 Image::Image(std::string filename, double wavelength,
-		double distance)
+             double distance)
 {
     vector<double> dims = FileParser::getKey("DETECTOR_SIZE", vector<double>());
     
-	xDim = 1765;
-	yDim = 1765;
-
+    xDim = 1765;
+    yDim = 1765;
+    
     spotsFile = "";
     
     if (dims.size())
@@ -41,12 +42,12 @@ Image::Image(std::string filename, double wavelength,
     data = vector<int>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
     vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
-
+    
     shouldMaskValue = FileParser::hasKey("IMAGE_MASKED_VALUE");
-
+    
     if (shouldMaskValue)
         maskedValue = FileParser::getKey("IMAGE_MASKED_VALUE", 0);
-
+    
     detectorGain = FileParser::getKey("DETECTOR_GAIN", 1.0);
     
     if (beam.size() == 0)
@@ -58,25 +59,25 @@ Image::Image(std::string filename, double wavelength,
     beamX = beam[0];
     beamY = beam[1];
     _hasSeeded = false;
-
-	pinPoint = true;
-	int tempShoebox[7][7] =
-	{
-	{ 1, 1, 1, 1, 1, 1, 1 },
-	{ 1, 0, 0, 0, 0, 0, 1 },
-	{ 1, 0, 2, 2, 2, 0, 1 },
-	{ 1, 0, 2, 2, 2, 0, 1 },
-	{ 1, 0, 2, 2, 2, 0, 1 },
-	{ 1, 0, 0, 0, 0, 0, 1 },
-	{ 1, 1, 1, 1, 1, 1, 1 } };
-
-	for (int i = 0; i < 7; i++)
-		for (int j = 0; j < 7; j++)
-			shoebox[i][j] = tempShoebox[i][j];
-
-	this->filename = filename;
-	this->wavelength = wavelength;
-	detectorDistance = distance;
+    
+    pinPoint = true;
+    int tempShoebox[7][7] =
+    {
+        { 1, 1, 1, 1, 1, 1, 1 },
+        { 1, 0, 0, 0, 0, 0, 1 },
+        { 1, 0, 2, 2, 2, 0, 1 },
+        { 1, 0, 2, 2, 2, 0, 1 },
+        { 1, 0, 2, 2, 2, 0, 1 },
+        { 1, 0, 0, 0, 0, 0, 1 },
+        { 1, 1, 1, 1, 1, 1, 1 } };
+    
+    for (int i = 0; i < 7; i++)
+        for (int j = 0; j < 7; j++)
+            shoebox[i][j] = tempShoebox[i][j];
+    
+    this->filename = filename;
+    this->wavelength = wavelength;
+    detectorDistance = distance;
     this->fitBackgroundAsPlane = FileParser::getKey("FIT_BACKGROUND_AS_PLANE", false);
     
     pixelCountCutoff = FileParser::getKey("PIXEL_COUNT_CUTOFF", 0);
@@ -84,7 +85,7 @@ Image::Image(std::string filename, double wavelength,
 
 std::string Image::filenameRoot()
 {
-	vector<std::string> components = FileReader::split(filename, '.');
+    vector<std::string> components = FileReader::split(filename, '.');
     
     std::string root = "";
     
@@ -93,16 +94,16 @@ std::string Image::filenameRoot()
         root += components[i] + ".";
     }
     
-	return root.substr(0, root.size() - 1);
+    return root.substr(0, root.size() - 1);
 }
 
 void Image::setUpIOMRefiner(MatrixPtr matrix)
 {
-	IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(this, matrix));
+    IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(this, matrix));
     
     if (matrix->isComplex())
         indexer->setComplexMatrix();
-
+    
     indexers.push_back(indexer);
 }
 
@@ -115,46 +116,46 @@ void Image::setUpIOMRefiner(MatrixPtr unitcell, MatrixPtr rotation)
 
 Image::~Image()
 {
-	data.clear();
-	vector<int>().swap(data);
+    data.clear();
+    vector<int>().swap(data);
 }
 
 void Image::addMask(int startX, int startY, int endX, int endY)
 {
-	vector<int> mask = vector<int>();
-
-	mask.push_back(startX);
-	mask.push_back(startY);
-	mask.push_back(endX);
-	mask.push_back(endY);
-
-	masks.push_back(mask);
+    vector<int> mask = vector<int>();
+    
+    mask.push_back(startX);
+    mask.push_back(startY);
+    mask.push_back(endX);
+    mask.push_back(endY);
+    
+    masks.push_back(mask);
 }
 
 void Image::addSpotCover(int startX, int startY, int endX, int endY)
 {
-	vector<int> mask = vector<int>();
-
-	mask.push_back(startX);
-	mask.push_back(startY);
-	mask.push_back(endX);
-	mask.push_back(endY);
-
-	spotCovers.push_back(mask);
+    vector<int> mask = vector<int>();
+    
+    mask.push_back(startX);
+    mask.push_back(startY);
+    mask.push_back(endX);
+    mask.push_back(endY);
+    
+    spotCovers.push_back(mask);
 }
 
 void Image::applyMaskToImages(vector<Image *> images, int startX,
-		int startY, int endX, int endY)
+                              int startY, int endX, int endY)
 {
-	for (int i = 0; i < images.size(); i++)
-	{
-		images[i]->addMask(startX, startY, endX, endY);
-	}
+    for (int i = 0; i < images.size(); i++)
+    {
+        images[i]->addMask(startX, startY, endX, endY);
+    }
 }
 
 bool Image::isLoaded()
 {
-	return (data.size() > 0);
+    return (data.size() > 0);
 }
 
 void Image::setImageData(vector<int> newData)
@@ -169,23 +170,23 @@ void Image::setImageData(vector<int> newData)
 
 void Image::loadImage()
 {
-	std::streampos size;
-	vector<char> memblock;
-
-	std::ifstream file(filename.c_str(), std::ios::in | std::ios::binary);
-	if (file.is_open())
-	{
-		size = file.tellg();
-		memblock = vector<char>();
-
-		char c = file.get();
-
-		while (file.good())
-		{
-			memblock.push_back(c);
-			c = file.get();
-		}
-
+    std::streampos size;
+    vector<char> memblock;
+    
+    std::ifstream file(filename.c_str(), std::ios::in | std::ios::binary);
+    if (file.is_open())
+    {
+        size = file.tellg();
+        memblock = vector<char>();
+        
+        char c = file.get();
+        
+        while (file.good())
+        {
+            memblock.push_back(c);
+            c = file.get();
+        }
+        
         int bitsPerPixel = FileParser::getKey("BITS_PER_PIXEL", 32);
         bool shortInt = (bitsPerPixel == 16);
         
@@ -195,9 +196,9 @@ void Image::loadImage()
             data.resize(memblock.size() / sizeof(short));
         
         overlapMask = vector<unsigned char>(memblock.size(), 0);
-
-		logged << "Image size: " << memblock.size() << " for image: "
-				<< filename << std::endl;
+        
+        logged << "Image size: " << memblock.size() << " for image: "
+        << filename << std::endl;
         sendLog();
         
         if (!shortInt)
@@ -215,197 +216,203 @@ void Image::loadImage()
             
             addMask(968, 950, 1441, 1079);
         }
-	}
-	else
+    }
+    else
         Logger::mainLogger->addString("Unable to open file");
 }
 
 void Image::dropImage()
 {
-	data.clear();
-	vector<int>().swap(data);
+    data.clear();
+    vector<int>().swap(data);
     
     overlapMask.clear();
     vector<unsigned char>().swap(overlapMask);
-
+    
     for (int i = 0; i < IOMRefinerCount(); i++)
-		getIOMRefiner(i)->dropMillers();
+        getIOMRefiner(i)->dropMillers();
 }
 
 bool Image::coveredBySpot(int x, int y)
 {
-	for (int i = 0; i < spotCovers.size(); i++)
-	{
-		int startX = spotCovers[i][0];
-		int startY = spotCovers[i][1];
-		int endX = spotCovers[i][2];
-		int endY = spotCovers[i][3];
-
-		if (x >= startX && x <= endX && y >= startY && y <= endY)
-			return true;
-	}
-
-	return false;
+    for (int i = 0; i < spotCovers.size(); i++)
+    {
+        int startX = spotCovers[i][0];
+        int startY = spotCovers[i][1];
+        int endX = spotCovers[i][2];
+        int endY = spotCovers[i][3];
+        
+        if (x >= startX && x <= endX && y >= startY && y <= endY)
+            return true;
+    }
+    
+    return false;
 }
 
 int Image::valueAt(int x, int y)
 {
-	if (!isLoaded())
-	{
-		loadImage();
-	}
-
-	if (x < 0 || y < 0)
-		return 0;
-
-	if (x > xDim || y > yDim)
-		return 0;
-
-	for (int i = 0; i < masks.size(); i++)
-	{
-		int startX = masks[i][0];
-		int startY = masks[i][1];
-		int endX = masks[i][2];
-		int endY = masks[i][3];
-
-		if (x >= startX && x <= endX && y >= startY && y <= endY)
-			return 0;
-	}
-
+    if (!isLoaded())
+    {
+        loadImage();
+    }
+    
+    if (x < 0 || y < 0)
+        return 0;
+    
+    if (x > xDim || y > yDim)
+        return 0;
+    
+    for (int i = 0; i < masks.size(); i++)
+    {
+        int startX = masks[i][0];
+        int startY = masks[i][1];
+        int endX = masks[i][2];
+        int endY = masks[i][3];
+        
+        if (x >= startX && x <= endX && y >= startY && y <= endY)
+            return 0;
+    }
+    
     int position = y * yDim + x;
     
-	if (position < 0 || position >= data.size())
-		return 0;
+    if (position < 0 || position >= data.size())
+        return 0;
     
-	return data[position] * detectorGain;
+    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
+    double panelGain = detectorGain;
+    
+    if (panel)
+        panelGain *= panel->getGainScale();
+    
+    return data[position] * panelGain;
 }
 
 void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
 {
-	Spot *spot = new Spot(this);
-	spot->makeProbe(150, 5);
-
-	double maxLift = 0;
-	double maxX = *x;
-	double maxY = *y;
-
-	for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
-	{
-		for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
-		{
-			double lift = spot->maximumLift(this, i, j, true);
-
-			if (lift > maxLift)
-			{
-				maxLift = lift;
-				maxX = i;
-				maxY = j;
-			}
-		}
-	}
-
-	*x = maxX;
-	*y = maxY;
+    Spot *spot = new Spot(this);
+    spot->makeProbe(150, 5);
+    
+    double maxLift = 0;
+    double maxX = *x;
+    double maxY = *y;
+    
+    for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
+    {
+        for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
+        {
+            double lift = spot->maximumLift(this, i, j, true);
+            
+            if (lift > maxLift)
+            {
+                maxLift = lift;
+                maxX = i;
+                maxY = j;
+            }
+        }
+    }
+    
+    *x = maxX;
+    *y = maxY;
 }
 
 void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even)
 {
-	int maxValue = 0;
-	int newX = *x;
-	int newY = *y;
+    int maxValue = 0;
+    int newX = *x;
+    int newY = *y;
     int adjustment = (even ? -1 : 0);
     int latestCount = 0;
     std::string bestPixels;
     
     
-	for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
-	{
-		for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
-		{
-			double newValue = 0;
+    for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
+    {
+        for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
+        {
+            double newValue = 0;
             int count = 0;
             std::ostringstream pixelLog;
             pixelLog << "Metrology pixels: ";
             
             for (int h = i - tolerance2; h <= i + tolerance2 + adjustment; h++)
-			{
-				for (int k = j - tolerance2; k <= j + tolerance2 + adjustment; k++)
-				{
-					int addition = valueAt(h, k);
-					newValue += addition;
+            {
+                for (int k = j - tolerance2; k <= j + tolerance2 + adjustment; k++)
+                {
+                    int addition = valueAt(h, k);
+                    newValue += addition;
                     count++;
                     
                     pixelLog << addition << ", ";
-				}
-			}
+                }
+            }
             
             pixelLog << std::endl;
-
-			if (newValue > maxValue)
-			{
-				newX = i;
-				newY = j;
-				maxValue = newValue;
+            
+            if (newValue > maxValue)
+            {
+                newX = i;
+                newY = j;
+                maxValue = newValue;
                 latestCount = count;
                 bestPixels = pixelLog.str();
-			}
-		}
-	}
-
+            }
+        }
+    }
+    
     logged << bestPixels << std::endl;
     logged << "Sum of best pixels: " << maxValue << " over " << latestCount << " pixels." << std::endl;
     sendLog(LogLevelDebug);
     
-	*x = newX;
-	*y = newY;
+    *x = newX;
+    *y = newY;
 }
 
 void Image::focusOnMaximum(int *x, int *y, int tolerance, double shiftX, double shiftY)
 {
-	int newX = *x;
-	int newY = *y;
-	int midValue = valueAt(newX, newY);
-
-	for (int i = *x - tolerance; i <= *x + tolerance; i++)
-	{
-		for (int j = *y - tolerance; j <= *y + tolerance; j++)
-		{
-			if (valueAt(i, j) > midValue)
-			{
-				newX = i;
-				newY = j;
-				midValue = valueAt(i, j);
-			}
-		}
-	}
-
+    int newX = *x;
+    int newY = *y;
+    int midValue = valueAt(newX, newY);
+    
+    for (int i = *x - tolerance; i <= *x + tolerance; i++)
+    {
+        for (int j = *y - tolerance; j <= *y + tolerance; j++)
+        {
+            if (valueAt(i, j) > midValue)
+            {
+                newX = i;
+                newY = j;
+                midValue = valueAt(i, j);
+            }
+        }
+    }
+    
     if (tolerance > 0 && accepted(newX, newY))
         printBox(newX, newY, tolerance);
     
-	*x = newX;
-	*y = newY;
+    *x = newX;
+    *y = newY;
 }
 
 int Image::shoeboxLength()
 {
-	double totalSize = 7;
-
-	return totalSize;
+    double totalSize = 7;
+    
+    return totalSize;
 }
 
 Mask Image::flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
 {
-	Mask flag = MaskNeither;
-
-	double value = (*shoebox)[x][y];
-
+    Mask flag = MaskNeither;
+    
+    double value = (*shoebox)[x][y];
+    
     if (value == -1)
         flag = MaskBackground;
     
     if (value > 0 && value <= 1)
         flag = MaskForeground;
     
-	return flag;
+    return flag;
 }
 
 double Image::weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
@@ -425,8 +432,8 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
     int slowSide = 0;
     int fastSide = 0;
     
-	shoebox->sideLengths(&slowSide, &fastSide);
-	
+    shoebox->sideLengths(&slowSide, &fastSide);
+    
     int centreX = 0;
     int centreY = 0;
     
@@ -434,7 +441,7 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
     
     int zeroCount = 0;
     int count = 0;
-
+    
     for (int i = 0; i < slowSide; i++)
     {
         int panelPixelX = (i - centreX) + x;
@@ -443,49 +450,49 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
         {
             int panelPixelY = (j - centreY) + y;
             
-			if (!accepted(panelPixelX, panelPixelY))
-			{
+            if (!accepted(panelPixelX, panelPixelY))
+            {
                 std::ostringstream logged;
                 logged << "Rejecting miller - pixel not acceptable" << std::endl;
                 Logger::mainLogger->addStream(&logged, LogLevelDebug);
                 return false;
-			}
+            }
             
             count++;
             if (valueAt(panelPixelX, panelPixelY) == 0)
                 zeroCount++;
-		}
-	}
-    
+        }
+    }
+    /*
     if (double(zeroCount) / double(count) > 0.4)
     {
         logged << "Rejecting miller - too many zeros" << std::endl;
         sendLog(LogLevelDebug);
         return false;
     }
-
-	return true;
+    */
+    return true;
 }
 
 void Image::printBox(int x, int y, int tolerance)
 {
     std::ostringstream logged;
-
+    
     logged << "Print box at (" << x << ", " << y << "), radius " << tolerance << std::endl;
     
-	for (int i = x - tolerance; i <= x + tolerance; i++)
-	{
-		for (int j = y - tolerance; j <= y + tolerance; j++)
-		{
+    for (int i = x - tolerance; i <= x + tolerance; i++)
+    {
+        for (int j = y - tolerance; j <= y + tolerance; j++)
+        {
             logged << valueAt(i, j) << "\t";
- 		}
+        }
         logged << std::endl;
-	}
+    }
     
     logged << std::endl;
     
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
-     
+    
 }
 
 double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, double *error)
@@ -565,7 +572,7 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
         yzs.push_back(newY * newZ);
         zs.push_back(newZ);
     }
-
+    
     double xxSum = sum(xxs);
     double yySum = sum(yys);
     double xySum = sum(xys);
@@ -590,7 +597,7 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     matrix->components[8] = xSum;
     matrix->components[9] = ySum;
     matrix->components[10] = xs.size();
-
+    
     vec b = new_vector(xzSum, yzSum, zSum);
     
     MatrixPtr inverse = matrix->inverse3DMatrix();
@@ -603,7 +610,7 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     inverse->multiplyVector(&b);
     
     // plane is now pa + qb + rc (components of b)
-
+    
     double p = b.h;
     double q = b.k;
     double r = b.l;
@@ -614,26 +621,26 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     double highestPoint = -FLT_MAX;
     std::vector<double> corners;
     /*
-    corners.push_back(p * (startX) + q * (startY) + r);
-    corners.push_back(p * (startX + slowSide) + q * (startY) + r);
-    corners.push_back(p * (startX) + q * (startY + fastSide) + r);
-    corners.push_back(p * (startX + slowSide) + q * (startY + fastSide) + r);
-
-    for (int i = 0; i < corners.size(); i++)
-    {
-        if (corners[i] < lowestPoint)
-            lowestPoint = corners[i];
-        if (corners[i] > highestPoint)
-            highestPoint = corners[i];
-    }
-    
-    double topHeight = (highestPoint - lowestPoint);
-    
-    double bottomVolume = lowestPoint * slowSide * fastSide;
-    double topVolume = 0.5 * topHeight * slowSide * fastSide;
-    
-    backgroundInSignal = topVolume + bottomVolume;
-    */
+     corners.push_back(p * (startX) + q * (startY) + r);
+     corners.push_back(p * (startX + slowSide) + q * (startY) + r);
+     corners.push_back(p * (startX) + q * (startY + fastSide) + r);
+     corners.push_back(p * (startX + slowSide) + q * (startY + fastSide) + r);
+     
+     for (int i = 0; i < corners.size(); i++)
+     {
+     if (corners[i] < lowestPoint)
+     lowestPoint = corners[i];
+     if (corners[i] > highestPoint)
+     highestPoint = corners[i];
+     }
+     
+     double topHeight = (highestPoint - lowestPoint);
+     
+     double bottomVolume = lowestPoint * slowSide * fastSide;
+     double topVolume = 0.5 * topHeight * slowSide * fastSide;
+     
+     backgroundInSignal = topVolume + bottomVolume;
+     */
     double foreground = 0;
     int num = 0;
     
@@ -668,7 +675,7 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
                 backgroundInSignal += backTotal * weight;
             }
             
-           
+            
         }
     }
     
@@ -678,7 +685,7 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     
     double signalOnly = foreground - backgroundInSignal;
     *error = sqrt(foreground);
-
+    
     logged << std::endl;
     sendLog(LogLevelDebug);
     
@@ -689,14 +696,14 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
 {
     int centreX = 0;
     int centreY = 0;
-
+    
     shoebox->centre(&centreX, &centreY);
     
     int slowSide = 0;
     int fastSide = 0;
     
     shoebox->sideLengths(&slowSide, &fastSide);
-
+    
     int foreground = 0;
     int foreNum = 0;
     
@@ -714,7 +721,7 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
         for (int j = 0; j < fastSide; j++)
         {
             int panelPixelY = (j - centreY) + y;
-
+            
             double value = valueAt(panelPixelX, panelPixelY);
             
             Mask flag = flagAtShoeboxIndex(shoebox, i, j);
@@ -726,7 +733,7 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
                 foreground += value * weight;
                 
                 logged << value << ", ";
-            
+                
                 if (value > pixelCountCutoff && pixelCountCutoff > 0)
                 {
                     return isnan(' ');
@@ -748,9 +755,9 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
     
     double totalPhotons = foreground;
     *error = sqrt(totalPhotons);
-  
+    
     double intensity = (foreground - backgroundInForeground);
-  
+    
     if (intensity > 1000)
         printBox(x, y, 3);
     
@@ -773,25 +780,25 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 
 double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int tolerance)
 {
-	int x1 = x;
-	int y1 = y;
-
-	if (tolerance > 0)
-	{
-		if (pinPoint)
-			focusOnMaximum(&x1, &y1, tolerance);
-		else
-			focusOnAverageMax(&x1, &y1, tolerance, 1, shoebox->isEven());
-	}
-
-	if (checkShoebox(shoebox, x1, y1) == 0)
-	{
-		return nan("");
-	}
-
-	double integral = integrateWithShoebox(x1, y1, shoebox, error);
-
-	return integral;
+    int x1 = x;
+    int y1 = y;
+    
+    if (tolerance > 0)
+    {
+        if (pinPoint)
+            focusOnMaximum(&x1, &y1, tolerance);
+        else
+            focusOnAverageMax(&x1, &y1, tolerance, 1, shoebox->isEven());
+    }
+    
+    if (checkShoebox(shoebox, x1, y1) == 0)
+    {
+        return nan("");
+    }
+    
+    double integral = integrateWithShoebox(x1, y1, shoebox, error);
+    
+    return integral;
 }
 
 bool Image::accepted(int x, int y)
@@ -813,17 +820,17 @@ bool Image::accepted(int x, int y)
 
 void Image::index()
 {
-	if (indexers.size() == 0)
+    if (indexers.size() == 0)
     {
         logged << "No orientation matrices, cannot index/integrate." << std::endl;
         sendLog();
         return;
     }
-
+    
     for (int i = 0; i < indexers.size(); i++)
     {
         indexers[i]->checkAllMillers(indexers[i]->getMaxResolution(),
-			indexers[i]->getTestBandwidth());
+                                     indexers[i]->getTestBandwidth());
     }
 }
 
@@ -892,7 +899,7 @@ vector<MtzPtr> Image::currentMtzs()
     
     // fix me
     
-	return mtzs;
+    return mtzs;
 }
 
 int Image::throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs)
@@ -1135,6 +1142,11 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
     double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
     
+    if (maxReciprocalDistance == 0)
+    {
+        maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.02);
+    }
+    
     spotVectors.clear();
     std::vector<SpotVectorPtr>().swap(spotVectors);
     
@@ -1161,7 +1173,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
                 j++;
                 continue;
             }
-
+            
             vec spotPos2 = spots[j]->estimatedVector();
             
             bool close = within_vicinity(spotPos1, spotPos2, maxReciprocalDistance);
@@ -1174,11 +1186,11 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
                 spots[i]->setRejected();
                 i++;
             }
-
+            
             if (close)
             {
                 SpotVectorPtr newVec = SpotVectorPtr(new SpotVector(spots[i], spots[j]));
-            
+                
                 double distance = newVec->distance();
                 
                 if (distance == 0)
@@ -1197,6 +1209,11 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     {
         filterSpotVectors();
     }
+}
+
+bool solutionBetterThanSolution(IndexingSolutionPtr one, IndexingSolutionPtr two)
+{
+    return (one->spotVectorCount() > two->spotVectorCount());
 }
 
 void Image::filterSpotVectors()
@@ -1218,7 +1235,7 @@ void Image::filterSpotVectors()
     logged << "Fraction of spot vectors which should be good: " << goodFraction << std::endl;
     
     sendLog();
-
+    
     for (int i = 0; i < spotVectorCount() && i < maxVectors; i++)
     {
         SpotVectorPtr spotVec1 = spotVector(i);
@@ -1239,11 +1256,11 @@ void Image::filterSpotVectors()
                     score += reciprocalTolerance - interDistance;
             }
         }
-
+        
         spotVectorMap[spotVec1] = score;
         scoresOnly.push_back(score);
     }
-
+    
     std::sort(scoresOnly.begin(), scoresOnly.end(), std::greater<int>());
     
     int vectorsToKeep = int((double)goodFraction * (double)scoresOnly.size());
@@ -1253,7 +1270,7 @@ void Image::filterSpotVectors()
     
     if (vectorsToKeep == scoresOnly.size())
         vectorsToKeep--;
-
+    
     if (scoresOnly.size() == 0)
         return;
     
@@ -1278,4 +1295,182 @@ void Image::filterSpotVectors()
     logged << "Deleted: " << deleted << std::endl;
     
     sendLog();
+}
+
+void Image::findIndexingSolutions()
+{
+    compileDistancesFromSpots();
+    std::vector<IndexingSolutionPtr> solutions;
+    
+    if (spotVectors.size() == 0)
+        return;
+    
+    logged << "Spot vector count: " << spotVectors.size() << std::endl;
+    logged << std::endl;
+
+    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000; i++)
+    {
+        SpotVectorPtr spotVector1 = spotVectors[i];
+        
+        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 1000; j++)
+        {
+            SpotVectorPtr spotVector2 = spotVectors[j];
+            
+            std::vector<IndexingSolutionPtr> moreSolutions = IndexingSolution::startingSolutionsForVectors(spotVector1, spotVector2);
+            solutions.reserve(solutions.size() + moreSolutions.size());
+            solutions.insert(solutions.end(), moreSolutions.begin(), moreSolutions.end());
+        }
+    }
+    
+    logged << "Total starting solutions: " << solutions.size() << std::endl;
+    sendLog();
+    
+    bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
+    
+    std::vector<IndexingSolutionPtr> newSolutions = solutions;
+    std::vector<MatrixPtr> previousSolutions;
+    std::vector<IndexingSolutionPtr> trialSolutions;
+    
+    double passed = 0;
+    
+    for (int i = 0; i < solutions.size(); i++)
+    {
+        double progress = ((double)i / (double)solutions.size()) * 100;
+        
+        if (progress > passed)
+        {
+            passed += 5;
+            logged << passed << "%... ";
+            sendLog(LogLevelDetailed);
+        }
+        
+        std::vector<SpotVectorPtr> newVectors = spotVectors;
+        
+        int added = 1;
+        
+        while (added > 0)
+        {
+            added = solutions[i]->extendFromSpotVectors(&newVectors);
+            
+            logged << "Added " << added << " vectors (now " << solutions[i]->spotVectorCount() << ")." << std::endl;
+            sendLog(LogLevelDebug);
+        }
+        
+        trialSolutions.push_back(solutions[i]);
+    }
+    
+    logged << std::endl;
+    sendLog(LogLevelDetailed);
+    
+    std::sort(trialSolutions.begin(), trialSolutions.end(), solutionBetterThanSolution);
+    
+    for (int i = 0; i < 5 && i < trialSolutions.size(); i++)
+    {
+        MatrixPtr solutionMatrix = trialSolutions[i]->createSolution();
+        
+        if (!solutionMatrix)
+            continue;
+        
+        bool giveUp = false;
+        
+        for (int j = 0; j < previousSolutions.size(); j++)
+        {
+            if (IndexingSolution::matrixSimilarToMatrix(previousSolutions[j], solutionMatrix))
+            {
+                giveUp = true;
+            }
+        }
+        
+        logged << "Trying solution from " << trialSolutions[i]->spotVectorCount() << " vectors." << std::endl;
+        sendLog(LogLevelDetailed);
+        
+        if (giveUp)
+            continue;
+        
+        logged << trialSolutions[i]->printNetwork();
+        sendLog(LogLevelDetailed);
+        
+        setUpIOMRefiner(solutionMatrix);
+        int lastRefiner = IOMRefinerCount() - 1;
+        IOMRefinerPtr refiner = getIOMRefiner(lastRefiner);
+        if (true)
+        {
+            refiner->refineOrientationMatrix();
+        }
+        else
+        {
+            refiner->calculateOnce();
+        }
+        
+        bool successfulImage = refiner->isGoodSolution();
+        
+        if (successfulImage || acceptAllSolutions)
+        {
+            logged << "Successful crystal for " << getFilename() << std::endl;
+            MtzPtr mtz = refiner->newMtz(lastRefiner);
+            mtz->removeStrongSpots(&spots);
+            compileDistancesFromSpots();
+            Logger::mainLogger->addStream(&logged); logged.str("");
+            //    successes++;
+            previousSolutions.push_back(solutionMatrix);
+        }
+        else
+        {
+            logged << "Unsuccessful crystal for " << getFilename() << std::endl;
+            removeRefiner(lastRefiner);
+            Logger::mainLogger->addStream(&logged); logged.str("");
+        }
+    }
+
+/*
+ 
+     while (continuing && count < 50)
+     {
+     continuing = false;
+     count++;
+ 
+     int limit = (count == 0) ? (int)solutions.size() : (int)solutions.size();
+ 
+     for (int i = 0; i < solutions.size() - 1 && i < limit; i++)
+     {
+     IndexingSolutionPtr solution1 = solutions[i];
+     
+     for (int j = i + 1; j < solutions.size() && j < limit; j++)
+     {
+     IndexingSolutionPtr solution2 = solutions[j];
+     
+     IndexingSolutionPtr merged = solution1->mergeWithSolution(solution2);
+     
+     if (!merged)
+     continue;
+     
+     continuing = true;
+     newSolutions.push_back(merged);
+     
+     sendLog(LogLevelDebug);
+     
+     break;
+     }
+     }
+     
+     if (count == 0)
+     solutions.clear();
+     
+     solutions.reserve(newSolutions.size() + solutions.size());
+     solutions.insert(solutions.end(), newSolutions.begin(), newSolutions.end());
+     
+     std::sort(solutions.begin(), solutions.end(), solutionBetterThanSolution);
+     
+     logged << "Now have " << solutions.size() << " solutions" << std::endl;
+     sendLog(LogLevelDebug);
+     }
+     
+     std::sort(solutions.begin(), solutions.end(), solutionBetterThanSolution);
+     
+     for (int i = 0; i < solutions.size(); i++)
+     {
+     std::cout << solutions[i]->printNetwork() << std::endl;
+     }
+     
+     solutions[0]->mergeWithSolution(solutions[1]);*/
 }

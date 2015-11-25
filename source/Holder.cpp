@@ -128,6 +128,7 @@ MatrixPtr Reflection::matrixForAmbiguity(int i)
     return MatrixPtr(new Matrix());
 }
 
+
 int Reflection::ambiguityCount()
 {
     if (spgNum >= 195 && spgNum <= 199)

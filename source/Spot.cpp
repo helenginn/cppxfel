@@ -318,7 +318,8 @@ vec Spot::estimatedVector()
     double height = parentImage->getYDim();
     
     double mmX = getX() * parentImage->getMmPerPixel();
-    double mmY = (height - getY()) * parentImage->getMmPerPixel();
+ //   double mmY = (height - getY()) * parentImage->getMmPerPixel();
+    double mmY = getY() * parentImage->getMmPerPixel();
     
     double detector_distance = parentImage->getDetectorDistance();
     
@@ -329,6 +330,8 @@ vec Spot::estimatedVector()
     vec crystalToSpot = vector_between_vectors(crystalVec, spotVec);
     scale_vector_to_distance(&crystalToSpot, 1 / wavelength);
     add_vector_to_vector(&reciprocalCrystalVec, crystalToSpot);
+    
+    reciprocalCrystalVec.k *= -1;
     
     return reciprocalCrystalVec;
 }

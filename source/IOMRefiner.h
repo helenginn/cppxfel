@@ -51,6 +51,7 @@ private:
     MatrixPtr matrix;
     std::vector<Match> indexingMatches;
 
+    double minResolution;
     bool roughCalculation;
     bool needsReintegrating;
     CCP4SPG *spaceGroup;
