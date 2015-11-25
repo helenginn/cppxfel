@@ -34,14 +34,15 @@ if env_etc.clang_version:
   env.Append(CCFLAGS=wd)
 
 source = [
-    'boost_python/cppxfel_ext.cc',
-    'source/AmbiguityBreaker.cpp',
+'boost_python/cppxfel_ext.cc',
+'source/AmbiguityBreaker.cpp',
 'source/FileParser.cpp',
 'source/FileReader.cpp',
 'source/GraphDrawer.cpp',
 'source/Holder.cpp',
 'source/Image.cpp',
 'source/IndexManager.cpp',
+'source/IndexingSolution.cpp',
 'source/IOMRefiner.cpp',
 'source/InputFileParser.cpp',
 'source/Logger.cpp',
