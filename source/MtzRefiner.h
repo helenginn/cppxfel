@@ -57,6 +57,7 @@ public:
     
     void loadPanels();
 	void integrate();
+    void integrationSummary();
 	static void integrateImagesWrapper(MtzRefiner *object,
 			vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
 	void integrateImages(vector<MtzPtr> *&mtzSubset, int offset, bool orientation);

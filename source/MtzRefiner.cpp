@@ -1439,15 +1439,36 @@ void MtzRefiner::integrate()
         mtzManagers[i]->writeToDat();
     }
     
-    IOMRefiner::refinementSummaryHeader();
+    integrationSummary();
+}
+
+
+void MtzRefiner::integrationSummary()
+{
+    std::ostringstream refineSummary;
+    
+    refineSummary << IOMRefiner::refinementSummaryHeader() << std::endl;
 
     for (int i = 0; i < images.size(); i++)
     {
         for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
         {
-            images[i]->getIOMRefiner(j)->refinementSummary();
+            refineSummary << images[i]->getIOMRefiner(j)->refinementSummary() << std::endl;
         }
     }
+    
+    std::string summaryString = refineSummary.str();
+    Logger::mainLogger->addStream(&refineSummary);
+    
+    std::replace(summaryString.begin(), summaryString.end(), '\t', ',');
+    
+    std::ofstream summaryCSV;
+    summaryCSV.open("integration.csv");
+    summaryCSV << summaryString;
+    summaryCSV.close();
+    
+    Logger::mainLogger->addString("Written integration summary to integration.csv");
+    
 }
 
 void MtzRefiner::loadPanels()
@@ -1698,18 +1719,7 @@ void MtzRefiner::index()
     
     mtzManagers = indexManager->getMtzs();
     
-    IOMRefiner::refinementSummaryHeader();
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
-        {
-            images[i]->getIOMRefiner(j)->refinementSummary();
-            
-        }
-    }
-    
-    writeNewOrientations(false, true);
+    integrationSummary();
 }
 
 void MtzRefiner::powderPattern()

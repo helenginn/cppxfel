@@ -138,8 +138,8 @@ public:
     bool isGoodSolution();
     double getDetectorDistance();
     double getWavelength();
-    void refinementSummary();
-    static void refinementSummaryHeader();
+    std::string refinementSummary();
+    static std::string refinementSummaryHeader();
     
     void getBestRots(double *rot1, double *rot2, double *rot3)
     {

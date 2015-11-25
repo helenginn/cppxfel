@@ -1771,12 +1771,12 @@ void IOMRefiner::sendLog(LogLevel priority)
     logged.clear();
 }
 
-void IOMRefiner::refinementSummaryHeader()
+std::string IOMRefiner::refinementSummaryHeader()
 {
-    std::cout << "Filename\tRefl num\tScore\tHoriz rot\tVert rot\tBeam rot\tStdev\tWavelength\tDistance\tUnitCellA\tUnitCellB\tUnitCellC" << std::endl;
+    return "Filename\tRefl num\tScore\tHoriz rot\tVert rot\tBeam rot\tStdev\tWavelength\tDistance\tUnitCellA\tUnitCellB\tUnitCellC";
 }
 
-void IOMRefiner::refinementSummary()
+std::string IOMRefiner::refinementSummary()
 {
     std::string filename = image->getFilename();
     int totalReflections = getTotalReflections();
@@ -1787,8 +1787,11 @@ void IOMRefiner::refinementSummary()
     double *lengths = new double[3];
     matrix->unitCellLengths(&lengths);
     
-    std::cout << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
-    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << std::endl;
+    std::ostringstream summary;
     
+    summary << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
+    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2];
+    
+    return summary.str();
 }
 
