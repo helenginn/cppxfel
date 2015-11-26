@@ -33,6 +33,10 @@ if env_etc.clang_version:
   wd = ["-Wno-unused-variable"]
   env.Append(CCFLAGS=wd)
 
+if 'BOOST_LOCATION' in os.environ:
+	env.Append(LIBPATH = os.environ['BOOST_LOCATION'])
+	print ("Appending directory containing boost libraries: " + os.environ['BOOST_LOCATION'])
+
 source = [
 'boost_python/cppxfel_ext.cc',
 'source/AmbiguityBreaker.cpp',
@@ -41,8 +45,6 @@ source = [
 'source/GraphDrawer.cpp',
 'source/Holder.cpp',
 'source/Image.cpp',
-'source/IndexManager.cpp',
-'source/IndexingSolution.cpp',
 'source/IOMRefiner.cpp',
 'source/InputFileParser.cpp',
 'source/Logger.cpp',
