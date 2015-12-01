@@ -1297,6 +1297,93 @@ void Image::filterSpotVectors()
     sendLog();
 }
 
+void Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
+{
+    logged << "Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
+    sendLog(LogLevelDetailed);
+    
+    MatrixPtr solutionMatrix = solutionPtr->createSolution();
+    bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
+    
+    logged << solutionPtr->printNetwork();
+    sendLog(LogLevelDetailed);
+    
+    setUpIOMRefiner(solutionMatrix);
+    int lastRefiner = IOMRefinerCount() - 1;
+    IOMRefinerPtr refiner = getIOMRefiner(lastRefiner);
+    if (true)
+    {
+        refiner->refineOrientationMatrix();
+    }
+    else
+    {
+        refiner->calculateOnce();
+    }
+    
+    bool successfulImage = refiner->isGoodSolution();
+    
+    if (successfulImage || acceptAllSolutions)
+    {
+        logged << "Successful crystal for " << getFilename() << std::endl;
+        MtzPtr mtz = refiner->newMtz(lastRefiner);
+        mtz->removeStrongSpots(&spots);
+        compileDistancesFromSpots();
+        Logger::mainLogger->addStream(&logged); logged.str("");
+        //    successes++;
+//        previousSolutions.push_back(solutionMatrix);
+    }
+    else
+    {
+        logged << "Unsuccessful crystal for " << getFilename() << std::endl;
+        removeRefiner(lastRefiner);
+        Logger::mainLogger->addStream(&logged); logged.str("");
+    }
+}
+
+int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int added)
+{
+    std::vector<SpotVectorPtr> newVectors = existingVectors;
+    
+    double addedThreshold = 30;
+    
+    if (added > addedThreshold)
+    {
+        logged << "Trying this solution (" << added << " vectors)" << std::endl;
+        tryIndexingSolution(solutionPtr);
+        sendLog(LogLevelDetailed);
+    }
+    
+    if (!solutionPtr)
+    {
+        logged << "Solution pointer not pointing" << std::endl;
+        sendLog();
+        return 0;
+    }
+    int newlyAdded = 1;
+    
+    while (newlyAdded > 0)
+    {
+        IndexingSolutionPtr copyPtr = solutionPtr->copy();
+        
+        newlyAdded = copyPtr->extendFromSpotVectors(&newVectors, 1);
+        
+        if (newlyAdded > 0)
+        {
+            logged << "Starting new branch with " << added + newlyAdded << " additions." << std::endl;
+            sendLog();
+            extendIndexingSolution(copyPtr, newVectors, added + newlyAdded);
+        }
+    }
+    
+    
+    if (added < addedThreshold)
+    {
+        logged << "Didn't go anywhere..." << std::endl;
+    }
+    
+    return added;
+}
+
 void Image::findIndexingSolutions()
 {
     compileDistancesFromSpots();
@@ -1317,6 +1404,15 @@ void Image::findIndexingSolutions()
             SpotVectorPtr spotVector2 = spotVectors[j];
             
             std::vector<IndexingSolutionPtr> moreSolutions = IndexingSolution::startingSolutionsForVectors(spotVector1, spotVector2);
+            
+            if (moreSolutions.size() > 0)
+            {
+                logged << "Starting a new solution..." << std::endl;
+                sendLog();
+                
+                extendIndexingSolution(moreSolutions[0], spotVectors);
+            }
+            
             solutions.reserve(solutions.size() + moreSolutions.size());
             solutions.insert(solutions.end(), moreSolutions.begin(), moreSolutions.end());
         }

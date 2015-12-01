@@ -27,11 +27,13 @@ private:
 	vector<int> data;
     vector<unsigned char> overlapMask;
 	void loadImage();
+    void extendIndexingSolution();
     vector<IOMRefinerPtr> indexers;
     bool shouldMaskValue;
     bool maskedValue;
     bool fitBackgroundAsPlane;
     std::string spotsFile;
+    int extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int added = 0);
     
 	/* Shoebox must be n by n where n is an odd number */
 	int shoebox[7][7];
@@ -89,6 +91,7 @@ public:
 	static void applyMaskToImages(vector<Image *> images, int startX,
 			int startY, int endX, int endY);
     void refineDistances();
+    void tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
 

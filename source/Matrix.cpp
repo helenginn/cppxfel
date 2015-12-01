@@ -52,6 +52,10 @@ Matrix::Matrix(void)
     
     unitCell = MatrixPtr();
     rotation = MatrixPtr();
+    
+    eulerA = 0;
+    eulerB = 0;
+    eulerC = 0;
 }
 
 std::string Matrix::summary()
@@ -109,7 +113,7 @@ void Matrix::eulerAngles(double *theta, double *phi, double *psi)
         *phi = eulerB;
         *psi = eulerC;
     }
-    
+  
     double sinTheta = components[2];
     *theta = asin(sinTheta);
     double cosTheta = cos(*theta);

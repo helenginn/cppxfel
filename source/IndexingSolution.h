@@ -32,10 +32,13 @@ private:
     
     bool vectorAgreesWithExistingVectors(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
     static bool vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr *firstMatch, SpotVectorPtr *secondMatch);
-    MatrixPtr createSolution(SpotVectorPtr firstVector, SpotVectorPtr secondVector);
+    MatrixPtr createSolution(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr firstStandard = SpotVectorPtr());
     bool solutionCompatibleForMerge(IndexingSolutionPtr otherSolution);
     bool vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2, MatrixPtr symOperator);
     static bool allVectorMatches(SpotVectorPtr firstVector, SpotVectorPtr secondVector, std::vector<SpotVectorPtr> *firstMatches, std::vector<SpotVectorPtr> *secondMatches);
+    void addVectorToList(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
+    void addMatrix(SpotVectorPtr observedVector1, SpotVectorPtr observedVector2, MatrixPtr solution);
+    bool vectorSolutionsAreCompatible(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
     
     static double distanceTolerance;
     static double angleTolerance;
@@ -49,17 +52,20 @@ private:
     static MatrixPtr unitCellMatrixInverse;
     static bool notSetup;
     static bool finishedSetup;
-
+    
+    IndexingSolution();
     IndexingSolution(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr firstMatch, SpotVectorPtr secondMatch);
     IndexingSolution(SpotVectorMap firstMap, SpotVectorMap secondMap, SpotVectorMatrixMap2D matrixMap1, SpotVectorMatrixMap2D matrixMap2, MatrixPtr symOperator);
     
 public:
     IndexingSolutionPtr mergeWithSolution(IndexingSolutionPtr otherSolution);
     static std::vector<IndexingSolutionPtr> startingSolutionsForVectors(SpotVectorPtr firstVector, SpotVectorPtr secondVector);
-    int extendFromSpotVectors(std::vector<SpotVectorPtr> *possibleVectors);
+    int extendFromSpotVectors(std::vector<SpotVectorPtr> *possibleVectors, int limit = 0);
     MatrixPtr createSolution();
     static bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
     static void setupStandardVectors();
+    
+    IndexingSolutionPtr copy();
     
     int spotVectorCount()
     {
