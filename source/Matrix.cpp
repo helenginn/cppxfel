@@ -64,11 +64,14 @@ std::string Matrix::summary()
     
     this->multiplyVector(&bDummyVec);
     
-    double theta = acos(bDummyVec.l / length_of_vector(bDummyVec));
-    double psi = atan(bDummyVec.k / bDummyVec.h);
+    double alpha = acos(bDummyVec.l / length_of_vector(bDummyVec));
+    double beta = atan(bDummyVec.k / bDummyVec.h);
+    
+    double theta, phi, psi;
+    eulerAngles(&theta, &phi, &psi);
     
     std::ostringstream dummyVecStr;
-    dummyVecStr << bDummyVec.h << "\t" << bDummyVec.k << "\t" << bDummyVec.l << "\t" << theta << "\t" << psi;
+    dummyVecStr << bDummyVec.h << "\t" << bDummyVec.k << "\t" << bDummyVec.l << "\t" << alpha << "\t" << beta << "\t" << theta << "\t" << phi << "\t" << psi;
 
     return dummyVecStr.str();
 }
@@ -107,6 +110,8 @@ std::string Matrix::description(bool detailed, bool submatrix)
 
 void Matrix::eulerAngles(double *theta, double *phi, double *psi)
 {
+    Matrix *chosenMat = rotation ? &*rotation : this;
+    
     if (!(eulerA == 0 && eulerB == 0 && eulerC == 0))
     {
         *theta = eulerA;
@@ -114,12 +119,12 @@ void Matrix::eulerAngles(double *theta, double *phi, double *psi)
         *psi = eulerC;
     }
   
-    double sinTheta = components[2];
+    double sinTheta = chosenMat->components[2];
     *theta = asin(sinTheta);
     double cosTheta = cos(*theta);
     
-    *psi = atan2((components[6] / cosTheta), (components[10] / cosTheta));
-    *phi = atan2((components[1] / cosTheta), (components[0] / cosTheta));
+    *psi = atan2((chosenMat->components[6] / cosTheta), (chosenMat->components[10] / cosTheta));
+    *phi = atan2((chosenMat->components[1] / cosTheta), (chosenMat->components[0] / cosTheta));
     
     eulerA = *theta;
     eulerB = *phi;

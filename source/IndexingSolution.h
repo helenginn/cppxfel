@@ -53,6 +53,11 @@ private:
     static bool notSetup;
     static bool finishedSetup;
     
+    double averageTheta;
+    double averagePhi;
+    double averagePsi;
+    int matrixCount;
+    
     IndexingSolution();
     IndexingSolution(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr firstMatch, SpotVectorPtr secondMatch);
     IndexingSolution(SpotVectorMap firstMap, SpotVectorMap secondMap, SpotVectorMatrixMap2D matrixMap1, SpotVectorMatrixMap2D matrixMap2, MatrixPtr symOperator);
@@ -64,7 +69,9 @@ public:
     MatrixPtr createSolution();
     static bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
     static void setupStandardVectors();
-    
+    std::string getNetworkPDB();
+    std::string printNetwork();
+
     IndexingSolutionPtr copy();
     
     int spotVectorCount()
@@ -76,9 +83,6 @@ public:
     {
         return spotVectors.size();
     }
-    
-    
-    std::string printNetwork();
 };
 
 #endif /* defined(__cppxfel__IndexingSolution__) */

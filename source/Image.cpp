@@ -1297,21 +1297,51 @@ void Image::filterSpotVectors()
     sendLog();
 }
 
-void Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
+bool Image::checkIndexingSolutionDuplicates(IndexingSolutionPtr solutionPtr)
 {
-    logged << "Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
-    sendLog(LogLevelDetailed);
+    MatrixPtr newSolution = solutionPtr->createSolution();
+    
+    for (int i = 0; i < IOMRefinerCount(); i++)
+    {
+        MatrixPtr oldSolution = getIOMRefiner(i)->getMatrix();
+        
+        bool similar = IndexingSolution::matrixSimilarToMatrix(newSolution, oldSolution);
+        
+        if (similar)
+            return true;
+    }
+    
+    return false;
+}
+
+bool Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
+{
+    logged << "(" << filename << ") Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
+    sendLog(LogLevelNormal);
+ 
+    bool similar = checkIndexingSolutionDuplicates(solutionPtr);
+    
+    if (similar)
+    {
+        logged << "Indexing solution too similar to previous solution. Continuing..." << std::endl;
+        sendLog(LogLevelNormal);
+        
+        return false;
+    }
     
     MatrixPtr solutionMatrix = solutionPtr->createSolution();
     bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
+    bool refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
     
     logged << solutionPtr->printNetwork();
+    logged << solutionPtr->getNetworkPDB();
+    
     sendLog(LogLevelDetailed);
     
     setUpIOMRefiner(solutionMatrix);
     int lastRefiner = IOMRefinerCount() - 1;
     IOMRefinerPtr refiner = getIOMRefiner(lastRefiner);
-    if (true)
+    if (refineOrientations)
     {
         refiner->refineOrientationMatrix();
     }
@@ -1326,32 +1356,40 @@ void Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
     {
         logged << "Successful crystal for " << getFilename() << std::endl;
         MtzPtr mtz = refiner->newMtz(lastRefiner);
+        int spotCountBefore = (int)spots.size();
+        
         mtz->removeStrongSpots(&spots);
         compileDistancesFromSpots();
+        
+        int spotCountAfter = (int)spots.size();
+        
+        logged << "Removed spots; from " << spotCountBefore << " to " << spotCountAfter << "." << std::endl;
+        
         Logger::mainLogger->addStream(&logged); logged.str("");
-        //    successes++;
-//        previousSolutions.push_back(solutionMatrix);
+        return true;
     }
     else
     {
         logged << "Unsuccessful crystal for " << getFilename() << std::endl;
         removeRefiner(lastRefiner);
         Logger::mainLogger->addStream(&logged); logged.str("");
+        return false;
     }
 }
 
-int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int added)
+int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures, int added)
 {
+    int newFailures = 0;
+    
+    if (failures == NULL)
+    {
+        failures = &newFailures;
+    }
+    
+    
     std::vector<SpotVectorPtr> newVectors = existingVectors;
     
-    double addedThreshold = 30;
-    
-    if (added > addedThreshold)
-    {
-        logged << "Trying this solution (" << added << " vectors)" << std::endl;
-        tryIndexingSolution(solutionPtr);
-        sendLog(LogLevelDetailed);
-    }
+    double addedThreshold = 4;
     
     if (!solutionPtr)
     {
@@ -1360,8 +1398,9 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
         return 0;
     }
     int newlyAdded = 1;
+    int trials = 0;
     
-    while (newlyAdded > 0)
+    while (newlyAdded > 0 && added < 80 && trials < 2)
     {
         IndexingSolutionPtr copyPtr = solutionPtr->copy();
         
@@ -1369,19 +1408,43 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
         
         if (newlyAdded > 0)
         {
-            logged << "Starting new branch with " << added + newlyAdded << " additions." << std::endl;
-            sendLog();
-            extendIndexingSolution(copyPtr, newVectors, added + newlyAdded);
+            trials++;
+            logged << "Starting new branch with " << added + newlyAdded << " additions (trial " << trials << ")." << std::endl;
+            sendLog(LogLevelDetailed);
+            bool success = extendIndexingSolution(copyPtr, newVectors, failures, added + newlyAdded);
+            
+            if (success)
+                return success;
+        }
+        
+        if (*failures > 3)
+        {
+            logged << "Giving up on this thread, too many failures" << std::endl;
+            sendLog(LogLevelDetailed);
+            return 0;
         }
     }
     
+    if (added >= addedThreshold)
+    {
+        bool success = tryIndexingSolution(solutionPtr);
+        return success;
+    }
     
     if (added < addedThreshold)
     {
         logged << "Didn't go anywhere..." << std::endl;
+        sendLog(LogLevelDetailed);
     }
     
-    return added;
+    if (trials >= 2)
+    {
+        (*failures)++;
+        logged << "Given up this branch, too many failures." << std::endl;
+        sendLog(LogLevelDetailed);
+    }
+    
+    return false;
 }
 
 void Image::findIndexingSolutions()
@@ -1395,11 +1458,21 @@ void Image::findIndexingSolutions()
     logged << "Spot vector count: " << spotVectors.size() << std::endl;
     logged << std::endl;
 
-    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000; i++)
+    logged << "Existing solution summary:" << std::endl;
+    
+    for (int i = 0; i < IOMRefinerCount(); i++)
+    {
+        logged << getIOMRefiner(i)->getMatrix()->summary() << std::endl;
+    }
+    
+    int fails = 0;
+    bool continuing = true;
+    
+    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000 && continuing; i++)
     {
         SpotVectorPtr spotVector1 = spotVectors[i];
         
-        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 1000; j++)
+        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 1000 && continuing; j++)
         {
             SpotVectorPtr spotVector2 = spotVectors[j];
             
@@ -1408,16 +1481,26 @@ void Image::findIndexingSolutions()
             if (moreSolutions.size() > 0)
             {
                 logged << "Starting a new solution..." << std::endl;
-                sendLog();
+                sendLog(LogLevelDetailed);
                 
-                extendIndexingSolution(moreSolutions[0], spotVectors);
+                bool success = extendIndexingSolution(moreSolutions[0], spotVectors);
+                
+                if (success)
+                {
+                    continuing = false;
+                    break;
+                }
+                else
+                {
+            //        fails++;
+                }
             }
             
             solutions.reserve(solutions.size() + moreSolutions.size());
             solutions.insert(solutions.end(), moreSolutions.begin(), moreSolutions.end());
         }
     }
-    
+    /*
     logged << "Total starting solutions: " << solutions.size() << std::endl;
     sendLog();
     
@@ -1518,7 +1601,6 @@ void Image::findIndexingSolutions()
         }
     }
 
-/*
  
      while (continuing && count < 50)
      {
@@ -1569,4 +1651,21 @@ void Image::findIndexingSolutions()
      }
      
      solutions[0]->mergeWithSolution(solutions[1]);*/
+}
+
+std::vector<MtzPtr> Image::getLastMtzs()
+{
+    std::vector<MtzPtr> mtzs;
+    
+    for (int i = 0; i < IOMRefinerCount(); i++)
+    {
+        MtzPtr lastMtz = getIOMRefiner(i)->getLastMtz();
+        
+        if (lastMtz)
+        {
+            mtzs.push_back(lastMtz);
+        }
+    }
+    
+    return mtzs;
 }

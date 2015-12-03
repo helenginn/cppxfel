@@ -518,20 +518,27 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 {
     bool newMethod = FileParser::getKey("NEW_INDEXING_METHOD", false);
     int maxThreads = FileParser::getMaxThreads();
+    std::ostringstream logged;
     
     if (newMethod)
     {
         for (int i = offset; i < indexer->images.size(); i += maxThreads)
         {
             Image *image = indexer->images[i];
-            
+            logged << "Starting image " << i << std::endl;
+            Logger::mainLogger->addStream(&logged); logged.str("");
+
             image->findIndexingSolutions();
+            
+            std::vector<MtzPtr> mtzs = image->getLastMtzs();
+            
+            mtzSubset->reserve(mtzSubset->size() + mtzs.size());
+            mtzSubset->insert(mtzSubset->begin(), mtzs.begin(), mtzs.end());
         }
         
         return;
     }
     
-    std::ostringstream logged;
     bool alwaysAccept = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     bool oneCycleOnly = FileParser::getKey("ONE_INDEXING_CYCLE_ONLY", false);
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);

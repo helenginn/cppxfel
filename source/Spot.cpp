@@ -239,7 +239,7 @@ Coord Spot::getXY()
 {
     Coord shift = Panel::shiftForSpot(this);
     
-    return std::make_pair(x + shift.first, y + shift.second);
+    return std::make_pair(x - shift.first, y - shift.second);
 }
 
 double Spot::getX(bool update)

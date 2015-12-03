@@ -50,6 +50,7 @@ private:
 	vector<Spot *>spots;
     MatrixPtr matrix;
     std::vector<Match> indexingMatches;
+    MtzPtr lastMtz;
 
     double minResolution;
     bool roughCalculation;
@@ -345,6 +346,11 @@ public:
     void setCalculatingRough(bool rough)
     {
         roughCalculation = rough;
+    }
+    
+    MtzPtr getLastMtz()
+    {
+        return lastMtz;
     }
 };
 

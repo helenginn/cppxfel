@@ -52,6 +52,7 @@ IOMRefiner::IOMRefiner(Image *newImage, MatrixPtr matrix)
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                     METROLOGY_SEARCH_SIZE);;
     reference = NULL;
+    lastMtz = MtzPtr();
     roughCalculation = FileParser::getKey("ROUGH_CALCULATION", false);
     hRot = 0;
     kRot = 0;
@@ -1748,7 +1749,8 @@ MtzPtr IOMRefiner::newMtz(int index)
     mtz->writeToDat();
 
     nearbyMillers.clear();
-
+    lastMtz = mtz;
+    
     return mtz;
 }
 
