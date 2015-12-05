@@ -26,7 +26,7 @@ void finishJobNotification(int argc, char *argv[], int minutes)
     }
     
     std::ostringstream notification;
-    notification << "osascript -e 'display notification \"" << command.str() << "\" with title \"Job finished\" subtitle \"" << minutes << " minutes to complete\"'" << std::endl;
+    notification << "osascript -e 'display notification \"" << command.str() << "\" with title \"Job finished\" subtitle \"" << minutes << " minutes to complete\" sound name \"Glass\"'" << std::endl;
     
     std::ofstream jobNotificationFile;
     jobNotificationFile.open(jobNotificationFileStr, std::ofstream::out | std::ofstream::app);
