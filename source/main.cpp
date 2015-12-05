@@ -8,6 +8,33 @@
 #include "GraphDrawer.h"
 #include "Wiki.h"
 #include "Logger.h"
+#include <fstream>
+
+void finishJobNotification(int argc, char *argv[], int minutes)
+{
+    const char *jobNotificationFileStr = std::getenv("JOB_NOTIFICATION_FILE");
+    
+    if (jobNotificationFileStr == NULL)
+    {
+        return;
+    }
+    
+    std::ostringstream command;
+    for (int i = 0; i < argc; i++)
+    {
+        command << argv[i] << " ";
+    }
+    
+    std::ostringstream notification;
+    notification << "osascript -e 'display notification \"" << command.str() << "\" with title \"Job finished\" subtitle \"" << minutes << " minutes to complete\"'" << std::endl;
+    
+    std::ofstream jobNotificationFile;
+    jobNotificationFile.open(jobNotificationFileStr, std::ofstream::out | std::ofstream::app);
+    jobNotificationFile << notification.str();
+    jobNotificationFile.close();
+    
+    std::cout << "Job notification posted." << std::endl;
+}
 
 void new_main(int argc, char *argv[]);
 
@@ -461,6 +488,8 @@ void new_main(int argc, char *argv[])
 
 	logged << "Done" << std::endl;
     Logger::mainLogger->addStream(&logged);
+    
+    finishJobNotification(argc, argv, minutes);
     
     sleep(2);
 }
