@@ -39,6 +39,7 @@ Image::Image(std::string filename, double wavelength,
     noCircles = false;
     commonCircleThreshold = FileParser::getKey("COMMON_CIRCLE_THRESHOLD", 0.05);
     
+    indexingFailureCount = 0;
     data = vector<int>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
     vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
@@ -1373,6 +1374,7 @@ bool Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
         logged << "Unsuccessful crystal for " << getFilename() << std::endl;
         removeRefiner(lastRefiner);
         Logger::mainLogger->addStream(&logged); logged.str("");
+        indexingFailureCount++;
         return false;
     }
 }
@@ -1389,7 +1391,7 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
     
     std::vector<SpotVectorPtr> newVectors = existingVectors;
     
-    double addedThreshold = 4;
+    double addedThreshold = 7;
     
     if (!solutionPtr)
     {
@@ -1468,11 +1470,11 @@ void Image::findIndexingSolutions()
     int fails = 0;
     bool continuing = true;
     
-    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000 && continuing; i++)
+    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000 && continuing && indexingFailureCount < 10; i++)
     {
         SpotVectorPtr spotVector1 = spotVectors[i];
         
-        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 1000 && continuing; j++)
+        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 1000 && continuing && indexingFailureCount < 10; j++)
         {
             SpotVectorPtr spotVector2 = spotVectors[j];
             

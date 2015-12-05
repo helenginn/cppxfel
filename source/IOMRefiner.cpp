@@ -1656,7 +1656,7 @@ void IOMRefiner::calculateOnce()
     double mean = 0;
     double stdev = 0;
     
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 0);
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed, 0);
 }
 
 MtzPtr IOMRefiner::newMtz(int index)

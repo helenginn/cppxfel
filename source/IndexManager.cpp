@@ -275,9 +275,12 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
                     combinedMatrix->multiplyVector(&possibleMiller);
                     unitCellMatrixInverse->multiplyVector(&possibleMiller);
                     
-                    logged << "Relative Millers (" << simulatedVec1.h << ", " << simulatedVec1.k << ", " << simulatedVec1.l << ") and (" << simulatedVec2.h << ", " << simulatedVec2.k << ", " << simulatedVec2.l << ") from trusts " << possibleMatches[j].second << " and " << possibleMatches[k].second << " with angles " << angleDiff * 180 / M_PI << ", " << resultantAngle * 180 / M_PI << std::endl;
-                    
-                    Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
+                    if (Logger::getPriorityLevel() == LogLevelDetailed || Logger::getPriorityLevel() == LogLevelDebug)
+                    {
+                        logged << "Relative Millers (" << simulatedVec1.h << ", " << simulatedVec1.k << ", " << simulatedVec1.l << ") and (" << simulatedVec2.h << ", " << simulatedVec2.k << ", " << simulatedVec2.l << ") from trusts " << possibleMatches[j].second << " and " << possibleMatches[k].second << " with angles " << angleDiff * 180 / M_PI << ", " << resultantAngle * 180 / M_PI << std::endl;
+                        
+                        Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
+                    }
                     
                     SpotPtr pair1Spot1 = observed1->getFirstSpot();
                     SpotPtr pair1Spot2 = observed1->getSecondSpot();

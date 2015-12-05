@@ -48,6 +48,7 @@ private:
 
 	double detectorDistance; // mm
 	double wavelength;
+    int indexingFailureCount;
 	bool pinPoint;
 
     std::vector<SpotPtr> spots;

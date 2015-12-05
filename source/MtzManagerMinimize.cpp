@@ -696,7 +696,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         
         double *firstRange = &(*ranges.begin());
         getSteps(&firstRange);
- 
+        
         NelderMead refiner(paramPtrs, ranges, this, &this->scoreNelderMead);
         refiner.process();
     }
