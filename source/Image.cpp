@@ -1391,7 +1391,7 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
     
     std::vector<SpotVectorPtr> newVectors = existingVectors;
     
-    double addedThreshold = 7;
+    double addedThreshold = 5;
     
     if (!solutionPtr)
     {
@@ -1401,8 +1401,9 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
     }
     int newlyAdded = 1;
     int trials = 0;
+    int trialLimit = 5;
     
-    while (newlyAdded > 0 && added < 80 && trials < 2)
+    while (newlyAdded > 0 && added < 80 && trials < trialLimit)
     {
         IndexingSolutionPtr copyPtr = solutionPtr->copy();
         
@@ -1415,8 +1416,7 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
             sendLog(LogLevelDetailed);
             bool success = extendIndexingSolution(copyPtr, newVectors, failures, added + newlyAdded);
             
-            if (success)
-                return success;
+            return success;
         }
         
         if (*failures > 3)
@@ -1439,7 +1439,7 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
         sendLog(LogLevelDetailed);
     }
     
-    if (trials >= 2)
+    if (trials >= trialLimit)
     {
         (*failures)++;
         logged << "Given up this branch, too many failures." << std::endl;
