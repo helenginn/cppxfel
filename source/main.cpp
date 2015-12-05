@@ -490,7 +490,7 @@ void new_main(int argc, char *argv[])
 	logged << "Done" << std::endl;
     Logger::mainLogger->addStream(&logged);
     
-    if (strcmp(argv[1], "-i"))
+    if (strcmp(argv[1], "-i") == 0)
         finishJobNotification(argc, argv, minutes);
     
     sleep(2);
