@@ -20,7 +20,8 @@ void finishJobNotification(int argc, char *argv[], int minutes)
     }
     
     std::ostringstream command;
-    for (int i = 0; i < argc; i++)
+    command << "cppxfel.run ";
+    for (int i = 1; i < argc; i++)
     {
         command << argv[i] << " ";
     }
@@ -489,7 +490,8 @@ void new_main(int argc, char *argv[])
 	logged << "Done" << std::endl;
     Logger::mainLogger->addStream(&logged);
     
-    finishJobNotification(argc, argv, minutes);
+    if (strcmp(argv[1], "-i"))
+        finishJobNotification(argc, argv, minutes);
     
     sleep(2);
 }
