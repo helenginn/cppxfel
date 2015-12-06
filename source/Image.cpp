@@ -39,6 +39,7 @@ Image::Image(std::string filename, double wavelength,
     noCircles = false;
     commonCircleThreshold = FileParser::getKey("COMMON_CIRCLE_THRESHOLD", 0.05);
     
+    minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 5);
     indexingFailureCount = 0;
     data = vector<int>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
@@ -1210,6 +1211,16 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     {
         filterSpotVectors();
     }
+    
+    bool scramble = FileParser::getKey("SCRAMBLE_SPOT_VECTORS", false);
+    
+    if (scramble)
+    {
+        std::random_shuffle(spotVectors.begin(), spotVectors.end());
+    }
+    
+    logged << "(" << filename << ") " << spotCount() << " spots produced " << spotVectorCount() << " spot vectors." << std::endl;
+    sendLog();
 }
 
 bool solutionBetterThanSolution(IndexingSolutionPtr one, IndexingSolutionPtr two)
@@ -1315,7 +1326,7 @@ bool Image::checkIndexingSolutionDuplicates(IndexingSolutionPtr solutionPtr)
     return false;
 }
 
-bool Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
+IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
 {
     logged << "(" << filename << ") Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
     sendLog(LogLevelNormal);
@@ -1327,7 +1338,7 @@ bool Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
         logged << "Indexing solution too similar to previous solution. Continuing..." << std::endl;
         sendLog(LogLevelNormal);
         
-        return false;
+        return IndexingSolutionTrialFailure;
     }
     
     MatrixPtr solutionMatrix = solutionPtr->createSolution();
@@ -1367,7 +1378,7 @@ bool Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
         logged << "Removed spots; from " << spotCountBefore << " to " << spotCountAfter << "." << std::endl;
         
         Logger::mainLogger->addStream(&logged); logged.str("");
-        return true;
+        return IndexingSolutionTrialSuccess;
     }
     else
     {
@@ -1375,11 +1386,11 @@ bool Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
         removeRefiner(lastRefiner);
         Logger::mainLogger->addStream(&logged); logged.str("");
         indexingFailureCount++;
-        return false;
+        return IndexingSolutionTrialFailure;
     }
 }
 
-int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures, int added)
+IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures, int added)
 {
     int newFailures = 0;
     
@@ -1391,13 +1402,11 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
     
     std::vector<SpotVectorPtr> newVectors = existingVectors;
     
-    double addedThreshold = 5;
-    
     if (!solutionPtr)
     {
         logged << "Solution pointer not pointing" << std::endl;
         sendLog();
-        return 0;
+        return IndexingSolutionBranchFailure;
     }
     int newlyAdded = 1;
     int trials = 0;
@@ -1414,26 +1423,29 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
             trials++;
             logged << "Starting new branch with " << added + newlyAdded << " additions (trial " << trials << ")." << std::endl;
             sendLog(LogLevelDetailed);
-            bool success = extendIndexingSolution(copyPtr, newVectors, failures, added + newlyAdded);
+            IndexingSolutionStatus success = extendIndexingSolution(copyPtr, newVectors, failures, added + newlyAdded);
             
-            return success;
+            if (success != IndexingSolutionBranchFailure)
+            {
+                return success;
+            }
         }
         
         if (*failures > 3)
         {
             logged << "Giving up on this thread, too many failures" << std::endl;
             sendLog(LogLevelDetailed);
-            return 0;
+            return IndexingSolutionBranchFailure;
         }
     }
     
-    if (added >= addedThreshold)
+    if (added >= minimumSolutionNetworkCount)
     {
-        bool success = tryIndexingSolution(solutionPtr);
+        IndexingSolutionStatus success = tryIndexingSolution(solutionPtr);
         return success;
     }
     
-    if (added < addedThreshold)
+    if (added < minimumSolutionNetworkCount)
     {
         logged << "Didn't go anywhere..." << std::endl;
         sendLog(LogLevelDetailed);
@@ -1446,7 +1458,7 @@ int Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<S
         sendLog(LogLevelDetailed);
     }
     
-    return false;
+    return IndexingSolutionBranchFailure;
 }
 
 void Image::findIndexingSolutions()
@@ -1462,19 +1474,22 @@ void Image::findIndexingSolutions()
 
     logged << "Existing solution summary:" << std::endl;
     
+    int maxSearch = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 1000);
+    
     for (int i = 0; i < IOMRefinerCount(); i++)
     {
         logged << getIOMRefiner(i)->getMatrix()->summary() << std::endl;
     }
     
-    int fails = 0;
+    sendLog();
+    
     bool continuing = true;
     
-    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000 && continuing && indexingFailureCount < 10; i++)
+    for (int i = 0; i < spotVectors.size() - 1 && i < maxSearch && continuing && indexingFailureCount < 10; i++)
     {
         SpotVectorPtr spotVector1 = spotVectors[i];
         
-        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 1000 && continuing && indexingFailureCount < 10; j++)
+        for (int j = i + 1; j < spotVectors.size() && i < maxSearch && continuing && indexingFailureCount < 10; j++)
         {
             SpotVectorPtr spotVector2 = spotVectors[j];
             
@@ -1485,23 +1500,26 @@ void Image::findIndexingSolutions()
                 logged << "Starting a new solution..." << std::endl;
                 sendLog(LogLevelDetailed);
                 
-                bool success = extendIndexingSolution(moreSolutions[0], spotVectors);
+                IndexingSolutionStatus success = extendIndexingSolution(moreSolutions[0], spotVectors);
                 
-                if (success)
+                if (success == IndexingSolutionTrialSuccess)
                 {
+                    logged << "Indexing solution trial success." << std::endl;
                     continuing = false;
                     break;
                 }
-                else
+                else if (success == IndexingSolutionTrialFailure)
                 {
-            //        fails++;
+                    logged << "Indexing solution trial failure." << std::endl;
+                    minimumSolutionNetworkCount += 2;
                 }
             }
-            
-            solutions.reserve(solutions.size() + moreSolutions.size());
-            solutions.insert(solutions.end(), moreSolutions.begin(), moreSolutions.end());
         }
     }
+    
+    logged << "Finished image " << filename << std::endl;
+    sendLog();
+    
     /*
     logged << "Total starting solutions: " << solutions.size() << std::endl;
     sendLog();

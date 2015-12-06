@@ -249,17 +249,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     if (!(hRad == 0 && kRad == 0))
         newMatrix->rotate(hRad, kRad, 0);
     
-    for (int i = 0; i < 3; i++)
-    {
-        vec testHKL = new_vector(i == 0, i == 1, i == 2);
-    
-        newMatrix->multiplyVector(&testHKL);
-        
-        double maxD = 1 / maxResolution;
-        double hklLength = length_of_vector(testHKL);
-        
-        maxMillers[i] = fabs(maxD / hklLength);
-    }
+    newMatrix->maxMillers(maxMillers, maxResolution);
     
     logged << "Integrating to maximum Miller indices: (" << maxMillers[0] << ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
     

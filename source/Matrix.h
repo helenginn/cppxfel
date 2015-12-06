@@ -77,6 +77,7 @@ public:
     void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
     void scaleUnitCellAxes(double aScale, double bScale, double cScale);
     void setComplexMatrix(MatrixPtr unitCell, MatrixPtr rotation);
+    void maxMillers(int (&millers)[3], double maxResolution);
     
     void rotate2D(double angle);
     void translation(double **vector);

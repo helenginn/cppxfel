@@ -323,8 +323,6 @@ void new_main(int argc, char *argv[])
             exit(1);
         }
         
-        srand((unsigned int)time(NULL));
-        
         int h = atoi(argv[2]);
         int k = atoi(argv[3]);
         int l = atoi(argv[4]);

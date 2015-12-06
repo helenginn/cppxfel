@@ -62,21 +62,28 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
     
-    for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
+    double maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.1);
+    double maxResolution = 1 / maxReciprocalDistance;
+    
+    int maxMillers[3];
+    
+    unitCellMatrix->maxMillers(maxMillers, maxResolution);
+    
+    for (int i = -maxMillers[0]; i <= maxMillers[0]; i++)
     {
-        for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
+        for (int j = -maxMillers[1]; j <= maxMillers[1]; j++)
         {
-            for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
+            for (int k = -maxMillers[2]; k <= maxMillers[2]; k++)
             {
-                if (spaceGroupNum != 19)
+                if (spaceGroupNum != 19 && spaceGroupNum != 178)
                     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
                         continue;
                 
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
                 
-                if (length_of_vector(hkl) > maxMillerIndexTrial)
-                    continue;
+//                if (length_of_vector(hkl) > maxMillerIndexTrial)
+//                    continue;
                 
                 unitCellMatrix->multiplyVector(&hkl_transformed);
                 

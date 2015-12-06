@@ -42,6 +42,21 @@ Matrix::Matrix(scitbx::mat3<double> newUnitCell, scitbx::mat3<double> newRotatio
     this->recalculateOrientationMatrix();
 }
 
+void Matrix::maxMillers(int (&millers)[3], double maxResolution)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        vec testHKL = new_vector(i == 0, i == 1, i == 2);
+        
+        multiplyVector(&testHKL);
+        
+        double maxD = 1 / maxResolution;
+        double hklLength = length_of_vector(testHKL);
+        
+        millers[i] = fabs(maxD / hklLength);
+    }
+}
+
 Matrix::Matrix(void)
 {
 	for (int i = 0; i < 16; i++)

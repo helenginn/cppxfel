@@ -329,6 +329,8 @@ void FileParser::generateFunctionList()
     parserMap["MAX_RECIPROCAL_DISTANCE"] = simpleFloat;
     parserMap["ALWAYS_FILTER_SPOTS"] = simpleBool;
     parserMap["MINIMUM_NEIGHBOURS"] = simpleInt;
+    parserMap["MINIMUM_SOLUTION_NETWORK_COUNT"] = simpleInt;
+    parserMap["SCRAMBLE_SPOT_VECTORS"] = simpleBool;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     
@@ -337,6 +339,7 @@ void FileParser::generateFunctionList()
     parserMap["COMMON_CIRCLE_THRESHOLD"] = simpleFloat;
     parserMap["MAX_UNIT_CELL"] = simpleFloat;
     parserMap["COMMON_CIRCLE_ANGLE_RANGE"] = doubleVector;
+    parserMap["RANDOM_SEED"] = simpleInt;
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;

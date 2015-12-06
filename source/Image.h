@@ -19,6 +19,13 @@
 class IOMRefiner;
 class ImageCluster;
 
+typedef enum
+{
+    IndexingSolutionTrialSuccess,
+    IndexingSolutionTrialFailure,
+    IndexingSolutionBranchFailure,
+} IndexingSolutionStatus;
+
 class Image : LoggableObject
 {
 private:
@@ -32,7 +39,7 @@ private:
     bool maskedValue;
     bool fitBackgroundAsPlane;
     std::string spotsFile;
-    int extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures = NULL, int added = 0);
+    IndexingSolutionStatus extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures = NULL, int added = 0);
     
 	/* Shoebox must be n by n where n is an odd number */
 	int shoebox[7][7];
@@ -48,9 +55,11 @@ private:
 
 	double detectorDistance; // mm
 	double wavelength;
-    int indexingFailureCount;
 	bool pinPoint;
 
+    int indexingFailureCount;
+    int minimumSolutionNetworkCount;
+    
     std::vector<SpotPtr> spots;
     std::vector<SpotVectorPtr> spotVectors;
     double commonCircleThreshold;
@@ -92,7 +101,7 @@ public:
 	static void applyMaskToImages(vector<Image *> images, int startX,
 			int startY, int endX, int endY);
     void refineDistances();
-    bool tryIndexingSolution(IndexingSolutionPtr solutionPtr);
+    IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
 

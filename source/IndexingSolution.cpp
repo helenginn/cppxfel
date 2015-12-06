@@ -54,17 +54,31 @@ void IndexingSolution::setupStandardVectors()
         std::cout << "Please supply target unit cell in keyword UNIT_CELL." << std::endl;
         exit(1);
     }
-    maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
+    
     double maxDistance = 0;
     
-    for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
+    double maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.1);
+    double maxResolution = 1 / maxReciprocalDistance;
+    
+    int maxMillers[3];
+    
+    unitCellMatrix->maxMillers(maxMillers, maxResolution);
+
+    std::ostringstream logged;
+    logged << "Using reflections up to distances defined by Miller indices: (" << maxMillers[0] << ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
+    Logger::mainLogger->addStream(&logged);
+    
+    for (int i = -maxMillers[0]; i <= maxMillers[0]; i++)
     {
-        for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
+        for (int j = -maxMillers[1]; j <= maxMillers[1]; j++)
         {
-            for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
+            for (int k = -maxMillers[2]; k <= maxMillers[2]; k++)
             {
-                if (spaceGroupNum != 19)
-                    if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
+                bool sysabs = true;
+                if (spaceGroupNum == 19 || spaceGroupNum == 178)
+                    sysabs = false;
+                
+                if (sysabs && ccp4spg_is_sysabs(spaceGroup, i, j, k))
                         continue;
                 
                 vec hkl = new_vector(i, j, k);
