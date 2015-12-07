@@ -23,6 +23,11 @@ private:
     vec spotDiff;
 public:
     
+    static bool isGreaterThan(SpotVectorPtr spotVec1, SpotVectorPtr spotVec2)
+    {
+        return (spotVec2->distance() < spotVec1->distance());
+    }
+    
     SpotVector(SpotPtr first, SpotPtr second);
     SpotVector(vec transformedHKL, vec normalHKL);
     

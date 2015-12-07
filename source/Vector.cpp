@@ -47,6 +47,11 @@ bool within_vicinity(vec vec1, vec vec2, double maxD)
     if (fabs(vec1.l - vec2.l) > maxD)
         return false;
     
+    take_vector_away_from_vector(vec1, &vec2);
+    
+    if (length_of_vector(vec2) > maxD)
+        return false;
+    
     return true;
 }
 

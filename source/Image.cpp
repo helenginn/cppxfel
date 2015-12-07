@@ -1216,6 +1216,8 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     
     if (scramble)
     {
+     //   std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
+        
         std::random_shuffle(spotVectors.begin(), spotVectors.end());
     }
     
@@ -1469,27 +1471,27 @@ void Image::findIndexingSolutions()
     if (spotVectors.size() == 0)
         return;
     
-    logged << "Spot vector count: " << spotVectors.size() << std::endl;
-    logged << std::endl;
-
-    logged << "Existing solution summary:" << std::endl;
-    
     int maxSearch = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 1000);
     
-    for (int i = 0; i < IOMRefinerCount(); i++)
+    if (IOMRefinerCount() > 0)
     {
-        logged << getIOMRefiner(i)->getMatrix()->summary() << std::endl;
+        logged << "Existing solution summary:" << std::endl;
+        
+        for (int i = 0; i < IOMRefinerCount(); i++)
+        {
+            logged << getIOMRefiner(i)->getMatrix()->summary() << std::endl;
+        }
     }
     
     sendLog();
     
     bool continuing = true;
     
-    for (int i = 0; i < spotVectors.size() - 1 && i < maxSearch && continuing && indexingFailureCount < 10; i++)
+    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 2000 && continuing && indexingFailureCount < 10; i++)
     {
         SpotVectorPtr spotVector1 = spotVectors[i];
         
-        for (int j = i + 1; j < spotVectors.size() && i < maxSearch && continuing && indexingFailureCount < 10; j++)
+        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 2000 && continuing && indexingFailureCount < 10; j++)
         {
             SpotVectorPtr spotVector2 = spotVectors[j];
             
@@ -1514,6 +1516,9 @@ void Image::findIndexingSolutions()
                     minimumSolutionNetworkCount += 2;
                 }
             }
+            
+            solutions.reserve(solutions.size() + moreSolutions.size());
+            solutions.insert(solutions.end(), moreSolutions.begin(), moreSolutions.end());
         }
     }
     

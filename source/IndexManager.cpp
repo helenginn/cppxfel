@@ -62,33 +62,27 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
     
-    double maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.1);
-    double maxResolution = 1 / maxReciprocalDistance;
     
-    int maxMillers[3];
-    
-    unitCellMatrix->maxMillers(maxMillers, maxResolution);
-    
-    for (int i = -maxMillers[0]; i <= maxMillers[0]; i++)
+    for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
     {
-        for (int j = -maxMillers[1]; j <= maxMillers[1]; j++)
+        for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
         {
-            for (int k = -maxMillers[2]; k <= maxMillers[2]; k++)
+            for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
             {
-                if (spaceGroupNum != 19 && spaceGroupNum != 178)
+                if (spaceGroupNum != 19)
                     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
                         continue;
                 
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
                 
-//                if (length_of_vector(hkl) > maxMillerIndexTrial)
-//                    continue;
+                if (length_of_vector(hkl) > maxMillerIndexTrial)
+                    continue;
                 
                 unitCellMatrix->multiplyVector(&hkl_transformed);
                 
                 double distance = length_of_vector(hkl_transformed);
-
+                
                 if (distance > maxDistance)
                     maxDistance = distance;
                 
@@ -96,6 +90,7 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
             }
         }
     }
+
     
     smallestDistance = FLT_MAX;
     
@@ -596,7 +591,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 
 void IndexManager::powderPattern()
 {
-    std::map<int, int> frequencies;
+    std::map<int, std::pair<int, int> > frequencies;
     double step = 0.00025;
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     
@@ -605,10 +600,18 @@ void IndexManager::powderPattern()
     
     for (int i = 0; i < maxCategory; i++)
     {
-        frequencies[i] = 0;
+        frequencies[i] = std::make_pair(0, 0);
     }
     
     std::ostringstream pdbLog;
+    
+    for (int i = 0; i < vectorDistances.size(); i++)
+    {
+        double distance = vectorDistances[i].second;
+        int categoryNum = distance / step;
+        
+        frequencies[categoryNum].second++;
+    }
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -642,7 +645,7 @@ void IndexManager::powderPattern()
                 pdbLog << "                       O" << std::endl;
             }
             
-            frequencies[categoryNum]++;
+            frequencies[categoryNum].first++;
         }
     }
     
@@ -685,12 +688,13 @@ void IndexManager::powderPattern()
     std::ofstream powderLog;
     powderLog.open("powder.csv");
     
-    for (std::map<int, int>::iterator it = frequencies.begin(); it != frequencies.end(); it++)
+    for (std::map<int, std::pair<int, int> >::iterator it = frequencies.begin(); it != frequencies.end(); it++)
     {
         double distance = it->first * step;
-        double freq = it->second;
+        double freq = it->second.first;
+        double perfect = it->second.second;
         
-        powderLog << distance << "," << freq << std::endl;
+        powderLog << distance << "," << freq << "," << perfect << std::endl;
     }
     
     powderLog.close();
