@@ -31,6 +31,7 @@ SpotVector::SpotVector(SpotPtr first, SpotPtr second)
 {
     firstSpot = first;
     secondSpot = second;
+    update = false;
     
     if (!first || !second)
         return;

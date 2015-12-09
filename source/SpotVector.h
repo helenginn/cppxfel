@@ -18,7 +18,7 @@ class SpotVector
 private:
     SpotPtr firstSpot;
     SpotPtr secondSpot;
-    bool update = false;
+    bool update;
     
     vec hkl;
     vec spotDiff;
