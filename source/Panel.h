@@ -114,7 +114,7 @@ public:
 		return usePanelInfo;
 	}
 
-	void setUsePanelInfo(bool useInfo)
+	static void setUsePanelInfo(bool useInfo)
 	{
 		usePanelInfo = useInfo;
 	}
@@ -123,6 +123,16 @@ public:
 	{
 		return bestShift;
 	}
+    
+    double *pointerToBestShiftX()
+    {
+        return &(bestShift.first);
+    }
+    
+    double *pointerToBestShiftY()
+    {
+        return &(bestShift.second);
+    }
 
 	void setBestShift(const Coord& bestShift)
 	{
@@ -132,6 +142,11 @@ public:
     double getGainScale()
     {
         return gainScale;
+    }
+    
+    static PanelPtr getPanel(int i)
+    {
+        return panels[i];
     }
 };
 

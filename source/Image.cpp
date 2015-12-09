@@ -1078,6 +1078,19 @@ bool Image::checkUnitCell(double trueA, double trueB, double trueC, double toler
     return IOMRefinerCount() > 0;
 }
 
+void Image::updateAllSpots()
+{
+    for (int i = 0; i < spots.size(); i++)
+    {
+        spots[i]->setUpdate();
+    }
+    
+    for (int i = 0; i < spotVectors.size(); i++)
+    {
+        spotVectors[i]->setUpdate();
+    }
+}
+
 void Image::processSpotList()
 {
     std::string spotContents;
@@ -1095,10 +1108,28 @@ void Image::processSpotList()
     
     vector<std::string> spotLines = FileReader::split(spotContents, '\n');
     
+    double x = beamX;
+    double y = beamY;
+    vec beamXY = new_vector(beamX, beamY, 1);
+    vec newXY = new_vector(x, y, 1);
+    vec xyVec = vector_between_vectors(beamXY, newXY);
+    MatrixPtr rotateMat = MatrixPtr(new Matrix());
+    rotateMat->rotate(0, 0, M_PI);
+    rotateMat->multiplyVector(&xyVec);
+    
+    SpotPtr newSpot = SpotPtr(new Spot(this));
+    newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
+    
+    spots.push_back(newSpot);
+    
     for (int i = 0; i < spotLines.size(); i++)
     {
         std::string line = spotLines[i];
         vector<std::string> components = FileReader::split(line, '\t');
+        
+        if (components.size() < 2)
+            continue;
+        
         double x = atof(components[0].c_str());
         double y = atof(components[1].c_str());
         vec beamXY = new_vector(beamX, beamY, 1);

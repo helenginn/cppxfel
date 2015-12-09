@@ -235,10 +235,24 @@ bool Spot::spotComparison(Spot *a, Spot *b)
 	return (a->weight() > b->weight());
 }
 
+void Spot::setUpdate()
+{
+    getX(true);
+    getY(true);
+}
+
 Coord Spot::getXY()
 {
     Coord shift = Panel::shiftForSpot(this);
     
+    logged << x << "," << shift.first << "," << y << "," << shift.second << std::endl;
+    
+    if (shift.first == FLT_MAX)
+    {
+        shift.first = 0;
+        shift.second = 0;
+    }
+
     return std::make_pair(x - shift.first, y - shift.second);
 }
 

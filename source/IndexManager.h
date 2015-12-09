@@ -21,6 +21,8 @@
 #include "Holder.h"
 #include "LoggableObject.h"
 
+typedef std::map<int, std::pair<int, int> > PowderHistogram;
+
 class IndexManager : LoggableObject
 {
 protected:
@@ -38,12 +40,15 @@ protected:
     double minimumTrustAngle;
     double solutionAngleSpread;
     
+    void updateAllSpots();
+    static double metrologyTarget(void *object);
     bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
     int indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset);
     double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;
     double minReciprocalDistance;
+    PowderHistogram generatePowderHistogram();
     std::vector<VectorDistance> vectorDistances;
 public:
     Image *getImage(int i)
@@ -56,6 +61,7 @@ public:
         return mtzs;
     }
     
+    void refineMetrology();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
     void powderPattern();

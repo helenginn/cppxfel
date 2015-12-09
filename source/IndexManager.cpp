@@ -62,16 +62,22 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
     
-    
     for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
     {
         for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
         {
             for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
             {
-                if (spaceGroupNum != 19)
+                if (spaceGroupNum != 19 && spaceGroupNum != 178)
+                {
                     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
+                    {
                         continue;
+                    }
+                    if (spaceGroupNum == 143 && (i - j % 3) != 0)
+                        continue;
+
+                }
                 
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
@@ -319,8 +325,6 @@ int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
     std::vector<std::pair<MatrixPtr, std::pair<double, double> > > scoredSolutions;
     
     Logger::mainLogger->addStream(&logged); logged.str("");
-    
-    int ambiguityCount = newReflection->ambiguityCount();
     
     Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
     double countSum = 0;
@@ -591,51 +595,33 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 
 void IndexManager::powderPattern()
 {
-    std::map<int, std::pair<int, int> > frequencies;
-    double step = 0.00025;
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     
-    double maxCatDistance = 0.05;
-    int maxCategory = maxCatDistance / step;
-    
-    for (int i = 0; i < maxCategory; i++)
-    {
-        frequencies[i] = std::make_pair(0, 0);
-    }
-    
     std::ostringstream pdbLog;
-    
-    for (int i = 0; i < vectorDistances.size(); i++)
-    {
-        double distance = vectorDistances[i].second;
-        int categoryNum = distance / step;
-        
-        frequencies[categoryNum].second++;
-    }
     
     for (int i = 0; i < images.size(); i++)
     {
         images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
-        
+    }
+    
+    refineMetrology();
+    
+    PowderHistogram frequencies = generatePowderHistogram();
+    
+    for (int i = 0; i < images.size(); i++)
+    {
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
         {
             SpotVectorPtr spotVec = images[i]->spotVector(j);
             
-            double distance = spotVec->distance();
-            
-            int categoryNum = distance / step;
             double angle = spotVec->angleWithVertical();
             vec spotDiff = copy_vector(spotVec->getSpotDiff());
             spotDiff.h *= 106 * 20;
             spotDiff.k *= 106 * 20;
             spotDiff.l *= 106 * 20;
-            
-            double x = distance * sin(angle);
-            double y = distance * cos(angle);
-            
+
             if (i == 0)
             {
-                logged << x << "," << y << std::endl;
                 pdbLog << "HETATM";
                 pdbLog << std::fixed;
                 pdbLog << std::setw(5) << j << "                   ";
@@ -644,8 +630,6 @@ void IndexManager::powderPattern()
                 pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.l;
                 pdbLog << "                       O" << std::endl;
             }
-            
-            frequencies[categoryNum].first++;
         }
     }
     
@@ -687,8 +671,9 @@ void IndexManager::powderPattern()
     
     std::ofstream powderLog;
     powderLog.open("powder.csv");
-    
-    for (std::map<int, std::pair<int, int> >::iterator it = frequencies.begin(); it != frequencies.end(); it++)
+    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.0001);
+
+    for (PowderHistogram::iterator it = frequencies.begin(); it != frequencies.end(); it++)
     {
         double distance = it->first * step;
         double freq = it->second.first;
@@ -698,11 +683,6 @@ void IndexManager::powderPattern()
     }
     
     powderLog.close();
-    
-    logged << "******* PDB *******" << std::endl;
-    sendLog();
-    
-   // Logger::mainLogger->addStream(&pdbLog); logged.str("");
     
 }
 
@@ -720,6 +700,7 @@ void IndexManager::index()
         boost::thread *thr = new boost::thread(indexThread, this, &managerSubsets[i], i);
         threads.add_thread(thr);
     }
+    
     
     threads.join_all();
     
@@ -739,4 +720,140 @@ void IndexManager::index()
                            managerSubsets[i].begin(), managerSubsets[i].end());
         lastPos += managerSubsets[i].size();
     }
+}
+
+
+PowderHistogram IndexManager::generatePowderHistogram()
+{
+    PowderHistogram frequencies;
+    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.0001);
+    
+    double maxCatDistance = 0.05;
+    int maxCategory = maxCatDistance / step;
+    
+    for (int i = 0; i < maxCategory; i++)
+    {
+        frequencies[i] = std::make_pair(0, 0);
+    }
+    
+    
+    for (int i = 0; i < vectorDistances.size(); i++)
+    {
+        double distance = vectorDistances[i].second;
+        int categoryNum = distance / step;
+        
+        frequencies[categoryNum].second++;
+    }
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        for (int j = 0; j < images[i]->spotVectorCount(); j++)
+        {
+            SpotVectorPtr spotVec = images[i]->spotVector(j);
+            
+            double distance = spotVec->distance();
+            int categoryNum = distance / step;
+            
+            frequencies[categoryNum].first++;
+        }
+    }
+    
+    return frequencies;
+}
+
+
+double IndexManager::metrologyTarget(void *object)
+{
+    static_cast<IndexManager *>(object)->updateAllSpots();
+    PowderHistogram histogram = static_cast<IndexManager *>(object)->generatePowderHistogram();
+    double highPercentage = 0.05;
+    std::vector<double> frequencies;
+    
+    for (PowderHistogram::iterator it = histogram.begin(); it != histogram.end(); it++)
+    {
+        frequencies.push_back(it->second.first);
+    }
+    
+    std::sort(frequencies.begin(), frequencies.end(), std::greater<double>());
+    
+    int maxCap = highPercentage * frequencies.size();
+    int maxSum = 0;
+    int minSum = 0;
+    int maxCount = 0;
+    int minCount = 0;
+    
+    for (int i = 0; i < frequencies.size(); i++)
+    {
+        if (i <= maxCap)
+        {
+            maxSum += frequencies[i];
+            maxCount++;
+        }
+        else
+        {
+            minSum += frequencies[i];
+            minCount++;
+        }
+    }
+    
+    double minAve = minSum / minCount;
+    double result = minAve - maxSum;
+    
+    static_cast<IndexManager *>(object)->logged << "Metrology target result: " << result << std::endl;
+    static_cast<IndexManager *>(object)->sendLog();
+    
+    return result;
+}
+
+void IndexManager::updateAllSpots()
+{
+    for (int i = 0; i < images.size(); i++)
+    {
+        images[i]->updateAllSpots();
+    }
+}
+
+void IndexManager::refineMetrology()
+{
+    return;
+    
+    Panel::setUsePanelInfo(true);
+    
+    std::map<int, std::pair<double, double> > steps;
+    
+    for (int i = 0; i < Panel::panelCount(); i++)
+    {
+        steps[i] = std::make_pair(5, 5);
+    }
+    
+    logged << "Panel count: " << Panel::panelCount() << std::endl;
+    sendLog();
+    
+    bool converged = false;
+    double convergeValue = 0.2;
+    
+    while (!converged)
+    {
+        converged = true;
+        
+        for (int i = 0; i < Panel::panelCount(); i++)
+        {
+            PanelPtr panel = Panel::getPanel(i);
+            
+            double *xShiftPtr = panel->pointerToBestShiftX();
+            double *yShiftPtr = panel->pointerToBestShiftY();
+            
+            minimizeParameter(steps[i].first, xShiftPtr, metrologyTarget, this);
+            minimizeParameter(steps[i].second, yShiftPtr, metrologyTarget, this);
+            
+            if (steps[i].first > convergeValue || steps[i].second > convergeValue)
+            {
+                converged = false;
+            }
+        }
+        
+    }
+    
+    logged << Panel::printAll() << std::endl;
+    sendLog();
 }

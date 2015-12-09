@@ -672,7 +672,7 @@ void Panel::refineDetectorDistance()
     
     while (ddStep > 0.0001 && count < 20)
     {
-        minimizeParameter(ddStep, distanceMultiplier, scoreDetectorDistance, NULL);
+        minimizeParameter(ddStep, &distanceMultiplier, scoreDetectorDistance, NULL);
         
         count++;
     }
@@ -913,10 +913,10 @@ void Panel::refineAllParameters(double windowSize)
     while (count < 25 && !minimized)
     {
         tiltHorizontalAxis = true;
-        double hozScore = minimizeParameter(xStep, this->tilt.first, tiltShiftScoreWrapper, this);
+        double hozScore = minimizeParameter(xStep, &this->tilt.first, tiltShiftScoreWrapper, this);
         
         tiltHorizontalAxis = false;
-        double vertScore = minimizeParameter(yStep, this->tilt.second, tiltShiftScoreWrapper, this);
+        double vertScore = minimizeParameter(yStep, &this->tilt.second, tiltShiftScoreWrapper, this);
         
         logged << tilt.first << "\t" << tilt.second << "\t" << hozScore << "\t" << vertScore << std::endl;
         

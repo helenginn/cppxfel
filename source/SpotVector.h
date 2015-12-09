@@ -18,6 +18,7 @@ class SpotVector
 private:
     SpotPtr firstSpot;
     SpotPtr secondSpot;
+    bool update = false;
     
     vec hkl;
     vec spotDiff;
@@ -33,6 +34,7 @@ public:
     
     bool hasCommonSpotWithVector(SpotVectorPtr spotVector2);
     double distance();
+    void calculateDistance();
     double angleWithVertical();
     double angleWithVector(SpotVectorPtr spotVector2, MatrixPtr mat = MatrixPtr());
     double similarityToSpotVector(SpotVectorPtr spotVector2);
@@ -41,6 +43,11 @@ public:
     double trustComparedToStandardVector(SpotVectorPtr standardVector);
     SpotVectorPtr copy();
     SpotVectorPtr vectorRotatedByMatrix(MatrixPtr mat);
+    
+    void setUpdate()
+    {
+        update = true;
+    }
     
     vec getVector()
     {

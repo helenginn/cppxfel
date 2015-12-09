@@ -55,6 +55,18 @@ bool within_vicinity(vec vec1, vec vec2, double maxD)
     return true;
 }
 
+void setFloatingPointErrorZerosToZero(vec *vec1, double limit)
+{
+    if (fabs(vec1->h) < limit)
+        vec1->h = 0;
+
+    if (fabs(vec1->k) < limit)
+        vec1->k = 0;
+
+    if (fabs(vec1->l) < limit)
+        vec1->l = 0;
+}
+
 vec vector_between_vectors(vec vec1, vec vec2)
 {
 	vec vec;
@@ -784,10 +796,10 @@ void regression_line(vector<boost::tuple<double, double, double> > values, doubl
 double minimizeParam(double &step, double &param, double (*score)(void *object),
                      void *object)
 {
-    return minimizeParameter(step, param, score, object);
+    return minimizeParameter(step, &param, score, object);
 }
 
-double minimizeParameter(double &step, double &param, double (*score)(void *object),
+double minimizeParameter(double &step, double *param, double (*score)(void *object),
                                     void *object)
 {
     double param_trials[3];
@@ -796,11 +808,11 @@ double minimizeParameter(double &step, double &param, double (*score)(void *obje
     int j = 0;
     int param_min_num = 1;
     
-    double bestParam = param;
+    double bestParam = *param;
     
     for (double i = bestParam - step; j < 3; i += step)
     {
-        param = i;
+        *param = i;
         
         double aScore = (*score)(object);
         
@@ -820,7 +832,7 @@ double minimizeParameter(double &step, double &param, double (*score)(void *obje
             param_min_num = i;
         }
     
-    param = param_trials[param_min_num];
+    *param = param_trials[param_min_num];
     (*score)(object);
     
     if (param_min_num == 1)

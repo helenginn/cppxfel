@@ -217,8 +217,65 @@ void Matrix::printDescription(bool detailed)
 	}*/
 }
 
+MatrixPtr Matrix::matrixFromUnitCellVersion2(double a, double b, double c, double alpha, double beta, double gamma)
+{
+    scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
+    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
+    
+    scitbx::mat3<double> realSpaceScitbx = uc.orthogonalization_matrix();
+    MatrixPtr realSpace = MatrixPtr(new Matrix());
+    realSpace->assignFromCctbxMatrix(realSpaceScitbx);
+    
+    vec aVec = new_vector((*realSpace)[0], (*realSpace)[4], (*realSpace)[8]);
+    vec bVec = new_vector((*realSpace)[1], (*realSpace)[5], (*realSpace)[9]);
+    vec cVec = new_vector((*realSpace)[2], (*realSpace)[6], (*realSpace)[10]);
+
+    double aRealLength = length_of_vector(aVec);
+    double bRealLength = length_of_vector(bVec);
+    double cRealLength = length_of_vector(cVec);
+    
+    vec aStar = cross_product_for_vectors(bVec, cVec);
+    scale_vector_to_distance(&aStar, 1 / aRealLength);
+
+    vec bStar = cross_product_for_vectors(aVec, cVec);
+    scale_vector_to_distance(&bStar, 1 / bRealLength);
+
+    vec cStar = cross_product_for_vectors(aVec, bVec);
+    scale_vector_to_distance(&cStar, 1 / cRealLength);
+
+    MatrixPtr reciprocalMatrix = MatrixPtr(new Matrix());
+    reciprocalMatrix->components[0] = aStar.h;
+    reciprocalMatrix->components[1] = aStar.k;
+    reciprocalMatrix->components[2] = aStar.l;
+    
+    reciprocalMatrix->components[4] = bStar.h;
+    reciprocalMatrix->components[5] = bStar.k;
+    reciprocalMatrix->components[6] = bStar.l;
+    
+    reciprocalMatrix->components[8] = cStar.h;
+    reciprocalMatrix->components[9] = cStar.k;
+    reciprocalMatrix->components[10] = cStar.l;
+    
+    std::ostringstream logged;
+   /*
+    logged << "aVec: " << aVec.h << "\t" << aVec.k << "\t" << aVec.l << std::endl;
+    logged << "bVec: " << bVec.h << "\t" << bVec.k << "\t" << bVec.l << std::endl;
+    logged << "cVec: " << cVec.h << "\t" << cVec.k << "\t" << cVec.l << std::endl;
+    
+    logged << "aStar: " << aStar.h << "\t" << aStar.k << "\t" << aStar.l << std::endl;
+    logged << "bStar: " << bStar.h << "\t" << bStar.k << "\t" << bStar.l << std::endl;
+    logged << "cStar: " << cStar.h << "\t" << cStar.k << "\t" << cStar.l << std::endl;
+    
+    logged << "Reciprocal lattice " << reciprocalMatrix->description() << std::endl;
+    Logger::mainLogger->addStream(&logged);
+    */
+    return reciprocalMatrix;
+}
+
 MatrixPtr Matrix::matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
 {
+  //  return matrixFromUnitCellVersion2(a, b, c, alpha, beta, gamma);
+    
     scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
     cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
     
@@ -226,6 +283,10 @@ MatrixPtr Matrix::matrixFromUnitCell(double a, double b, double c, double alpha,
     
     MatrixPtr aMatrix = MatrixPtr(new Matrix());
     aMatrix->assignFromCctbxMatrix(mat);
+    
+    std::ostringstream logged;
+    logged << "Reciprocal lattice " << aMatrix->description() << std::endl;
+    Logger::mainLogger->addStream(&logged);
     
     return aMatrix;
 }
@@ -360,6 +421,20 @@ void Matrix::assignFromCctbxMatrix(scitbx::mat3<double> newMat)
 
 void Matrix::assignFromCctbxMatrix(Matrix *changeMat, scitbx::mat3<double> newMat)
 {
+    /*
+     changeMat->components[0] = newMat(0, 0);
+     changeMat->components[4] = newMat(0, 1);
+     changeMat->components[8] = newMat(0, 2);
+     
+     changeMat->components[1] = newMat(1, 0);
+     changeMat->components[5] = newMat(1, 1);
+     changeMat->components[9] = newMat(1, 2);
+     
+     changeMat->components[2] = newMat(2, 0);
+     changeMat->components[6] = newMat(2, 1);
+     changeMat->components[10] = newMat(2, 2);
+*/
+    
     changeMat->components[0] = newMat(0, 0);
     changeMat->components[4] = newMat(1, 0);
     changeMat->components[8] = newMat(2, 0);

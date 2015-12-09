@@ -12,10 +12,11 @@
 #include "parameters.h"
 #include "Panel.h"
 #include "Vector.h"
+#include "LoggableObject.h"
 
 class Image;
 
-class Spot
+class Spot : LoggableObject
 {
 private:
 	vector<vector<double> > probe;
@@ -52,7 +53,8 @@ public:
     double getY(bool update = false);
     Coord getRawXY();
     vec estimatedVector();
-
+    void setUpdate();
+    
     void setRejected(bool isRejected = true)
     {
         rejected = isRejected;

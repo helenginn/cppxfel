@@ -65,7 +65,7 @@ void IndexingSolution::setupStandardVectors()
         {
             for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
             {
-                if (spaceGroupNum != 19)
+                if (spaceGroupNum != 19 && spaceGroupNum != 178)
                     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
                         continue;
                 

@@ -474,6 +474,9 @@ double Reflection::mergeSigma()
     
     double error = stdev / sqrt(count);
     
+    if (count == 1)
+        error = sqrt(sumSquares);
+    
     if (count == 0)
         return nan(" ");
     

@@ -15,6 +15,7 @@
 #include <cctbx/miller.h>
 #include <scitbx/mat3.h>
 #include "csymlib.h"
+#include "LoggableObject.h"
 
 class Matrix
 {
@@ -73,12 +74,14 @@ public:
     void rotateModelAxes(double alpha, double beta, double gamma);
     void newMultiplyVector(double *vector[]);
     static MatrixPtr matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
+    static MatrixPtr matrixFromUnitCellVersion2(double a, double b, double c, double alpha, double beta, double gamma);
     void orientationMatrixUnitCell(double *a, double *b, double *c);
     void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
     void scaleUnitCellAxes(double aScale, double bScale, double cScale);
     void setComplexMatrix(MatrixPtr unitCell, MatrixPtr rotation);
     void maxMillers(int (&millers)[3], double maxResolution);
     
+;
     void rotate2D(double angle);
     void translation(double **vector);
     

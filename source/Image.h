@@ -152,6 +152,7 @@ public:
     void compileDistancesFromSpots(double maxReciprocalDistance = 0, double tooCloseDistance = 0, bool filter = false);
     void filterSpotVectors();
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
+    void updateAllSpots();
     
     void removeRefiner(int j)
     {

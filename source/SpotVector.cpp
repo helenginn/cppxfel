@@ -22,6 +22,7 @@ SpotVector::SpotVector(vec transformedHKL, vec normalHKL)
     firstSpot = SpotPtr();
     secondSpot = SpotPtr();
     
+    update = false;
     hkl = normalHKL;
     spotDiff = copy_vector(transformedHKL);
 }
@@ -34,8 +35,13 @@ SpotVector::SpotVector(SpotPtr first, SpotPtr second)
     if (!first || !second)
         return;
     
-    vec firstVector = first->estimatedVector();
-    vec secondVector = second->estimatedVector();
+    calculateDistance();
+}
+
+void SpotVector::calculateDistance()
+{
+    vec firstVector = firstSpot->estimatedVector();
+    vec secondVector = secondSpot->estimatedVector();
     
     spotDiff = copy_vector(secondVector);
     take_vector_away_from_vector(firstVector, &spotDiff);
@@ -43,6 +49,12 @@ SpotVector::SpotVector(SpotPtr first, SpotPtr second)
 
 double SpotVector::distance()
 {
+    if (update)
+    {
+        calculateDistance();
+        update = false;
+    }
+    
     return length_of_vector(spotDiff);
 }
 
@@ -104,6 +116,7 @@ SpotVectorPtr SpotVector::copy()
     SpotVectorPtr newPtr = SpotVectorPtr(new SpotVector(firstSpot, secondSpot));
     newPtr->hkl = copy_vector(hkl);
     newPtr->spotDiff = copy_vector(spotDiff);
+    newPtr->update = update;
     
     return newPtr;
 }
