@@ -1229,6 +1229,9 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
                 if (distance == 0)
                     continue;
                 
+                if (distance > maxReciprocalDistance)
+                    continue;
+                
                 logged << spots[i]->getX() << "\t" << spots[i]->getY() << "\t" << spots[j]->getX() << "\t" << spots[j]->getY() << "\t" << distance << std::endl;
                 
                 spotVectors.push_back(newVec);

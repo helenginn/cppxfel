@@ -1007,12 +1007,12 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
         
         shoebox = ShoeboxPtr(new Shoebox(strongSelf));
         
-        int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_RADIUS",
-                                                  SHOEBOX_FOREGROUND_RADIUS);
-        int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_RADIUS",
-                                               SHOEBOX_NEITHER_RADIUS);
-        int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_RADIUS",
-                                                  SHOEBOX_BACKGROUND_RADIUS);
+        int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
+                                                  SHOEBOX_FOREGROUND_PADDING);
+        int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_PADDING",
+                                               SHOEBOX_NEITHER_PADDING);
+        int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
+                                                  SHOEBOX_BACKGROUND_PADDING);
         bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
         
         logged << "Shoebox created from values " << foregroundLength << ", " << neitherLength << ", " << backgroundLength << std::endl;

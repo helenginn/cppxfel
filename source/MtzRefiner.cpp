@@ -660,7 +660,10 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<Image *> *newIm
                     newMatrix->rotate(0, 0, M_PI / 2);
                 }
                 
-                continue;
+                if (newImages)
+                {
+                    newImage->setUpIOMRefiner(newMatrix);
+                }
             }
             
             if (components[0] == "wavelength" && wavelength == 0)

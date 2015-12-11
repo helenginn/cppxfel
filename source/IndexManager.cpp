@@ -62,6 +62,9 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
     
+    logged << "Calculating distances of unit cell " << spaceGroupNum << std::endl;
+    sendLog();
+    
     for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
     {
         for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
@@ -74,10 +77,13 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
                     {
                         continue;
                     }
-                    if (spaceGroupNum == 143 && (i - j % 3) != 0)
-                        continue;
+                    
+              //      if (spaceGroupNum == 146 && ((-i + j + k) % 3 != 0))
+              //          continue;
 
                 }
+                
+             //   if (k != 0) continue;
                 
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
@@ -86,6 +92,10 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
                     continue;
                 
                 unitCellMatrix->multiplyVector(&hkl_transformed);
+                
+                logged << hkl.h << "\t" << hkl.k << "\t" << hkl.l << "\t" << hkl_transformed.h << "\t" << hkl_transformed.k << "\t" << hkl_transformed.l << std::endl;
+                sendLog();
+                
                 
                 double distance = length_of_vector(hkl_transformed);
                 
@@ -97,6 +107,7 @@ IndexManager::IndexManager(std::vector<Image *> newImages)
         }
     }
 
+    maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.02);
     
     smallestDistance = FLT_MAX;
     
@@ -671,7 +682,7 @@ void IndexManager::powderPattern()
     
     std::ofstream powderLog;
     powderLog.open("powder.csv");
-    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.0001);
+    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
 
     for (PowderHistogram::iterator it = frequencies.begin(); it != frequencies.end(); it++)
     {
@@ -726,7 +737,7 @@ void IndexManager::index()
 PowderHistogram IndexManager::generatePowderHistogram()
 {
     PowderHistogram frequencies;
-    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.0001);
+    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     
     double maxCatDistance = 0.05;
     int maxCategory = maxCatDistance / step;
@@ -766,7 +777,7 @@ double IndexManager::metrologyTarget(void *object)
 {
     static_cast<IndexManager *>(object)->updateAllSpots();
     PowderHistogram histogram = static_cast<IndexManager *>(object)->generatePowderHistogram();
-    double highPercentage = 0.05;
+    double highPercentage = 0.0524;
     std::vector<double> frequencies;
     
     for (PowderHistogram::iterator it = histogram.begin(); it != histogram.end(); it++)
@@ -797,7 +808,7 @@ double IndexManager::metrologyTarget(void *object)
     }
     
     double minAve = minSum / minCount;
-    double result = minAve - maxSum;
+    double result = -maxSum;
     
     static_cast<IndexManager *>(object)->logged << "Metrology target result: " << result << std::endl;
     static_cast<IndexManager *>(object)->sendLog();
@@ -823,14 +834,14 @@ void IndexManager::refineMetrology()
     
     for (int i = 0; i < Panel::panelCount(); i++)
     {
-        steps[i] = std::make_pair(5, 5);
+        steps[i] = std::make_pair(2, 2);
     }
     
     logged << "Panel count: " << Panel::panelCount() << std::endl;
     sendLog();
     
     bool converged = false;
-    double convergeValue = 0.2;
+    double convergeValue = 0.5;
     
     while (!converged)
     {
