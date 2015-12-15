@@ -254,6 +254,7 @@ void FileParser::generateFunctionList()
     parserMap["SCALING_STRATEGY"] = simpleInt;
 	parserMap["MINIMUM_REFLECTION_CUTOFF"] = simpleInt;
     parserMap["APPLY_INFLATION"] = simpleBool;
+    parserMap["MINIMUM_MULTIPLICITY"] = simpleInt;
 
 	// Indexing parameters
 
@@ -349,7 +350,13 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
 		std::string &rest)
 {
 	int space_index = (int)line.find_first_of(splitCharMajor);
-
+    
+    if (space_index == std::string::npos)
+    {
+        command = "NULL";
+        return NULL;
+    }
+    
 	command = line.substr(0, space_index);
 
 	std::ostringstream stream;
