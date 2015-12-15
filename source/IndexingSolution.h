@@ -67,7 +67,7 @@ public:
     static std::vector<IndexingSolutionPtr> startingSolutionsForVectors(SpotVectorPtr firstVector, SpotVectorPtr secondVector);
     int extendFromSpotVectors(std::vector<SpotVectorPtr> *possibleVectors, int limit = 0);
     MatrixPtr createSolution();
-    static bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
+    static bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, bool force = false);
     static void setupStandardVectors();
     std::string getNetworkPDB();
     std::string printNetwork();

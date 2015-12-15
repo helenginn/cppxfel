@@ -58,6 +58,7 @@ public:
     Matrix transpose();
     cctbx::miller::index<double> multiplyIndex(cctbx::miller::index<> *index);
     static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup);
+    static MatrixPtr matrixFromEulerAngles(double theta, double phi, double psi);
     
     void translate(double x, double y, double z);
     void rotateHK(double hRot, double kRot);
@@ -88,8 +89,8 @@ public:
     double getEwaldSphere(vec *vector);
     double getEwaldSphereNoMatrix(vec index);
     
-    void eulerAngles(double *theta, double *phi, double *psi);
-    double similarityToRotationMatrix(MatrixPtr mat2, double tolerance);
+    void eulerAngles(double *theta, double *phi, double *psi, bool force = false);
+    double similarityToRotationMatrix(MatrixPtr mat2, double tolerance, bool force = false);
     void unitCellLengths(double **lengths);
     scitbx::mat3<double> cctbxMatrix(MatrixPtr theMatrix = MatrixPtr());
     void threeDimComponents(double **componentArray);
@@ -106,6 +107,11 @@ public:
             return true;
         
         return false;
+    }
+    
+    MatrixPtr getRotation()
+    {
+        return rotation;
     }
     
     double determinant();

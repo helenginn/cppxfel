@@ -123,11 +123,11 @@ std::string Matrix::description(bool detailed, bool submatrix)
 	return description.str();
 }
 
-void Matrix::eulerAngles(double *theta, double *phi, double *psi)
+void Matrix::eulerAngles(double *theta, double *phi, double *psi, bool force)
 {
     Matrix *chosenMat = rotation ? &*rotation : this;
     
-    if (!(eulerA == 0 && eulerB == 0 && eulerC == 0))
+    if (!(eulerA == 0 && eulerB == 0 && eulerC == 0) && !force)
     {
         *theta = eulerA;
         *phi = eulerB;
@@ -135,7 +135,7 @@ void Matrix::eulerAngles(double *theta, double *phi, double *psi)
     }
   
     double sinTheta = chosenMat->components[2];
-    *theta = asin(sinTheta);
+    *theta = 0 - asin(sinTheta);
     double cosTheta = cos(*theta);
     
     *psi = atan2((chosenMat->components[6] / cosTheta), (chosenMat->components[10] / cosTheta));
@@ -146,13 +146,13 @@ void Matrix::eulerAngles(double *theta, double *phi, double *psi)
     eulerC = *psi;
 }
 
-double Matrix::similarityToRotationMatrix(MatrixPtr mat2, double tolerance)
+double Matrix::similarityToRotationMatrix(MatrixPtr mat2, double tolerance, bool force)
 {
-    double theta1, psi1, phi1;
-    eulerAngles(&theta1, &phi1, &psi1);
+    double theta1, phi1, psi1;
+    eulerAngles(&theta1, &phi1, &psi1, force);
     
-    double theta2, psi2, phi2;
-    mat2->eulerAngles(&theta2, &phi2, &psi2);
+    double theta2, phi2, psi2;
+    mat2->eulerAngles(&theta2, &phi2, &psi2, force);
     
     double thetaDiff = fabs(theta2 - theta1);
     
@@ -824,6 +824,14 @@ double Matrix::getEwaldSphere(vec *vector)
 	double ewald_wavelength = 1 / ewald_radius;
 
 	return ewald_wavelength;
+}
+
+MatrixPtr Matrix::matrixFromEulerAngles(double theta, double phi, double psi)
+{
+    MatrixPtr matrix = MatrixPtr(new Matrix());
+    matrix->rotate(psi, theta, phi);
+    
+    return matrix;
 }
 
 Matrix Matrix::inverse2DMatrix()
