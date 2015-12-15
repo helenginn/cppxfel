@@ -23,6 +23,7 @@ typedef enum
 {
     IndexingSolutionTrialSuccess,
     IndexingSolutionTrialFailure,
+    IndexingSolutionTrialDuplicate,
     IndexingSolutionBranchFailure,
 } IndexingSolutionStatus;
 
@@ -76,7 +77,7 @@ private:
 	double integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *error);
 	bool checkShoebox(ShoeboxPtr shoebox, int x, int y);
     double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
-    bool checkIndexingSolutionDuplicates(IndexingSolutionPtr solutionPtr);
+    bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
 public:
     void incrementOverlapMask(int x, int y, ShoeboxPtr shoebox);
     void incrementOverlapMask(int x, int y);
