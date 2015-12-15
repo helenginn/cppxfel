@@ -1384,7 +1384,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
-        double lRotStep = initialStep / 2;
+        double lRotStep = initialStep;
         double aRotStep = initialStep;
         double bRotStep = initialStep;
         double cRotStep = initialStep;
@@ -1777,6 +1777,12 @@ std::string IOMRefiner::refinementSummary()
     double distance = getDetectorDistance();
     MatrixPtr matrix = getMatrix();
     double *lengths = new double[3];
+
+    for (int i = 0; i < 3; i++)
+    {
+        lengths[i] = 0;
+    }
+    
     matrix->unitCellLengths(&lengths);
     
     std::ostringstream summary;
