@@ -96,10 +96,9 @@ void IndexingSolution::setupStandardVectors()
     finishedSetup = true;
 }
 
-bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
+bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, bool force)
 {
     std::ostringstream logged;
-    MatrixPtr mat3 = mat2->copy();
     
     for (int k = 0; k < symOperators.size(); k++)
     {
@@ -107,13 +106,24 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
         
         for (int l = 0; l < newReflection->ambiguityCount(); l++)
         {
+            
+            MatrixPtr mat3 = mat2->copy();
             MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
-            mat3->preMultiply(*symOperator);
-            mat3->preMultiply(*ambiguity);
+            mat3->getRotation()->preMultiply(*symOperator);
+            mat3->getRotation()->preMultiply(*ambiguity);
             
-            double angle = mat1->similarityToRotationMatrix(mat3, solutionAngleSpread);
+            double angle = mat1->similarityToRotationMatrix(mat3, solutionAngleSpread * 2.5, force);
             
-            if (angle < solutionAngleSpread && angle != -1)
+            double theta, phi, psi;
+            mat3->eulerAngles(&theta, &phi, &psi);
+            
+            double theta2, phi2, psi2;
+            mat1->eulerAngles(&theta2, &phi2, &psi2);
+            
+            logged << "Similarity angle: " << angle << " for angles (" << theta << ", " << phi << ", " << psi << ") and (" << theta2 << ", " << phi2 << ", " << psi2 << ")" << std::endl;
+            Logger::mainLogger->addStream(&logged);
+            
+            if (angle < solutionAngleSpread * 2.5 && angle != -1)
             {
                 return true;
             }
@@ -125,22 +135,22 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
 
 bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2, MatrixPtr symOperator)
 {
-    
-    double firstVectorTrust = firstObserved->trustComparedToStandardVector(standard1);
-    double secondVectorTrust = secondObserved->trustComparedToStandardVector(standard2);
-    
-    if (firstVectorTrust < distanceTolerance)
-        return false;
-    
-    if (secondVectorTrust < distanceTolerance)
-        return false;
-    
     double standardAngle = standard1->angleWithVector(standard2);
     double realAngle = firstObserved->angleWithVector(secondObserved);
     
     double difference = fabs(realAngle - standardAngle);
     
     if (difference > angleTolerance)
+        return false;
+    
+    double firstVectorTrust = firstObserved->trustComparedToStandardVector(standard1);
+    
+    if (firstVectorTrust < distanceTolerance)
+        return false;
+    
+    double secondVectorTrust = secondObserved->trustComparedToStandardVector(standard2);
+    
+    if (secondVectorTrust < distanceTolerance)
         return false;
     
     return true;
@@ -293,11 +303,20 @@ MatrixPtr IndexingSolution::createSolution()
     std::sort(scoredSolutions.begin(), scoredSolutions.end(), match_greater_than_match);
     
     
-    MatrixPtr chosenMat = MatrixPtr();
+    MatrixPtr chosenMat = MatrixPtr(new Matrix());
     
     if (scoredSolutions.size())
     {
-        chosenMat = scoredSolutions[0].first;
+        MatrixPtr rotationMat = Matrix::matrixFromEulerAngles(averageTheta, averagePhi, averagePsi);
+        
+        double theta, phi, psi;
+        rotationMat->eulerAngles(&theta, &phi, &psi);
+        
+        MatrixPtr unitCellMat = unitCellOnly->copy();
+        
+        chosenMat->setComplexMatrix(unitCellMat, rotationMat);
+        
+  //      chosenMat = scoredSolutions[0].first;
         logged << "Chosen solution:\t" << chosenMat->summary() << "\tfrom " << spotVectors.size() << " vectors"<< std::endl;
         sendLog(LogLevelDebug);
     }
