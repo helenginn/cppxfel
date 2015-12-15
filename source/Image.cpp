@@ -1345,15 +1345,13 @@ void Image::filterSpotVectors()
     sendLog();
 }
 
-bool Image::checkIndexingSolutionDuplicates(IndexingSolutionPtr solutionPtr)
+bool Image::checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast)
 {
-    MatrixPtr newSolution = solutionPtr->createSolution();
-    
-    for (int i = 0; i < IOMRefinerCount(); i++)
+    for (int i = 0; i < IOMRefinerCount() - excludeLast; i++)
     {
         MatrixPtr oldSolution = getIOMRefiner(i)->getMatrix();
         
-        bool similar = IndexingSolution::matrixSimilarToMatrix(newSolution, oldSolution);
+        bool similar = IndexingSolution::matrixSimilarToMatrix(newSolution, oldSolution, true);
         
         if (similar)
             return true;
@@ -1367,17 +1365,17 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     logged << "(" << filename << ") Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
     sendLog(LogLevelNormal);
  
-    bool similar = checkIndexingSolutionDuplicates(solutionPtr);
+    MatrixPtr solutionMatrix = solutionPtr->createSolution();
+    bool similar = checkIndexingSolutionDuplicates(solutionMatrix);
     
     if (similar)
     {
         logged << "Indexing solution too similar to previous solution. Continuing..." << std::endl;
         sendLog(LogLevelNormal);
         
-        return IndexingSolutionTrialFailure;
+        return IndexingSolutionTrialDuplicate;
     }
     
-    MatrixPtr solutionMatrix = solutionPtr->createSolution();
     bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     bool refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
     
@@ -1392,6 +1390,17 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     if (refineOrientations)
     {
         refiner->refineOrientationMatrix();
+        bool similar = checkIndexingSolutionDuplicates(refiner->getMatrix(), true);
+        
+        if (similar)
+        {
+            removeRefiner(lastRefiner);
+            
+            logged << "Indexing solution too similar to previous solution after refinement. Continuing..." << std::endl;
+            sendLog(LogLevelNormal);
+            
+            return IndexingSolutionTrialDuplicate;
+        }
     }
     else
     {
@@ -1478,6 +1487,12 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
     if (added >= minimumSolutionNetworkCount)
     {
         IndexingSolutionStatus success = tryIndexingSolution(solutionPtr);
+        
+        if (!success)
+        {
+            this->spotVectors = newVectors;
+        }
+        
         return success;
     }
     
@@ -1521,11 +1536,11 @@ void Image::findIndexingSolutions()
     
     bool continuing = true;
     
-    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 2000 && continuing && indexingFailureCount < 10; i++)
+    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000 && continuing && indexingFailureCount < 10; i++)
     {
         SpotVectorPtr spotVector1 = spotVectors[i];
         
-        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 2000 && continuing && indexingFailureCount < 10; j++)
+        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 1000 && continuing && indexingFailureCount < 10; j++)
         {
             SpotVectorPtr spotVector2 = spotVectors[j];
             
@@ -1541,8 +1556,12 @@ void Image::findIndexingSolutions()
                 if (success == IndexingSolutionTrialSuccess)
                 {
                     logged << "Indexing solution trial success." << std::endl;
-                    continuing = false;
-                    break;
+                    
+                    if (spots.size() < 100 || true)
+                    {
+                        continuing = false;
+                        break;
+                    }
                 }
                 else if (success == IndexingSolutionTrialFailure)
                 {
