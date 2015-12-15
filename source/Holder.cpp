@@ -456,7 +456,7 @@ double Reflection::mergeSigma()
     
     double weights = 0;
     double sumSquares = 0;
-    double count = 0;
+    int count = 0;
     
     for (int i = 0; i < millers.size(); i++)
     {
@@ -475,10 +475,11 @@ double Reflection::mergeSigma()
     double error = stdev / sqrt(count);
     
     if (count == 1)
-        error = sqrt(sumSquares);
+        error = sqrt(mean);
     
     if (count == 0)
         return nan(" ");
+    
     
     return error;
 }
