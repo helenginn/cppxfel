@@ -350,4 +350,13 @@ vec Spot::estimatedVector()
     return reciprocalCrystalVec;
 }
 
+std::string Spot::spotLine()
+{
+    std::ostringstream line;
+    
+    line << x << "\t" << y << std::endl;
+    
+    return line.str();
+}
+
 

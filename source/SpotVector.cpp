@@ -9,6 +9,14 @@
 #include "SpotVector.h"
 #include "Matrix.h"
 
+double SpotVector::distanceDifference(SpotVectorPtr standardVector)
+{
+    double standardDistance = standardVector->distance();
+    double diff = fabs(standardDistance - distance());
+    
+    return diff;
+}
+
 double SpotVector::trustComparedToStandardVector(SpotVectorPtr standardVector)
 {
     double standardDistance = standardVector->distance();
@@ -25,6 +33,7 @@ SpotVector::SpotVector(vec transformedHKL, vec normalHKL)
     update = false;
     hkl = normalHKL;
     spotDiff = copy_vector(transformedHKL);
+    cachedDistance = length_of_vector(spotDiff);
 }
 
 SpotVector::SpotVector(SpotPtr first, SpotPtr second)
@@ -46,6 +55,7 @@ void SpotVector::calculateDistance()
     
     spotDiff = copy_vector(secondVector);
     take_vector_away_from_vector(firstVector, &spotDiff);
+    cachedDistance = length_of_vector(spotDiff);
 }
 
 double SpotVector::distance()
@@ -56,7 +66,12 @@ double SpotVector::distance()
         update = false;
     }
     
-    return length_of_vector(spotDiff);
+    return cachedDistance;
+}
+
+double SpotVector::angleWithVector(SpotVectorPtr spotVector2)
+{
+    return angleBetweenVectors(spotVector2->spotDiff, spotDiff);
 }
 
 double SpotVector::angleWithVector(SpotVectorPtr spotVector2, MatrixPtr mat)

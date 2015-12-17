@@ -413,7 +413,10 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
                                       wavelength, bandwidth, 1.5);
         
         if (i == 0)
+        {
             logged << "Calculated partiality with parameters: hRot " << hRot << ", kRot " << kRot << ", spot size " << testSpotSize << ", wavelength " << wavelength << ", bandwidth " << bandwidth << std::endl;
+            sendLog(LogLevelDebug);
+        }
         
         if (miller->getPartiality() <= 0.05)
         {
@@ -601,8 +604,8 @@ int IOMRefiner::getTotalReflections()
 
 bool IOMRefiner::millerWithinBandwidth(MillerPtr miller)
 {
-    double minBandwidth = image->getWavelength() * (1 - testBandwidth);
-    double maxBandwidth = image->getWavelength() * (1 + testBandwidth);
+    double minBandwidth = image->getWavelength() * (1 - testBandwidth * 2);
+    double maxBandwidth = image->getWavelength() * (1 + testBandwidth * 2);
     
     double wavelength = miller->getWavelength();
     
@@ -857,7 +860,9 @@ double IOMRefiner::medianIntensity()
 double IOMRefiner::score(int whichAxis, bool silent)
 {
     if (refinement == RefinementTypeDetectorWavelength)
-        return 0 - getTotalReflections();
+    {
+        return 0 - getTotalReflectionsWithinBandwidth();
+    }
     
     if (refinement == RefinementTypeOrientationMatrixEarly || refinement == RefinementTypeOrientationMatrixEarlySeparated)
     {

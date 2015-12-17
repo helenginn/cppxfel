@@ -55,6 +55,8 @@ public:
     vec estimatedVector();
     void setUpdate();
     
+    std::string spotLine();
+    
     void setRejected(bool isRejected = true)
     {
         rejected = isRejected;

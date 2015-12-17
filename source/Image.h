@@ -82,6 +82,7 @@ public:
     void incrementOverlapMask(int x, int y, ShoeboxPtr shoebox);
     void incrementOverlapMask(int x, int y);
     void processSpotList();
+    void writeSpotsList(std::string spotFile = "");
     
     unsigned char overlapAt(int x, int y);
     unsigned char maximumOverlapMask(int x, int y, ShoeboxPtr shoebox);
@@ -115,6 +116,17 @@ public:
 	{
 		this->filename = filename;
 	}
+    
+    std::string getBasename()
+    {
+        int fullStopIndex = (int)filename.rfind(".");
+        if (fullStopIndex == std::string::npos)
+            return filename;
+        
+        std::string basename = filename.substr(0, fullStopIndex);
+        
+        return basename;
+    }
     
     std::string getSpotsFile()
     {

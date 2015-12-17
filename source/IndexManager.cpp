@@ -153,11 +153,21 @@ bool IndexManager::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
         for (int l = 0; l < newReflection->ambiguityCount(); l++)
         {
             MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
-            mat3->preMultiply(*symOperator);
-            mat3->preMultiply(*ambiguity);
+            mat3->getRotation()->preMultiply(*symOperator);
+            mat3->getRotation()->preMultiply(*ambiguity);
             
             double radianSpread = solutionAngleSpread * M_PI / 180;
-            double angle = mat1->similarityToRotationMatrix(mat3, radianSpread);
+            double angle = mat1->similarityToRotationMatrix(mat3, radianSpread, true);
+            
+            double theta, phi, psi;
+            mat3->eulerAngles(&theta, &phi, &psi);
+            
+            double theta2, phi2, psi2;
+            mat1->eulerAngles(&theta2, &phi2, &psi2);
+            
+         //   logged << "Similarity angle: " << angle << " for angles (" << theta << ", " << phi << ", " << psi << ") and (" << theta2 << ", " << phi2 << ", " << psi2 << ")" << std::endl;
+         //   Logger::mainLogger->addStream(&logged);
+
             
             if (angle < radianSpread && angle != -1)
             {
@@ -597,9 +607,10 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                 finished = true;
         }
         
-        logged << "Finishing image " << i << " on " << image->IOMRefinerCount() << " crystals." << std::endl;
+        logged << "Finishing image " << i << " on " << image->IOMRefinerCount() << " crystals and " << image->spotCount() << " spots." << std::endl;
         Logger::mainLogger->addStream(&logged); logged.str("");
 
+        image->writeSpotsList();
         image->dropImage();
     }
 }

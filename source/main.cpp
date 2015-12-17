@@ -1,3 +1,5 @@
+//#define BOOST_DISABLE_ASSERTS
+
 #include <iostream>
 #include <string>
 

@@ -6,6 +6,7 @@
 //  Copyright (c) 2015 Division of Structural Biology Oxford. All rights reserved.
 //
 
+
 #include "IndexingSolution.h"
 #include "FileParser.h"
 #include "Logger.h"
@@ -19,7 +20,8 @@ int IndexingSolution::maxMillerIndexTrial = 4;
 MatrixPtr IndexingSolution::unitCellOnly;
 MatrixPtr IndexingSolution::unitCellMatrix;
 MatrixPtr IndexingSolution::unitCellMatrixInverse;
-double IndexingSolution::distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);;
+double IndexingSolution::distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
+double IndexingSolution::distanceToleranceReciprocal = 1 / FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
 double IndexingSolution::angleTolerance = FileParser::getKey("MINIMUM_TRUST_ANGLE", 1.0) * M_PI / 180;
 double IndexingSolution::solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0) * M_PI / 180;
 std::vector<MatrixPtr> IndexingSolution::symOperators;
@@ -133,16 +135,8 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
     return false;
 }
 
-bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2, MatrixPtr symOperator)
-{
-    double standardAngle = standard1->angleWithVector(standard2);
-    double realAngle = firstObserved->angleWithVector(secondObserved);
-    
-    double difference = fabs(realAngle - standardAngle);
-    
-    if (difference > angleTolerance)
-        return false;
-    
+bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2)
+{/*
     double firstVectorTrust = firstObserved->trustComparedToStandardVector(standard1);
     
     if (firstVectorTrust < distanceTolerance)
@@ -151,6 +145,24 @@ bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, Spot
     double secondVectorTrust = secondObserved->trustComparedToStandardVector(standard2);
     
     if (secondVectorTrust < distanceTolerance)
+        return false;*/
+    
+    double firstVectorDistance = firstObserved->distanceDifference(standard1);
+    
+    if (firstVectorDistance > distanceToleranceReciprocal)
+        return false;
+
+    double secondVectorDistance = secondObserved->distanceDifference(standard2);
+    
+    if (secondVectorDistance > distanceToleranceReciprocal)
+        return false;
+
+    double standardAngle = standard1->angleWithVector(standard2);
+    double realAngle = firstObserved->angleWithVector(secondObserved);
+    
+    double difference = fabs(realAngle - standardAngle);
+    
+    if (difference > angleTolerance)
         return false;
     
     return true;
@@ -179,10 +191,6 @@ bool IndexingSolution::allVectorMatches(SpotVectorPtr firstVector, SpotVectorPtr
                     
                     if (difference < angleTolerance)
                     {
-                  /*      std::ostringstream logged;
-                        logged << "Pair matched trust, trust, angle diff:\t" << firstVectorTrust << "\t" << secondVectorTrust << "\t" << difference << std::endl;
-                        Logger::mainLogger->addStream(&logged, LogLevelDebug);
-                    */    
                         firstMatches->push_back(standardVectors[i]);
                         secondMatches->push_back(standardVectors[j]);
                         
@@ -408,7 +416,7 @@ bool IndexingSolution::vectorAgreesWithExistingVectors(SpotVectorPtr observedVec
     {
         SpotVectorPtr myVector = it->first;
         
-        bool similar = vectorPairLooksLikePair(it->first, observedVector, it->second, standardVector, MatrixPtr(new Matrix()));
+        bool similar = vectorPairLooksLikePair(it->first, observedVector, it->second, standardVector);
         
         if (!similar)
             return false;
@@ -542,65 +550,6 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
     }
     
     return added;
-}
-
-IndexingSolutionPtr IndexingSolution::mergeWithSolution(IndexingSolutionPtr otherSolution)
-{
- /*   if (!solutionCompatibleForMerge(otherSolution))
-    {
-        return IndexingSolutionPtr();
-    }
-   */ 
-    bool hadCommonSpot = false;
-    
-    for (int i = 0; i < newReflection->ambiguityCount(); i++)
-    {
-        MatrixPtr ambiguity = newReflection->matrixForAmbiguity(i);
-        
-        for (int j = 0; j < symOperators.size(); j++)
-        {
-            MatrixPtr symOperator = symOperators[j]->copy();
-            
-            symOperator->multiply(*ambiguity);
-            
-            for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
-            {
-                bool allGood = true;
-                
-                for (SpotVectorMap::iterator it2 = otherSolution->spotVectors.begin(); it2 != otherSolution->spotVectors.end() && allGood; it2++)
-                {
-                    SpotVectorPtr myVector = it->first;
-                    SpotVectorPtr herVector = it2->first;
-                    
-                    if (myVector->hasCommonSpotWithVector(herVector))
-                    {
-                        hadCommonSpot = true;
-                    }
-                    
-                    if (!vectorPairLooksLikePair(myVector, herVector, it->second, it2->second, symOperator))
-                    {
-                        allGood = false;
-                        break;
-                    }
-                }
-                
-                if (!hadCommonSpot && spotVectors.size() < 3 && otherSolution->spotVectorCount() < 3)
-                    continue;
-                
-                if (allGood)
-                {
-                    IndexingSolutionPtr newSolution = IndexingSolutionPtr(new IndexingSolution(spotVectors, otherSolution->spotVectors, matrices, otherSolution->matrices, symOperator));
-                    
-                    logged << "Merging solution (" << spotVectors.size()  << " + " << otherSolution->spotVectors.size() << ") -> " << newSolution->spotVectorCount() << " sym " << j << std::endl;
-                    sendLog(LogLevelDebug);
-                    
-                    return newSolution;
-                }
-            }
-        }
-    }
-    
-    return IndexingSolutionPtr();
 }
 
 IndexingSolution::IndexingSolution(SpotVectorMap firstMap, SpotVectorMap secondMap, SpotVectorMatrixMap2D matrixMap1, SpotVectorMatrixMap2D matrixMap2, MatrixPtr symOperator)

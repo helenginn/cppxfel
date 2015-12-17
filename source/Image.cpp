@@ -455,7 +455,7 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
             if (!accepted(panelPixelX, panelPixelY))
             {
                 std::ostringstream logged;
-                logged << "Rejecting miller - pixel not acceptable" << std::endl;
+                logged << "Rejecting miller at (" << panelPixelX << ", " << panelPixelY << ") - pixel not acceptable" << std::endl;
                 Logger::mainLogger->addStream(&logged, LogLevelDebug);
                 return false;
             }
@@ -810,7 +810,11 @@ bool Image::accepted(int x, int y)
         double value = valueAt(x, y);
         
         if (value == maskedValue)
+        {
+            logged << "Masking value at " << x << ", " << y << std::endl;
+            sendLog(LogLevelDebug);
             return false;
+        }
     }
     
     Coord coord = std::make_pair(x, y);
@@ -1535,6 +1539,8 @@ void Image::findIndexingSolutions()
     sendLog();
     
     bool continuing = true;
+    int successes = 0;
+    int maxSuccesses = FileParser::getKey("SOLUTION_ATTEMPTS", 1);
     
     for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000 && continuing && indexingFailureCount < 10; i++)
     {
@@ -1556,8 +1562,9 @@ void Image::findIndexingSolutions()
                 if (success == IndexingSolutionTrialSuccess)
                 {
                     logged << "Indexing solution trial success." << std::endl;
+                    successes++;
                     
-                    if (spots.size() < 100 || true)
+                    if (spots.size() < 20 || successes >= maxSuccesses)
                     {
                         continuing = false;
                         break;
@@ -1575,160 +1582,11 @@ void Image::findIndexingSolutions()
         }
     }
     
-    logged << "Finished image " << filename << std::endl;
+    logged << "Finished image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
     sendLog();
     
-    /*
-    logged << "Total starting solutions: " << solutions.size() << std::endl;
-    sendLog();
-    
-    bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
-    
-    std::vector<IndexingSolutionPtr> newSolutions = solutions;
-    std::vector<MatrixPtr> previousSolutions;
-    std::vector<IndexingSolutionPtr> trialSolutions;
-    
-    double passed = 0;
-    
-    for (int i = 0; i < solutions.size(); i++)
-    {
-        double progress = ((double)i / (double)solutions.size()) * 100;
-        
-        if (progress > passed)
-        {
-            passed += 5;
-            logged << passed << "%... ";
-            sendLog(LogLevelDetailed);
-        }
-        
-        std::vector<SpotVectorPtr> newVectors = spotVectors;
-        
-        int added = 1;
-        
-        while (added > 0)
-        {
-            added = solutions[i]->extendFromSpotVectors(&newVectors);
-            
-            logged << "Added " << added << " vectors (now " << solutions[i]->spotVectorCount() << ")." << std::endl;
-            sendLog(LogLevelDebug);
-        }
-        
-        trialSolutions.push_back(solutions[i]);
-    }
-    
-    logged << std::endl;
-    sendLog(LogLevelDetailed);
-    
-    std::sort(trialSolutions.begin(), trialSolutions.end(), solutionBetterThanSolution);
-    
-    for (int i = 0; i < 5 && i < trialSolutions.size(); i++)
-    {
-        MatrixPtr solutionMatrix = trialSolutions[i]->createSolution();
-        
-        if (!solutionMatrix)
-            continue;
-        
-        bool giveUp = false;
-        
-        for (int j = 0; j < previousSolutions.size(); j++)
-        {
-            if (IndexingSolution::matrixSimilarToMatrix(previousSolutions[j], solutionMatrix))
-            {
-                giveUp = true;
-            }
-        }
-        
-        logged << "Trying solution from " << trialSolutions[i]->spotVectorCount() << " vectors." << std::endl;
-        sendLog(LogLevelDetailed);
-        
-        if (giveUp)
-            continue;
-        
-        logged << trialSolutions[i]->printNetwork();
-        sendLog(LogLevelDetailed);
-        
-        setUpIOMRefiner(solutionMatrix);
-        int lastRefiner = IOMRefinerCount() - 1;
-        IOMRefinerPtr refiner = getIOMRefiner(lastRefiner);
-        if (true)
-        {
-            refiner->refineOrientationMatrix();
-        }
-        else
-        {
-            refiner->calculateOnce();
-        }
-        
-        bool successfulImage = refiner->isGoodSolution();
-        
-        if (successfulImage || acceptAllSolutions)
-        {
-            logged << "Successful crystal for " << getFilename() << std::endl;
-            MtzPtr mtz = refiner->newMtz(lastRefiner);
-            mtz->removeStrongSpots(&spots);
-            compileDistancesFromSpots();
-            Logger::mainLogger->addStream(&logged); logged.str("");
-            //    successes++;
-            previousSolutions.push_back(solutionMatrix);
-        }
-        else
-        {
-            logged << "Unsuccessful crystal for " << getFilename() << std::endl;
-            removeRefiner(lastRefiner);
-            Logger::mainLogger->addStream(&logged); logged.str("");
-        }
-    }
-
- 
-     while (continuing && count < 50)
-     {
-     continuing = false;
-     count++;
- 
-     int limit = (count == 0) ? (int)solutions.size() : (int)solutions.size();
- 
-     for (int i = 0; i < solutions.size() - 1 && i < limit; i++)
-     {
-     IndexingSolutionPtr solution1 = solutions[i];
-     
-     for (int j = i + 1; j < solutions.size() && j < limit; j++)
-     {
-     IndexingSolutionPtr solution2 = solutions[j];
-     
-     IndexingSolutionPtr merged = solution1->mergeWithSolution(solution2);
-     
-     if (!merged)
-     continue;
-     
-     continuing = true;
-     newSolutions.push_back(merged);
-     
-     sendLog(LogLevelDebug);
-     
-     break;
-     }
-     }
-     
-     if (count == 0)
-     solutions.clear();
-     
-     solutions.reserve(newSolutions.size() + solutions.size());
-     solutions.insert(solutions.end(), newSolutions.begin(), newSolutions.end());
-     
-     std::sort(solutions.begin(), solutions.end(), solutionBetterThanSolution);
-     
-     logged << "Now have " << solutions.size() << " solutions" << std::endl;
-     sendLog(LogLevelDebug);
-     }
-     
-     std::sort(solutions.begin(), solutions.end(), solutionBetterThanSolution);
-     
-     for (int i = 0; i < solutions.size(); i++)
-     {
-     std::cout << solutions[i]->printNetwork() << std::endl;
-     }
-     
-     solutions[0]->mergeWithSolution(solutions[1]);*/
+    writeSpotsList();
+    dropImage();
 }
 
 std::vector<MtzPtr> Image::getLastMtzs()
@@ -1746,4 +1604,30 @@ std::vector<MtzPtr> Image::getLastMtzs()
     }
     
     return mtzs;
+}
+
+void Image::writeSpotsList(std::string spotFile)
+{
+    std::string spotDat;
+    
+    if (spotFile == "")
+    {
+        std::string tag = "remaining";
+        std::string basename = getBasename();
+        
+        spotFile = "_" + basename + "_" + tag + "_spots.list";
+        spotDat = basename + "_spots.dat";
+    }
+    
+    std::ofstream spotList;
+    spotList.open(spotFile);
+    
+    for (int i = 0; i < spotCount(); i++)
+    {
+        spotList << spot(i)->spotLine();
+    }
+    
+    spotList.close();
+    
+    Spot::writeDatFromSpots(spotDat, spots);
 }
