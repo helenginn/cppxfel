@@ -117,6 +117,7 @@ public:
     double determinant();
     Matrix operator*=(Matrix &b);
     Matrix operator*(Matrix &b);
+    Matrix testMultiply(Matrix &b);
     double &operator[](int index) {return components[index]; };
 };
 

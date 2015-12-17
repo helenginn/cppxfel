@@ -101,7 +101,8 @@ vec perpendicular_for_vectors(vec vec1, vec vec2)
 
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
 {
-    MatrixPtr matrix = MatrixPtr(new Matrix());
+   // MatrixPtr matrix = MatrixPtr(new Matrix());
+    Matrix matrix;
     
     // Find closest angle between vectors (straightest sweep between the two)
     double cosine = cosineBetweenVectors(vec1, vec2);
@@ -111,18 +112,18 @@ MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
     
     double angle = acos(cosine);
     
-    matrix->rotateRoundUnitVector(crossVector, angle);
+    matrix.rotateRoundUnitVector(crossVector, angle);
     
     return matrix;
 }
 
-MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle)
+Matrix closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle)
 {
     bool close = false;
     
     // we want to minimise the angle between the vectors rotating round chosen axis. This is the starting value
     double lastAngle = fabs(angleBetweenVectors(vec1, vec2));
-    MatrixPtr mat = MatrixPtr(new Matrix());
+    Matrix mat = Matrix();
     
     // we step by this amount on each iteration.
     double step = 0.5 * M_PI / 180;
@@ -137,9 +138,9 @@ MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, do
     
     while (!close && cycles < 5000000)
     {
-        mat->rotateRoundUnitVector(chosenCrossProduct, step);
+        mat.rotateRoundUnitVector(chosenCrossProduct, step);
         vec vec1Copy = copy_vector(vec1);
-        mat->multiplyVector(&vec1Copy);
+        mat.multiplyVector(&vec1Copy);
         double angleDiff = fabs(angleBetweenVectors(vec1Copy, vec2)); // checked
         
         if (angleDiff > lastAngle)
