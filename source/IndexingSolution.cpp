@@ -123,7 +123,7 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
             mat1->eulerAngles(&theta2, &phi2, &psi2);
             
             logged << "Similarity angle: " << angle << " for angles (" << theta << ", " << phi << ", " << psi << ") and (" << theta2 << ", " << phi2 << ", " << psi2 << ")" << std::endl;
-            Logger::mainLogger->addStream(&logged);
+            Logger::mainLogger->addStream(&logged, LogLevelDebug);
             
             if (angle < solutionAngleSpread * 2.5 && angle != -1)
             {

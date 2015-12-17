@@ -1492,10 +1492,7 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
     {
         IndexingSolutionStatus success = tryIndexingSolution(solutionPtr);
         
-        if (!success)
-        {
-            this->spotVectors = newVectors;
-        }
+        this->spotVectors = newVectors;
         
         return success;
     }
@@ -1582,7 +1579,7 @@ void Image::findIndexingSolutions()
         }
     }
     
-    logged << "Finished image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
+    logged << "N: Finished image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
     sendLog();
     
     writeSpotsList();
