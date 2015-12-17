@@ -101,8 +101,8 @@ vec perpendicular_for_vectors(vec vec1, vec vec2)
 
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
 {
-   // MatrixPtr matrix = MatrixPtr(new Matrix());
-    MatrixPtr matrix;
+    MatrixPtr matrix = MatrixPtr(new Matrix());
+   // MatrixPtr matrix;
     
     // Find closest angle between vectors (straightest sweep between the two)
     double cosine = cosineBetweenVectors(vec1, vec2);
