@@ -19,6 +19,7 @@
 #include "Spot.h"
 #include "Vector.h"
 #include "IndexingSolution.h"
+#include "SuperGaussianBeam.h"
 
 Image::Image(std::string filename, double wavelength,
              double distance)
@@ -43,7 +44,7 @@ Image::Image(std::string filename, double wavelength,
     indexingFailureCount = 0;
     data = vector<int>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
-    vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
+    vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", vector<double>());
     
     shouldMaskValue = FileParser::hasKey("IMAGE_MASKED_VALUE");
     
@@ -52,14 +53,14 @@ Image::Image(std::string filename, double wavelength,
     
     detectorGain = FileParser::getKey("DETECTOR_GAIN", 1.0);
     
-    if (beam.size() == 0)
+    if (beamCentre.size() == 0)
     {
-        beam.push_back(BEAM_CENTRE_X);
-        beam.push_back(BEAM_CENTRE_Y);
+        beamCentre.push_back(BEAM_CENTRE_X);
+        beamCentre.push_back(BEAM_CENTRE_Y);
     }
     
-    beamX = beam[0];
-    beamY = beam[1];
+    beamX = beamCentre[0];
+    beamY = beamCentre[1];
     _hasSeeded = false;
     
     pinPoint = true;
@@ -81,6 +82,11 @@ Image::Image(std::string filename, double wavelength,
     this->wavelength = wavelength;
     detectorDistance = distance;
     this->fitBackgroundAsPlane = FileParser::getKey("FIT_BACKGROUND_AS_PLANE", false);
+    
+    double exponent = FileParser::getKey("INITIAL_EXPONENT", 1.5);
+    double bandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH", 0.03);
+    
+    beam = BeamPtr(new SuperGaussianBeam(wavelength, bandwidth, exponent));
     
     pixelCountCutoff = FileParser::getKey("PIXEL_COUNT_CUTOFF", 0);
 }

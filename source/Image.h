@@ -36,6 +36,7 @@ private:
     vector<unsigned char> overlapMask;
 	void loadImage();
     vector<IOMRefinerPtr> indexers;
+    BeamPtr beam;
     bool shouldMaskValue;
     bool maskedValue;
     bool fitBackgroundAsPlane;
@@ -166,6 +167,11 @@ public:
     void filterSpotVectors();
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     void updateAllSpots();
+    
+    BeamPtr getBeam()
+    {
+        return beam;
+    }
     
     void removeRefiner(int j)
     {

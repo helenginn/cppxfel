@@ -539,9 +539,9 @@ void Scaler::minimizeRMergeNelderMead()
         }
     }
     
-    NelderMead refiner(parameters, steps, this, &this->evaluateStatic);
-    refiner.setUnlimited(true);
-    refiner.process();
+  //  NelderMead refiner(parameters, steps, this, &this->evaluateStatic);
+  //  refiner.setUnlimited(true);
+  //  refiner.process();
 }
 
 void Scaler::minimizeRMergeLBFGS()

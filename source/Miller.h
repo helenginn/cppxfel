@@ -99,6 +99,7 @@ private:
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
     
     ImageWeakPtr image;
+    BeamPtr beam;
     IOMRefiner *indexer;
     ShoeboxPtr shoebox;
     boost::weak_ptr<Miller> selfPtr;
@@ -396,10 +397,11 @@ public:
 		this->shift = shift;
 	}
     
-    void setImageAndIOMRefiner(ImagePtr newImage, IOMRefiner *indexer)
+    void setImageAndIOMRefiner(ImagePtr newImage, IOMRefiner *indexer);
+    
+    void setBeam(BeamPtr newBeam)
     {
-        this->image = newImage;
-        this->indexer = indexer;
+        beam = newBeam;
     }
     
     ImagePtr getImage()

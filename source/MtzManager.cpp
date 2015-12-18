@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
+#include "SuperGaussianBeam.h"
 
 #include "definitions.h"
 #include "FileParser.h"
@@ -298,6 +299,8 @@ MtzManager::MtzManager(void)
     bandwidth = INITIAL_BANDWIDTH;
     hRot = 0;
     kRot = 0;
+    hRotStep = FileParser::getKey("STEP_SIZE_ORIENTATION", 0.06);
+    kRotStep = FileParser::getKey("STEP_SIZE_ORIENTATION", 0.06);
     aRot = 0;
     bRot = 0;
     cRot = 0;
@@ -353,6 +356,12 @@ MtzManager::MtzManager(void)
     toleranceExponent = EXPO_TOLERANCE;
     
     usingFixedWavelength = USE_FIXED_WAVELENGTH;
+    
+    double wavelength = 0;
+    double stdev = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double exponent = FileParser::getKey("INITIAL_EXPONENT", 1.5);
+    
+    beam = BeamPtr(new SuperGaussianBeam(wavelength, stdev, exponent));
     
     matrix = MatrixPtr();
 }
@@ -708,6 +717,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         miller->setPhase(phase);
         miller->setShift(std::make_pair(shiftX, shiftY));
         miller->matrix = this->matrix;
+        miller->setBeam(beam);
         
         Reflection *prevReflection;
         
@@ -1824,4 +1834,41 @@ void MtzManager::setParamLine(std::string line)
     
     finalised = true;
     setInitialValues = true;
+}
+
+std::vector<SetterFunction> MtzManager::getParamSetters()
+{
+    std::vector<SetterFunction> parameters;
+    
+    parameters.push_back(setHRot);
+    parameters.push_back(setKRot);
+    parameters.push_back(setRlpSize);
+    parameters.push_back(setWavelength);
+    
+    return parameters;
+}
+
+std::vector<double> MtzManager::getParamSteps()
+{
+    std::vector<double> steps;
+    
+    steps.push_back(hRotStep);
+    steps.push_back(kRotStep);
+    steps.push_back(stepSizeRlpSize);
+    steps.push_back(stepSizeWavelength);
+    
+    return steps;
+}
+
+
+std::vector<GetterFunction> MtzManager::getParamGetters()
+{
+    std::vector<GetterFunction> parameters;
+    
+    parameters.push_back(getHRot);
+    parameters.push_back(getKRot);
+    parameters.push_back(getRlpSize);
+    parameters.push_back(getWavelength);
+    
+    return parameters;
 }

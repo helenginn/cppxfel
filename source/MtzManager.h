@@ -7,6 +7,7 @@
 #include "csymlib.h"
 #include <vector>
 #include "Matrix.h"
+#include "RefineableObject.h"
 
 #include "Holder.h"
 #include "Miller.h"
@@ -42,7 +43,7 @@ typedef enum
 
 class Miller;
 
-class MtzManager
+class MtzManager : public RefineableObject
 {
 
 protected:
@@ -59,6 +60,7 @@ protected:
 
 	// minimisation stuff
 
+    BeamPtr beam;
 	vector<Reflection *> reflections;
 	vector<Reflection *> refReflections;
 	vector<Reflection *> matchReflections;
@@ -72,6 +74,8 @@ protected:
     RotationMode rotationMode;
 	double hRot;
 	double kRot;
+    double hRotStep;
+    double kRotStep;
     double aRot;
     double bRot;
     double cRot;
@@ -300,7 +304,8 @@ public:
 			double **params, int paramNum1, int paramNum2,
 			double (*score)(void *object, double lowRes, double highRes),
 			void *object, double lowRes, double highRes, double low);
-
+    
+    double findStartingWavelength();
     void denormaliseMillers();
     void makeSuperGaussianLookupTable(double exponent);
     
@@ -309,6 +314,15 @@ public:
     void flipToActiveAmbiguity();
     void resetFlip();
     void setAdditionalWeight(double weight);
+    void refine();
+    virtual std::vector<SetterFunction> getParamSetters();
+    virtual std::vector<GetterFunction> getParamGetters();
+    virtual std::vector<double> getParamSteps();
+    
+    BeamPtr getBeam()
+    {
+        return beam;
+    }
     
     double getDetectorDistance()
     {
@@ -696,6 +710,127 @@ public:
 	{
 		this->scale = scale;
 	}
+    
+    static void setHRot(void *object, double newH)
+    {
+        static_cast<MtzManager *>(object)->setHRot(newH);
+    }
+    
+    static double getHRot(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getHRot();
+    }
+    
+    static void setKRot(void *object, double newK)
+    {
+        static_cast<MtzManager *>(object)->setKRot(newK);
+    }
+    
+    static double getKRot(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getKRot();
+    }
+    
+    static void setMosaicity(void *object, double newMos)
+    {
+        static_cast<MtzManager *>(object)->setMosaicity(newMos);
+    }
+    
+    static double getMosaicity(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getMosaicity();
+    }
+
+    static void setRlpSize(void *object, double rlpSize)
+    {
+        static_cast<MtzManager *>(object)->setSpotSize(rlpSize);
+    }
+    
+    static double getRlpSize(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getSpotSize();
+    }
+    
+    static void setWavelength(void *object, double wavelength)
+    {
+        static_cast<MtzManager *>(object)->setWavelength(wavelength);
+    }
+    
+    static double getWavelength(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getWavelength();
+    }
+    
+    static void setBandwidth(void *object, double bandwidth)
+    {
+        static_cast<MtzManager *>(object)->setWavelength(bandwidth);
+    }
+    
+    static double getBandwidth(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getBandwidth();
+    }
+
+    static void setExponent(void *object, double exponent)
+    {
+        static_cast<MtzManager *>(object)->setWavelength(exponent);
+    }
+    
+    static double getExponent(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getExponent();
+    }
+    
+    static void setBFactor(void *object, double bFactor)
+    {
+        static_cast<MtzManager *>(object)->bFactor = bFactor;
+    }
+    
+    static double getBFactor(void *object)
+    {
+        return static_cast<MtzManager *>(object)->bFactor;
+    }
+    
+    static void setScaleFactor(void *object, double scaleFactor)
+    {
+        static_cast<MtzManager *>(object)->setScale(scaleFactor);
+    }
+    
+    static double getScaleFactor(void *object)
+    {
+        return 1;
+    }
+
+    static void setUnitCellA(void *object, double cell)
+    {
+        static_cast<MtzManager *>(object)->cellDim[0] = cell;
+    }
+    
+    static double getUnitCellA(void *object)
+    {
+        return static_cast<MtzManager *>(object)->cellDim[0];
+    }
+    
+    static void setUnitCellB(void *object, double cell)
+    {
+        static_cast<MtzManager *>(object)->cellDim[1] = cell;
+    }
+    
+    static double getUnitCellB(void *object)
+    {
+        return static_cast<MtzManager *>(object)->cellDim[1];
+    }
+    
+    static void setUnitCellC(void *object, double cell)
+    {
+        static_cast<MtzManager *>(object)->cellDim[2] = cell;
+    }
+    
+    
+    static double getUnitCellC(void *object)
+    {
+        return static_cast<MtzManager *>(object)->cellDim[1];
+    }
 };
 
 #endif

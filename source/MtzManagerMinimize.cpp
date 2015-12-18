@@ -10,6 +10,7 @@
 #include "MtzManager.h"
 #include "parameters.h"
 #include "GraphDrawer.h"
+#include "Beam.h"
 
 #include "NelderMead.h"
 
@@ -479,46 +480,118 @@ double MtzManager::minimizeParameter(double *meanStep, double **params,
 
 double MtzManager::minimize()
 {
+    int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 1);
+    MinimizationMethod method = (MinimizationMethod)miniMethod;
+    
+    if (method == MinimizationMethodNelderMead)
+    {
+        refine();
+        
+        return 1;
+    }
+    
     return minimize(exclusionScoreWrapper, this);
+}
+
+double MtzManager::findStartingWavelength()
+{
+    bool reinitialiseWavelength = FileParser::getKey("REINITIALISE_WAVELENGTH", false);
+    double myWavelength = 0;
+    
+    if (myWavelength == 0)
+    {
+        if (isUsingFixedWavelength())
+        {
+            myWavelength = getWavelength();
+            
+            if (myWavelength == 0)
+            {
+                myWavelength = FileParser::getKey("INITIAL_WAVELENGTH", 1.75);
+            }
+            
+            if (myWavelength == 0)
+            {
+                logged << "Warning: using fixed wavelength but wavelength is 0"
+                << std::endl;
+                sendLog();
+            }
+        }
+        else if (isUsingFixedWavelength() && reinitialiseWavelength)
+        {
+            myWavelength = FileParser::getKey("INITIAL_WAVELENGTH", 1.75);
+        }
+        else
+        {
+            myWavelength = bestWavelength(0, 0, false);
+            
+            if (this->isRejected())
+                return 0;
+            
+            if (finalised)
+                myWavelength = this->getWavelength();
+        }
+    }
+    
+    return myWavelength;
+}
+
+void MtzManager::refine()
+{
+    if (wavelength == 0)
+    {
+        wavelength = findStartingWavelength();
+        beam->setWavelength(wavelength);
+    }
+    
+    std::vector<SetterFunction> parameters;
+    
+    std::vector<SetterFunction> beamSetters = beam->getParamSetters();
+    std::vector<GetterFunction> beamGetters = beam->getParamGetters();
+    std::vector<double> beamSteps = beam->getParamSteps();
+    
+    std::vector<SetterFunction> crystalSetters = this->getParamSetters();
+    std::vector<GetterFunction> crystalGetters = this->getParamGetters();
+    std::vector<double> crystalSteps = this->getParamSteps();
+    
+    int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 1);
+    MinimizationMethod method = (MinimizationMethod)miniMethod;
+    
+    if (method == MinimizationMethodNelderMead)
+    {
+        std::vector<SetterFunction> setterPtrs;
+        std::vector<GetterFunction> getterPtrs;
+        std::vector<double> steps;
+        
+        setterPtrs.reserve(beamSetters.size() + crystalSetters.size());
+        setterPtrs.insert(setterPtrs.end(), beamSetters.begin(), beamSetters.end());
+        setterPtrs.insert(setterPtrs.end(), crystalSetters.begin(), crystalSetters.end());
+        
+        getterPtrs.reserve(beamGetters.size() + crystalGetters.size());
+        getterPtrs.insert(getterPtrs.end(), beamGetters.begin(), beamGetters.end());
+        getterPtrs.insert(getterPtrs.end(), crystalGetters.begin(), crystalGetters.end());
+        
+        steps.reserve(beamSteps.size() + crystalSteps.size());
+        steps.insert(steps.end(), beamSteps.begin(), beamSteps.end());
+        steps.insert(steps.end(), crystalSteps.begin(), crystalSteps.end());
+        
+        NelderMead refiner(setterPtrs, getterPtrs, steps, this, &this->scoreNelderMead);
+        refiner.process();
+    }
+    
+    double correl = correlation(true);
+    this->refCorrelation = correl;
 }
 
 double MtzManager::minimize(double (*score)(void *object, double lowRes, double highRes), void *object)
 {
-    double wavelength = 0;
-    
-    bool reinitialiseWavelength = FileParser::getKey("REINITIALISE_WAVELENGTH", false);
-    double minResolution = FileParser::getKey("MIN_REFINED_RESOLUTION", 0.0);
-    
-    if (isUsingFixedWavelength())
-    {
-        wavelength = this->getWavelength();
-        
-        if (wavelength == 0)
-        {
-            std::cout << "Warning: using fixed wavelength but wavelength is 0"
-            << std::endl;
-        }
-    }
-    else if (isUsingFixedWavelength() && reinitialiseWavelength)
-    {
-        wavelength = FileParser::getKey("INITIAL_WAVELENGTH", 1.75);
-    }
-    else
-    {
-        wavelength = bestWavelength(0, 0, false);
-        
-        if (this->isRejected())
-            return 0;
-        
-        if (finalised)
-            wavelength = this->getWavelength();
-    }
+    double wavelength = findStartingWavelength();
     
     bandwidth = this->getBandwidth();
     double stepSizeOrientABC = FileParser::getKey("STEP_SIZE_ORIENTATION_ABC", 0.2);
     
     int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 1);
     MinimizationMethod method = (MinimizationMethod)miniMethod;
+    double minResolution = FileParser::getKey("MIN_REFINED_RESOLUTION", 0.0);
     
     if (method == MinimizationMethodStepSearch)
     {
@@ -730,39 +803,49 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     }
     else if (method == MinimizationMethodNelderMead)
     {
-        std::vector<double *>paramPtrs;
-        paramPtrs.resize(PARAM_NUM);
-        
         if (this->wavelength == 0)
             this->wavelength = wavelength;
-        
         
         bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
         bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
         bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
         
-        paramPtrs[PARAM_HROT] = optimisingOrientation && (rotationMode != RotationModeUnitCellABC) ? &this->hRot : NULL;
-        paramPtrs[PARAM_KROT] = optimisingOrientation && (rotationMode != RotationModeUnitCellABC) ? &this->kRot : NULL;
-        paramPtrs[PARAM_AROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->aRot : NULL;
-        paramPtrs[PARAM_BROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->bRot : NULL;
-        paramPtrs[PARAM_CROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->cRot : NULL;
-        /*
-        paramPtrs[PARAM_HROT] = optimisingOrientation ? &this->hRot : NULL;
-        paramPtrs[PARAM_KROT] = optimisingOrientation ? &this->kRot : NULL;
-        paramPtrs[PARAM_AROT] = optimisingOrientation ? &this->aRot : NULL;
-        paramPtrs[PARAM_BROT] = optimisingOrientation ? &this->bRot : NULL;
-        paramPtrs[PARAM_CROT] = optimisingOrientation ? &this->cRot : NULL;
-        */
-        paramPtrs[PARAM_MOS] = optimisingMosaicity ? &this->mosaicity : NULL;
-        paramPtrs[PARAM_SPOT_SIZE] = optimisingRlpSize ? &this->spotSize : NULL;
-        paramPtrs[PARAM_WAVELENGTH] = optimisingWavelength ? &this->wavelength : NULL;
-        paramPtrs[PARAM_BANDWIDTH] = optimisingBandwidth ? &this->bandwidth : NULL;
-        paramPtrs[PARAM_B_FACTOR] = NULL;
-        paramPtrs[PARAM_SCALE_FACTOR] = NULL;
-        paramPtrs[PARAM_EXPONENT] = optimisingExponent ? &this->exponent : NULL;
-        paramPtrs[PARAM_UNIT_CELL_A] = optimisingUnitCellA ? &this->cellDim[0] : NULL;
-        paramPtrs[PARAM_UNIT_CELL_B] = optimisingUnitCellB ? &this->cellDim[1] : NULL;
-        paramPtrs[PARAM_UNIT_CELL_C] = optimisingUnitCellC ? &this->cellDim[2] : NULL;
+        std::vector<GetterFunction> getterPtrs;
+        std::vector<SetterFunction> setterPtrs;
+        setterPtrs.resize(PARAM_NUM);
+        getterPtrs.resize(PARAM_NUM);
+        
+        for (int i = 0; i < setterPtrs.size(); i++)
+        {
+            setterPtrs[i] = NULL;
+            getterPtrs[i] = NULL;
+        }
+        
+        setterPtrs[PARAM_HROT] = setHRot;
+        setterPtrs[PARAM_HROT] = setKRot;
+        setterPtrs[PARAM_MOS] = setMosaicity;
+        setterPtrs[PARAM_SPOT_SIZE] = setRlpSize;
+        setterPtrs[PARAM_WAVELENGTH] = setWavelength;
+        setterPtrs[PARAM_BANDWIDTH] = setBandwidth;
+        setterPtrs[PARAM_B_FACTOR] = setBFactor;
+        setterPtrs[PARAM_SCALE_FACTOR] = setScaleFactor;
+        setterPtrs[PARAM_EXPONENT] = setExponent;
+        setterPtrs[PARAM_UNIT_CELL_A] = setUnitCellA;
+        setterPtrs[PARAM_UNIT_CELL_A] = setUnitCellB;
+        setterPtrs[PARAM_UNIT_CELL_A] = setUnitCellC;
+        
+        getterPtrs[PARAM_HROT] = getHRot;
+        getterPtrs[PARAM_HROT] = getKRot;
+        getterPtrs[PARAM_MOS] = getMosaicity;
+        getterPtrs[PARAM_SPOT_SIZE] = getRlpSize;
+        getterPtrs[PARAM_WAVELENGTH] = getWavelength;
+        getterPtrs[PARAM_BANDWIDTH] = getBandwidth;
+        getterPtrs[PARAM_B_FACTOR] = getBFactor;
+        getterPtrs[PARAM_SCALE_FACTOR] = getScaleFactor;
+        getterPtrs[PARAM_EXPONENT] = getExponent;
+        getterPtrs[PARAM_UNIT_CELL_A] = getUnitCellA;
+        getterPtrs[PARAM_UNIT_CELL_A] = getUnitCellB;
+        getterPtrs[PARAM_UNIT_CELL_A] = getUnitCellC;
         
         std::vector<double> ranges;
         ranges.resize(PARAM_NUM);
@@ -770,7 +853,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         double *firstRange = &(*ranges.begin());
         getSteps(&firstRange);
         
-        NelderMead refiner(paramPtrs, ranges, this, &this->scoreNelderMead);
+        NelderMead refiner(setterPtrs, getterPtrs, ranges, this, &this->scoreNelderMead);
         refiner.process();
     }
     

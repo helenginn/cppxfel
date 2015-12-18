@@ -24,7 +24,8 @@ private:
     double sigma;
     bool unlimited;
     
-    std::vector<double *> paramPtrs;
+    std::vector<SetterFunction> setterPtrs;
+    std::vector<GetterFunction> getterPtrs;
     std::vector<TestPoint> testPoints;
     std::ostringstream logged;
     double (*evaluationFunction)(void *object);
@@ -48,7 +49,7 @@ private:
     void scalePoint(std::vector<double> *point, double scale);
     void subtractPoints(std::vector<double> *point, std::vector<double> pointToSubtract);
 public:
-    NelderMead(std::vector<double *> newParamPtrs, std::vector<double> expectedRanges, void *object, double (*score)(void *object));
+    NelderMead(std::vector<SetterFunction> newSetterPtrs, std::vector<GetterFunction> newGetterPtrs, std::vector<double> expectedRanges, void *object, double (*score)(void *object));
     void process();
     
     void setUnlimited(bool newLimited)
@@ -58,7 +59,7 @@ public:
     
     int paramCount()
     {
-        return (int)paramPtrs.size();
+        return (int)setterPtrs.size();
     }
     
     void sendLog(LogLevel logLevel = LogLevelDetailed);

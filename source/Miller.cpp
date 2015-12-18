@@ -7,6 +7,7 @@
 
 #include "Panel.h"
 #include "Miller.h"
+#include "Beam.h"
 
 #include "definitions.h"
 #include "Vector.h"
@@ -91,8 +92,19 @@ double Miller::superGaussian(double bandwidth, double mean,
 double Miller::integrate_beam_slice(double pBandwidth, double qBandwidth, double mean,
                                    double sigma, double exponent)
 {
-    double pValue = superGaussian(pBandwidth, mean, sigma, exponent);
-    double qValue = superGaussian(qBandwidth, mean, sigma, exponent);
+    double pValue = 0;
+    double qValue = 0;
+    
+    if (beam && false)
+    {
+        pValue = beam->brightnessAtWavelength(pBandwidth);
+        qValue = beam->brightnessAtWavelength(qBandwidth);
+    }
+    else
+    {
+        pValue = superGaussian(pBandwidth, mean, sigma, exponent);
+        qValue = superGaussian(qBandwidth, mean, sigma, exponent);
+    }
     
     double pX = (pBandwidth - mean) / sigma;
     double qX = (qBandwidth - mean) / sigma;
@@ -1137,6 +1149,13 @@ Miller::~Miller()
 void Miller::denormalise()
 {
     denormaliseFactor = calculateDefaultNorm();
+}
+
+void Miller::setImageAndIOMRefiner(ImagePtr newImage, IOMRefiner *indexer)
+{
+    this->image = newImage;
+    this->indexer = indexer;
+    this->beam = getImage()->getBeam();
 }
 
 // Vector stuff

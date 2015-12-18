@@ -89,18 +89,18 @@ void MtzManager::getParamPointers(double ***parameters, int paramCount)
 
 void MtzManager::getSteps(double *ranges[], int paramCount)
 {
-    (*ranges)[PARAM_HROT] = stepSizeOrientation;
-    (*ranges)[PARAM_KROT] = stepSizeOrientation;
-    (*ranges)[PARAM_AROT] = stepSizeOrientABC;
-    (*ranges)[PARAM_BROT] = stepSizeOrientABC;
-    (*ranges)[PARAM_CROT] = stepSizeOrientABC;
-    (*ranges)[PARAM_MOS] = stepSizeMosaicity;
-    (*ranges)[PARAM_SPOT_SIZE] = stepSizeRlpSize;
-    (*ranges)[PARAM_WAVELENGTH] = stepSizeWavelength / 2;
-    (*ranges)[PARAM_BANDWIDTH] = stepSizeBandwidth;
+    (*ranges)[PARAM_HROT] = optimisingOrientation ? stepSizeOrientation : 0;
+    (*ranges)[PARAM_KROT] = optimisingOrientation ? stepSizeOrientation : 0;
+    (*ranges)[PARAM_AROT] = 0;
+    (*ranges)[PARAM_BROT] = 0;
+    (*ranges)[PARAM_CROT] = 0;
+    (*ranges)[PARAM_MOS] = optimisingMosaicity ? stepSizeMosaicity : 0;
+    (*ranges)[PARAM_SPOT_SIZE] = optimisingRlpSize ? stepSizeRlpSize : 0;
+    (*ranges)[PARAM_WAVELENGTH] = optimisingWavelength ? stepSizeWavelength / 2 : 0;
+    (*ranges)[PARAM_BANDWIDTH] = optimisingBandwidth ? stepSizeBandwidth : 0;
     (*ranges)[PARAM_B_FACTOR] = 0;
     (*ranges)[PARAM_SCALE_FACTOR] = 0;
-    (*ranges)[PARAM_EXPONENT] = stepSizeExponent;
+    (*ranges)[PARAM_EXPONENT] = optimisingExponent ? stepSizeExponent : 0;
     (*ranges)[PARAM_UNIT_CELL_A] = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
     (*ranges)[PARAM_UNIT_CELL_B] = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
     (*ranges)[PARAM_UNIT_CELL_C] = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);

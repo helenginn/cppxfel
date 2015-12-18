@@ -153,10 +153,13 @@ void NelderMead::setTestPointParameters(TestPoint *testPoint)
 {
     for (int i = 0; i < paramCount(); i++)
     {
-        double *ptr = paramPtrs[i];
+        SetterFunction setter = setterPtrs[i];
         
-        if (ptr)
-            *ptr = testPoint->first[i];
+        if (setter)
+        {
+            (*setter)(evaluatingObject, testPoint->first[i]);
+     //       *ptr = testPoint->first[i];
+        }
     }
 }
 
@@ -219,7 +222,7 @@ void NelderMead::process()
 
 }
 
-NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> expectedRanges, void *object, double (*score)(void *object))
+NelderMead::NelderMead(std::vector<SetterFunction> newSetterPtrs, std::vector<GetterFunction> newGetterPtrs, std::vector<double> expectedRanges, void *object, double (*score)(void *object))
 {
     alpha = 1;
     gamma = 2;
@@ -227,21 +230,26 @@ NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> e
     sigma = 0.5;
     unlimited = false;
     
-    std::vector<double *>streamlinedPtrs;
+    std::vector<SetterFunction> streamlinedSetters;
+    std::vector<GetterFunction> streamlinedGetters;
     
-    for (int i = 0; i < newParamPtrs.size(); i++)
+    for (int i = 0; i < newSetterPtrs.size(); i++)
     {
-        if (newParamPtrs[i] != NULL)
-            streamlinedPtrs.push_back(newParamPtrs[i]);
+        if (!(newSetterPtrs[i] == NULL || expectedRanges[i] == 0 || newGetterPtrs[i] == NULL))
+        {
+            streamlinedSetters.push_back(newSetterPtrs[i]);
+            streamlinedGetters.push_back(newGetterPtrs[i]);
+        }
         else
         {
             expectedRanges.erase(expectedRanges.begin() + i);
-            newParamPtrs.erase(newParamPtrs.begin() + i);
+            newSetterPtrs.erase(newSetterPtrs.begin() + i);
             i--;
         }
     }
     
-    paramPtrs = streamlinedPtrs;
+    setterPtrs = streamlinedSetters;
+    getterPtrs = streamlinedGetters;
     evaluationFunction = score;
     evaluatingObject = object;
     
@@ -264,7 +272,7 @@ NelderMead::NelderMead(std::vector<double *> newParamPtrs, std::vector<double> e
         {
             if (i == 0)
             {
-                testPoints[i].first[j] = *paramPtrs[j];
+                testPoints[i].first[j] = (*getterPtrs[j])(evaluatingObject);
             }
             
             if (i > 0)
