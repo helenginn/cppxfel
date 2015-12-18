@@ -40,10 +40,10 @@ typedef enum
     RefinementTypeOrientationMatrixStdevOnly = 12,
 } RefinementType;
 
-class IOMRefiner
+class IOMRefiner : public boost::enable_shared_from_this<IOMRefiner>
 {
 private:
-	Image *image;
+	ImageWeakPtr image;
 	vector<MillerPtr> millers;
 	vector<MillerPtr> nearbyMillers;
     vector<MillerPtr> roughMillers;
@@ -96,7 +96,7 @@ private:
     void sendLog(LogLevel priority = LogLevelNormal);
 
 public:
-	IOMRefiner(Image *newImage = NULL, MatrixPtr matrix = MatrixPtr());
+	IOMRefiner(ImagePtr newImage = NULL, MatrixPtr matrix = MatrixPtr());
     void setComplexMatrix();
     virtual ~IOMRefiner();
 
@@ -109,9 +109,9 @@ public:
 
 	static bool millerReachesThreshold(MillerPtr miller);
 	void findSpots();
-	static void duplicateSpots(vector<Image *>images);
+	static void duplicateSpots(vector<ImagePtr>images);
 	void writeDatFromSpots(std::string filename);
-	static void scatterSpots(vector<Image *> images);
+	static void scatterSpots(vector<ImagePtr> images);
 
 	void matchMatrixToSpots();
 	void matchMatrixToSpots(RefinementType refinement);
@@ -180,12 +180,12 @@ public:
         return lastScore;
     }
     
-	Image*& getImage()
+	ImagePtr getImage()
 	{
-		return image;
+		return image.lock();
 	}
 
-	void setImage(Image*& image)
+	void setImage(ImagePtr image)
 	{
 		this->image = image;
 	}

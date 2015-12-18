@@ -26,7 +26,7 @@ typedef std::map<int, std::pair<int, int> > PowderHistogram;
 class IndexManager : LoggableObject
 {
 protected:
-    std::vector<Image *> images;
+    std::vector<ImagePtr> images;
     std::vector<double> unitCell;
     std::vector<MatrixPtr> symOperators;
     MatrixPtr unitCellOnly;
@@ -43,7 +43,7 @@ protected:
     void updateAllSpots();
     static double metrologyTarget(void *object);
     bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
-    int indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset);
+    int indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset);
     double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;
@@ -51,7 +51,7 @@ protected:
     PowderHistogram generatePowderHistogram();
     std::vector<VectorDistance> vectorDistances;
 public:
-    Image *getImage(int i)
+    ImagePtr getImage(int i)
     {
         return images[i];
     }
@@ -65,7 +65,7 @@ public:
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
     void powderPattern();
-    IndexManager(std::vector<Image *>images);
+    IndexManager(std::vector<ImagePtr>images);
 };
 
 

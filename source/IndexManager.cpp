@@ -17,7 +17,7 @@
 #include "SpotVector.h"
 #include "IndexingSolution.h"
 
-IndexManager::IndexManager(std::vector<Image *> newImages)
+IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
     images = newImages;
     
@@ -179,7 +179,7 @@ bool IndexManager::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2)
     return false;
 }
 
-int IndexManager::indexOneImage(Image *image, std::vector<MtzPtr> *mtzSubset)
+int IndexManager::indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset)
 {
     int successes = 0;
     int spotNum = image->spotCount();
@@ -554,7 +554,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     {
         for (int i = offset; i < indexer->images.size(); i += maxThreads)
         {
-            Image *image = indexer->images[i];
+            ImagePtr image = indexer->images[i];
             logged << "Starting image " << i << std::endl;
             Logger::mainLogger->addStream(&logged); logged.str("");
 
@@ -575,7 +575,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     
     for (int i = offset; i < indexer->images.size(); i += maxThreads)
     {
-        Image *image = indexer->images[i];
+        ImagePtr image = indexer->images[i];
         logged << "Starting image " << i << std::endl;
         Logger::mainLogger->addStream(&logged); logged.str("");
 

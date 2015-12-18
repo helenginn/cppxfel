@@ -27,7 +27,7 @@ typedef enum
     IndexingSolutionBranchFailure,
 } IndexingSolutionStatus;
 
-class Image : LoggableObject
+class Image : LoggableObject, public boost::enable_shared_from_this<Image>
 {
 private:
     int pixelCountCutoff;
@@ -100,7 +100,7 @@ public:
 	void addMask(int startX, int startY, int endX, int endY);
 	void addSpotCover(int startX, int startY, int endX, int endY);
 	bool coveredBySpot(int x, int y);
-	static void applyMaskToImages(vector<Image *> images, int startX,
+	static void applyMaskToImages(vector<ImagePtr> images, int startX,
 			int startY, int endX, int endY);
     void refineDistances();
     IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);

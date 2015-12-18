@@ -349,7 +349,7 @@ void FileParser::generateFunctionList()
 ParserFunction FileParser::splitLine(std::string line, std::string &command,
 		std::string &rest)
 {
-	int space_index = (int)line.find_first_of(splitCharMajor);
+    int space_index = (int)line.find_first_of(splitCharMajor);
     
     if (space_index == std::string::npos)
     {

@@ -20,7 +20,7 @@ class Spot : LoggableObject
 {
 private:
 	vector<vector<double> > probe;
-	Image *parentImage;
+	ImageWeakPtr parentImage;
     double angleDetectorPlane;
     bool setAngle;
     bool checked;
@@ -30,16 +30,16 @@ private:
     bool rejected;
     
 public:
-	Spot(Image *image);
+	Spot(ImagePtr image);
 	virtual ~Spot();
 
     double weight();
-	double maximumLift(Image *image, int x, int y, bool ignoreCovers);
-	double maximumLift(Image *image, int x, int y);
+	double maximumLift(ImagePtr image, int x, int y, bool ignoreCovers);
+	double maximumLift(ImagePtr image, int x, int y);
 	void makeProbe(int height, int size);
 	void setXY(int x, int y);
-	double scatteringAngle(Image *image = NULL);
-	bool isAcceptable(Image *image);
+	double scatteringAngle(ImagePtr image = NULL);
+	bool isAcceptable(ImagePtr image);
 	static void sortSpots(vector<Spot *> *spots);
 	static bool spotComparison(Spot *a, Spot *b);
     double angleFromSpotToCentre(double centreX, double centreY);
@@ -92,12 +92,12 @@ public:
         checked = newCheck;
     }
     
-    Image*& getParentImage()
+    ImagePtr getParentImage()
 	{
-		return parentImage;
+		return parentImage.lock();
 	}
 
-	void setParentImage(Image*& parentImage)
+	void setParentImage(ImagePtr parentImage)
 	{
 		this->parentImage = parentImage;
 	}

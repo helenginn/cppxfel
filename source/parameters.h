@@ -169,6 +169,7 @@ typedef boost::shared_ptr<MtzManager>MtzPtr;
 typedef boost::shared_ptr<std::ostringstream> StreamPtr;
 typedef boost::shared_ptr<Logger>LoggerPtr;
 typedef boost::shared_ptr<Image>ImagePtr;
+typedef boost::weak_ptr<Image>ImageWeakPtr;
 typedef boost::shared_ptr<ImageCluster>ImageClusterPtr;
 typedef boost::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;

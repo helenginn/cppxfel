@@ -30,7 +30,7 @@
 double IOMRefiner::intensityThreshold;
 bool IOMRefiner::absoluteIntensity = false;
 
-IOMRefiner::IOMRefiner(Image *newImage, MatrixPtr matrix)
+IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
 {
     int spgNum = FileParser::getKey("SPACE_GROUP", -1);
     
@@ -86,12 +86,12 @@ IOMRefiner::IOMRefiner(Image *newImage, MatrixPtr matrix)
 
 double IOMRefiner::getDetectorDistance()
 {
-    return image->getDetectorDistance();
+    return getImage()->getDetectorDistance();
 }
 
 double IOMRefiner::getWavelength()
 {
-    return image->getWavelength();
+    return getImage()->getWavelength();
 }
 
 void IOMRefiner::setComplexMatrix()
@@ -118,11 +118,13 @@ void IOMRefiner::setComplexMatrix()
     
     if (fixUnitCell)
     {
-        image->setUnitCell(unitCell);
+        getImage()->setUnitCell(unitCell);
         setUnitCell(unitCell);
    
         matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
     }
+    
+    delete [] unitCellDouble;
 }
 
 void IOMRefiner::dropMillers()
@@ -156,7 +158,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
     frequencies.clear();
     
     
-    double wavelength = image->getWavelength();
+    double wavelength = getImage()->getWavelength();
     vector<double> totals;
     
     vector<double> wavelengthRange = FileParser::getKey("WAVELENGTH_RANGE", vector<double>(2, 0));
@@ -175,7 +177,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
     }
     
     std::ostringstream logged;
-    logged << "Wavelength histogram for " << this->image->getFilename() << std::endl;
+    logged << "Wavelength histogram for " << this->getImage()->getFilename() << std::endl;
     
     for (double i = minLength; i < maxLength; i += interval)
     {
@@ -227,7 +229,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
 void IOMRefiner::calculateNearbyMillers(bool rough)
 {
     MatrixPtr matrix = getMatrix();
-    double wavelength = image->getWavelength();
+    double wavelength = getImage()->getWavelength();
     
     double minBandwidth = wavelength * (1 - testBandwidth * 2);
     double maxBandwidth = wavelength * (1 + testBandwidth * 2);
@@ -268,7 +270,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                 MillerPtr newMiller = MillerPtr(new Miller(NULL, h, k, l));
                 
                 newMiller->setSelf(newMiller);
-                newMiller->setImageAndIOMRefiner(image, this);
+                newMiller->setImageAndIOMRefiner(getImage(), this);
                 
                 if (rough == false)
                 {
@@ -340,17 +342,17 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
     }
-    double wavelength = image->getWavelength();
+    double wavelength = getImage()->getWavelength();
     double maxD = 1 / maxResolution;
     if (maxResolution == 0)
         maxD = FLT_MAX;
     
     if (testDistance != 0)
-        image->setDetectorDistance(testDistance);
+        getImage()->setDetectorDistance(testDistance);
     
     if (testWavelength != 0)
     {
-        image->setWavelength(testWavelength);
+        getImage()->setWavelength(testWavelength);
         wavelength = testWavelength;
     }
     
@@ -464,7 +466,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         }
     }
     
-    logged << "Using wavelength " << wavelength << " Å and distance " << image->getDetectorDistance() << " mm" << std::endl;
+    logged << "Using wavelength " << wavelength << " Å and distance " << getImage()->getDetectorDistance() << " mm" << std::endl;
     logged << "Beyond resolution cutoff: " << cutResolution << std::endl;
     logged << "Partiality equal to 0: " << partialityTooLow << std::endl;
     logged << "Image pixels were masked/flagged: " << unacceptableIntensity << std::endl;
@@ -487,7 +489,7 @@ double IOMRefiner::minimizeParameter(double *meanStep, double *param, int whichA
     double bestParam = *param;
     
     std::ostringstream logged;
-    logged << "Scores for " << image->getFilename() << ": ";
+    logged << "Scores for " << getImage()->getFilename() << ": ";
     
     for (double i = bestParam - *meanStep; j < 3; i += *meanStep)
     {
@@ -604,8 +606,8 @@ int IOMRefiner::getTotalReflections()
 
 bool IOMRefiner::millerWithinBandwidth(MillerPtr miller)
 {
-    double minBandwidth = image->getWavelength() * (1 - testBandwidth * 2);
-    double maxBandwidth = image->getWavelength() * (1 + testBandwidth * 2);
+    double minBandwidth = getImage()->getWavelength() * (1 - testBandwidth * 2);
+    double maxBandwidth = getImage()->getWavelength() * (1 + testBandwidth * 2);
     
     double wavelength = miller->getWavelength();
     
@@ -650,13 +652,13 @@ void IOMRefiner::findSpots()
 {
     int tolerance = 60;
     
-    //	image->printBox(1180, 660, 20);
+    //	getImage()->printBox(1180, 660, 20);
     
-    for (int i = 0; i < image->getXDim(); i += tolerance)
+    for (int i = 0; i < getImage()->getXDim(); i += tolerance)
     {
-        for (int j = 0; j < image->getYDim(); j += tolerance)
+        for (int j = 0; j < getImage()->getYDim(); j += tolerance)
         {
-            Spot *spot = new Spot(image);
+            Spot *spot = new Spot(getImage());
             
             double maxLift = 0;
             double maxX = 0;
@@ -669,7 +671,7 @@ void IOMRefiner::findSpots()
                     double x = i + tolX;
                     double y = j + tolY;
                     
-                    double lift = spot->maximumLift(image, x, y);
+                    double lift = spot->maximumLift(getImage(), x, y);
                     
                     if (lift > maxLift)
                     {
@@ -685,15 +687,15 @@ void IOMRefiner::findSpots()
                 spot->setXY(maxX, maxY);
                 spots.push_back(spot);
                 
-                image->addSpotCover(maxX - 30, maxY - 30, maxX + 30, maxY + 30);
-                //	image->printBox(maxX, maxY, 8);
+                getImage()->addSpotCover(maxX - 30, maxY - 30, maxX + 30, maxY + 30);
+                //	getImage()->printBox(maxX, maxY, 8);
             }
         }
     }
     
     Spot::sortSpots(&spots);
     
-    std::string name = "spots-" + image->getFilename();
+    std::string name = "spots-" + getImage()->getFilename();
     int lastindex = (int)name.find_last_of(".");
     std::string rootName = name.substr(0, lastindex);
     std::string datName = rootName + ".dat";
@@ -704,7 +706,7 @@ void IOMRefiner::findSpots()
     Logger::mainLogger->addStream(&logged, LogLevelNormal);
 }
 
-void IOMRefiner::duplicateSpots(vector<Image *> images)
+void IOMRefiner::duplicateSpots(vector<ImagePtr> images)
 {
     std::map<vector<int>, int> frequencies =
     std::map<vector<int>, int>();
@@ -765,7 +767,7 @@ void IOMRefiner::duplicateSpots(vector<Image *> images)
     std::cout << "Spots removed: " << spotsRemoved << std::endl;
 }
 
-void IOMRefiner::scatterSpots(vector<Image *> images)
+void IOMRefiner::scatterSpots(vector<ImagePtr> images)
 {
     for (int i = 0; i < images.size(); i++)
     {
@@ -970,12 +972,12 @@ double IOMRefiner::score(int whichAxis, bool silent)
         {
             for (int i = 0; i < millers.size(); i++)
             {
-                double millerAngle = millers[i]->scatteringAngle(image);
-                double spotAngle = spots[j]->scatteringAngle(image);
+                double millerAngle = millers[i]->scatteringAngle(getImage());
+                double spotAngle = spots[j]->scatteringAngle(getImage());
                 
                 if (fabs(spotAngle - millerAngle) < ANGLE_TOLERANCE)
                 {
-                    spots[j]->setParentImage(image);
+                    spots[j]->setParentImage(getImage());
                     score += spots[j]->weight();
                     j++;
                     i = 0;
@@ -1007,7 +1009,7 @@ double IOMRefiner::score(int whichAxis, bool silent)
                 
                 if (distance < SPOT_DISTANCE_TOLERANCE)
                 {
-                    spots[j]->setParentImage(image);
+                    spots[j]->setParentImage(getImage());
                     score += spots[j]->weight();
                     j++;
                     i = 0;
@@ -1083,8 +1085,8 @@ void IOMRefiner::refineDetectorAndWavelength(MtzManager *reference)
     checkAllMillers(maxResolution, testBandwidth);
     refinement = RefinementTypeOrientationMatrixEarly;
     
-    testDistance = image->getDetectorDistance();
-    testWavelength = image->getWavelength();
+    testDistance = getImage()->getDetectorDistance();
+    testWavelength = getImage()->getWavelength();
     double oldDistance = testDistance;
     double oldWavelength = testWavelength;
     
@@ -1142,13 +1144,13 @@ void IOMRefiner::refineDetectorAndWavelength(MtzManager *reference)
     histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
     
  //   testWavelength = mean;
- //   this->image->setWavelength(mean);
+ //   this->getImage()->setWavelength(mean);
     
-    logged << "Distance refined for " << image->getFilename() << ":\t" << oldDistance << "\t" << oldWavelength << "\t" << testDistance << "\t" << testWavelength << "\t" << oldScore << "\t" << newScore << std::endl;
+    logged << "Distance refined for " << getImage()->getFilename() << ":\t" << oldDistance << "\t" << oldWavelength << "\t" << testDistance << "\t" << testWavelength << "\t" << oldScore << "\t" << newScore << std::endl;
     
     sendLog(LogLevelNormal);
     
-    image->setDetectorDistance(testDistance);
+    getImage()->setDetectorDistance(testDistance);
     
     setSearchSize(oldSearch);
 }
@@ -1361,8 +1363,8 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     refinement = refinementType;
     this->calculateNearbyMillers(true);
     
-    testDistance = image->getDetectorDistance();
-    testWavelength = image->getWavelength();
+    testDistance = getImage()->getDetectorDistance();
+    testWavelength = getImage()->getWavelength();
     
     vector<double> wavelengths;
     vector<int> frequencies;
@@ -1381,7 +1383,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     lastStdev = stdev;
     lastTotal = getTotalReflections();
     
-    image->setWavelength(mean);
+    getImage()->setWavelength(mean);
     
     bool recalculated = false;
     
@@ -1509,7 +1511,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     lastScore = score();
     
     logged << "Current wavelength: " << testWavelength << " Å." << std::endl;
-    logged << "Rotation result:\t" << image->getFilename() << "\t" << hRot
+    logged << "Rotation result:\t" << getImage()->getFilename() << "\t" << hRot
     << "\t" << kRot << "\t" << getTotalReflections() << "\t" << getLastScore() << std::endl;
     
     double hRad = getRot(0) * M_PI / 180;
@@ -1684,12 +1686,12 @@ MtzPtr IOMRefiner::newMtz(int index)
     
     MtzPtr mtz = MtzPtr(new MtzManager());
     mtz->setWavelength(mean);
-    mtz->setFilename(image->filenameRoot() + "_" + i_to_str(index) + ".mtz");
+    mtz->setFilename(getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz");
     mtz->setSpaceGroup(spaceGroup->spg_num);
     mtz->setUnitCell(unitCell);
     
     mtz->setMatrix(newMat);
-    double distance = image->getDetectorDistance();
+    double distance = getImage()->getDetectorDistance();
     mtz->setDetectorDistance(distance);
     
     char *hallSymbol = ccp4spg_symbol_Hall(spaceGroup);
@@ -1739,7 +1741,7 @@ MtzPtr IOMRefiner::newMtz(int index)
     if (cutoff != 0)
         mtz->cutToResolutionWithSigma(cutoff);
     
-    std::string imgFilename = "img-" + image->filenameRoot() + "_" + i_to_str(index) + ".mtz";
+    std::string imgFilename = "img-" + getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz";
     mtz->writeToFile(imgFilename, true, true);
     mtz->writeToDat();
 
@@ -1751,6 +1753,10 @@ MtzPtr IOMRefiner::newMtz(int index)
 
 IOMRefiner::~IOMRefiner()
 {
+//    std::cout << "Deallocating IOMRefiner." << std::endl;
+    
+    lastMtz = MtzPtr();
+    
     nearbyMillers.clear();
     vector<MillerPtr>().swap(nearbyMillers);
     
@@ -1775,7 +1781,7 @@ std::string IOMRefiner::refinementSummaryHeader()
 
 std::string IOMRefiner::refinementSummary()
 {
-    std::string filename = image->getFilename();
+    std::string filename = getImage()->getFilename();
     int totalReflections = getTotalReflections();
     double lastScore = getLastScore();
     double wavelength = getWavelength();

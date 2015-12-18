@@ -14,7 +14,7 @@
 #include "Vector.h"
 #include <fstream>
 
-Spot::Spot(Image *image)
+Spot::Spot(ImagePtr image)
 {
 	// TODO Auto-generated constructor stub
 	probe = vector<vector<double> >();
@@ -37,7 +37,7 @@ Spot::~Spot()
 
 }
 
-bool Spot::isAcceptable(Image *image)
+bool Spot::isAcceptable(ImagePtr image)
 {
 	int length = (int)probe.size();
 	int tolerance = (length - 1) / 2;
@@ -56,15 +56,15 @@ bool Spot::isAcceptable(Image *image)
 
 double Spot::weight()
 {
-	return maximumLift(parentImage, x, y, true);
+	return maximumLift(getParentImage(), x, y, true);
 }
 
-double Spot::maximumLift(Image *image, int x, int y)
+double Spot::maximumLift(ImagePtr image, int x, int y)
 {
-	return maximumLift(image, x, y, false);
+	return maximumLift(getParentImage(), x, y, false);
 }
 
-double Spot::maximumLift(Image *image, int x, int y, bool ignoreCovers)
+double Spot::maximumLift(ImagePtr image, int x, int y, bool ignoreCovers)
 {
 	int length = (int)probe.size();
 	int tolerance = (length - 1) / 2;
@@ -156,10 +156,10 @@ void Spot::setXY(int x, int y)
 	this->y = y;
 }
 
-double Spot::scatteringAngle(Image *image)
+double Spot::scatteringAngle(ImagePtr image)
 {
     if (image == NULL)
-        image = this->parentImage;
+        image = this->getParentImage();
     
 	double beamX = image->getBeamX();
 	double beamY = image->getBeamY();
@@ -177,7 +177,7 @@ double Spot::resolution()
 {
     double twoTheta = asin(scatteringAngle());
     double theta = twoTheta / 2;
-    double wavelength = parentImage->getWavelength();
+    double wavelength = getParentImage()->getWavelength();
     
     double d = wavelength / (2 * sin(theta));
     
@@ -186,8 +186,8 @@ double Spot::resolution()
 
 double Spot::angleFromSpotToCentre(double centreX, double centreY)
 {
-    double beamX = parentImage->getBeamX();
-    double beamY = parentImage->getBeamY();
+    double beamX = getParentImage()->getBeamX();
+    double beamY = getParentImage()->getBeamY();
     
     vec beamCentre = new_vector(beamX, beamY, 0);
     vec circleCentre = new_vector(centreX, centreY, 0);
@@ -200,8 +200,8 @@ double Spot::angleInPlaneOfDetector(double centreX, double centreY, vec upBeam)
 {
     if (centreX == 0 && centreY == 0)
     {
-        centreX = parentImage->getBeamX();
-        centreY = parentImage->getBeamY();
+        centreX = getParentImage()->getBeamX();
+        centreY = getParentImage()->getBeamY();
     }
     
     vec centre = new_vector(centreX, centreY, 0);
@@ -212,7 +212,7 @@ double Spot::angleInPlaneOfDetector(double centreX, double centreY, vec upBeam)
     {
         std::ostringstream logged;
         logged << "spotXY:\t" << getX() << "\t" << getY() << std::endl;
-        logged << "beam:\t" << parentImage->getBeamX() << "\t" << parentImage->getBeamY() << std::endl;
+        logged << "beam:\t" << getParentImage()->getBeamX() << "\t" << getParentImage()->getBeamY() << std::endl;
         logged << "upBeam:\t" << upBeam.h << "\t" << upBeam.k << std::endl;
         logged << "centreXY:\t" << centreX << "\t" << centreY << std::endl;
         logged << "spotFromCentre:\t" << spotVecFromCentre.h << "\t" << spotVecFromCentre.k << std::endl;
@@ -324,18 +324,18 @@ vec Spot::estimatedVector()
         return lastEstimatedVector;
     }
     */
-    double beamX = parentImage->getBeamX() * parentImage->getMmPerPixel();
-    double beamY = parentImage->getBeamY() * parentImage->getMmPerPixel();
+    double beamX = getParentImage()->getBeamX() * getParentImage()->getMmPerPixel();
+    double beamY = getParentImage()->getBeamY() * getParentImage()->getMmPerPixel();
     
-    double wavelength = parentImage->getWavelength();
+    double wavelength = getParentImage()->getWavelength();
     
-    double height = parentImage->getYDim();
+    double height = getParentImage()->getYDim();
     
-    double mmX = getX() * parentImage->getMmPerPixel();
- //   double mmY = (height - getY()) * parentImage->getMmPerPixel();
-    double mmY = getY() * parentImage->getMmPerPixel();
+    double mmX = getX() * getParentImage()->getMmPerPixel();
+ //   double mmY = (height - getY()) * getParentImage()->getMmPerPixel();
+    double mmY = getY() * getParentImage()->getMmPerPixel();
     
-    double detector_distance = parentImage->getDetectorDistance();
+    double detector_distance = getParentImage()->getDetectorDistance();
     
     vec crystalVec = new_vector(beamX, beamY, 0 - detector_distance);
     vec spotVec = new_vector(mmX, mmY, 0);

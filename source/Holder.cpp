@@ -648,7 +648,7 @@ void Reflection::reflectionDescription()
 }
 
 void Reflection::clearMillers()
-{
+{   
     millers.clear();
     vector<MillerPtr>().swap(millers);
     

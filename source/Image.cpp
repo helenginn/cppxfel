@@ -101,7 +101,7 @@ std::string Image::filenameRoot()
 
 void Image::setUpIOMRefiner(MatrixPtr matrix)
 {
-    IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(this, matrix));
+    IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(shared_from_this(), matrix));
     
     if (matrix->isComplex())
         indexer->setComplexMatrix();
@@ -111,13 +111,15 @@ void Image::setUpIOMRefiner(MatrixPtr matrix)
 
 void Image::setUpIOMRefiner(MatrixPtr unitcell, MatrixPtr rotation)
 {
-    IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(this, MatrixPtr(new Matrix())));
+    IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(shared_from_this(), MatrixPtr(new Matrix())));
     
     indexers.push_back(indexer);
 }
 
 Image::~Image()
 {
+//    std::cout << "Deallocating image." << std::endl;
+    
     data.clear();
     vector<int>().swap(data);
 }
@@ -146,7 +148,7 @@ void Image::addSpotCover(int startX, int startY, int endX, int endY)
     spotCovers.push_back(mask);
 }
 
-void Image::applyMaskToImages(vector<Image *> images, int startX,
+void Image::applyMaskToImages(vector<ImagePtr> images, int startX,
                               int startY, int endX, int endY)
 {
     for (int i = 0; i < images.size(); i++)
@@ -291,7 +293,7 @@ int Image::valueAt(int x, int y)
 
 void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
 {
-    Spot *spot = new Spot(this);
+    Spot *spot = new Spot(shared_from_this());
     spot->makeProbe(150, 5);
     
     double maxLift = 0;
@@ -302,7 +304,7 @@ void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
     {
         for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
         {
-            double lift = spot->maximumLift(this, i, j, true);
+            double lift = spot->maximumLift(shared_from_this(), i, j, true);
             
             if (lift > maxLift)
             {
@@ -1121,7 +1123,7 @@ void Image::processSpotList()
     rotateMat->rotate(0, 0, M_PI);
     rotateMat->multiplyVector(&xyVec);
     
-    SpotPtr newSpot = SpotPtr(new Spot(this));
+    SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
     newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
     
     spots.push_back(newSpot);
@@ -1143,7 +1145,7 @@ void Image::processSpotList()
         rotateMat->rotate(0, 0, M_PI);
         rotateMat->multiplyVector(&xyVec);
         
-        SpotPtr newSpot = SpotPtr(new Spot(this));
+        SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
         newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
         
         spots.push_back(newSpot);
