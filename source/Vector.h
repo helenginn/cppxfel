@@ -31,7 +31,7 @@ void scale_vector_to_distance(vec *vec, double new_distance);
 vec perpendicular_for_vectors(vec vec1, vec vec2);
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2);
 MatrixPtr rotation_between_vectors_custom_cross(vec vec1, vec vec2, vec chosenCrossProduct);
-Matrix closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle);
+MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle);
 void setFloatingPointErrorZerosToZero(vec *vec1, double limit = 10e-8);
 
 double getEwaldSphereNoMatrix(vec index);

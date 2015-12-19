@@ -136,27 +136,16 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
 }
 
 bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2)
-{/*
+{
     double firstVectorTrust = firstObserved->trustComparedToStandardVector(standard1);
+    double secondVectorTrust = secondObserved->trustComparedToStandardVector(standard2);
     
     if (firstVectorTrust < distanceTolerance)
         return false;
     
-    double secondVectorTrust = secondObserved->trustComparedToStandardVector(standard2);
-    
     if (secondVectorTrust < distanceTolerance)
-        return false;*/
-    
-    double firstVectorDistance = firstObserved->distanceDifference(standard1);
-    
-    if (firstVectorDistance > distanceToleranceReciprocal)
         return false;
-
-    double secondVectorDistance = secondObserved->distanceDifference(standard2);
     
-    if (secondVectorDistance > distanceToleranceReciprocal)
-        return false;
-
     double standardAngle = standard1->angleWithVector(standard2);
     double realAngle = firstObserved->angleWithVector(secondObserved);
     
@@ -262,19 +251,6 @@ MatrixPtr IndexingSolution::createSolution()
             
             double theta, phi, psi;
             mat->eulerAngles(&theta, &phi, &psi);
-
-            double thetaDiff = fabs(-0.639132 - theta);
-            double phiDiff = fabs(1.07041 - phi);
-            double psiDiff = fabs(1.8595 - psi);
-            
-            if (thetaDiff < 0.04 && phiDiff < 0.04 && psiDiff < 0.04)
-            {
-                SpotVectorPtr standard1 = spotVectors[allSpotVectors[i]];
-                SpotVectorPtr standard2 = spotVectors[allSpotVectors[j]];
-                
-                logged << "Sol:\t" << standard1->getH() << "\t" << standard1->getK() << "\t" << standard1->getL() << "\t";
-                logged << standard2->getH() << "\t" << standard2->getK() << "\t" << standard2->getL() << std::endl;
-            }
         }
     }
     
@@ -315,18 +291,21 @@ MatrixPtr IndexingSolution::createSolution()
     
     if (scoredSolutions.size())
     {
-        MatrixPtr rotationMat = Matrix::matrixFromEulerAngles(averageTheta, averagePhi, averagePsi);
+   /*     MatrixPtr rotationMat = Matrix::matrixFromEulerAngles(averageTheta, averagePhi, averagePsi);
         
         double theta, phi, psi;
         rotationMat->eulerAngles(&theta, &phi, &psi);
         
         MatrixPtr unitCellMat = unitCellOnly->copy();
         
-        chosenMat->setComplexMatrix(unitCellMat, rotationMat);
+        chosenMat->setComplexMatrix(unitCellMat, rotationMat);*/
         
-  //      chosenMat = scoredSolutions[0].first;
+        chosenMat = scoredSolutions[0].first;
         logged << "Chosen solution:\t" << chosenMat->summary() << "\tfrom " << spotVectors.size() << " vectors"<< std::endl;
         sendLog(LogLevelDebug);
+        
+        logged << chosenMat->description() << std::endl;
+        sendLog(LogLevelNormal);
     }
     return chosenMat;
 }
@@ -366,13 +345,13 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
     
     // Now we twirl around the firstAxisUnit until the rotated observed vector matches the second simulated vector
     // as closely as possible.
-    Matrix secondTwizzleMatrix = closest_rotation_matrix(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
+    MatrixPtr secondTwizzleMatrix = closest_rotation_matrix(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
     
- //   logged << "Resultant angle: " << resultantAngle << std::endl;
+    //   logged << "Resultant angle: " << resultantAngle << std::endl;
     
     // We want to apply the first matrix and then the second matrix, so we multiply these.
     MatrixPtr combinedMatrix = rotateSpotDiffMatrix->copy();
-    combinedMatrix->multiply(secondTwizzleMatrix);
+    combinedMatrix->multiply(*secondTwizzleMatrix);
     
     // But we actually need the inverse rotation to go from "true" coordinates to "crystal" coordinates.
     MatrixPtr rotateFinalMatrix = combinedMatrix->inverse3DMatrix();

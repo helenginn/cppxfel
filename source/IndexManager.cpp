@@ -292,13 +292,13 @@ int IndexManager::indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset)
                     
                     double resultantAngle = 0;
                     
-                    Matrix secondTwizzleMatrix = closest_rotation_matrix(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
+                    MatrixPtr secondTwizzleMatrix = closest_rotation_matrix(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
                     
                     if (resultantAngle > angleTolerance)
                         continue;
                     
-                    MatrixPtr combinedMatrix = rotateSpotDiffMatrix;
-                    combinedMatrix->multiply(secondTwizzleMatrix);
+                    MatrixPtr combinedMatrix = rotateSpotDiffMatrix->copy();
+                    combinedMatrix->multiply(*secondTwizzleMatrix);
                     
                     vec possibleMiller = copy_vector(firstSpotVec);
                     combinedMatrix->multiplyVector(&possibleMiller);
