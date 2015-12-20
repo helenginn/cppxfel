@@ -863,7 +863,7 @@ double IOMRefiner::score(int whichAxis, bool silent)
 {
     if (refinement == RefinementTypeDetectorWavelength)
     {
-        return 0 - getTotalReflectionsWithinBandwidth();
+        return 0 - getTotalReflections();
     }
     
     if (refinement == RefinementTypeOrientationMatrixEarly || refinement == RefinementTypeOrientationMatrixEarlySeparated)
@@ -1391,7 +1391,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
-        double lRotStep = initialStep;
+        double lRotStep = initialStep / 3;
         double aRotStep = initialStep;
         double bRotStep = initialStep;
         double cRotStep = initialStep;
