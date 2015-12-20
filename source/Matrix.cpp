@@ -135,7 +135,7 @@ void Matrix::eulerAngles(double *theta, double *phi, double *psi, bool force)
     }
     
     double sinTheta = chosenMat->components[2];
-    *theta = 0 - asin(sinTheta);
+    *theta = asin(sinTheta);
     double cosTheta = cos(*theta);
     
     *psi = atan2((chosenMat->components[6] / cosTheta), (chosenMat->components[10] / cosTheta));
@@ -399,8 +399,10 @@ void Matrix::scaleUnitCellAxes(double aScale, double bScale, double cScale)
 
 void Matrix::recalculateOrientationMatrix()
 {
-    Matrix newMat = *rotation * *unitCell;
-    memcpy(components, newMat.components, 16 * sizeof(double));
+    MatrixPtr newMat = unitCell->copy();
+    
+    *newMat *= *rotation;
+    memcpy(components, newMat->components, 16 * sizeof(double));
 }
 
 void Matrix::setComplexMatrix(MatrixPtr newUnitCell, MatrixPtr newRotation)

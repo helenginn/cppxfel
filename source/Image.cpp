@@ -1461,7 +1461,7 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
     }
     int newlyAdded = 1;
     int trials = 0;
-    int trialLimit = 5;
+    int trialLimit = 3;
     
     while (newlyAdded > 0 && added < 80 && trials < trialLimit)
     {
