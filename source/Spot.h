@@ -9,12 +9,11 @@
 #define SPOT_H_
 
 #include <vector>
+#include "Image.h"
 #include "parameters.h"
 #include "Panel.h"
 #include "Vector.h"
 #include "LoggableObject.h"
-
-class Image;
 
 class Spot : LoggableObject
 {

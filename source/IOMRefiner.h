@@ -8,17 +8,16 @@
 #ifndef IOMRefiner_H_
 #define IOMRefiner_H_
 
-#include "IndexManager.h"
 #include "Image.h"
+#include "parameters.h"
+#include "IndexManager.h"
 #include "Miller.h"
 #include "Matrix.h"
 #include "MtzManager.h"
 #include "csymlib.h"
 #include "Spot.h"
-#include "parameters.h"
 #include "Logger.h"
 
-class Image;
 class Miller;
 
 using namespace CSym;
