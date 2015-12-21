@@ -95,7 +95,7 @@ private:
     void sendLog(LogLevel priority = LogLevelNormal);
 
 public:
-	IOMRefiner(ImagePtr newImage = NULL, MatrixPtr matrix = MatrixPtr());
+	IOMRefiner(ImagePtr newImage = ImagePtr(), MatrixPtr matrix = MatrixPtr());
     void setComplexMatrix();
     virtual ~IOMRefiner();
 

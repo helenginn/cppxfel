@@ -37,7 +37,7 @@ public:
 	double maximumLift(ImagePtr image, int x, int y);
 	void makeProbe(int height, int size);
 	void setXY(int x, int y);
-	double scatteringAngle(ImagePtr image = NULL);
+	double scatteringAngle(ImagePtr image = ImagePtr());
 	bool isAcceptable(ImagePtr image);
 	static void sortSpots(vector<Spot *> *spots);
 	static bool spotComparison(Spot *a, Spot *b);
