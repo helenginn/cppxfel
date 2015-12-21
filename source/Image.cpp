@@ -1461,9 +1461,9 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
     }
     int newlyAdded = 1;
     int trials = 0;
-    int trialLimit = 3;
+    int trialLimit = FileParser::getKey("NETWORK_TRIAL_LIMIT", 3);
     
-    while (newlyAdded > 0 && added < 80 && trials < trialLimit)
+    while (newlyAdded > 0 && added < 100 && trials < trialLimit)
     {
         IndexingSolutionPtr copyPtr = solutionPtr->copy();
         
@@ -1479,6 +1479,17 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
             if (success != IndexingSolutionBranchFailure)
             {
                 return success;
+            }
+            else
+            {
+                if (trials >= trialLimit)
+                {
+                    (*failures)++;
+                    logged << "Given up this branch, too many failures." << std::endl;
+                    sendLog(LogLevelDetailed);
+                    
+                    return success;
+                }
             }
         }
         
@@ -1502,13 +1513,6 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
     if (added < minimumSolutionNetworkCount)
     {
         logged << "Didn't go anywhere..." << std::endl;
-        sendLog(LogLevelDetailed);
-    }
-    
-    if (trials >= trialLimit)
-    {
-        (*failures)++;
-        logged << "Given up this branch, too many failures." << std::endl;
         sendLog(LogLevelDetailed);
     }
     
@@ -1541,13 +1545,18 @@ void Image::findIndexingSolutions()
     int successes = 0;
     int maxSuccesses = FileParser::getKey("SOLUTION_ATTEMPTS", 1);
     
-    for (int i = 0; i < spotVectors.size() - 1 && solutions.size() < 1000 && continuing && indexingFailureCount < 10; i++)
+    std::vector<SpotVectorPtr> prunedVectors = spotVectors;
+    IndexingSolution::pruneSpotVectors(&prunedVectors);
+    
+    logged << "Pruning " << filename << " spot vectors from " << spotVectors.size() << " to " << prunedVectors.size() << std::endl;
+    
+    for (int i = 0; i < prunedVectors.size() - 1 && solutions.size() < 1000 && continuing && indexingFailureCount < 10; i++)
     {
-        SpotVectorPtr spotVector1 = spotVectors[i];
+        SpotVectorPtr spotVector1 = prunedVectors[i];
         
-        for (int j = i + 1; j < spotVectors.size() && solutions.size() < 1000 && continuing && indexingFailureCount < 10; j++)
+        for (int j = i + 1; j < prunedVectors.size() && solutions.size() < 1000 && continuing && indexingFailureCount < 10; j++)
         {
-            SpotVectorPtr spotVector2 = spotVectors[j];
+            SpotVectorPtr spotVector2 = prunedVectors[j];
             
             std::vector<IndexingSolutionPtr> moreSolutions = IndexingSolution::startingSolutionsForVectors(spotVector1, spotVector2);
             
@@ -1556,7 +1565,7 @@ void Image::findIndexingSolutions()
                 logged << "Starting a new solution..." << std::endl;
                 sendLog(LogLevelDetailed);
                 
-                IndexingSolutionStatus success = extendIndexingSolution(moreSolutions[0], spotVectors);
+                IndexingSolutionStatus success = extendIndexingSolution(moreSolutions[0], prunedVectors);
                 
                 if (success == IndexingSolutionTrialSuccess)
                 {

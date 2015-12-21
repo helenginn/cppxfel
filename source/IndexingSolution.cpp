@@ -11,6 +11,7 @@
 #include "FileParser.h"
 #include "Logger.h"
 #include <string>
+#include "misc.h"
 
 std::vector<SpotVectorPtr> IndexingSolution::standardVectors;
 int IndexingSolution::spaceGroupNum = 0;
@@ -20,10 +21,10 @@ int IndexingSolution::maxMillerIndexTrial = 4;
 MatrixPtr IndexingSolution::unitCellOnly;
 MatrixPtr IndexingSolution::unitCellMatrix;
 MatrixPtr IndexingSolution::unitCellMatrixInverse;
-double IndexingSolution::distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
-double IndexingSolution::distanceToleranceReciprocal = 1 / FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
-double IndexingSolution::angleTolerance = FileParser::getKey("MINIMUM_TRUST_ANGLE", 1.0) * M_PI / 180;
-double IndexingSolution::solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0) * M_PI / 180;
+double IndexingSolution::distanceTolerance = 4000;
+double IndexingSolution::distanceToleranceReciprocal = 0.0025;
+double IndexingSolution::angleTolerance = 1.0 * M_PI / 180;
+double IndexingSolution::solutionAngleSpread = 8.0 * M_PI / 180;
 std::vector<MatrixPtr> IndexingSolution::symOperators;
 Reflection *IndexingSolution::newReflection;
 bool IndexingSolution::notSetup = true;
@@ -33,6 +34,11 @@ bool IndexingSolution::finishedSetup = false;
 void IndexingSolution::setupStandardVectors()
 {
     notSetup = false;
+    
+    distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
+    distanceToleranceReciprocal = 1 / distanceTolerance;
+    angleTolerance = FileParser::getKey("MINIMUM_TRUST_ANGLE", 1.0) * M_PI / 180;
+    solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0) * M_PI / 180;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -389,6 +395,40 @@ bool IndexingSolution::solutionCompatibleForMerge(IndexingSolutionPtr otherSolut
     return false;
 }
 
+bool IndexingSolution::spotVectorHasAnAppropriateDistance(SpotVectorPtr observedVector)
+{
+    double myDistance = observedVector->distance();
+    
+    for (int i = 0; i < standardVectors.size(); i++)
+    {
+        double distance = standardVectors[i]->distance();
+        
+        if (fabs(distance - myDistance) < 1 / distanceTolerance)
+        {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+void IndexingSolution::pruneSpotVectors(std::vector<SpotVectorPtr> *spotVectors)
+{
+    int count = 0;
+    
+    for (int i = 0; i < spotVectors->size(); i++)
+    {
+        bool appropriate = spotVectorHasAnAppropriateDistance((*spotVectors)[i]);
+        
+        if (!appropriate)
+        {
+            count++;
+            spotVectors->erase(spotVectors->begin() + i);
+            i--;
+        }
+    }
+}
+
 bool IndexingSolution::vectorAgreesWithExistingVectors(SpotVectorPtr observedVector, SpotVectorPtr standardVector)
 {
     for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
@@ -481,13 +521,14 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
     {
         SpotVectorPtr herVector = (*possibleVectors)[i];
         bool commonSpots = false;
+        bool checkingCommonSpots = FileParser::getKey("CHECKING_COMMON_SPOTS", true);
         bool duplicates = false;
         
         for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
         {
             SpotVectorPtr myVector = it->first;
             
-            if (myVector->hasCommonSpotWithVector(herVector))
+            if (checkingCommonSpots && myVector->hasCommonSpotWithVector(herVector))
             {
                 commonSpots = true;
             }
@@ -498,7 +539,10 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
             }
         }
         
-        if (!commonSpots || duplicates)
+        if (checkingCommonSpots && !commonSpots)
+            continue;
+        
+        if (duplicates)
             continue;
         
         sendLog(LogLevelDebug);
