@@ -73,6 +73,7 @@ public:
     std::string getNetworkPDB();
     std::string printNetwork();
     static void pruneSpotVectors(std::vector<SpotVectorPtr> *spotVectors);
+    void removeSpotVectors(std::vector<SpotVectorPtr> *spotVectors);
 
     IndexingSolutionPtr copy();
     

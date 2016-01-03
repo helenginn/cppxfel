@@ -1566,7 +1566,8 @@ struct greater { template<class T> bool operator()(T const &a, T const &b) const
 bool IOMRefiner::isGoodSolution()
 {
     bool good = false;
-    double goodSolutionStdev = FileParser::getKey("GOOD_SOLUTION_ST_DEV", 0.066);
+    double goodSolutionStdev = FileParser::getKey("GOOD_SOLUTION_ST_DEV", 0.04);
+    double badSolutionStdev = FileParser::getKey("BAD_SOLUTION_ST_DEV", 0.066);
     double goodSolutionSumRatio = FileParser::getKey("GOOD_SOLUTION_SUM_RATIO", 6.5);
     int goodSolutionHighestPeak = FileParser::getKey("GOOD_SOLUTION_HIGHEST_PEAK", 17);
     int minimumReflections = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", 30);
@@ -1634,6 +1635,12 @@ bool IOMRefiner::isGoodSolution()
     {
         details << "However, not enough reflections (" << getTotalReflections() << " vs " << minimumReflections << ")" << std::endl;
         good = false;
+    }
+    
+    if (lastStdev > badSolutionStdev)
+    {
+        good = false;
+        details << "However, standard deviation too high (" << lastStdev << " vs " << badSolutionStdev << ")" << std::endl;
     }
     
     Logger::mainLogger->addStream(&details, LogLevelNormal);

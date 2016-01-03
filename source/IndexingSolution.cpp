@@ -429,6 +429,26 @@ void IndexingSolution::pruneSpotVectors(std::vector<SpotVectorPtr> *spotVectors)
     }
 }
 
+void IndexingSolution::removeSpotVectors(std::vector<SpotVectorPtr> *spotVectors)
+{
+    int count = 0;
+    
+    for (int i = 0; i < spotVectors->size(); i++)
+    {
+        bool exists = this->spotVectors.count((*spotVectors)[i]);
+        
+        if (exists)
+        {
+            count++;
+            spotVectors->erase(spotVectors->begin() + i);
+            i--;
+        }
+    }
+    
+    logged << "Removed " << count << " spot vectors which led to a bad solution." << std::endl;
+    sendLog();
+}
+
 bool IndexingSolution::vectorAgreesWithExistingVectors(SpotVectorPtr observedVector, SpotVectorPtr standardVector)
 {
     for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)

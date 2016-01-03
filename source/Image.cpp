@@ -1378,6 +1378,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     {
         logged << "Indexing solution too similar to previous solution. Continuing..." << std::endl;
         sendLog(LogLevelNormal);
+        solutionPtr->removeSpotVectors(&spotVectors);
         
         return IndexingSolutionTrialDuplicate;
     }
@@ -1437,6 +1438,9 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         removeRefiner(lastRefiner);
         Logger::mainLogger->addStream(&logged); logged.str("");
         indexingFailureCount++;
+        
+        solutionPtr->removeSpotVectors(&spotVectors);
+        
         return IndexingSolutionTrialFailure;
     }
 }
@@ -1547,6 +1551,7 @@ void Image::findIndexingSolutions()
     
     std::vector<SpotVectorPtr> prunedVectors = spotVectors;
     IndexingSolution::pruneSpotVectors(&prunedVectors);
+    spotVectors = prunedVectors;
     
     logged << "Pruning " << filename << " spot vectors from " << spotVectors.size() << " to " << prunedVectors.size() << std::endl;
     sendLog();
@@ -1573,7 +1578,7 @@ void Image::findIndexingSolutions()
                     logged << "Indexing solution trial success." << std::endl;
                     successes++;
                     
-                    if (spots.size() < 20 || successes >= maxSuccesses)
+                    if (spots.size() < 50 || successes >= maxSuccesses)
                     {
                         continuing = false;
                         break;
@@ -1583,6 +1588,8 @@ void Image::findIndexingSolutions()
                 {
                     logged << "Indexing solution trial failure." << std::endl;
                     minimumSolutionNetworkCount += 2;
+                    
+                    prunedVectors = spotVectors;
                 }
             }
             

@@ -322,6 +322,7 @@ void FileParser::generateFunctionList()
     parserMap["SPOTS_PER_LATTICE"] = simpleInt;
     parserMap["RECIPROCAL_TOLERANCE"] = simpleFloat;
     parserMap["GOOD_SOLUTION_ST_DEV"] = simpleFloat;
+    parserMap["BAD_SOLUTION_ST_DEV"] = simpleFloat;
     parserMap["GOOD_SOLUTION_SUM_RATIO"] = simpleFloat;
     parserMap["GOOD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
     parserMap["SOLUTION_ATTEMPTS"] = simpleInt;

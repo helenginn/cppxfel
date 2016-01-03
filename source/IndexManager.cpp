@@ -607,7 +607,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                 finished = true;
         }
         
-        logged << "N: Finishing image " << i << " on " << image->IOMRefinerCount() << " crystals and " << image->spotCount() << " spots." << std::endl;
+        logged << "N: Finished image " << image->getFilename() << " on " << image->IOMRefinerCount() << " crystals and " << image->spotCount() << " spots." << std::endl;
         Logger::mainLogger->addStream(&logged); logged.str("");
 
         image->writeSpotsList();
