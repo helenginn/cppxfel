@@ -1525,7 +1525,9 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
 
 void Image::findIndexingSolutions()
 {
-    compileDistancesFromSpots();
+    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
+    
+    compileDistancesFromSpots(0, 0, alwaysFilterSpots);
     std::vector<IndexingSolutionPtr> solutions;
     
     if (spotVectors.size() == 0)
@@ -1553,14 +1555,14 @@ void Image::findIndexingSolutions()
     IndexingSolution::pruneSpotVectors(&prunedVectors);
     spotVectors = prunedVectors;
     
-    logged << "Pruning " << filename << " spot vectors from " << spotVectors.size() << " to " << prunedVectors.size() << std::endl;
+    logged << "Pruning " << filename << " spot vectors to " << prunedVectors.size() << std::endl;
     sendLog();
     
-    for (int i = 0; i < prunedVectors.size() - 1 && solutions.size() < 1000 && continuing && indexingFailureCount < 10; i++)
+    for (int i = 0; i < prunedVectors.size() - 1 && i < 5000 && continuing && indexingFailureCount < 10; i++)
     {
         SpotVectorPtr spotVector1 = prunedVectors[i];
         
-        for (int j = i + 1; j < prunedVectors.size() && solutions.size() < 1000 && continuing && indexingFailureCount < 10; j++)
+        for (int j = i + 1; j < prunedVectors.size() && continuing && indexingFailureCount < 10; j++)
         {
             SpotVectorPtr spotVector2 = prunedVectors[j];
             
@@ -1587,7 +1589,7 @@ void Image::findIndexingSolutions()
                 else if (success == IndexingSolutionTrialFailure)
                 {
                     logged << "Indexing solution trial failure." << std::endl;
-                    minimumSolutionNetworkCount += 2;
+                //    minimumSolutionNetworkCount += 2;
                     
                     prunedVectors = spotVectors;
                 }
