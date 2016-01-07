@@ -1793,16 +1793,6 @@ MtzRefiner::~MtzRefiner()
 {
 //    std::cout << "Deallocating MtzRefiner." << std::endl;
     
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        std::cout << "MTZ use: " << mtzManagers[i].use_count() << std::endl;
-    }
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        std::cout << "Image use: " << images[i].use_count() << std::endl;
-    }
-    
     delete reference;
     delete panelParser;
     mtzManagers.clear();
