@@ -1558,6 +1558,13 @@ void Image::findIndexingSolutions()
     logged << "Pruning " << filename << " spot vectors to " << prunedVectors.size() << std::endl;
     sendLog();
     
+    if (prunedVectors.size() == 0)
+    {
+        logged << "No vectors left - giving up." << std::endl;
+        sendLog();
+        return;
+    }
+    
     for (int i = 0; i < prunedVectors.size() - 1 && i < 5000 && continuing && indexingFailureCount < 10; i++)
     {
         SpotVectorPtr spotVector1 = prunedVectors[i];
