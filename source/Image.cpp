@@ -1238,7 +1238,8 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
                 if (distance > maxReciprocalDistance)
                     continue;
                 
-                logged << spots[i]->getX() << "\t" << spots[i]->getY() << "\t" << spots[j]->getX() << "\t" << spots[j]->getY() << "\t" << distance << std::endl;
+                logged << "vec\t" << spots[i]->getX() << "\t" << spots[i]->getY() << "\t" << spots[j]->getX() << "\t" << spots[j]->getY() << "\t0\t0\t0\t" << distance << std::endl;
+                sendLog(LogLevelDetailed);
                 
                 spotVectors.push_back(newVec);
             }
@@ -1542,6 +1543,17 @@ void Image::findIndexingSolutions()
         for (int i = 0; i < IOMRefinerCount(); i++)
         {
             logged << getIOMRefiner(i)->getMatrix()->summary() << std::endl;
+        }
+    }
+    
+    int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
+    
+    if (maxSpots > 0)
+    {
+        if (spotCount() > maxSpots)
+        {
+            logged << "N: Aborting image " << getFilename() << " due to too many spots." << std::endl;
+            return;
         }
     }
     

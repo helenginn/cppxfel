@@ -655,6 +655,13 @@ void IndexManager::powderPattern()
         }
     }
     
+    if (images.size() == 0)
+    {
+        logged << "No images specified." << std::endl;
+        sendLog();
+        return;
+    }
+    
     pdbLog << "HETATM";
     pdbLog << std::fixed;
     pdbLog << std::setw(5) << images[0]->spotVectorCount() + 1 << "                   ";

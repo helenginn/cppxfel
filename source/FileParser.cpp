@@ -335,6 +335,7 @@ void FileParser::generateFunctionList()
     parserMap["SCRAMBLE_SPOT_VECTORS"] = simpleBool;
     parserMap["NETWORK_TRIAL_LIMIT"] = simpleInt;
     parserMap["CHECKING_COMMON_SPOTS"] = simpleBool;
+    parserMap["REJECT_IF_SPOT_COUNT"] = simpleInt;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     
