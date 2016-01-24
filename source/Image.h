@@ -35,6 +35,7 @@ private:
 	vector<int> data;
     vector<unsigned char> overlapMask;
 	void loadImage();
+    void findSpots();
     vector<IOMRefinerPtr> indexers;
     bool shouldMaskValue;
     bool maskedValue;
@@ -89,7 +90,7 @@ public:
 	Image(std::string filename = "", double wavelength = 0,
 			double distance = 0);
 	void focusOnSpot(int *x, int *y, int tolerance1, int tolerance2);
-	void focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even);
+	void focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2 = 1, bool even = false);
     void focusOnMaximum(int *x, int *y, int tolerance = 0, double shiftX = 0, double shiftY = 0);
 	void dropImage();
 	virtual ~Image();

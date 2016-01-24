@@ -1582,6 +1582,28 @@ void MtzRefiner::loadMillersIntoPanels()
     
     Panel::finaliseMillerArrays();
 }
+/*
+// ARK: Find spots
+
+void MtzRefiner::findSpotsWrapper(MtzRefiner *object, int offset, bool orientation)
+{
+    object->findSpotsThread(offset);
+}
+
+void MtzRefiner::findSpotsThread(offset)
+{
+    
+}
+
+void MtzRefiner::findSpots()
+{
+    this->readMatricesAndImages();
+    loadPanels();
+    std::cout << "N: Total images loaded: " << images.size() << std::endl;
+    
+    
+}
+*/
 
 // MARK: indexing
 
@@ -1672,7 +1694,6 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
     integrateMats.close();
 }
 
-
 void MtzRefiner::index()
 {
     this->readMatricesAndImages();
@@ -1691,8 +1712,8 @@ void MtzRefiner::index()
 
 void MtzRefiner::powderPattern()
 {
-    this->readMatricesAndImages();
     loadPanels();
+    this->readMatricesAndImages();
     
     IndexManager *indexManager = new IndexManager(images);
     indexManager->powderPattern();

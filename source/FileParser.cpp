@@ -337,6 +337,10 @@ void FileParser::generateFunctionList()
     parserMap["CHECKING_COMMON_SPOTS"] = simpleBool;
     parserMap["REJECT_IF_SPOT_COUNT"] = simpleInt;
     
+    parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
+    parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;
+    parserMap["IMAGE_PIXEL_JUMP"] = simpleInt;
+    
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     
     parserMap["PIXEL_TOLERANCE"] = simpleFloat;

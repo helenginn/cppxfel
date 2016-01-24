@@ -27,6 +27,8 @@ private:
     double correctedX; double correctedY;
     double x; double y;
     bool rejected;
+    double height;
+    double length;
     
 public:
 	Spot(ImagePtr image);
@@ -43,8 +45,8 @@ public:
 	static bool spotComparison(Spot *a, Spot *b);
     double angleFromSpotToCentre(double centreX, double centreY);
     double angleInPlaneOfDetector(double centreX = 0, double centreY = 0, vec upBeam = new_vector(0, 1, 0));
-    bool isOnSameLineAsSpot(SpotPtr spot2, double tolerance);
     double resolution();
+    bool isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees);
     static void writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots);
     
     Coord getXY();
@@ -53,6 +55,7 @@ public:
     Coord getRawXY();
     vec estimatedVector();
     void setUpdate();
+    bool focusOnNearbySpot(double maxShift, double trialX, double trialY);
     
     std::string spotLine();
     

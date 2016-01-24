@@ -13,6 +13,7 @@
 #include <algorithm>
 #include "Vector.h"
 #include <fstream>
+#include "FileParser.h"
 
 Spot::Spot(ImagePtr image)
 {
@@ -28,8 +29,10 @@ Spot::Spot(ImagePtr image)
     rejected = false;
     x = 0;
     y = 0;
+    height = 500;
+    length = 3;
     
-	makeProbe(500, 1);
+	makeProbe(height, length);
 }
 
 Spot::~Spot()
@@ -101,6 +104,72 @@ double Spot::maximumLift(ImagePtr image, int x, int y, bool ignoreCovers)
 	}
 
 	return (penultimate > 0 && penultimate != FLT_MAX ? penultimate : 0);
+}
+
+bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY)
+{
+    logged << "Finding new spot" << std::endl;
+    sendLog(LogLevelDebug);
+    double minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 600.);
+    double minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
+    double maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 3.0);
+    
+    int focusedX = trialX;
+    int focusedY = trialY;
+    this->getParentImage()->focusOnAverageMax(&focusedX, &focusedY, maxShift);
+    setXY(focusedX, focusedY);
+    
+    if (this->getParentImage()->valueAt(focusedX, focusedY) < minIntensity)
+        return false;
+    
+    double resol = this->resolution();
+    
+    if (resol > (1. / maxResolution)) return false;
+    if (resol < 0) return false;
+    
+    std::vector<double> probeIntensities, realIntensities;
+    
+    int padding = (length - 1) / 2;
+    
+    for (int i = -padding; i < padding + 1; i++)
+    {
+        for (int j = -padding; j < padding + 1; j++)
+        {
+            if (!(this->getParentImage()->accepted(focusedX + i, focusedY + j)))
+            {
+                return false;
+            }
+            
+            int probeX = i + padding;
+            int probeY = j + padding;
+            
+            double probeIntensity = probe[probeX][probeY];
+            double realIntensity = this->getParentImage()->valueAt(focusedX + i, focusedY + j);
+            
+            if (!(probeIntensity == probeIntensity && realIntensity == realIntensity))
+                continue;
+            
+            probeIntensities.push_back(probeIntensity);
+            realIntensities.push_back(realIntensity);
+        }
+    }
+    
+    logged << "List:" << std::endl;
+    
+    for (int i = 0; i < probeIntensities.size(); i++)
+    {
+        logged << probeIntensities[i] << "\t" << realIntensities[i] << std::endl;
+    }
+    
+    sendLog(LogLevelDebug);
+    
+    double correlation = correlation_between_vectors(&probeIntensities, &realIntensities);
+    
+    if (correlation < minCorrelation)
+        return false;
+    
+    
+    return true;
 }
 
 void Spot::makeProbe(int height, int length)
@@ -175,13 +244,9 @@ double Spot::scatteringAngle(ImagePtr image)
 
 double Spot::resolution()
 {
-    double twoTheta = asin(scatteringAngle());
-    double theta = twoTheta / 2;
-    double wavelength = getParentImage()->getWavelength();
+    vec spotVec = this->estimatedVector();
     
-    double d = wavelength / (2 * sin(theta));
-    
-    return 1 / d;
+    return length_of_vector(spotVec);
 }
 
 double Spot::angleFromSpotToCentre(double centreX, double centreY)

@@ -1097,9 +1097,50 @@ void Image::updateAllSpots()
     }
 }
 
+void Image::findSpots()
+{
+    double jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
+    
+    for (int i = jump; i < xDim - jump; i += jump * 2)
+    {
+        for (int j = jump; j < yDim - jump; j += jump * 2)
+        {
+            SpotPtr testSpot = SpotPtr(new Spot(shared_from_this()));
+            
+            if (testSpot->focusOnNearbySpot(jump, i, j))
+            {
+                spots.push_back(testSpot);
+            //    testSpot = SpotPtr(new Spot(shared_from_this()));
+            }
+        }
+    }
+    
+    logged << "Found " << spotCount() << " spots." << std::endl;
+    sendLog();
+    
+    std::string basename = getBasename();
+    Spot::writeDatFromSpots(basename + "_spots.dat", spots);
+    writeSpotsList("_" + basename + "_strong.list");
+}
+
 void Image::processSpotList()
 {
     std::string spotContents;
+    
+    if (spotsFile == "find")
+    {
+        logged << "Finding spots using cppxfel" << std::endl;
+        sendLog();
+        findSpots();
+        return;
+    }
+    
+    if (!FileReader::exists(spotsFile))
+    {
+        logged << "Cannot find spot file " << spotsFile << std::endl;
+        sendLog();
+        return;
+    }
     
     try
     {
@@ -1107,8 +1148,9 @@ void Image::processSpotList()
     }
     catch(int e)
     {
-        logged << "Cannot find spot file - not loading spots for " << filename << std::endl;
+        logged << "Error reading spot file " << filename << std::endl;
         sendLog();
+        
         return;
     }
     

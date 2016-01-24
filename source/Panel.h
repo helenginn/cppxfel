@@ -12,6 +12,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include "LoggableObject.h"
 #include <boost/thread/thread.hpp>
 
 typedef enum
@@ -22,7 +23,7 @@ typedef enum
 
 typedef std::pair<double, double> Coord;
 
-class Panel
+class Panel : public LoggableObject
 {
 private:
 	Coord topLeft;
@@ -76,7 +77,6 @@ private:
     double stdevScore(double minRes, double maxRes);
     vector<MillerPtr> millers;
 	int defaultShift;
-    std::ostringstream logged;
 
 public:
 	Panel(vector<double> dimensions);

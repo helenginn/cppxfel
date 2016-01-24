@@ -52,6 +52,7 @@ public:
     void orientationPlot();
     void applyUnrefinedPartiality();
     void loadImageFiles();
+    void findSpots();
     
     void loadPanels();
 	void integrate();
