@@ -14,6 +14,7 @@ beamX = 882.
 beamY = 882.
 width = 1765
 height = 1765
+skip = 0
 
 print "CXI to pickle dumper"
 
@@ -37,6 +38,8 @@ for arg in sys.argv[1:]:
 		width = int(key_value[1])
 	elif (key_value[0] == "height"):
 		height = int(key_value[1])
+	elif (key_value[0] == "skip"):
+		skip = int(key_value[1])
 	else:
 		print "Did not understand", arg
 
@@ -106,7 +109,7 @@ print "\nEntry has", num_images, "images.\n"
 sample_file = open('sample.pickle', 'rb')
 sample = pickle.load(sample_file)
 
-for i in range(num_images):
+for i in range(skip, num_images):
 	image = cxi[entry + "/data_1/data"][i]
 	identifier = cxi[entry + "/data_1/experiment_identifier"][i]
 	distance = cxi[entry + "/data_1/distance"][i] * 1000
