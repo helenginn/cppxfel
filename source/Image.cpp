@@ -1248,6 +1248,22 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         sendLog(LogLevelDetailed);
     }
     
+    
+    int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
+    
+    if (maxSpots > 0)
+    {
+        if (spotCount() > maxSpots)
+        {
+            logged << "N: Aborting image " << getFilename() << " due to too many spots." << std::endl;
+            sendLog();
+            spotVectors.clear();
+            std::vector<SpotVectorPtr>().swap(spotVectors);
+            return;
+        }
+    }
+    
+    
     if (filter)
     {
         filterSpotVectors();
@@ -1257,7 +1273,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     
     if (scramble)
     {
-     //   std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
+        //   std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
         
         std::random_shuffle(spotVectors.begin(), spotVectors.end());
     }
@@ -1543,17 +1559,6 @@ void Image::findIndexingSolutions()
         for (int i = 0; i < IOMRefinerCount(); i++)
         {
             logged << getIOMRefiner(i)->getMatrix()->summary() << std::endl;
-        }
-    }
-    
-    int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
-    
-    if (maxSpots > 0)
-    {
-        if (spotCount() > maxSpots)
-        {
-            logged << "N: Aborting image " << getFilename() << " due to too many spots." << std::endl;
-            return;
         }
     }
     
