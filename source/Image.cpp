@@ -1121,6 +1121,8 @@ void Image::findSpots()
     std::string basename = getBasename();
     Spot::writeDatFromSpots(basename + "_spots.dat", spots);
     writeSpotsList("_" + basename + "_strong.list");
+    
+    dropImage();
 }
 
 void Image::processSpotList()
@@ -1223,6 +1225,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
     double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
     
+
     if (maxReciprocalDistance == 0)
     {
         maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.02);
