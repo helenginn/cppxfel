@@ -290,7 +290,7 @@ int Image::valueAt(int x, int y)
     
     return data[position] * panelGain;
 }
-
+/*
 void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
 {
     Spot *spot = new Spot(shared_from_this());
@@ -317,7 +317,7 @@ void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
     
     *x = maxX;
     *y = maxY;
-}
+}*/
 
 void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even)
 {
@@ -342,6 +342,9 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
             {
                 for (int k = j - tolerance2; k <= j + tolerance2 + adjustment; k++)
                 {
+                    if (!accepted(h, k))
+                        continue;
+                    
                     int addition = valueAt(h, k);
                     newValue += addition;
                     count++;
@@ -621,8 +624,8 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     
     double backgroundInSignal = 0;
     
-    double lowestPoint = FLT_MAX;
-    double highestPoint = -FLT_MAX;
+ //   double lowestPoint = FLT_MAX;
+ //   double highestPoint = -FLT_MAX;
     std::vector<double> corners;
     /*
      corners.push_back(p * (startX) + q * (startY) + r);
@@ -1100,19 +1103,49 @@ void Image::updateAllSpots()
 void Image::findSpots()
 {
     double jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
+    std::vector<PanelPtr> panelsToDelete;
     
     for (int i = jump; i < xDim - jump; i += jump * 2)
     {
         for (int j = jump; j < yDim - jump; j += jump * 2)
         {
             SpotPtr testSpot = SpotPtr(new Spot(shared_from_this()));
+            int count = 1;
+            int consecutiveFailures = 0;
             
-            if (testSpot->focusOnNearbySpot(jump, i, j))
+            while (consecutiveFailures <= 0 && count == 1)
             {
-                spots.push_back(testSpot);
-            //    testSpot = SpotPtr(new Spot(shared_from_this()));
+                bool success = testSpot->focusOnNearbySpot(jump, i, j, count);
+                
+                if (success)
+                    consecutiveFailures = 0;
+                else
+                    consecutiveFailures++;
+                
+                if (success)
+                {
+                    logged << "Found spot (round " << count << ")" << std::endl;
+                    sendLog(LogLevelDetailed);
+                    spots.push_back(testSpot);
+                }
+                
+                double x = testSpot->getX();
+                double y = testSpot->getY();
+                
+                PanelPtr ptr = PanelPtr(new Panel(x - 2, y - 2, x + 2, y + 2, PanelTagBad));
+                Panel::setupPanel(ptr);
+                panelsToDelete.push_back(ptr);
+                
+                testSpot = SpotPtr(new Spot(shared_from_this()));
+                
+                count++;
             }
         }
+    }
+    
+    for (int i = 0; i < panelsToDelete.size(); i++)
+    {
+        Panel::removePanel(panelsToDelete[i]);
     }
     
     logged << "Found " << spotCount() << " spots." << std::endl;

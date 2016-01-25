@@ -36,6 +36,7 @@ private:
     bool tiltHorizontalAxis;
 	bool beingWrittenTo;
 	int allowedSearchSpace;
+    PanelTag tag;
     double swivel;
     double gainScale;
     double height();
@@ -54,6 +55,7 @@ private:
 
 	static bool usePanelInfo;
     static vector<PanelPtr> panels;
+    static vector<PanelPtr> badPanels;
     bool addMiller(MillerPtr miller);
 
     void refineAllParameters(double windowSize);
@@ -79,8 +81,10 @@ private:
 	int defaultShift;
 
 public:
-	Panel(vector<double> dimensions);
-	virtual ~Panel();
+	Panel(vector<double> dimensions, PanelTag tag = PanelTagNormal);
+    Panel(double x1, double y1, double x2, double y2, PanelTag newTag);
+    void init(vector<double> dimensions, PanelTag newTag);
+    virtual ~Panel();
 
     static double scoreBetweenResolutions(double minRes, double maxRes);
     bool isCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
@@ -89,6 +93,7 @@ public:
     static PanelPtr panelForSpot(Spot *spot);
     static PanelPtr panelForCoord(Coord coord);
 	static void setupPanel(PanelPtr panel);
+    static void removePanel(PanelPtr panel);
 	void plotVectors(int i, PlotType plotType);
 	static void plotAll(PlotType plotType);
     static void expectedBeamCentre();
@@ -148,6 +153,17 @@ public:
     {
         return panels[i];
     }
+    
+    PanelTag getTag()
+    {
+        return tag;
+    }
+    
+    void setTag(PanelTag newBad)
+    {
+        tag = newBad;
+    }
+    
 };
 
 #endif /* PANEL_H_ */

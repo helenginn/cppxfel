@@ -145,6 +145,12 @@ typedef enum
     MinimizationMethodNelderMead = 1,
 } MinimizationMethod;
 
+typedef enum
+{
+    PanelTagNormal = 0,
+    PanelTagBad = 1,
+} PanelTag;
+
 class Panel;
 class Logger;
 class Image;

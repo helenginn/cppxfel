@@ -29,6 +29,10 @@ private:
     bool rejected;
     double height;
     double length;
+    double background;
+    static double maxResolution;
+    static double minIntensity;
+    static double minCorrelation;
     
 public:
 	Spot(ImagePtr image);
@@ -37,7 +41,7 @@ public:
     double weight();
 	double maximumLift(ImagePtr image, int x, int y, bool ignoreCovers);
 	double maximumLift(ImagePtr image, int x, int y);
-	void makeProbe(int height, int size);
+	void makeProbe(int height, int background, int size);
 	void setXY(int x, int y);
 	double scatteringAngle(ImagePtr image = ImagePtr());
 	bool isAcceptable(ImagePtr image);
@@ -55,7 +59,7 @@ public:
     Coord getRawXY();
     vec estimatedVector();
     void setUpdate();
-    bool focusOnNearbySpot(double maxShift, double trialX, double trialY);
+    bool focusOnNearbySpot(double maxShift, double trialX, double trialY, int round = 0);
     
     std::string spotLine();
     

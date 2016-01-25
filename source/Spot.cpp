@@ -15,6 +15,10 @@
 #include <fstream>
 #include "FileParser.h"
 
+double Spot::maxResolution = 0;
+double Spot::minIntensity = 0;
+double Spot::minCorrelation = 0;
+
 Spot::Spot(ImagePtr image)
 {
 	// TODO Auto-generated constructor stub
@@ -30,9 +34,17 @@ Spot::Spot(ImagePtr image)
     x = 0;
     y = 0;
     height = 500;
+    background = 200;
     length = 3;
     
-	makeProbe(height, length);
+    if (minCorrelation == 0)
+    {
+        maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 3.0);
+        minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 600.);
+        minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
+    }
+    
+	makeProbe(height, background, length);
 }
 
 Spot::~Spot()
@@ -106,18 +118,16 @@ double Spot::maximumLift(ImagePtr image, int x, int y, bool ignoreCovers)
 	return (penultimate > 0 && penultimate != FLT_MAX ? penultimate : 0);
 }
 
-bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY)
+bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int round)
 {
-    logged << "Finding new spot" << std::endl;
-    sendLog(LogLevelDebug);
-    double minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 600.);
-    double minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
-    double maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 3.0);
-    
-    int focusedX = trialX;
+  //  logged << "Finding new spot for round " << round << std::endl;
+  //  sendLog(round > 1 ? LogLevelDetailed : LogLevelDebug);
+        int focusedX = trialX;
     int focusedY = trialY;
     this->getParentImage()->focusOnAverageMax(&focusedX, &focusedY, maxShift);
     setXY(focusedX, focusedY);
+  //  logged << "Original position (" << trialX << ", " << trialY << ") focusing on " << focusedX << ", " << focusedY << std::endl;
+  //  sendLog(LogLevelDetailed);
     
     if (this->getParentImage()->valueAt(focusedX, focusedY) < minIntensity)
         return false;
@@ -126,6 +136,7 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY)
     
     if (resol > (1. / maxResolution)) return false;
     if (resol < 0) return false;
+    
     
     std::vector<double> probeIntensities, realIntensities;
     
@@ -137,6 +148,7 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY)
         {
             if (!(this->getParentImage()->accepted(focusedX + i, focusedY + j)))
             {
+                logged << "Unacceptable pixel for round " << round << std::endl;
                 return false;
             }
             
@@ -154,25 +166,21 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY)
         }
     }
     
-    logged << "List:" << std::endl;
-    
-    for (int i = 0; i < probeIntensities.size(); i++)
-    {
-        logged << probeIntensities[i] << "\t" << realIntensities[i] << std::endl;
-    }
-    
-    sendLog(LogLevelDebug);
-    
     double correlation = correlation_between_vectors(&probeIntensities, &realIntensities);
     
+    logged << "Correlation: " << correlation << " for round " << round << std::endl;
+    if (round > 1)
+        sendLog(LogLevelDetailed);
+
     if (correlation < minCorrelation)
         return false;
     
-    
+    sendLog(LogLevelDetailed);
+
     return true;
 }
 
-void Spot::makeProbe(int height, int length)
+void Spot::makeProbe(int height, int background, int length)
 {
 	for (int i = 0; i < probe.size(); i++)
 		probe[i].clear();
@@ -209,10 +217,11 @@ void Spot::makeProbe(int height, int length)
 
 			double fraction = distance_from_centre / (double) (size + 1);
 
+            // further out the fraction, the lower the value
 			if (fraction > 1)
-				probe[i][j] = 0;
+				probe[i][j] = background;
 			else
-				probe[i][j] = (1 - fraction) * height; //(double)height * y;
+				probe[i][j] = (1 - fraction) * height + background;
 
 		}
 
@@ -310,7 +319,7 @@ Coord Spot::getXY()
 {
     Coord shift = Panel::shiftForSpot(this);
     
-    logged << x << "," << shift.first << "," << y << "," << shift.second << std::endl;
+ //   logged << x << "," << shift.first << "," << y << "," << shift.second << std::endl;
     
     if (shift.first == FLT_MAX)
     {

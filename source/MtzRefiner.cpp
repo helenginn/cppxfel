@@ -204,7 +204,7 @@ void MtzRefiner::initialMerge()
      
      reference->writeToFile("initialMerge.mtz");
      */
-    
+        
     AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
     breaker.run();
     originalMerge = breaker.getMergedMtz();
