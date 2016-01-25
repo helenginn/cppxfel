@@ -336,6 +336,7 @@ void FileParser::generateFunctionList()
     parserMap["NETWORK_TRIAL_LIMIT"] = simpleInt;
     parserMap["CHECKING_COMMON_SPOTS"] = simpleBool;
     parserMap["REJECT_IF_SPOT_COUNT"] = simpleInt;
+    parserMap["POWDER_PATTERN_STEP"] = simpleFloat;
     
     parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
     parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;
