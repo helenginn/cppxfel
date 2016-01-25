@@ -1134,13 +1134,13 @@ void Image::findSpots()
                 
                 double x = testSpot->getX();
                 double y = testSpot->getY();
-                
+                /*
                 PanelPtr ptr = PanelPtr(new Panel(x - 2, y - 2, x + 2, y + 2, PanelTagBad));
                 Panel::setupPanel(ptr);
                 panelsToDelete.push_back(ptr);
                 
                 testSpot = SpotPtr(new Spot(shared_from_this()));
-                
+                */
                 count++;
             }
         }
