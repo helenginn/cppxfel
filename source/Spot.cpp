@@ -33,9 +33,9 @@ Spot::Spot(ImagePtr image)
     rejected = false;
     x = 0;
     y = 0;
-    height = 500;
-    background = 200;
-    length = 3;
+    height = FileParser::getKey("IMAGE_SPOT_PROBE_HEIGHT", 100);
+    background = FileParser::getKey("IMAGE_SPOT_PROBE_BACKGROUND", 10);
+    length = FileParser::getKey("IMAGE_SPOT_PROBE_PADDING", 1) * 2 + 1;
     
     if (minCorrelation == 0)
     {

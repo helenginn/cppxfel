@@ -1113,6 +1113,9 @@ void Image::findSpots()
             int count = 1;
             int consecutiveFailures = 0;
             
+            if (!accepted(i, j))
+                continue;
+            
             while (consecutiveFailures <= 0 && count == 1)
             {
                 bool success = testSpot->focusOnNearbySpot(jump, i, j, count);

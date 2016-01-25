@@ -27,9 +27,9 @@ private:
     double correctedX; double correctedY;
     double x; double y;
     bool rejected;
-    double height;
-    double length;
-    double background;
+    int height;
+    int length;
+    int background;
     static double maxResolution;
     static double minIntensity;
     static double minCorrelation;

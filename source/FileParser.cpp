@@ -342,6 +342,9 @@ void FileParser::generateFunctionList()
     parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
     parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;
     parserMap["IMAGE_PIXEL_JUMP"] = simpleInt;
+    parserMap["IMAGE_SPOT_PROBE_HEIGHT"] = simpleInt;
+    parserMap["IMAGE_SPOT_PROBE_BACKGROUND"] = simpleInt;
+    parserMap["IMAGE_SPOT_PROBE_PADDING"] = simpleInt;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     
@@ -379,7 +382,7 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
 
 	rest = line.substr(space_index + 1, std::string::npos);
 
-    if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL")
+    if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL" && upperCommand != "MASK")
     {
         std::cout << "Error: do not understand command " << upperCommand << std::endl;
         exit(1);
