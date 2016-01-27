@@ -138,6 +138,8 @@ def printData(path):
 	if os.path.isfile(spotListName):
 		print "Found spots."
 		print >> output, "spots", spotListName
+	else:
+		print >> output, "spots find"
 
 	if os.path.isfile(experimentsJson):
 		print "Found DIALS indexing solutions."
