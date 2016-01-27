@@ -112,7 +112,7 @@ print "\nEntry has", num_images, "images.\n"
 sample_file = open('sample.pickle', 'rb')
 sample = pickle.load(sample_file)
 
-for i in range(skip, image_num):
+for i in range(skip, num_images):
 	image = cxi[entry + "/data_1/data"][i]
 	identifier = cxi[entry + "/data_1/experiment_identifier"][i]
 	distance = cxi[entry + "/data_1/distance"][i] * 1000
