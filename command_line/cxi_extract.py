@@ -112,97 +112,79 @@ print "\nEntry has", num_images, "images.\n"
 sample_file = open('sample.pickle', 'rb')
 sample = pickle.load(sample_file)
 
-def dumpImages(min, max):
-	global cxi
-	global panels
-	for i in range(min, max):
-		image = cxi[entry + "/data_1/data"][i]
-		identifier = cxi[entry + "/data_1/experiment_identifier"][i]
-		distance = cxi[entry + "/data_1/distance"][i] * 1000
-		pixelSize = cxi[entry + "/data_1/x_pixel_size"][i] * 1000
-		energy = cxi[entry + "/instrument_1/source_1/energy"][i]
-		keV = energy * 6.2416006565e+15
-		wavelength = 12.4 / keV
-		print "Dumping", identifier
-		alldata = []
-		count = 0
-		rowSize = len(image[0])
-		for row in image:
-			rowdata = numpy.array(row, dtype=numpy.int32)
-			alldata.extend(row)
-			count += 1
-		totalPicklePixels = width * height
-		print "Generating canvas for pickle image with", totalPicklePixels, "pixels."
-	
-		picklePixels = scitbx_array_family_flex_ext.int()
-		picklePixels.resize(totalPicklePixels)
-	
-		for panel in panelInfo:
-			origTopLeftX = int(panelInfo[panel]['min_fs'])
-			origTopLeftY = int(panelInfo[panel]['min_ss'])
-			origBottomRightX = int(panelInfo[panel]['max_fs'])
-			origBottomRightY = int(panelInfo[panel]['max_ss'])
-			relativeNewX = panelInfo[panel]['corner_x']
-			relativeNewY = panelInfo[panel]['corner_y']
-			absoluteNewX = int(beamX + relativeNewX)
-			absoluteNewY = int(beamY + relativeNewY)
-			axisXX = int(round(panelInfo[panel]['fs'][0]))
-			axisXY = int(round(panelInfo[panel]['fs'][1]))
-			axisYX = int(round(panelInfo[panel]['ss'][0]))
-			axisYY = int(round(panelInfo[panel]['ss'][1]))
-	
-			print panel + "\t" + str(origTopLeftX) + "\t" + str(origTopLeftY) + "\t" + str(origBottomRightX) + "\t" + str(origBottomRightY) + "\t" + str(absoluteNewX) + "\t"  + str(absoluteNewY) + "\t" + str(axisXX) + "\t" + str(axisXY) + "\t" + str(axisYX) + "\t" + str(axisYY)
-	
-			for k in range(origTopLeftX, origBottomRightX):
-				xOffset = k - origTopLeftX
-				for j in range(origTopLeftY, origBottomRightY):
-					yOffset = j - origTopLeftY
-					newX = absoluteNewY + axisXX * yOffset + axisXY * xOffset
-					newY = absoluteNewX + axisYX * yOffset + axisYY * xOffset
-				
-					newValue = int(alldata[j * rowSize + k])
-					picklePixels[newX * width + newY] = newValue
-		
-		string = picklePixels.as_numpy_array().tostring()
-		newFile = open(identifier + '.img', 'wb')
-		newFile.write(string)
-		newFile.close()
-	
-		sample['DISTANCE'] = distance
-		sample['SIZE1'] = width
-		sample['SIZE2'] = height
-		sample['ACTIVE_AREAS'] = scitbx_array_family_flex_ext.int([0, 0, width, height])
-		sample['PIXEL_SIZE'] = pixelSize
-		sample['BEAM_CENTER_X'] = 97.02
-		sample['BEAM_CENTER_Y'] = 97.02
-		sample['WAVELENGTH'] = wavelength
-	
-		picklePixels.reshape(grid(width, height))
+for i in range(skip, image_num):
+	image = cxi[entry + "/data_1/data"][i]
+	identifier = cxi[entry + "/data_1/experiment_identifier"][i]
+	distance = cxi[entry + "/data_1/distance"][i] * 1000
+	pixelSize = cxi[entry + "/data_1/x_pixel_size"][i] * 1000
+	energy = cxi[entry + "/instrument_1/source_1/energy"][i]
+	keV = energy * 6.2416006565e+15
+	wavelength = 12.4 / keV
+	print "Dumping", identifier
+	alldata = []
+	count = 0
+	rowSize = len(image[0])
+	for row in image:
+		rowdata = numpy.array(row, dtype=numpy.int32)
+		alldata.extend(row)
+		count += 1
+	totalPicklePixels = width * height
+	print "Generating canvas for pickle image with", totalPicklePixels, "pixels."
 
-		sample['DATA'] = picklePixels
+	picklePixels = scitbx_array_family_flex_ext.int()
+	picklePixels.resize(totalPicklePixels)
 
-		pickleName = identifier + '.pickle'
-		new_pickle = open(pickleName, 'wb')
-		pickle.dump(sample, new_pickle)
-		print "Dumped pickle", pickleName, "and img", identifier + ".img"
+	for panel in panelInfo:
+		origTopLeftX = int(panelInfo[panel]['min_fs'])
+		origTopLeftY = int(panelInfo[panel]['min_ss'])
+		origBottomRightX = int(panelInfo[panel]['max_fs'])
+		origBottomRightY = int(panelInfo[panel]['max_ss'])
+		relativeNewX = panelInfo[panel]['corner_x']
+		relativeNewY = panelInfo[panel]['corner_y']
+		absoluteNewX = int(beamX + relativeNewX)
+		absoluteNewY = int(beamY + relativeNewY)
+		axisXX = int(round(panelInfo[panel]['fs'][0]))
+		axisXY = int(round(panelInfo[panel]['fs'][1]))
+		axisYX = int(round(panelInfo[panel]['ss'][0]))
+		axisYY = int(round(panelInfo[panel]['ss'][1]))
+
+		print panel + "\t" + str(origTopLeftX) + "\t" + str(origTopLeftY) + "\t" + str(origBottomRightX) + "\t" + str(origBottomRightY) + "\t" + str(absoluteNewX) + "\t"  + str(absoluteNewY) + "\t" + str(axisXX) + "\t" + str(axisXY) + "\t" + str(axisYX) + "\t" + str(axisYY)
+
+		for k in range(origTopLeftX, origBottomRightX):
+			xOffset = k - origTopLeftX
+			for j in range(origTopLeftY, origBottomRightY):
+				yOffset = j - origTopLeftY
+				newX = absoluteNewY + axisXX * yOffset + axisXY * xOffset
+				newY = absoluteNewX + axisYX * yOffset + axisYY * xOffset
+			
+				newValue = int(alldata[j * rowSize + k])
+				picklePixels[newX * width + newY] = newValue
 	
-		newFile.close()
-		new_pickle.close()
+	string = picklePixels.as_numpy_array().tostring()
+	newFile = open(identifier + '.img', 'wb')
+	newFile.write(string)
+	newFile.close()
 
-threads = []
-thread_count = 1#int(os.getenv('NSLOTS', 4))
-images_per_thread = num_images / thread_count
+	sample['DISTANCE'] = distance
+	sample['SIZE1'] = width
+	sample['SIZE2'] = height
+	sample['ACTIVE_AREAS'] = scitbx_array_family_flex_ext.int([0, 0, width, height])
+	sample['PIXEL_SIZE'] = pixelSize
+	sample['BEAM_CENTER_X'] = 97.02
+	sample['BEAM_CENTER_Y'] = 97.02
+	sample['WAVELENGTH'] = wavelength
 
-print "Total images ready for dumping: ", num_images
+	picklePixels.reshape(grid(width, height))
 
-for i in range(0, thread_count):
-	min = int(i * images_per_thread)
-	max = int((i + 1) * images_per_thread)
+	sample['DATA'] = picklePixels
 
-	print "Dumping", min, "to", max, " images on this thread"
-	
-	thread = Process(target=dumpImages, args=(min, max, ))
-	threads.append(thread)
-	thread.start()
+	pickleName = identifier + '.pickle'
+	new_pickle = open(pickleName, 'wb')
+	pickle.dump(sample, new_pickle)
+	print "Dumped pickle", pickleName, "and img", identifier + ".img"
+
+	newFile.close()
+	new_pickle.close()
+
 
 print "Done."
