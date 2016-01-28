@@ -52,6 +52,7 @@ public:
     double resolution();
     bool isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees);
     static void writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots);
+    bool isSameAs(SpotPtr spot2);
     
     Coord getXY();
     double getX(bool update = false);

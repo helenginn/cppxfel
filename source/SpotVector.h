@@ -46,6 +46,7 @@ public:
     double distanceDifference(SpotVectorPtr standardVector);
     SpotVectorPtr copy();
     SpotVectorPtr vectorRotatedByMatrix(MatrixPtr mat);
+    std::string description();
     
     void setUpdate()
     {

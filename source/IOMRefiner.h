@@ -37,6 +37,7 @@ typedef enum
     RefinementTypeOrientationMatrixEarlySeparated = 10,
     RefinementTypeOrientationMatrixPanelStdev = 11,
     RefinementTypeOrientationMatrixStdevOnly = 12,
+    RefinementTypeRefineLAxis = 13,
 } RefinementType;
 
 class IOMRefiner : public boost::enable_shared_from_this<IOMRefiner>
@@ -89,6 +90,7 @@ private:
 	double testBandwidth;
     double lastScore;
 	vector<vector<double> > solutions;
+    bool recalculateMillerPositions;
     
     double orientationTolerance;
     std::ostringstream logged;

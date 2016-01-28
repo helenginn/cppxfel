@@ -433,4 +433,9 @@ std::string Spot::spotLine()
     return line.str();
 }
 
+bool Spot::isSameAs(SpotPtr spot2)
+{
+    return (spot2->getX() == getX() && spot2->getY() == getY());
+}
+
 

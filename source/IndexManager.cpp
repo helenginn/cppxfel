@@ -71,12 +71,15 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
         {
             for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
             {
-                if (spaceGroupNum != 19 && spaceGroupNum != 178)
+                if (spaceGroupNum != 19 && spaceGroupNum != 178 && spaceGroupNum != 5)
                 {
                     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
                     {
                         continue;
                     }
+                    
+                    if (spaceGroupNum == 5 && (i + j % 2 != 0))
+                        continue;
                     
               //      if (spaceGroupNum == 146 && ((-i + j + k) % 3 != 0))
               //          continue;
@@ -713,6 +716,48 @@ void IndexManager::powderPattern()
     
     powderLog.close();
     
+    /// angles
+    
+    std::vector<double> probeDistances = FileParser::getKey("PROBE_DISTANCES", std::vector<double>());
+    
+    if (probeDistances.size() < 2)
+        return;
+    
+    double distance1 = probeDistances[0]; double distance2 = probeDistances[1];
+    
+    double angleStep = FileParser::getKey("POWDER_PATTERN_STEP_ANGLE", 2.0) * M_PI / 180;
+    double distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 500.);
+    std::map<int, int> angleHistogram;
+    
+    for (double i = 0; i < M_PI; i += angleStep)
+    {
+        int angleCategory = i / angleStep;
+        angleHistogram[angleCategory] = 0;
+    }
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        std::vector<double> newAngles = images[i]->anglesBetweenVectorDistances(distance1, distance2, distanceTolerance);
+        
+        for (int j = 0; j < newAngles.size(); j++)
+        {
+            int angleCategory = newAngles[j] / angleStep;
+            angleHistogram[angleCategory]++;
+        }
+    }
+    
+    std::ofstream angleLog;
+    angleLog.open("angle.csv");
+    
+    for (std::map<int, int>::iterator it = angleHistogram.begin(); it != angleHistogram.end(); it++)
+    {
+        double angle = it->first * angleStep * 180 / M_PI;
+        double freq = it->second;
+        
+        angleLog << angle << "," << freq << "," << std::endl;
+    }
+    
+    angleLog.close();
 }
 
 void IndexManager::index()

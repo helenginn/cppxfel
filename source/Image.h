@@ -105,6 +105,7 @@ public:
 			int startY, int endX, int endY);
     void refineDistances();
     IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
+    std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
     
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
 

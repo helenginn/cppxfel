@@ -76,6 +76,7 @@ public:
     void removeSpotVectors(std::vector<SpotVectorPtr> *spotVectors);
 
     IndexingSolutionPtr copy();
+    ~IndexingSolution();
     
     int spotVectorCount()
     {

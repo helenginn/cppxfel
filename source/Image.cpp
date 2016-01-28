@@ -122,6 +122,16 @@ Image::~Image()
     
     data.clear();
     vector<int>().swap(data);
+    
+    overlapMask.clear();
+    vector<unsigned char>().swap(overlapMask);
+    
+    /*
+    spots.clear();
+    vector<SpotPtr>().swap(spots);
+    
+    spotVectors.clear();
+    vector<SpotVectorPtr>().swap(spotVectors);*/
 }
 
 void Image::addMask(int startX, int startY, int endX, int endY)
@@ -1227,8 +1237,19 @@ void Image::processSpotList()
         
         SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
         newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
+        bool add = true;
         
-        spots.push_back(newSpot);
+        for (int j = 0; j < spots.size(); j++)
+        {
+            if (newSpot->isSameAs(spots[j]))
+            {
+                logged << "Same spot for " << getFilename() << ", ignoring" << std::endl;
+                sendLog();
+                add = false;
+            }
+        }
+        
+        if (add) spots.push_back(newSpot);
     }
     
     logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;
@@ -1468,7 +1489,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
 {
     logged << "(" << filename << ") Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
     sendLog(LogLevelNormal);
- 
+    
     MatrixPtr solutionMatrix = solutionPtr->createSolution();
     bool similar = checkIndexingSolutionDuplicates(solutionMatrix);
     
@@ -1618,7 +1639,63 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
         sendLog(LogLevelDetailed);
     }
     
+    existingVectors.clear();
+    std::vector<SpotVectorPtr>().swap(existingVectors);
+    
     return IndexingSolutionBranchFailure;
+}
+
+std::vector<double> Image::anglesBetweenVectorDistances(double distance1, double distance2, double tolerance)
+{
+    std::vector<SpotVectorPtr> firstVectors, secondVectors;
+    
+    for (int i = 0; i < spotVectors.size(); i++)
+    {
+        double vecDistance = spotVectors[i]->distance();
+        double diff1 = fabs(vecDistance - distance1);
+        double diff2 = fabs(vecDistance - distance2);
+        
+        if (diff1 < 1 / tolerance)
+        {
+            logged << "Image " << getFilename() << ", adding vector " << i << " " << spotVectors[i]->description() << " to group 1" << std::endl;
+            sendLog();
+            firstVectors.push_back(spotVectors[i]);
+        }
+        
+        if (diff2 < 1 / tolerance)
+        {
+            logged << "Image " << getFilename() << ", adding vector " << i << " " << spotVectors[i]->description() << " to group 2" << std::endl;
+            sendLog();
+            secondVectors.push_back(spotVectors[i]);
+        }
+    }
+    
+ //   if (firstVectors.size() <= 1 && secondVectors.size() <= 1)
+ //       return std::vector<double>();
+    
+    if (firstVectors.size() && secondVectors.size())
+    {
+        logged << "N: Image " << getFilename() << " has " << firstVectors.size() << " and " << secondVectors.size() << "  vector distances on same image." << std::endl;
+        sendLog();
+    }
+    else return std::vector<double>();
+    
+    std::vector<double> angles;
+    
+    for (int j = 0; j < firstVectors.size(); j++)
+    {
+        for (int k = 0; k < secondVectors.size(); k++)
+        {
+            double angle = firstVectors[j]->angleWithVector(secondVectors[k]);
+            logged << "Adding angle between " << firstVectors[j]->description() << " and " << secondVectors[k]->description() << " " << angle * 180 / M_PI << std::endl;
+            sendLog();
+            
+            angles.push_back(angle);
+            angles.push_back(M_PI - angle);
+        }
+    }
+    
+    return angles;
 }
 
 void Image::findIndexingSolutions()
@@ -1700,8 +1777,8 @@ void Image::findIndexingSolutions()
                 }
             }
             
-            solutions.reserve(solutions.size() + moreSolutions.size());
-            solutions.insert(solutions.end(), moreSolutions.begin(), moreSolutions.end());
+            moreSolutions.clear();
+            std::vector<IndexingSolutionPtr>().swap(moreSolutions);
         }
     }
     

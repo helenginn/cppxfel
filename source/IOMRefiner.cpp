@@ -42,7 +42,7 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     testBandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH",
                                        OVER_PRED_BANDWIDTH) / 2;
     testSpotSize = FileParser::getKey("OVER_PRED_RLP_SIZE",
-                                      OVER_PRED_SPOT_SIZE);;
+                                      OVER_PRED_SPOT_SIZE);
     maxResolution = FileParser::getKey(
                                        "MAX_INTEGRATED_RESOLUTION", MAX_INTEGRATED_RESOLUTION);;
     minResolution = FileParser::getKey(
@@ -50,7 +50,8 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     search = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                 METROLOGY_SEARCH_SIZE);;
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
-                                    METROLOGY_SEARCH_SIZE);;
+                                    METROLOGY_SEARCH_SIZE);
+    
     reference = NULL;
     lastMtz = MtzPtr();
     roughCalculation = FileParser::getKey("ROUGH_CALCULATION", false);
@@ -77,6 +78,7 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
     needsReintegrating = true;
+    recalculateMillerPositions = false;
     
     int rotationModeInt = FileParser::getKey("ROTATION_MODE", 0);
     rotationMode = (RotationMode)rotationModeInt;
@@ -440,9 +442,8 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             miller->makeComplexShoebox(wavelength, initialBandwidth, initialMosaicity, initialRlpSize);
         }
         
-        if (needsReintegrating || !roughCalculation)
+        if (needsReintegrating || !roughCalculation || recalculateMillerPositions)
         {
-       //     miller->positionOnDetector(matrix, &roughX, &roughY);
             miller->integrateIntensity(newMatrix);
         }
         
@@ -863,7 +864,31 @@ double IOMRefiner::score(int whichAxis, bool silent)
 {
     if (refinement == RefinementTypeDetectorWavelength)
     {
-        return 0 - getTotalReflections();
+        return 0 - getTotalReflectionsWithinBandwidth();
+    }
+    
+    if (refinement == RefinementTypeRefineLAxis)
+    {
+        double averageShift = 0;
+        int count = 0;
+        
+        for (int i = 0; i < millers.size(); i++)
+        {
+            if (millerReachesThreshold(millers[i]))
+            {
+                std::pair<double, double> shift = millers[i]->getShift();
+                double shiftDistance = sqrt(pow(shift.first, 2) + pow(shift.second, 2));
+                
+                averageShift += shiftDistance;
+                count++;
+            }
+        }
+        
+        averageShift /= count;
+        
+        logged << "AVERAGE SHIFT: " << averageShift << std::endl;
+        sendLog(LogLevelNormal);
+        return averageShift;
     }
     
     if (refinement == RefinementTypeOrientationMatrixEarly || refinement == RefinementTypeOrientationMatrixEarlySeparated)
@@ -1391,7 +1416,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
-        double lRotStep = initialStep / 3;
+        double lRotStep = initialStep / 4;
         double aRotStep = initialStep;
         double bRotStep = initialStep;
         double cRotStep = initialStep;
@@ -1416,9 +1441,21 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
         {
             if (!refinedL)
             {
-                refinement = RefinementTypeDetectorWavelength;
+                int oldSearchSize = searchSize;
+                const int bigSize = 6;
+                
+                if (searchSize < bigSize)
+                {
+                    searchSize = bigSize;
+                }
+                recalculateMillerPositions = true;
+                refinement = RefinementTypeRefineLAxis;
+                
                 this->minimizeParameter(&lRotStep, &lRot);
                 refinement = refinementType;
+                recalculateMillerPositions = false;
+                
+                searchSize = oldSearchSize;
             }
             if (refinementType == RefinementTypeOrientationMatrixEarly && !refinedH && !refinedK)
             {

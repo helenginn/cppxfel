@@ -345,6 +345,7 @@ void FileParser::generateFunctionList()
     parserMap["IMAGE_SPOT_PROBE_HEIGHT"] = simpleInt;
     parserMap["IMAGE_SPOT_PROBE_BACKGROUND"] = simpleInt;
     parserMap["IMAGE_SPOT_PROBE_PADDING"] = simpleInt;
+    parserMap["PROBE_DISTANCES"] = doubleVector;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     

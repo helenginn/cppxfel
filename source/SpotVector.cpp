@@ -8,6 +8,7 @@
 
 #include "SpotVector.h"
 #include "Matrix.h"
+#include "misc.h"
 
 double SpotVector::distanceDifference(SpotVectorPtr standardVector)
 {
@@ -69,6 +70,7 @@ double SpotVector::distance()
     return cachedDistance;
 }
 
+// in radians
 double SpotVector::angleWithVector(SpotVectorPtr spotVector2)
 {
     return angleBetweenVectors(spotVector2->spotDiff, spotDiff);
@@ -160,4 +162,9 @@ bool SpotVector::hasCommonSpotWithVector(SpotVectorPtr spotVector2)
     }
     
     return false;
+}
+
+std::string SpotVector::description()
+{
+    return "(" + f_to_str(spotDiff.h) + ", " + f_to_str(spotDiff.k) + ", " + f_to_str(spotDiff.l) + ")";
 }

@@ -737,3 +737,9 @@ std::vector<IndexingSolutionPtr> IndexingSolution::startingSolutionsForVectors(S
     
     return solutions;
 }
+
+IndexingSolution::~IndexingSolution()
+{
+    spotVectors.clear();
+    SpotVectorMap().swap(spotVectors);
+}
