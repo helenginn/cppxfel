@@ -470,10 +470,17 @@ bool MtzRefiner::loadInitialMtz(bool force)
 
 int MtzRefiner::imageMax(size_t lineCount)
 {
+    int skip = imageSkip(lineCount);
+    
     int end = (int)lineCount;
     
     if (imageLimit != 0)
         end = imageLimit < lineCount ? imageLimit : (int)lineCount;
+    
+    end += skip;
+    
+    if (end > lineCount)
+        end = lineCount;
     
     return end;
 }
@@ -577,9 +584,18 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     vector<std::string> imageList = FileReader::split(contents, "\nimage ");
     
     int maxThreads = FileParser::getMaxThreads();
+    
+    int skip = imageSkip(imageList.size());
     int end = imageMax(imageList.size());
     
-    for (int i = offset; i < end; i += maxThreads)
+    if (skip > 0)
+    {
+        std::ostringstream logged;
+        logged << "Skipping " << skip << " lines" << std::endl;
+        Logger::mainLogger->addStream(&logged);
+    }
+    
+    for (int i = offset + skip; i < end; i += maxThreads)
     {
         if (imageList[i].length() == 0)
             continue;
@@ -968,13 +984,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
     
     int end = imageMax(lines.size());
     
-    int skip = FileParser::getKey("IMAGE_SKIP", 0);
-    
-    if (skip > lines.size())
-    {
-        std::cout << "Image skip beyond image count" << std::endl;
-        exit(1);
-    }
+    int skip = imageSkip(lines.size());
     
     if (skip > 0)
     {
@@ -1151,7 +1161,7 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
         std::cout << "Skipping " << skip << " lines" << std::endl;
     }
     
-    for (int i = skip + offset; i < end + skip; i += maxThreads)
+    for (int i = skip + offset; i < end; i += maxThreads)
     {
         std::ostringstream log;
         
@@ -1900,4 +1910,17 @@ void MtzRefiner::loadDxtbxImage(std::string imageName, vector<int> imageData, do
     
     images.push_back(newImage);
     std::cout << "Loaded image " << imageName << std::endl;
+}
+
+int MtzRefiner::imageSkip(size_t totalCount)
+{
+    int skip = FileParser::getKey("IMAGE_SKIP", 0);
+    
+    if (skip > totalCount)
+    {
+        std::cout << "Image skip beyond image count" << std::endl;
+        exit(1);
+    }
+    
+    return skip;
 }

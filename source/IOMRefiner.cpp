@@ -512,7 +512,7 @@ double IOMRefiner::minimizeParameter(double *meanStep, double *param, int whichA
         }
     
     *param = param_trials[param_min_num];
-    this->checkAllMillers(maxResolution, testBandwidth);
+    this->checkAllMillers(maxResolution, testBandwidth, false, false);
     
     logged << "chosen no. " << param_min_num << std::endl;
     
@@ -1504,7 +1504,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                 {
                     recalculated = true;
                     this->calculateNearbyMillers(true);
-                    checkAllMillers(maxResolution, testBandwidth);
+            //        checkAllMillers(maxResolution, testBandwidth);
                 }
                 
                 refinement = RefinementTypeOrientationMatrixStdevOnly;

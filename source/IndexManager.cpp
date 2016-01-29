@@ -97,7 +97,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
                 unitCellMatrix->multiplyVector(&hkl_transformed);
                 
                 logged << hkl.h << "\t" << hkl.k << "\t" << hkl.l << "\t" << hkl_transformed.h << "\t" << hkl_transformed.k << "\t" << hkl_transformed.l << std::endl;
-                sendLog();
+                sendLog(LogLevelDebug);
                 
                 
                 double distance = length_of_vector(hkl_transformed);
@@ -131,7 +131,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
         << vectorDistances[i].second << std::endl;
     }
     
-    sendLog();
+    sendLog(LogLevelDebug);
 }
 
 bool match_greater_than_match(Match a, Match b)

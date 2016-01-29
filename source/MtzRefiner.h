@@ -12,7 +12,7 @@
 #include "MtzManager.h"
 #include "PanelParser.h"
 
-class MtzRefiner
+class MtzRefiner : public LoggableObject
 {
 private:
     vector<MtzPtr> mtzManagers;
@@ -28,6 +28,7 @@ private:
     static int cycleNum;
     bool hasRefined;
     bool isPython;
+    static int imageSkip(size_t totalCount);
 public:
 	MtzRefiner();
 	virtual ~MtzRefiner();
