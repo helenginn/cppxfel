@@ -40,7 +40,7 @@ private:
     void addMatrix(SpotVectorPtr observedVector1, SpotVectorPtr observedVector2, MatrixPtr solution);
     bool vectorSolutionsAreCompatible(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
     static bool spotVectorHasAnAppropriateDistance(SpotVectorPtr observedVector);
-
+    
     static double distanceTolerance;
     static double distanceToleranceReciprocal;
     static double angleTolerance;
@@ -74,7 +74,8 @@ public:
     std::string printNetwork();
     static void pruneSpotVectors(std::vector<SpotVectorPtr> *spotVectors);
     void removeSpotVectors(std::vector<SpotVectorPtr> *spotVectors);
-
+    static void calculateSimilarStandardVectorsForImageVectors(std::vector<SpotVectorPtr> vectors);
+    
     IndexingSolutionPtr copy();
     ~IndexingSolution();
     

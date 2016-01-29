@@ -21,6 +21,7 @@ private:
     bool update;
     double cachedDistance;
     
+    std::vector<SpotVectorPtr> sameLengthStandardVectors;
     vec hkl;
     vec spotDiff;
 public:
@@ -47,6 +48,12 @@ public:
     SpotVectorPtr copy();
     SpotVectorPtr vectorRotatedByMatrix(MatrixPtr mat);
     std::string description();
+    void addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> standardVectors, double tolerance);
+    
+    std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
+    {
+        return sameLengthStandardVectors;
+    }
     
     void setUpdate()
     {

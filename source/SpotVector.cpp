@@ -168,3 +168,15 @@ std::string SpotVector::description()
 {
     return "(" + f_to_str(spotDiff.h) + ", " + f_to_str(spotDiff.k) + ", " + f_to_str(spotDiff.l) + ")";
 }
+
+void SpotVector::addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> standardVectors, double tolerance)
+{
+    sameLengthStandardVectors.clear();
+    
+    for (int i = 0; i < standardVectors.size(); i++)
+    {
+        double trust = trustComparedToStandardVector(standardVectors[i]);
+        if (trust > tolerance)
+            sameLengthStandardVectors.push_back(standardVectors[i]);
+    }
+}

@@ -495,7 +495,7 @@ double IOMRefiner::minimizeParameter(double *meanStep, double *param, int whichA
     for (double i = bestParam - *meanStep; j < 3; i += *meanStep)
     {
         *param = i;
-        this->checkAllMillers(maxResolution, testBandwidth);
+        this->checkAllMillers(maxResolution, testBandwidth, false, false);
         param_scores[j] = score(whichAxis);
         logged << param_scores[j] << ", ";
         param_trials[j] = i;
@@ -886,8 +886,8 @@ double IOMRefiner::score(int whichAxis, bool silent)
         
         averageShift /= count;
         
-        logged << "AVERAGE SHIFT: " << averageShift << std::endl;
-        sendLog(LogLevelNormal);
+        logged << "Average shift: " << averageShift << std::endl;
+        sendLog(LogLevelDetailed);
         return averageShift;
     }
     
@@ -1448,6 +1448,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                 {
                     searchSize = bigSize;
                 }
+                
                 recalculateMillerPositions = true;
                 refinement = RefinementTypeRefineLAxis;
                 

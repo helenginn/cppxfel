@@ -1740,6 +1740,8 @@ void Image::findIndexingSolutions()
         return;
     }
     
+    IndexingSolution::calculateSimilarStandardVectorsForImageVectors(prunedVectors);
+    
     for (int i = 0; i < prunedVectors.size() - 1 && i < 5000 && continuing && indexingFailureCount < 10; i++)
     {
         SpotVectorPtr spotVector1 = prunedVectors[i];

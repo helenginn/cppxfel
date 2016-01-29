@@ -57,13 +57,18 @@ void Matrix::maxMillers(int (&millers)[3], double maxResolution)
     }
 }
 
-Matrix::Matrix(void)
+void Matrix::setIdentity()
 {
     for (int i = 0; i < 16; i++)
         components[i] = 0;
     
     for (int i = 0; i < 16; i += 5)
         components[i] = 1;
+}
+
+Matrix::Matrix(void)
+{
+    setIdentity();
     
     unitCell = MatrixPtr();
     rotation = MatrixPtr();

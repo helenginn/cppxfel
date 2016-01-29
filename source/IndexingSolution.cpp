@@ -104,6 +104,14 @@ void IndexingSolution::setupStandardVectors()
     finishedSetup = true;
 }
 
+void IndexingSolution::calculateSimilarStandardVectorsForImageVectors(std::vector<SpotVectorPtr> vectors)
+{
+    for (int i = 0; i < vectors.size(); i++)
+    {
+        vectors[i]->addSimilarLengthStandardVectors(standardVectors, distanceTolerance);
+    }
+}
+
 bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, bool force)
 {
     std::ostringstream logged;
@@ -248,7 +256,7 @@ MatrixPtr IndexingSolution::createSolution()
         allSpotVectors.push_back(it->first);
     }
     
-    for (int i = 0; i < allSpotVectors.size() - 1; i++)
+    for (int i = 0; i < allSpotVectors.size() && i < 1; i++)
     {
         for (int j = i + 1; j < allSpotVectors.size(); j++)
         {
@@ -466,6 +474,8 @@ bool IndexingSolution::vectorAgreesWithExistingVectors(SpotVectorPtr observedVec
 
 bool IndexingSolution::vectorSolutionsAreCompatible(SpotVectorPtr observedVector, SpotVectorPtr standardVector)
 {
+    int count = 0;
+    
     for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
     {
         SpotVectorPtr myVector = it->first;
@@ -487,6 +497,8 @@ bool IndexingSolution::vectorSolutionsAreCompatible(SpotVectorPtr observedVector
         
         if (!similar)
             return false;
+        
+        count++;
     }
     
     return true;
@@ -539,7 +551,7 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
     
     for (int i = 0; i < possibleVectors->size() && i < 3000; i++)
     {
-        SpotVectorPtr herVector = (*possibleVectors)[i];
+        SpotVectorPtr possibleVector = (*possibleVectors)[i];
         bool commonSpots = false;
         bool checkingCommonSpots = FileParser::getKey("CHECKING_COMMON_SPOTS", true);
         bool duplicates = false;
@@ -548,12 +560,12 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
         {
             SpotVectorPtr myVector = it->first;
             
-            if (checkingCommonSpots && myVector->hasCommonSpotWithVector(herVector))
+            if (checkingCommonSpots && myVector->hasCommonSpotWithVector(possibleVector))
             {
                 commonSpots = true;
             }
             
-            if (myVector == herVector)
+            if (myVector == possibleVector)
             {
                 duplicates = true;
             }
@@ -568,20 +580,22 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
         sendLog(LogLevelDebug);
         
         // Find a standard vector which works with all the other vectors
-        for (int j = 0; j < standardVectors.size(); j++)
+        std::vector<SpotVectorPtr> standardSelection = possibleVector->standardVectorsOfSameDistance();
+        
+        for (int j = 0; j < standardSelection.size(); j++)
         {
-            bool agrees = vectorAgreesWithExistingVectors(herVector, standardVectors[j]);
+            bool agrees = vectorAgreesWithExistingVectors(possibleVector, standardSelection[j]);
             
             if (!agrees)
                 continue;
             
-            agrees = vectorSolutionsAreCompatible(herVector, standardVectors[j]);
+            agrees = vectorSolutionsAreCompatible(possibleVector, standardSelection[j]);
             
             if (agrees)
             {
                 added++;
                
-                addVectorToList(herVector, standardVectors[j]);
+                addVectorToList(possibleVector, standardSelection[j]);
                 
                 possibleVectors->erase(possibleVectors->begin() + i);
                 i--;

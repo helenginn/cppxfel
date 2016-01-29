@@ -100,6 +100,7 @@ public:
     void print(void);
     void recalculateOrientationMatrix();
     std::string summary();
+    void setIdentity();
     
     bool isComplex()
     {
