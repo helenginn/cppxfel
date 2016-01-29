@@ -1461,7 +1461,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
             if (refinementType == RefinementTypeOrientationMatrixEarly && !refinedH && !refinedK)
             {
                 this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
-          //      checkAllMillers(maxResolution, testBandwidth);
             }
            
             if (!refinedARot && !refinedBRot && !refinedCRot)
@@ -1485,7 +1484,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
 
        //     refinementType = RefinementTypeOrientationMatrixEarly;
             
-            checkAllMillers(maxResolution, testBandwidth);
+            checkAllMillers(maxResolution, testBandwidth, false, false);
             
             getWavelengthHistogram(wavelengths, frequencies);
             histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
@@ -1505,6 +1504,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                 {
                     recalculated = true;
                     this->calculateNearbyMillers(true);
+                    checkAllMillers(maxResolution, testBandwidth);
                 }
                 
                 refinement = RefinementTypeOrientationMatrixStdevOnly;
