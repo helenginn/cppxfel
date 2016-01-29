@@ -1728,6 +1728,7 @@ void Image::findIndexingSolutions()
     bool continuing = true;
     int successes = 0;
     int maxSuccesses = FileParser::getKey("SOLUTION_ATTEMPTS", 1);
+    int indexingTimeLimit = FileParser::getKey("INDEXING_TIME_LIMIT", 600);
     
     std::vector<SpotVectorPtr> prunedVectors = spotVectors;
     IndexingSolution::pruneSpotVectors(&prunedVectors);
@@ -1743,9 +1744,12 @@ void Image::findIndexingSolutions()
         return;
     }
     
+    time_t startcputime;
+    time(&startcputime);
+    
     IndexingSolution::calculateSimilarStandardVectorsForImageVectors(prunedVectors);
     
-    for (int i = 0; i < prunedVectors.size() - 1 && i < 5000 && continuing && indexingFailureCount < 10; i++)
+    for (int i = 0; i < prunedVectors.size() - 1 && i < maxSearch && continuing && indexingFailureCount < 10; i++)
     {
         SpotVectorPtr spotVector1 = prunedVectors[i];
         
@@ -1784,6 +1788,20 @@ void Image::findIndexingSolutions()
             
             moreSolutions.clear();
             std::vector<IndexingSolutionPtr>().swap(moreSolutions);
+        }
+        
+        time_t middlecputime;
+        time(&middlecputime);
+        
+        clock_t difference = middlecputime - startcputime;
+        double seconds = difference;
+        
+        if (seconds > indexingTimeLimit)
+        {
+            logged << "N: Time limit reached on image " << filename << " on 0 crystals and " << spotCount() << " remaining spots." << std::endl;
+            sendLog();
+            
+            return;
         }
     }
     

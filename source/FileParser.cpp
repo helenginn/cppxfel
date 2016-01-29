@@ -335,6 +335,7 @@ void FileParser::generateFunctionList()
     parserMap["MINIMUM_SOLUTION_NETWORK_COUNT"] = simpleInt;
     parserMap["SCRAMBLE_SPOT_VECTORS"] = simpleBool;
     parserMap["NETWORK_TRIAL_LIMIT"] = simpleInt;
+    parserMap["INDEXING_TIME_LIMIT"] = simpleInt;
     parserMap["CHECKING_COMMON_SPOTS"] = simpleBool;
     parserMap["REJECT_IF_SPOT_COUNT"] = simpleInt;
     parserMap["POWDER_PATTERN_STEP"] = simpleFloat;
