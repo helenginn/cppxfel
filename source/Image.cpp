@@ -1728,7 +1728,7 @@ void Image::findIndexingSolutions()
     bool continuing = true;
     int successes = 0;
     int maxSuccesses = FileParser::getKey("SOLUTION_ATTEMPTS", 1);
-    int indexingTimeLimit = FileParser::getKey("INDEXING_TIME_LIMIT", 600);
+    int indexingTimeLimit = FileParser::getKey("INDEXING_TIME_LIMIT", 1200);
     
     std::vector<SpotVectorPtr> prunedVectors = spotVectors;
     IndexingSolution::pruneSpotVectors(&prunedVectors);
