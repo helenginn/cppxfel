@@ -1686,6 +1686,9 @@ std::vector<double> Image::anglesBetweenVectorDistances(double distance1, double
     {
         for (int k = 0; k < secondVectors.size(); k++)
         {
+            if (firstVectors[j] == secondVectors[k])
+                continue;
+            
             double angle = firstVectors[j]->angleWithVector(secondVectors[k]);
             logged << "Adding angle between " << firstVectors[j]->description() << " and " << secondVectors[k]->description() << " " << angle * 180 / M_PI << std::endl;
             sendLog();
