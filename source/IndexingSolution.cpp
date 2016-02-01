@@ -296,7 +296,7 @@ MatrixPtr IndexingSolution::createSolution()
         scoredSolutions.push_back(std::make_pair(aMat, score));
     }
 
-    sendLog(LogLevelDetailed);
+    sendLog(LogLevelDebug);
 
     std::sort(scoredSolutions.begin(), scoredSolutions.end(), match_greater_than_match);
     
@@ -319,7 +319,7 @@ MatrixPtr IndexingSolution::createSolution()
         sendLog(LogLevelDebug);
         
         logged << chosenMat->description() << std::endl;
-        sendLog(LogLevelNormal);
+        sendLog(LogLevelDebug);
     }
     return chosenMat;
 }

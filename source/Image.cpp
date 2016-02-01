@@ -1491,8 +1491,8 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     sendLog(LogLevelNormal);
     
     MatrixPtr solutionMatrix = solutionPtr->createSolution();
-    bool similar = checkIndexingSolutionDuplicates(solutionMatrix);
-    
+  /*  bool similar = checkIndexingSolutionDuplicates(solutionMatrix);
+  
     if (similar)
     {
         logged << "Indexing solution too similar to previous solution. Continuing..." << std::endl;
@@ -1500,7 +1500,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         solutionPtr->removeSpotVectors(&spotVectors);
         
         return IndexingSolutionTrialDuplicate;
-    }
+    }*/
     
     bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     bool refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
@@ -1715,12 +1715,20 @@ void Image::findIndexingSolutions()
     
     if (IOMRefinerCount() > 0)
     {
-        logged << "Existing solution summary:" << std::endl;
+        logged << "Existing solution spot removal:" << std::endl;
         
         for (int i = 0; i < IOMRefinerCount(); i++)
         {
-            logged << getIOMRefiner(i)->getMatrix()->summary() << std::endl;
+            MtzPtr mtz = getIOMRefiner(i)->newMtz(i);
+            int spotCountBefore = (int)spots.size();
+            mtz->removeStrongSpots(&spots);
+            int spotCountAfter = (int)spots.size();
+            int spotDiff = spotCountAfter - spotCountBefore;
+            
+            logged << "Removed " << spotDiff << " spots from existing solution leaving " << spotCountAfter << " spots." << std::endl;
         }
+
+        sendLog();
     }
     
     sendLog();
@@ -1728,6 +1736,7 @@ void Image::findIndexingSolutions()
     bool continuing = true;
     int successes = 0;
     int maxSuccesses = FileParser::getKey("SOLUTION_ATTEMPTS", 1);
+    int maxLattices = FileParser::getKey("MAX_LATTICES_PER_IMAGE", 1);
     int indexingTimeLimit = FileParser::getKey("INDEXING_TIME_LIMIT", 1200);
     
     std::vector<SpotVectorPtr> prunedVectors = spotVectors;
@@ -1761,6 +1770,15 @@ void Image::findIndexingSolutions()
             
             if (moreSolutions.size() > 0)
             {
+                bool similar = checkIndexingSolutionDuplicates(moreSolutions[0]->createSolution(), false);
+                
+                if (similar)
+                {
+                    logged << "Solution too similar to another. Continuing..." << std::endl;
+                    sendLog(LogLevelDetailed);
+                    break;
+                }
+                
                 logged << "Starting a new solution..." << std::endl;
                 sendLog(LogLevelDetailed);
                 
@@ -1771,17 +1789,14 @@ void Image::findIndexingSolutions()
                     logged << "Indexing solution trial success." << std::endl;
                     successes++;
                     
-                    if (spots.size() < 50 || successes >= maxSuccesses)
+                    if (successes >= maxSuccesses || IOMRefinerCount() >= maxLattices)
                     {
                         continuing = false;
-                        break;
                     }
                 }
                 else if (success == IndexingSolutionTrialFailure)
                 {
                     logged << "Indexing solution trial failure." << std::endl;
-                //    minimumSolutionNetworkCount += 2;
-                    
                     prunedVectors = spotVectors;
                 }
             }

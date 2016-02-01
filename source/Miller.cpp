@@ -205,6 +205,8 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     slices = FileParser::getKey("PARTIALITY_SLICES", 8);
     trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
     maxSlices = FileParser::getKey("MAX_SLICES", 100);
+    lastShiftedX = 0;
+    lastShiftedY = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -789,6 +791,8 @@ MillerPtr Miller::copy(void)
     newMiller->countingSigma = countingSigma;
     newMiller->lastX = lastX;
     newMiller->lastY = lastY;
+    newMiller->lastShiftedX = lastShiftedX;
+    newMiller->lastShiftedY = lastShiftedY;
     newMiller->shift = shift;
     
     return newMiller;
@@ -984,6 +988,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             *y = intLastY;
         }
     }
+    
+    lastShiftedX = *x;
+    lastShiftedY = *y;
 }
 
 void Miller::makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize)
@@ -1047,10 +1054,10 @@ void Miller::incrementOverlapMask(double hRot, double kRot)
 
 bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
 {
-    double x = lastX;
-    double y = lastY;
+    double x = lastShiftedX;
+    double y = lastShiftedY;
     int count = 0;
-    int tolerance = FileParser::getKey("METROLOGY_SEARCH_SIZE", 1) + 2;
+    int tolerance = 2;
     
     for (int i = 0; i < spots->size(); i++)
     {

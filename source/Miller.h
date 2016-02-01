@@ -58,6 +58,8 @@ private:
     double gainScale;
 	double lastX;
 	double lastY;
+    double lastShiftedX;
+    double lastShiftedY;
     double lastBandwidth;
     double lastWavelength;
     double lastRlpSize;
