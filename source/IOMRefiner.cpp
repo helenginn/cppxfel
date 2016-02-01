@@ -334,6 +334,20 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     needsReintegrating = true;
 }
 
+void IOMRefiner::lockUnitCellDimensions()
+{
+    double spgNum = spaceGroup->spg_num;
+    if (spgNum >= 75 && spgNum <= 194)
+    {
+        unitCell[1] = unitCell[0];
+    }
+    if (spgNum >= 195)
+    {
+        unitCell[1] = unitCell[0];
+        unitCell[2] = unitCell[0];
+    }
+}
+
 void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation)
 {
     MatrixPtr matrix = getMatrix();
@@ -342,6 +356,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     {
    //     unitCell[1] = unitCell[0];
         
+        lockUnitCellDimensions();
         matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
     }
     double wavelength = getImage()->getWavelength();

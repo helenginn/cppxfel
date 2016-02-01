@@ -101,6 +101,7 @@ public:
     void setComplexMatrix();
     virtual ~IOMRefiner();
 
+    void lockUnitCellDimensions();
     void calculateOnce();
 	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true);
 	MtzPtr newMtz(int i);
