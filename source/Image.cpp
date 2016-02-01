@@ -1491,7 +1491,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     sendLog(LogLevelNormal);
     
     MatrixPtr solutionMatrix = solutionPtr->createSolution();
-  /*  bool similar = checkIndexingSolutionDuplicates(solutionMatrix);
+    bool similar = checkIndexingSolutionDuplicates(solutionMatrix);
   
     if (similar)
     {
@@ -1500,7 +1500,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         solutionPtr->removeSpotVectors(&spotVectors);
         
         return IndexingSolutionTrialDuplicate;
-    }*/
+    }
     
     bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     bool refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
@@ -1737,6 +1737,10 @@ void Image::findIndexingSolutions()
     int successes = 0;
     int maxSuccesses = FileParser::getKey("SOLUTION_ATTEMPTS", 1);
     int maxLattices = FileParser::getKey("MAX_LATTICES_PER_IMAGE", 1);
+    
+    if (maxLattices < maxSuccesses)
+        maxLattices = maxSuccesses;
+    
     int indexingTimeLimit = FileParser::getKey("INDEXING_TIME_LIMIT", 1200);
     
     std::vector<SpotVectorPtr> prunedVectors = spotVectors;
