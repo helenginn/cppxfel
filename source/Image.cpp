@@ -1723,7 +1723,7 @@ void Image::findIndexingSolutions()
             int spotCountBefore = (int)spots.size();
             mtz->removeStrongSpots(&spots);
             int spotCountAfter = (int)spots.size();
-            int spotDiff = spotCountAfter - spotCountBefore;
+            int spotDiff = spotCountBefore - spotCountAfter;
             
             logged << "Removed " << spotDiff << " spots from existing solution leaving " << spotCountAfter << " spots." << std::endl;
         }
