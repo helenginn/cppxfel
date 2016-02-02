@@ -1807,6 +1807,11 @@ void Image::findIndexingSolutions()
                     logged << "Indexing solution trial failure." << std::endl;
                     prunedVectors = spotVectors;
                 }
+                else if (success == IndexingSolutionTrialDuplicate)
+                {
+                    logged << "Indexing solution trial duplicate." << std::endl;
+                    prunedVectors = spotVectors;
+                }
             }
             
             moreSolutions.clear();

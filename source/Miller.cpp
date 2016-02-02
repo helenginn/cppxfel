@@ -1061,8 +1061,8 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
     
     for (int i = 0; i < spots->size(); i++)
     {
-        int x2 = (*spots)[i]->getX();
-        int y2 = (*spots)[i]->getY();
+        int x2 = (*spots)[i]->getRawXY().first;
+        int y2 = (*spots)[i]->getRawXY().second;
         
         double xDiff = fabs(x2 - x);
         double yDiff = fabs(y2 - y);
