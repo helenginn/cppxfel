@@ -1715,7 +1715,7 @@ void Image::findIndexingSolutions()
     
     if (IOMRefinerCount() > 0)
     {
-        logged << "Existing solution spot removal:" << std::endl;
+        logged << "Existing solution spot removal (image " << getFilename() << "):" << std::endl;
         
         for (int i = 0; i < IOMRefinerCount(); i++)
         {
@@ -1775,13 +1775,17 @@ void Image::findIndexingSolutions()
             if (moreSolutions.size() > 0)
             {
                 bool similar = checkIndexingSolutionDuplicates(moreSolutions[0]->createSolution(), false);
+                bool skip = false;
                 
                 if (similar)
                 {
                     logged << "Solution too similar to another. Continuing..." << std::endl;
                     sendLog(LogLevelDetailed);
+                    skip = true;
                     break;
                 }
+                
+                if (skip) break;
                 
                 logged << "Starting a new solution..." << std::endl;
                 sendLog(LogLevelDetailed);
