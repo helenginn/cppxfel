@@ -1696,6 +1696,8 @@ bool IOMRefiner::isGoodSolution()
         details << "However, standard deviation too high (" << lastStdev << " vs " << badSolutionStdev << ")" << std::endl;
     }
     
+    details << "Decision: " << (good ? "keep." : "throw away.") << std::endl;
+    
     Logger::mainLogger->addStream(&details, LogLevelNormal);
     
     return good;

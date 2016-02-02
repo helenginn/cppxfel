@@ -122,7 +122,6 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
         
         for (int l = 0; l < newReflection->ambiguityCount(); l++)
         {
-            
             MatrixPtr mat3 = mat2->copy();
             MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
             mat3->getRotation()->preMultiply(*symOperator);
