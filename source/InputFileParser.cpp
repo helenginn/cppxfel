@@ -270,6 +270,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->powderPattern();
             }
             
+            if (line == "INDEXING_PARAMETER_ANALYSIS")
+            {
+                understood = true;
+                refiner->indexingParameterAnalysis();
+            }
+            
             if (!understood)
             {
                 log << "Skipping line " << line << std::endl;

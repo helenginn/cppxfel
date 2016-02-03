@@ -11,6 +11,7 @@
 #include "parameters.h"
 #include "MtzManager.h"
 #include "PanelParser.h"
+class IndexManager;
 
 class MtzRefiner : public LoggableObject
 {
@@ -24,6 +25,7 @@ private:
     static int imageMax(size_t lineCount);
     static void singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset);
     static void readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset);
+    IndexManager *indexManager;
     void applyParametersToImages();
     static int cycleNum;
     bool hasRefined;
@@ -36,7 +38,8 @@ public:
     void index();
     void powderPattern();
 	bool loadInitialMtz(bool force = false);
-
+    void indexingParameterAnalysis();
+    
 	void cycle();
 	void cycleThread(int offset);
 	static void cycleThreadWrapper(MtzRefiner *object, int offset);

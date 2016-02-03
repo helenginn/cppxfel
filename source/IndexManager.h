@@ -61,6 +61,7 @@ public:
         return mtzs;
     }
     
+    void indexingParameterAnalysis();
     void refineMetrology();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();

@@ -62,6 +62,8 @@ private:
     int indexingFailureCount;
     int minimumSolutionNetworkCount;
     
+    std::vector<IndexingSolutionPtr> goodSolutions;
+    std::vector<IndexingSolutionPtr> badSolutions;
     std::vector<SpotPtr> spots;
     std::vector<SpotVectorPtr> spotVectors;
     double commonCircleThreshold;
@@ -316,6 +318,18 @@ public:
     void setDetectorGain(double newGain)
     {
         detectorGain = newGain;
+    }
+    
+    IndexingSolutionPtr getGoodOrBadSolution(int i, bool good = true)
+    {
+        if (good) return goodSolutions[i];
+        else return badSolutions[i];
+    }
+    
+    int goodOrBadSolutionCount(bool good = true)
+    {
+        if (good) return goodSolutions.size();
+        else return badSolutions.size();
     }
 };
 

@@ -101,7 +101,7 @@ void new_main(int argc, char *argv[])
     
 	std::cout << "Welcome to cppxfel!" << std::endl;
     
-	if (strcmp(argv[1], "-i") == 0)
+	if (strcmp(argv[1], "-i") == 0 || strcmp(argv[1], "-dry") == 0)
 	{
 		if (argc < 3)
 		{

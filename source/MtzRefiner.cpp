@@ -44,6 +44,8 @@ MtzRefiner::MtzRefiner()
     
     hasRefined = false;
     isPython = false;
+    
+    indexManager = NULL;
 }
 
 void print_parameters()
@@ -1710,7 +1712,8 @@ void MtzRefiner::index()
     loadPanels();
     std::cout << "N: Total images loaded: " << images.size() << std::endl;
    
-    IndexManager *indexManager = new IndexManager(images);
+    if (!indexManager)
+        indexManager = new IndexManager(images);
     
     indexManager->index();
     
@@ -1725,8 +1728,18 @@ void MtzRefiner::powderPattern()
     loadPanels();
     this->readMatricesAndImages();
     
-    IndexManager *indexManager = new IndexManager(images);
+    if (!indexManager)
+        indexManager = new IndexManager(images);
+    
     indexManager->powderPattern();
+}
+
+void MtzRefiner::indexingParameterAnalysis()
+{
+    if (!indexManager)
+        indexManager = new IndexManager(images);
+    
+    indexManager->indexingParameterAnalysis();
 }
 
 // MARK: Miscellaneous

@@ -756,3 +756,65 @@ IndexingSolution::~IndexingSolution()
     spotVectors.clear();
     SpotVectorMap().swap(spotVectors);
 }
+
+std::vector<double> IndexingSolution::totalDistances()
+{
+    std::vector<double> distances;
+    
+    for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
+    {
+        SpotVectorPtr vector = it->first;
+     //   SpotVectorPtr standard = it->second;
+       
+        distances.push_back(vector->distance());
+    }
+    
+    return distances;
+}
+
+std::vector<double> IndexingSolution::totalAngles()
+{
+    std::vector<double> angles;
+    
+    for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
+    {
+        SpotVectorPtr vector1 = it->first;
+        SpotVectorPtr standard1 = it->second;
+        
+        for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
+        {
+            SpotVectorPtr vector2 = it->first;
+            SpotVectorPtr standard2 = it->second;
+            
+            double angle1 = standard2->angleWithVector(standard1);
+            double angle2 = vector2->angleWithVector(vector1);
+            
+            double angleDiff = fabs(angle2 - angle1);
+            
+            angles.push_back(angleDiff * 180 / M_PI);
+        }
+    }
+    
+    return angles;
+}
+
+std::vector<double> IndexingSolution::totalDistanceTrusts()
+{
+    std::vector<double> trusts;
+    
+    for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
+    {
+        SpotVectorPtr vector = it->first;
+        SpotVectorPtr standard = it->second;
+        
+        double distanceDiff = fabs(vector->distance() - standard->distance());
+        double trust = 1 / distanceDiff;
+        
+        if (trust > distanceTolerance * 10)
+            trust = distanceTolerance * 10;
+        
+        trusts.push_back(trust);
+    }
+    
+    return trusts;
+}

@@ -74,5 +74,7 @@ double standard_deviation(vector<double> *values, vector<double> *weights, doubl
 
 double cartesian_to_distance(double x, double y);
 double cartesian_to_angle(double x, double y);
+std::map<double, int> histogram(std::vector<double> values, double step);
+void histogramCSV(std::string filename, std::map<double, int> map1, std::map<double, int> map2);
 
 #endif /* VECTOR_H_ */

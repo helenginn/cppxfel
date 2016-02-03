@@ -1538,6 +1538,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     if (successfulImage || acceptAllSolutions)
     {
         logged << "Successful crystal for " << getFilename() << std::endl;
+        goodSolutions.push_back(solutionPtr);
         MtzPtr mtz = refiner->newMtz(lastRefiner);
         int spotCountBefore = (int)spots.size();
         
@@ -1554,6 +1555,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     else
     {
         logged << "Unsuccessful crystal for " << getFilename() << std::endl;
+        badSolutions.push_back(solutionPtr);
         removeRefiner(lastRefiner);
         Logger::mainLogger->addStream(&logged); logged.str("");
         indexingFailureCount++;

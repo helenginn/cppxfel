@@ -13,6 +13,7 @@
 #include <tuple>
 #include "Matrix.h"
 #include "Logger.h"
+#include <fstream>
 
 vec reverseVector(vec vec1)
 {
@@ -875,3 +876,72 @@ double minimizeParameter(double &step, double *param, double (*score)(void *obje
     return param_scores[param_min_num];
 }
 
+std::map<double, int> histogram(std::vector<double> values, double step)
+{
+    std::map<int, int> tempHistogram;
+    
+    for (int i = 0; i < values.size(); i++)
+    {
+        if (values[i] != values[i])
+            continue;
+        
+        int category = values[i] / step;
+        
+        if (values[i] == 0)
+            category = 0;
+        
+        tempHistogram[category]++;
+    }
+    
+    std::map<double, int> realHistogram;
+    
+    if (values.size() == 0)
+        return realHistogram;
+    
+    Logger::mainLogger->addString("Histogram has " + std::to_string(tempHistogram.size()) + " categories.");
+    
+    int minCategory = INT_MAX;
+    int maxCategory = -INT_MAX;
+    
+    for (std::map<int, int>::iterator it = tempHistogram.begin(); it != tempHistogram.end(); it++)
+    {
+        int category = it->first;
+        
+        if (category < minCategory)
+            minCategory = category;
+        if (category > maxCategory)
+            maxCategory = category;
+    }
+    
+    for (int i = minCategory; i <= maxCategory; i++)
+    {
+        double realStep = i * step;
+        int frequency = tempHistogram[i];
+        
+        realHistogram[realStep] = frequency;
+    }
+    
+    return realHistogram;
+}
+
+void histogramCSV(std::string filename, std::map<double, int> map1, std::map<double, int> map2)
+{
+    std::ofstream stream;
+    stream.open(filename.c_str());
+    
+    for (std::map<double, int>::iterator it = map1.begin(); it != map1.end(); it++)
+    {
+        double category = it->first;
+        int first = it->second;
+        int second = 0;
+        
+        if (map2.count(category))
+        {
+            second = map2[category];
+        }
+        
+        stream << category << "," << first << "," << second << std::endl;
+    }
+    
+    stream.close();
+}

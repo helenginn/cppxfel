@@ -931,3 +931,70 @@ void IndexManager::refineMetrology()
     logged << Panel::printAll() << std::endl;
     sendLog();
 }
+
+void IndexManager::indexingParameterAnalysis()
+{
+    std::vector<double> goodNetworkCount, badNetworkCount;
+    std::vector<double> goodDistanceTrusts, badDistanceTrusts;
+    std::vector<double> goodAngleTrusts, badAngleTrusts;
+    std::vector<double> goodDistances, badDistances;
+    
+    logged << "Indexing parameter analysis." << std::endl;
+    sendLog();
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        logged << "Processing image " << images[i]->getFilename() << std::endl;
+        sendLog();
+        
+        for (int good = 0; good < 2; good++)
+        {
+            std::vector<double> *networkCount = good ? &goodNetworkCount : &badNetworkCount;
+            std::vector<double> *distanceTrusts = good ? &goodDistanceTrusts : &badDistanceTrusts;
+            std::vector<double> *angles = good ? &goodAngleTrusts : &badAngleTrusts;
+            std::vector<double> *distances = good ? &goodDistances : &badDistances;
+            
+            for (int j = 0; j < images[i]->goodOrBadSolutionCount(good); j++)
+            {
+                IndexingSolutionPtr solution = images[i]->getGoodOrBadSolution(j, good);
+                
+                networkCount->push_back(solution->spotVectorCount());
+                
+                std::vector<double> additionalTrusts = solution->totalDistanceTrusts();
+                distanceTrusts->reserve(distanceTrusts->size() + additionalTrusts.size());
+                distanceTrusts->insert(distanceTrusts->begin(), additionalTrusts.begin(), additionalTrusts.end());
+                
+                std::vector<double> additionalDistances = solution->totalDistances();
+                distances->reserve(distances->size() + additionalDistances.size());
+                distances->insert(distances->begin(), additionalDistances.begin(), additionalDistances.end());
+                
+                std::vector<double> additionalAngles = solution->totalAngles();
+                angles->reserve(angles->size() + additionalAngles.size());
+                angles->insert(angles->begin(), additionalAngles.begin(), additionalAngles.end());
+            }
+        }
+    }
+    /*
+    std::vector<double> goodNetworkCount, badNetworkCount;
+    std::vector<double> goodDistanceTrusts, badDistanceTrusts;
+    std::vector<double> goodAngleTrusts, badAngleTrusts;
+    std::vector<double> goodDistances, badDistances;
+    */
+    
+    std::map<double, int> goodNetworkCountHistogram = histogram(goodNetworkCount, 2);
+    std::map<double, int> badNetworkCountHistogram = histogram(badNetworkCount, 2);
+    histogramCSV("networkCountAnalysis.csv", goodNetworkCountHistogram, badNetworkCountHistogram);
+
+    std::map<double, int> goodDistanceTrustsHistogram = histogram(goodDistanceTrusts, 100);
+    std::map<double, int> badDistanceTrustsHistogram = histogram(badDistanceTrusts, 100);
+    histogramCSV("distanceTrustAnalysis.csv", goodDistanceTrustsHistogram, badDistanceTrustsHistogram);
+
+    double powderPatternStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.001);
+    std::map<double, int> goodDistancesHistogram = histogram(goodDistances, powderPatternStep);
+    std::map<double, int> badDistancesHistogram = histogram(badDistances, powderPatternStep);
+    histogramCSV("distanceAnalysis.csv", goodDistancesHistogram, badDistancesHistogram);
+
+    std::map<double, int> goodAnglesHistogram = histogram(goodAngleTrusts, 0.05);
+    std::map<double, int> badAnglesHistogram = histogram(badAngleTrusts, 0.05);
+    histogramCSV("angleTrustAnalysis.csv", goodAnglesHistogram, badAnglesHistogram);
+}

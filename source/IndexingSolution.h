@@ -75,6 +75,9 @@ public:
     static void pruneSpotVectors(std::vector<SpotVectorPtr> *spotVectors);
     void removeSpotVectors(std::vector<SpotVectorPtr> *spotVectors);
     static void calculateSimilarStandardVectorsForImageVectors(std::vector<SpotVectorPtr> vectors);
+    std::vector<double> totalDistances();
+    std::vector<double> totalAngles();
+    std::vector<double> totalDistanceTrusts();
     
     IndexingSolutionPtr copy();
     ~IndexingSolution();
