@@ -896,7 +896,7 @@ std::map<double, int> histogram(std::vector<double> values, double step)
     if (values.size() == 0)
         return realHistogram;
     
-    Logger::mainLogger->addString("Histogram has " + std::to_string(tempHistogram.size()) + " categories.");
+    Logger::mainLogger->addString("Histogram has " + std::to_string((int)tempHistogram.size()) + " categories.");
     
     int minCategory = INT_MAX;
     int maxCategory = -INT_MAX;
