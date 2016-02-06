@@ -277,6 +277,25 @@ MatrixPtr Matrix::matrixFromUnitCellVersion2(double a, double b, double c, doubl
     return reciprocalMatrix;
 }
 
+std::vector<double> Matrix::unitCellFromReciprocalUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
+{
+    scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
+    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
+    
+    cctbx::uctbx::unit_cell rc = uc.reciprocal();
+    
+    scitbx::af::double6 newParams = rc.parameters();
+    
+    std::vector<double> unitCell;
+
+    for (int i = 0; i < newParams.size(); i++)
+    {
+        unitCell.push_back(newParams[i]);
+    }
+    
+    return unitCell;
+}
+
 MatrixPtr Matrix::matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
 {
     //  return matrixFromUnitCellVersion2(a, b, c, alpha, beta, gamma);

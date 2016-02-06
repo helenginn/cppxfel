@@ -47,8 +47,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
                                        "MAX_INTEGRATED_RESOLUTION", MAX_INTEGRATED_RESOLUTION);;
     minResolution = FileParser::getKey(
                                        "MIN_INTEGRATED_RESOLUTION", 0.0);;
-    search = FileParser::getKey("METROLOGY_SEARCH_SIZE",
-                                METROLOGY_SEARCH_SIZE);;
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                     METROLOGY_SEARCH_SIZE);
     
@@ -1706,7 +1704,6 @@ bool IOMRefiner::isGoodSolution()
 void IOMRefiner::calculateOnce()
 {
     calculateNearbyMillers(true);
-    setSearch(searchSize);
     checkAllMillers(maxResolution, testBandwidth);
     
     vector<double> wavelengths;
@@ -1721,7 +1718,6 @@ void IOMRefiner::calculateOnce()
 MtzPtr IOMRefiner::newMtz(int index)
 {
     calculateNearbyMillers(true);
-    setSearch(searchSize);
     checkAllMillers(maxResolution, testBandwidth);
     vector<double> wavelengths;
     vector<int> frequencies;

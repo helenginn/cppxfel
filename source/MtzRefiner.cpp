@@ -1549,6 +1549,8 @@ void MtzRefiner::refineDetectorGeometry()
     Panel::plotAll(PlotTypeAbsolute);
 }
 
+// MARK: Dry integrating
+
 void MtzRefiner::loadMillersIntoPanels()
 {
     loadPanels();

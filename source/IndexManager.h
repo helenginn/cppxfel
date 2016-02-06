@@ -20,6 +20,7 @@
 #include "Logger.h"
 #include "Holder.h"
 #include "LoggableObject.h"
+#include <mutex>
 
 typedef std::map<int, std::pair<int, int> > PowderHistogram;
 
@@ -39,6 +40,9 @@ protected:
     double minimumTrustDistance;
     double minimumTrustAngle;
     double solutionAngleSpread;
+    ImagePtr getNextImage();
+    int nextImage;
+    std::mutex indexMutex;
     
     void updateAllSpots();
     static double metrologyTarget(void *object);

@@ -29,7 +29,7 @@ std::vector<MatrixPtr> IndexingSolution::symOperators;
 Reflection *IndexingSolution::newReflection;
 bool IndexingSolution::notSetup = true;
 bool IndexingSolution::finishedSetup = false;
-
+bool IndexingSolution::checkingCommonSpots = true;
 
 void IndexingSolution::setupStandardVectors()
 {
@@ -39,6 +39,7 @@ void IndexingSolution::setupStandardVectors()
     distanceToleranceReciprocal = 1 / distanceTolerance;
     angleTolerance = FileParser::getKey("MINIMUM_TRUST_ANGLE", 1.0) * M_PI / 180;
     solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0) * M_PI / 180;
+    checkingCommonSpots = FileParser::getKey("CHECKING_COMMON_SPOTS", true);
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -114,8 +115,6 @@ void IndexingSolution::calculateSimilarStandardVectorsForImageVectors(std::vecto
 
 bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, bool force)
 {
-    std::ostringstream logged;
-    
     for (int k = 0; k < symOperators.size(); k++)
     {
         MatrixPtr symOperator = symOperators[k];
@@ -135,8 +134,12 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
             double theta2, phi2, psi2;
             mat1->eulerAngles(&theta2, &phi2, &psi2);
             
+#ifndef __OPTIMIZE__
+            std::ostringstream logged;
+            
             logged << "Similarity angle: " << angle << " for angles (" << theta << ", " << phi << ", " << psi << ") and (" << theta2 << ", " << phi2 << ", " << psi2 << ")" << std::endl;
             Logger::mainLogger->addStream(&logged, LogLevelDebug);
+#endif
             
             if (angle < solutionAngleSpread * 2.5 && angle != -1)
             {
@@ -150,24 +153,12 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
 
 bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2)
 {
-    double firstVectorTrust = firstObserved->trustComparedToStandardVector(standard1);
-    double secondVectorTrust = secondObserved->trustComparedToStandardVector(standard2);
-    
-    if (firstVectorTrust < distanceTolerance)
-        return false;
-    
-    if (secondVectorTrust < distanceTolerance)
-        return false;
-    
     double standardAngle = standard1->angleWithVector(standard2);
     double realAngle = firstObserved->angleWithVector(secondObserved);
     
     double difference = fabs(realAngle - standardAngle);
     
-    if (difference > angleTolerance)
-        return false;
-    
-    return true;
+    return (difference < angleTolerance);
 }
 
 bool IndexingSolution::allVectorMatches(SpotVectorPtr firstVector, SpotVectorPtr secondVector, std::vector<SpotVectorPtr> *firstMatches, std::vector<SpotVectorPtr> *secondMatches)
@@ -267,8 +258,6 @@ MatrixPtr IndexingSolution::createSolution()
         }
     }
     
-    sendLog(LogLevelDetailed);
-
     std::vector<std::pair<MatrixPtr, double> > scoredSolutions;
     for (int j = 0; j < matrices.size(); j++)
     {
@@ -290,12 +279,16 @@ MatrixPtr IndexingSolution::createSolution()
             }
         }
         
+#ifndef __OPTIMIZE__
         logged << matrices[j]->summary() << "\t" << score << "\t" << count << std::endl;
+#endif
         
         scoredSolutions.push_back(std::make_pair(aMat, score));
     }
 
+#ifndef __OPTIMIZE__
     sendLog(LogLevelDebug);
+#endif
 
     std::sort(scoredSolutions.begin(), scoredSolutions.end(), match_greater_than_match);
     
@@ -314,11 +307,13 @@ MatrixPtr IndexingSolution::createSolution()
         chosenMat->setComplexMatrix(unitCellMat, rotationMat);*/
         
         chosenMat = scoredSolutions[0].first;
+#ifndef __OPTIMIZE__
         logged << "Chosen solution:\t" << chosenMat->summary() << "\tfrom " << spotVectors.size() << " vectors"<< std::endl;
         sendLog(LogLevelDebug);
         
         logged << chosenMat->description() << std::endl;
         sendLog(LogLevelDebug);
+#endif
     }
     return chosenMat;
 }
@@ -378,28 +373,6 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
     
     // Send back the goods.
     return fullMat;
-}
-
-bool IndexingSolution::solutionCompatibleForMerge(IndexingSolutionPtr otherSolution)
-{
-    if (spotVectors.size() >= 3 && otherSolution->spotVectors.size() >= 3)
-        return true;
-    
-    for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
-    {
-        for (SpotVectorMap::iterator it2 = otherSolution->spotVectors.begin(); it2 != otherSolution->spotVectors.end(); it2++)
-        {
-            SpotVectorPtr myVector = it->first;
-            SpotVectorPtr herVector = it2->first;
-            
-            if (myVector->hasCommonSpotWithVector(herVector))
-            {
-                return true;
-            }
-        }
-    }
-    
-    return false;
 }
 
 bool IndexingSolution::spotVectorHasAnAppropriateDistance(SpotVectorPtr observedVector)
@@ -552,7 +525,6 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
     {
         SpotVectorPtr possibleVector = (*possibleVectors)[i];
         bool commonSpots = false;
-        bool checkingCommonSpots = FileParser::getKey("CHECKING_COMMON_SPOTS", true);
         bool duplicates = false;
         
         for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
@@ -575,8 +547,6 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
         
         if (duplicates)
             continue;
-        
-        sendLog(LogLevelDebug);
         
         // Find a standard vector which works with all the other vectors
         std::vector<SpotVectorPtr> standardSelection = possibleVector->standardVectorsOfSameDistance();
@@ -610,10 +580,6 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
 
 IndexingSolution::IndexingSolution(SpotVectorMap firstMap, SpotVectorMap secondMap, SpotVectorMatrixMap2D matrixMap1, SpotVectorMatrixMap2D matrixMap2, MatrixPtr symOperator)
 {
-  //  distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
-  //  angleTolerance = FileParser::getKey("MINIMUM_TRUST_ANGLE", 1.0) * M_PI / 180;
-  //  solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0) * M_PI / 180;
-    
     spotVectors = firstMap;
     
     for (SpotVectorMap::iterator it = secondMap.begin(); it != secondMap.end(); it++)
@@ -623,20 +589,6 @@ IndexingSolution::IndexingSolution(SpotVectorMap firstMap, SpotVectorMap secondM
     }
     
     matrices = matrixMap1;
-    /*
-    for (SpotVectorMatrixMap2D::iterator it = matrixMap2.begin(); it != matrixMap2.end(); it++)
-    {
-        SpotVectorPtr firstVec = it->first;
-        SpotVectorMatrixMap internalMap = it->second;
-        
-        for (SpotVectorMatrixMap::iterator it2 = internalMap.begin(); it2 != internalMap.end(); it2++)
-        {
-            SpotVectorPtr secondVec = it2->first;
-            MatrixPtr matrix = it2->second;
-            
-            matrices[firstVec][secondVec] = matrix;
-        }
-    }*/
 }
 
 std::string IndexingSolution::getNetworkPDB()

@@ -30,7 +30,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     }
     
     spaceGroup = ccp4spg_load_by_ccp4_num(spaceGroupNum);
-    
+
     unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
     
     if (unitCell.size() < 6)
@@ -39,12 +39,33 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
         exit(1);
     }
     
+    std::vector<double> testCell = FileParser::getKey("RECIPROCAL_UNIT_CELL", std::vector<double>());
+    
+    if (testCell.size() == 6)
+    {
+        unitCell = Matrix::unitCellFromReciprocalUnitCell(testCell[0], testCell[1], testCell[2],
+                                                              testCell[3], testCell[4], testCell[5]);
+        std::ostringstream stream;
+        
+        stream << "Unit cell from reciprocal: ";
+        
+        for (int i = 0; i < 6; i++)
+        {
+            stream << unitCell[i] << " ";
+        }
+        
+        stream << std::endl;
+        Logger::mainLogger->addStream(&stream);
+    }
+    
     newReflection = new Reflection();
     newReflection->setUnitCellDouble(&unitCell[0]);
     newReflection->setSpaceGroup(spaceGroupNum);
     
     unitCellOnly = Matrix::matrixFromUnitCell(unitCell[0], unitCell[1], unitCell[2],
                                                     unitCell[3], unitCell[4], unitCell[5]);
+    
+    
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
     
     unitCellMatrix = MatrixPtr(new Matrix());
@@ -125,9 +146,15 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     
     for (int i = 0; i < vectorDistances.size(); i++)
     {
+        vec transformed = copy_vector(vectorDistances[i].first);
+        unitCellMatrix->multiplyVector(&transformed);
+        
         logged << vectorDistances[i].first.h << "\t"
          << vectorDistances[i].first.k << "\t"
          << vectorDistances[i].first.l << "\t"
+         << transformed.h << "\t"
+         << transformed.k << "\t"
+         << transformed.l << "\t"
         << vectorDistances[i].second << std::endl;
     }
     
@@ -555,12 +582,22 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     
     if (newMethod)
     {
-        for (int i = offset; i < indexer->images.size(); i += maxThreads)
+    //    for (int i = offset; i < indexer->images.size(); i += maxThreads)
+        //    {
+        while (true)
         {
-            ImagePtr image = indexer->images[i];
-            logged << "Starting image " << i << std::endl;
+            ImagePtr image = indexer->getNextImage();
+            
+            if (!image)
+            {
+                logged << "Finishing thread " << offset << std::endl;
+                Logger::mainLogger->addStream(&logged); logged.str("");
+                return;
+            }
+            
+            logged << "Starting image " << image->getFilename() << " on thread " << offset << std::endl;
             Logger::mainLogger->addStream(&logged); logged.str("");
-
+            
             image->findIndexingSolutions();
             
             std::vector<MtzPtr> mtzs = image->getLastMtzs();
@@ -728,11 +765,13 @@ void IndexManager::powderPattern()
     double angleStep = FileParser::getKey("POWDER_PATTERN_STEP_ANGLE", 2.0) * M_PI / 180;
     double distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 500.);
     std::map<int, int> angleHistogram;
+    std::map<int, int> perfectAngleHistogram;
     
     for (double i = 0; i < M_PI; i += angleStep)
     {
         int angleCategory = i / angleStep;
         angleHistogram[angleCategory] = 0;
+        perfectAngleHistogram[angleCategory] = 0;
     }
     
     for (int i = 0; i < images.size(); i++)
@@ -746,6 +785,64 @@ void IndexManager::powderPattern()
         }
     }
     
+    std::vector<VectorDistance> perfectProbe1, perfectProbe2;
+    
+    for (int i = 0; i < vectorDistances.size(); i++)
+    {
+        double distance = vectorDistances[i].second;
+        bool chosen = false;
+        
+        if (1 / fabs(probeDistances[0] - distance) > distanceTolerance)
+        {
+            perfectProbe1.push_back(vectorDistances[i]);
+            chosen = true;
+        }
+
+        if (1 / fabs(probeDistances[1] - distance) > distanceTolerance)
+        {
+            perfectProbe2.push_back(vectorDistances[i]);
+            chosen = true;
+        }
+        
+        if (chosen)
+        {
+            logged << "Matching vector: " << vectorDistances[i].first.h << "\t" << vectorDistances[i].first.k << "\t" << vectorDistances[i].first.l << std::endl;
+            sendLog();
+        }
+
+    }
+    
+    logged << "Comparing " << perfectProbe1.size() << " against " << perfectProbe2.size() << std::endl;
+    sendLog();
+    
+    for (int i = 0; i < perfectProbe1.size(); i++)
+    {
+        for (int j = 0; j < perfectProbe2.size(); j++)
+        {
+            vec probeTransformed1 = copy_vector(perfectProbe1[i].first);
+            vec probeTransformed2 = copy_vector(perfectProbe2[j].first);
+            
+            if (perfectProbe1[i].first.h == perfectProbe2[i].first.h &&
+                perfectProbe1[i].first.k == perfectProbe2[i].first.k &&
+                perfectProbe1[i].first.l == perfectProbe2[i].first.l)
+            {
+         //       continue;
+            }
+            
+            unitCellMatrix->multiplyVector(&probeTransformed1);
+            unitCellMatrix->multiplyVector(&probeTransformed2);
+            
+            double angle = angleBetweenVectors(probeTransformed1, probeTransformed2);
+            double mirror = M_PI - angle;
+            
+            int angleCategory = angle / angleStep;
+            perfectAngleHistogram[angleCategory]++;
+            
+            angleCategory = mirror / angleStep;
+            perfectAngleHistogram[angleCategory]++;
+        }
+    }
+    
     std::ofstream angleLog;
     angleLog.open("angle.csv");
     
@@ -753,11 +850,31 @@ void IndexManager::powderPattern()
     {
         double angle = it->first * angleStep * 180 / M_PI;
         double freq = it->second;
+        double perfectFreq = 0;
         
-        angleLog << angle << "," << freq << "," << std::endl;
+        if (perfectAngleHistogram.count(it->first))
+            perfectFreq = perfectAngleHistogram[it->first];
+        
+        angleLog << angle << "," << freq << "," << perfectFreq << "," << std::endl;
     }
     
     angleLog.close();
+}
+
+ImagePtr IndexManager::getNextImage()
+{
+    std::lock_guard<std::mutex> lock(indexMutex);
+    
+    nextImage++;
+    
+    if (nextImage >= images.size())
+    {
+        return ImagePtr();
+    }
+    else
+    {
+        return images[nextImage];
+    }
 }
 
 void IndexManager::index()
@@ -768,6 +885,7 @@ void IndexManager::index()
     boost::thread_group threads;
     vector<vector<MtzPtr> > managerSubsets;
     managerSubsets.resize(maxThreads);
+    nextImage = -1;
     
     for (int i = 0; i < maxThreads; i++)
     {
@@ -777,6 +895,8 @@ void IndexManager::index()
     
     
     threads.join_all();
+    
+    nextImage = -1;
     
     int total = 0;
     

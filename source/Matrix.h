@@ -75,6 +75,7 @@ public:
     void rotateModelAxes(double alpha, double beta, double gamma);
     void newMultiplyVector(double *vector[]);
     static MatrixPtr matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
+    static std::vector<double> unitCellFromReciprocalUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
     static MatrixPtr matrixFromUnitCellVersion2(double a, double b, double c, double alpha, double beta, double gamma);
     void orientationMatrixUnitCell(double *a, double *b, double *c);
     void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);

@@ -76,6 +76,11 @@ double SpotVector::angleWithVector(SpotVectorPtr spotVector2)
     return angleBetweenVectors(spotVector2->spotDiff, spotDiff);
 }
 
+double SpotVector::cosineWithVector(SpotVectorPtr spotVector2)
+{
+    return cosineBetweenVectors(spotVector2->spotDiff, spotDiff);
+}
+
 double SpotVector::angleWithVector(SpotVectorPtr spotVector2, MatrixPtr mat)
 {
     vec otherDiff = copy_vector(spotVector2->spotDiff);

@@ -71,7 +71,6 @@ private:
     double bestHRot;
     double bestKRot;
     double bestLRot;
-	int search;
 	double testDistance;
 	double testWavelength;
 	double testSpotSize;
@@ -190,16 +189,6 @@ public:
 	void setImage(ImagePtr image)
 	{
 		this->image = image;
-	}
-
-	int getSearch() const
-	{
-		return search;
-	}
-
-	void setSearch(int search)
-	{
-		this->search = search;
 	}
 
 	double getHRot() const

@@ -49,6 +49,7 @@ public:
     SpotVectorPtr vectorRotatedByMatrix(MatrixPtr mat);
     std::string description();
     void addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> standardVectors, double tolerance);
+    double cosineWithVector(SpotVectorPtr spotVector2);
     
     std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
     {
