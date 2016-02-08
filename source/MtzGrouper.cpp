@@ -921,12 +921,9 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
     bool recalculateSigma = FileParser::getKey("RECALCULATE_SIGMA", false);
     int minimumMultiplicity = FileParser::getKey("MINIMUM_MULTIPLICITY", 0);
     
-  //  for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
-//	{
-    
-    while (true)
-    {
-        Reflection *reflection = chooseNextReflection(*mergeMtz);
+    for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
+	{
+        Reflection *reflection = (*mergeMtz)->reflection(i);
 
         if (reflection == NULL)
             return;
