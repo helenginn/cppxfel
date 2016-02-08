@@ -38,6 +38,7 @@ private:
 	double refIntensity;
 	double refSigma;
 	double resolution;
+    bool toRemove;
     static space_group spaceGroup;
     int spgNum;
     static space_group_type spgType;
@@ -59,8 +60,7 @@ public:
 	void addMiller(MillerPtr miller);
     void addMillerCarefully(MillerPtr miller);
 	int millerCount();
-	Reflection *copy(bool copyMillers);
-	Reflection *copy();
+	Reflection *copy(bool copyMillers = false);
     
 	static int indexForReflection(int h, int k, int l, CSym::CCP4SPG *lowspgroup, bool inverted);
     static int reflectionIdForCoordinates(int h, int k, int l);
@@ -159,6 +159,16 @@ public:
         }
         */
         return reflectionIds[activeAmbiguity];
+    }
+    
+    void setToRemove(bool newRemove = true)
+    {
+        toRemove = newRemove;
+    }
+    
+    bool shouldRemove()
+    {
+        return toRemove;
     }
     
 	double getRefSigma() const

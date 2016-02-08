@@ -567,6 +567,7 @@ void MtzGrouper::addMillersFromMtz(MtzGrouper *me, MtzManager **mergeMtz, int en
                                    MtzManager **negative)
 {
     MtzManager *chosenMtz = *mergeMtz;
+    bool fastMerge = FileParser::getKey("FAST_MERGE", true);
     
     while (true)
     {
@@ -594,6 +595,13 @@ void MtzGrouper::addMillersFromMtz(MtzGrouper *me, MtzManager **mergeMtz, int en
         {
             for (int k = 0; k < crystal->reflection(j)->millerCount(); k++)
             {
+                if (fastMerge)
+                    if (!crystal->reflection(j)->miller(k)->accepted())
+                        continue;
+                
+                if (crystal->reflection(j)->getResolution() > (1 / me->acceptableResolution))
+                    continue;
+                
                 if (anom)
                 {
                     bool friedel = false;
@@ -601,9 +609,6 @@ void MtzGrouper::addMillersFromMtz(MtzGrouper *me, MtzManager **mergeMtz, int en
                     
                     chosenMtz = (friedel ? *positive : *negative);
                 }
-                
-                if (crystal->reflection(j)->getResolution() > (1 / me->acceptableResolution))
-                    continue;
                 
                 Reflection *reflection = NULL;
                 chosenMtz->findReflectionWithId(crystal->reflection(j)->getReflId(), &reflection);
@@ -852,11 +857,13 @@ Reflection *MtzGrouper::chooseNextReflection(MtzManager *mergeMtz)
     lastReflChosen++;
     
     if (lastReflChosen >= mergeMtz->reflectionCount())
+    {
         return NULL;
+    }
     
     return mergeMtz->reflection(lastReflChosen);
 }
-
+/*
 void MtzGrouper::removeReflection(MtzManager *mergeMtz, Reflection *refl)
 {
     mergeMutex.lock();
@@ -871,13 +878,14 @@ void MtzGrouper::removeReflection(MtzManager *mergeMtz, Reflection *refl)
     }
     
     mergeMutex.unlock();
-}
+}*/
 
 void MtzGrouper::mergeMillersThreaded(MtzManager **mergeMtz, bool reject, int mtzCount)
 {
     boost::thread_group threads;
     
     int maxThreads = FileParser::getMaxThreads();
+    lastReflChosen = 0;
     
     for (int i = 0; i < maxThreads; i++)
     {
@@ -886,6 +894,15 @@ void MtzGrouper::mergeMillersThreaded(MtzManager **mergeMtz, bool reject, int mt
     }
     
     threads.join_all();
+    
+    for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
+    {
+        if ((*mergeMtz)->reflection(i)->shouldRemove())
+        {
+            (*mergeMtz)->removeReflection(i);
+            i--;
+        }
+    }
 }
 
 void MtzGrouper::mergeMillersWrapper(MtzGrouper *me, MtzManager **mergeMtz, bool reject, int mtzCount)
@@ -899,10 +916,9 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 	int millerCount = 0;
 	int rejectCount = 0;
 	int aveStdErrCount = 0;
-    lastReflChosen = 0;
     
     bool recalculateSigma = FileParser::getKey("RECALCULATE_SIGMA", false);
-    bool minimumMultiplicity = FileParser::getKey("MINIMUM_MULTIPLICITY", 0);
+    int minimumMultiplicity = FileParser::getKey("MINIMUM_MULTIPLICITY", 0);
     
   //  for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
 //	{
@@ -918,11 +934,9 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
         
         if (accepted <= minimumMultiplicity || accepted == 0)
         {
-            removeReflection(*mergeMtz, reflection);
-            continue;
+            reflection->setToRemove();
         }
-        sendLog();
-
+        
 		double totalIntensity = 0;
 		double totalStdev = 0;
 
@@ -946,6 +960,10 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 		reflectionCount++;
 
 		int h, k, l = 0;
+        
+        if (reflection->millerCount() == 0)
+            continue;
+        
 		MillerPtr firstMiller = reflection->miller(0);
 		ccp4spg_put_in_asu((*mergeMtz)->getLowGroup(), firstMiller->getH(),
 				firstMiller->getK(), firstMiller->getL(), &h, &k, &l);

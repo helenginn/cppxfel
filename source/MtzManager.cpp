@@ -517,7 +517,7 @@ void MtzManager::copySymmetryInformationFromManager(MtzPtr toCopy)
     toCopy->getUnitCell(&a, &b, &c, &alpha, &beta, &gamma);
     this->setUnitCell(a, b, c, alpha, beta, gamma);
     
-    std::cout << "Setting unit cell to " << a << ", " << b << ", " << c << ", " << alpha << ", " << beta << ", " << gamma <<std::endl;
+  //  std::cout << "Setting unit cell to " << a << ", " << b << ", " << c << ", " << alpha << ", " << beta << ", " << gamma <<std::endl;
     
     int spgnum = toCopy->getLowGroup()->spg_ccp4_num;
     CCP4SPG *spg = ccp4spg_load_by_ccp4_num(spgnum);

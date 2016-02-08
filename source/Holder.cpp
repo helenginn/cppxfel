@@ -280,6 +280,7 @@ Reflection::Reflection(float *unitCell, CSym::CCP4SPG *spg)
     inv_refl_id = 0;
     resolution = 0;
     activeAmbiguity = 0;
+    toRemove = false;
 }
 
 MillerPtr Reflection::acceptedMiller(int num)
@@ -351,11 +352,6 @@ void Reflection::removeMiller(int index)
     millers.erase(millers.begin() + index);
 }
 
-Reflection *Reflection::copy()
-{
-    return copy(false);
-}
-
 Reflection *Reflection::copy(bool copyMillers)
 {
     Reflection *newReflection = new Reflection();
@@ -368,6 +364,7 @@ Reflection *Reflection::copy(bool copyMillers)
     newReflection->refl_id = refl_id;
     newReflection->inv_refl_id = inv_refl_id;
     newReflection->resolution = resolution;
+    newReflection->toRemove = toRemove;
     
     for (int i = 0; i < millerCount(); i++)
     {
