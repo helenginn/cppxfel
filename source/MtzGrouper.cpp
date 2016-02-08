@@ -496,6 +496,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     }
     else
     {
+        lastReflChosen = 0;
         mergeMillers(mergeMtz, all && outlier_rejection, mtzCount);
     }
     
