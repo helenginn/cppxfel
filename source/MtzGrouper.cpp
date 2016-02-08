@@ -435,7 +435,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		end = (int)mtzManagers.size();
 	}
 
-    bool threadedMerge = FileParser::getKey("THREADED_MERGE", true);
+    bool threadedMerge = false;// FileParser::getKey("THREADED_MERGE", true);
     int mtzCount = 0;
     
     if (threadedMerge)
