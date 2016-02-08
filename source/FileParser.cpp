@@ -256,6 +256,7 @@ void FileParser::generateFunctionList()
 	parserMap["MINIMUM_REFLECTION_CUTOFF"] = simpleInt;
     parserMap["APPLY_INFLATION"] = simpleBool;
     parserMap["MINIMUM_MULTIPLICITY"] = simpleInt;
+    parserMap["THREADED_MERGE"] = simpleBool;
 
 	// Indexing parameters
 
@@ -275,6 +276,7 @@ void FileParser::generateFunctionList()
 	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["ABSOLUTE_INTENSITY"] = simpleBool;
 	parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;
+    parserMap["FOCUS_ON_PEAK_SIZE"] = simpleInt;
 	parserMap["SHOEBOX_FOREGROUND_PADDING"] = simpleInt;
 	parserMap["SHOEBOX_NEITHER_PADDING"] = simpleInt;
 	parserMap["SHOEBOX_BACKGROUND_PADDING"] = simpleInt;

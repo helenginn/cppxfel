@@ -1517,7 +1517,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                 {
                     recalculated = true;
                     this->calculateNearbyMillers(true);
-            //        checkAllMillers(maxResolution, testBandwidth);
                 }
                 
                 refinement = RefinementTypeOrientationMatrixStdevOnly;

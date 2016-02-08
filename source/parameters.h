@@ -112,6 +112,7 @@ class Miller;
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <string>
+#include <mutex>
 
 using std::vector;
 
@@ -181,6 +182,7 @@ typedef boost::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
 typedef boost::shared_ptr<SpotVector> SpotVectorPtr;
 typedef boost::shared_ptr<IndexingSolution> IndexingSolutionPtr;
+typedef boost::shared_ptr<std::mutex> MutexPtr;
 
 typedef boost::variant<double, double, std::string, bool, int,
 		vector<double>, vector<int> > ParameterVariant;

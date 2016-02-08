@@ -315,6 +315,20 @@ void Reflection::addMiller(MillerPtr miller)
     }
 }
 
+void Reflection::addMillerCarefully(MillerPtr miller)
+{
+    if (!millerMutex)
+    {
+        millerMutex = MutexPtr(new std::mutex());
+    }
+    
+    millerMutex->lock();
+    
+    addMiller(miller);
+    
+    millerMutex->unlock();
+}
+
 bool Reflection::betweenResolutions(double lowAngstroms, double highAngstroms)
 {
     double minD, maxD = 0;

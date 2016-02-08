@@ -435,7 +435,18 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		end = (int)mtzManagers.size();
 	}
 
-	int mtzCount = groupMillers(mergeMtz, unmergedMtz, start, end);
+    bool threadedMerge = FileParser::getKey("THREADED_MERGE", true);
+    int mtzCount = 0;
+    
+    if (threadedMerge)
+    {
+        threadedGroupMillers(mergeMtz, start, end);
+        mtzCount = totalMtzsLastUsed;
+    }
+    else
+    {
+        mtzCount = groupMillers(mergeMtz, unmergedMtz, start, end);
+    }
 
     Scaler *scaler = Scaler::getScaler(mtzManagers, mergeMtz);
     
@@ -479,8 +490,15 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	bool outlier_rejection = FileParser::getKey("OUTLIER_REJECTION",
 	REJECTING_MILLERS);
 
-	mergeMillers(mergeMtz, all && outlier_rejection, mtzCount);
-
+    if (threadedMerge)
+    {
+        mergeMillersThreaded(mergeMtz, all && outlier_rejection, mtzCount);
+    }
+    else
+    {
+        mergeMillers(mergeMtz, all && outlier_rejection, mtzCount);
+    }
+    
 	unflipMtzs();
 }
 
@@ -529,6 +547,149 @@ void MtzGrouper::mergeAnomalous(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	(*mergeMtz)->description();
 
 	unflipMtzs();
+}
+
+MtzPtr MtzGrouper::nextMtz(int end)
+{
+    std::lock_guard<std::mutex> lock(mtzMutex);
+    
+    lastMtzChosen++;
+    
+    if (lastMtzChosen >= end)
+    {
+        return MtzPtr();
+    }
+    
+    return mtzManagers[lastMtzChosen];
+}
+
+void MtzGrouper::addMillersFromMtz(MtzGrouper *me, MtzManager **mergeMtz, int end, bool anom, MtzManager **positive,
+                                   MtzManager **negative)
+{
+    MtzManager *chosenMtz = *mergeMtz;
+    
+    while (true)
+    {
+        MtzPtr crystal = me->nextMtz(end);
+        
+        if (!crystal)
+            return;
+        
+        if (!me->isMtzAccepted(crystal))
+        {
+            crystal->incrementFailedCount();
+        }
+        else
+        {
+            me->incrMutex.lock();
+            me->totalMtzsLastUsed++;
+            me->incrMutex.unlock();
+            
+            crystal->resetFailedCount();
+        }
+        
+        crystal->flipToActiveAmbiguity();
+        
+        for (int j = 0; j < crystal->reflectionCount(); j++)
+        {
+            for (int k = 0; k < crystal->reflection(j)->millerCount(); k++)
+            {
+                if (anom)
+                {
+                    bool friedel = false;
+                    crystal->reflection(j)->miller(k)->positiveFriedel(&friedel);
+                    
+                    chosenMtz = (friedel ? *positive : *negative);
+                }
+                
+                if (crystal->reflection(j)->getResolution() > (1 / me->acceptableResolution))
+                    continue;
+                
+                Reflection *reflection = NULL;
+                chosenMtz->findReflectionWithId(crystal->reflection(j)->getReflId(), &reflection);
+                
+                bool addToExisting = (reflection != NULL);
+                
+                if (reflection == NULL)
+                {
+                    me->reflMutex.lock();
+                    // check that one wasn't made by another thread while we last searched.
+                    
+                    chosenMtz->findReflectionWithId(crystal->reflection(j)->getReflId(), &reflection);
+                    
+                    if (reflection != NULL)
+                    {
+                        addToExisting = true;
+                    }
+                    
+                    if (!addToExisting)
+                    {
+                        Reflection *newReflection = crystal->reflection(j)->copy(true);
+                        newReflection->clearMillers();
+                        MillerPtr newMiller = crystal->reflection(j)->miller(k);
+                        newReflection->addMillerCarefully(newMiller);
+                        chosenMtz->addReflection(newReflection);
+                        chosenMtz->sortLastReflection();
+                    }
+                    
+                    me->reflMutex.unlock();
+                }
+                
+                if (addToExisting)
+                {
+                    MillerPtr newMiller = crystal->reflection(j)->miller(k);
+                    reflection->addMillerCarefully(newMiller);
+                }
+            }
+        }
+    }
+}
+
+void MtzGrouper::threadedGroupMillers(MtzManager **mergeMtz, int start, int end, bool anom, MtzManager **positive,
+                                     MtzManager **negative)
+{
+    lastMtzChosen = start - 1;
+    totalMtzsLastUsed = 0;
+    
+    std::map<int, int> flipCounts;
+    
+    for (int i = 0; i < mtzManagers[0]->ambiguityCount(); i++)
+    {
+        flipCounts[i] = 0;
+    }
+    
+    // threaded code
+   
+    int maxThreads = FileParser::getMaxThreads();
+    boost::thread_group threads;
+    
+    std::cout << "Merging images from " << start << " to " << end << "." << std::endl;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *aThread = new boost::thread(addMillersFromMtz, this, mergeMtz, end, anom, positive, negative);
+        threads.add_thread(aThread);
+    }
+    
+    threads.join_all();
+    
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        if (isMtzAccepted(mtzManagers[i]))
+            flipCounts[mtzManagers[i]->getActiveAmbiguity()]++;
+    }
+    
+    std::cout << "N: MTZs used in merge: " << totalMtzsLastUsed << std::endl;
+    std::cout << "N: Flip ratios: ";
+    
+    for (std::map<int, int>::iterator it = flipCounts.begin(); it != flipCounts.end(); it++)
+    {
+        std::cout << flipCounts[it->first] << " ";
+    }
+    
+    std::cout << std::endl;
+    
+    std::cout << "N: Reflections used: " << (*mergeMtz)->reflectionCount() << std::endl;
 }
 
 int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
@@ -593,24 +754,6 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
                 }
 			}
 		}
-	}
-
-	long unsigned int last_refl_id = 0;
-
-	for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
-	{
-		Reflection *reflection = (*mergeMtz)->reflection(i);
-
-		if (reflection->getReflId() == last_refl_id)
-		{
-			std::cout << "Same" << std::endl;
-		}
-		if (reflection->getReflId() < last_refl_id)
-		{
-			std::cout << "Less" << std::endl;
-		}
-
-		last_refl_id = reflection->getReflId();
 	}
 
 	std::cout << "N: MTZs used in merge: " << mtzCount << std::endl;
@@ -702,27 +845,80 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 	return mtzCount;
 }
 
+Reflection *MtzGrouper::chooseNextReflection(MtzManager *mergeMtz)
+{
+    std::lock_guard<std::mutex> lock(mergeMutex);
+    
+    lastReflChosen++;
+    
+    if (lastReflChosen >= mergeMtz->reflectionCount())
+        return NULL;
+    
+    return mergeMtz->reflection(lastReflChosen);
+}
+
+void MtzGrouper::removeReflection(MtzManager *mergeMtz, Reflection *refl)
+{
+    mergeMutex.lock();
+    
+    for (int i = lastReflChosen; i >= 0; i--)
+    {
+        if (mergeMtz->reflection(i) == refl)
+        {
+            mergeMtz->removeReflection(i);
+            lastReflChosen--;
+        }
+    }
+    
+    mergeMutex.unlock();
+}
+
+void MtzGrouper::mergeMillersThreaded(MtzManager **mergeMtz, bool reject, int mtzCount)
+{
+    boost::thread_group threads;
+    
+    int maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(mergeMillersWrapper, this, mergeMtz, reject, mtzCount);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+}
+
+void MtzGrouper::mergeMillersWrapper(MtzGrouper *me, MtzManager **mergeMtz, bool reject, int mtzCount)
+{
+    me->mergeMillers(mergeMtz, reject, mtzCount);
+}
+
 void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 {
 	int reflectionCount = 0;
 	int millerCount = 0;
 	int rejectCount = 0;
-	double aveStdErr = 0;
 	int aveStdErrCount = 0;
+    lastReflChosen = 0;
     
     bool recalculateSigma = FileParser::getKey("RECALCULATE_SIGMA", false);
     bool minimumMultiplicity = FileParser::getKey("MINIMUM_MULTIPLICITY", 0);
     
-    for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
-	{
-		Reflection *reflection = (*mergeMtz)->reflection(i);
+  //  for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
+//	{
+    
+    while (true)
+    {
+        Reflection *reflection = chooseNextReflection(*mergeMtz);
 
+        if (reflection == NULL)
+            return;
+        
         int accepted = reflection->acceptedCount();
         
         if (accepted <= minimumMultiplicity || accepted == 0)
         {
-            (*mergeMtz)->removeReflection(i);
-            i--;
+            removeReflection(*mergeMtz, reflection);
             continue;
         }
         sendLog();
@@ -731,15 +927,6 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 		double totalStdev = 0;
 
 		reflection->merge(weighting, &totalIntensity, &totalStdev, reject);
-
-		double error = totalStdev / totalIntensity;
-
-		if (error == error && totalStdev != 100)
-		{
-			aveStdErr += fabs(error);
-			aveStdErrCount++;
-
-		}
 
         double totalSigma = reflection->meanSigma() / reflection->meanPartiality();
         
@@ -759,7 +946,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 		reflectionCount++;
 
 		int h, k, l = 0;
-		MillerPtr firstMiller = (*mergeMtz)->reflection(i)->miller(0);
+		MillerPtr firstMiller = reflection->miller(0);
 		ccp4spg_put_in_asu((*mergeMtz)->getLowGroup(), firstMiller->getH(),
 				firstMiller->getK(), firstMiller->getL(), &h, &k, &l);
 
@@ -771,14 +958,12 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
         }
         
 		newMiller->setData(totalIntensity, totalSigma, 1, 0);
-		newMiller->setParent((*mergeMtz)->reflection(i));
-		(*mergeMtz)->reflection(i)->calculateResolution(*mergeMtz);
+		newMiller->setParent(reflection);
+		reflection->calculateResolution(*mergeMtz);
 
-		(*mergeMtz)->reflection(i)->clearMillers();
-		(*mergeMtz)->reflection(i)->addMiller(newMiller);
+		reflection->clearMillers();
+		reflection->addMiller(newMiller);
 	}
-
-	aveStdErr /= aveStdErrCount;
 
 	double multiplicity = (double) millerCount / (double) reflectionCount;
 	double aveRejection = (double) rejectCount / (double) mtzCount;
@@ -786,8 +971,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 	std::cout << "N: Total MTZs: " << mtzManagers.size() << std::endl;
 	std::cout << "N: Multiplicity before merge: " << multiplicity << std::endl;
 	std::cout << "N: Rejects per image: " << aveRejection << std::endl;
-	std::cout << "N: Average error per reflection: " << aveStdErr << std::endl;
-
+	
 	(*mergeMtz)->insertionSortReflections();
 }
 

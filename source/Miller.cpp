@@ -951,7 +951,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     if (!Panel::shouldUsePanelInfo())
     {
         int search = indexer->getSearchSize();
-        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 1, even);
+        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 2, even);
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
         
@@ -1047,6 +1047,9 @@ void Miller::incrementOverlapMask(double hRot, double kRot)
 {
     int x = lastX;
     int y = lastY;
+    
+    if (!shoebox)
+        return;
     
     getImage()->incrementOverlapMask(x, y, shoebox);
 }

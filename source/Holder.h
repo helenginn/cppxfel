@@ -47,6 +47,7 @@ private:
     int activeAmbiguity;
     vector<long unsigned int> reflectionIds;
     static cctbx::uctbx::unit_cell unitCell;
+    MutexPtr millerMutex;
 public:
     Reflection(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
     void setUnitCell(float *unitCell);
@@ -56,6 +57,7 @@ public:
 	MillerPtr miller(int i);
     void printDescription();
 	void addMiller(MillerPtr miller);
+    void addMillerCarefully(MillerPtr miller);
 	int millerCount();
 	Reflection *copy(bool copyMillers);
 	Reflection *copy();

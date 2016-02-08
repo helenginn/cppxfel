@@ -38,10 +38,28 @@ private:
 	double expectedResolution;
     bool isMtzAccepted(MtzPtr mtz);
     bool exclusionByCCHalf;
-
+    
+    std::mutex mtzMutex;
+    std::mutex reflMutex;
+    std::mutex mergeMutex;
+    std::mutex incrMutex;
+    int lastMtzChosen;
+    int totalMtzsLastUsed;
+    int lastReflChosen;
+    MtzPtr nextMtz(int end);
+    Reflection *chooseNextReflection(MtzManager *mergeMtz);
+    void removeReflection(MtzManager *mergeMtz, Reflection *refl);
+    
     static void checkCCHalf(vector<MtzPtr> *managers, int offset, int *total);
 	void merge(MtzManager **mergeMtz, MtzManager **unmergedMtz, bool firstHalf,
 			bool all, std::string *unmergedName = NULL);
+    static void addMillersFromMtz(MtzGrouper *me, MtzManager **mergeMtz, int end, bool anom, MtzManager **positive,
+                           MtzManager **negative);
+    void threadedGroupMillers(MtzManager **mergeMtz, int start, int end, bool anom = false, MtzManager **positive = NULL,
+                              MtzManager **negative = NULL);
+    static void mergeMillersWrapper(MtzGrouper *me, MtzManager **mergeMtz, bool reject, int mtzCount);
+    void mergeMillersThreaded(MtzManager **mergeMtz, bool reject, int mtzCount);
+    
 public:
 	MtzGrouper();
 	virtual ~MtzGrouper();
@@ -58,6 +76,8 @@ public:
 			MtzManager **unmergedMtz, bool firstHalf, bool all, bool anom);
 	int groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz, int start,
 			int end);
+    
+    
 	void mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount);
 	void unflipMtzs();
 
