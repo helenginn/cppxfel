@@ -258,6 +258,7 @@ void FileParser::generateFunctionList()
     parserMap["MINIMUM_MULTIPLICITY"] = simpleInt;
     parserMap["THREADED_MERGE"] = simpleBool;
     parserMap["FAST_MERGE"] = simpleBool;
+    parserMap["INDEX_STARTING_DATA"] = doubleVector;
 
 	// Indexing parameters
 

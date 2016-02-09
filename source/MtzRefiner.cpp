@@ -1725,6 +1725,19 @@ void MtzRefiner::index()
     integrationSummary();
 }
 
+void MtzRefiner::indexFromScratch()
+{
+    loadPanels();
+    this->readMatricesAndImages();
+    std::cout << "N: Total images loaded: " << images.size() << std::endl;
+    
+    if (!indexManager)
+        indexManager = new IndexManager(images);
+    
+    indexManager->indexFromScratch();
+    
+}
+
 void MtzRefiner::powderPattern()
 {
     loadPanels();

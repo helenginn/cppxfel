@@ -49,20 +49,41 @@ void IndexingSolution::setupStandardVectors()
     
     unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
     
+    std::vector<double> testCell = FileParser::getKey("RECIPROCAL_UNIT_CELL", std::vector<double>());
+    
+    if (testCell.size() == 6)
+    {
+        unitCell = Matrix::unitCellFromReciprocalUnitCell(testCell[0], testCell[1], testCell[2],
+                                                          testCell[3], testCell[4], testCell[5]);
+        std::ostringstream stream;
+        
+        stream << "Unit cell from reciprocal: ";
+        
+        for (int i = 0; i < 6; i++)
+        {
+            stream << unitCell[i] << " ";
+        }
+        
+        stream << std::endl;
+        Logger::mainLogger->addStream(&stream);
+    }
+    
+    if (unitCell.size() < 6 && testCell.size() < 6)
+    {
+        std::cout << "Please supply target unit cell in keyword UNIT_CELL or RECIPROCAL_UNIT_CELL." << std::endl;
+        exit(1);
+    }
+    
     unitCellOnly = Matrix::matrixFromUnitCell(unitCell[0], unitCell[1], unitCell[2],
                                               unitCell[3], unitCell[4], unitCell[5]);
+    
+    
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
     
     unitCellMatrix = MatrixPtr(new Matrix());
     unitCellMatrix->setComplexMatrix(unitCellOnly, rotationMat);
     
     unitCellMatrixInverse = unitCellMatrix->inverse3DMatrix();
-    
-    if (unitCell.size() < 6)
-    {
-        std::cout << "Please supply target unit cell in keyword UNIT_CELL." << std::endl;
-        exit(1);
-    }
     
     maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
     double maxDistance = 0;

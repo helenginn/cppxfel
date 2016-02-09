@@ -402,7 +402,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 
 	if (rFactor == RFactorNone)
 		statistic = function(this, otherManager, !printHits, &hits,
-				&multiplicity, lowRes, highRes, shouldLog);
+				&multiplicity, lowRes, highRes, false);
 	else
 		statistic = rFactorFunction(rFactor, this, &hits, &multiplicity, lowRes,
 				highRes);
@@ -421,7 +421,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 
 			if (rFactor == RFactorNone)
 				statistic = function(this, otherManager, 1, &hits,
-						&multiplicity, shells[i], shells[i + 1], shouldLog);
+						&multiplicity, shells[i], shells[i + 1], false);
 			else
 				statistic = rFactorFunction(rFactor, this, &hits, &multiplicity,
 						shells[i], shells[i + 1]);

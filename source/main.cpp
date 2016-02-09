@@ -234,7 +234,7 @@ void new_main(int argc, char *argv[])
 		}
 		else
 		{
-			mtz1->correlationWithManager(mtz2, 1, 0, lowRes, highRes, bins);
+			mtz1->correlationWithManager(mtz2, 1, 0, lowRes, highRes, bins, NULL, true);
 
 		}
 

@@ -15,20 +15,36 @@
 #include "parameters.h"
 #include <cstdarg>
 
+typedef enum
+{
+    PlotVerticalLine = '|',
+    PlotHorizontalLine = '_',
+    PlotHorizontalTickMark = '-',
+    PlotVerticalTickMark = '\'',
+    PlotBlank = ' ',
+    
+} PlotChar;
+
 typedef std::vector<double> Entry;
+typedef std::map<int, char> Row;
+typedef std::map<int, Row > Plot;
 
 class CSV
 {
 private:
     std::vector<std::string> headers;
     std::vector<Entry> entries;
-    
+    void minMaxCol(int col, double *min, double *max);
+    std::string mapToAscii(Plot plot);
+    void writeStringToPlot(std::string text, Plot *plot, int x, int y);
 public:
     CSV(int count, ...);
     
     void addEntry(int dummy, ...);
     void writeToFile(std::string filename);
     double valueForEntry(std::string header, int entry);
+    void histogram(std::map<double, int> histogram);
+    std::string plotColumns(int col1, int col2);
     
     int entryCount()
     {

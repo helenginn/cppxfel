@@ -185,3 +185,14 @@ void SpotVector::addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> stan
             sameLengthStandardVectors.push_back(standardVectors[i]);
     }
 }
+
+SpotVectorPtr SpotVector::differenceFromVector(SpotVectorPtr spotVec)
+{
+    vec spotDiffDiff = copy_vector(spotDiff);
+    
+    take_vector_away_from_vector(spotVec->spotDiff, &spotDiffDiff);
+    
+    SpotVectorPtr newVec = SpotVectorPtr(new SpotVector(spotDiffDiff, new_vector(0, 0, 0)));
+    
+    return newVec;
+}

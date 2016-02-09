@@ -288,6 +288,12 @@ double angleBetweenVectors(vec vec1, vec vec2)
 {
     double cosTheta = cosineBetweenVectors(vec1, vec2);
 
+    if (cosTheta > 1)
+        cosTheta = 1;
+    
+    if (cosTheta < -1)
+        cosTheta = -1;
+    
 	double angle = acos(cosTheta);
 
     if (angle != angle && (cosTheta < 1.0001))

@@ -69,6 +69,7 @@ public:
     void refineMetrology();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
+    void indexFromScratch();
     void powderPattern();
     IndexManager(std::vector<ImagePtr>images);
 };

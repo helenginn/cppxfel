@@ -50,6 +50,7 @@ public:
     std::string description();
     void addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> standardVectors, double tolerance);
     double cosineWithVector(SpotVectorPtr spotVector2);
+    SpotVectorPtr differenceFromVector(SpotVectorPtr spotVec);
     
     std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
     {

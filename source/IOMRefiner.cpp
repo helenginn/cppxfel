@@ -204,7 +204,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
                 frequency += weight;
         }
         
-        logged << i << "\t";
+        logged << std::setprecision(4) << i << "\t";
         
         for (int i=0; i < frequency; i++)
         {
@@ -394,7 +394,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     
     std::vector<MillerPtr> *chosenMillerArray = &nearbyMillers;
     
-    if (!perfectCalculation && roughCalculation && !needsReintegrating)
+    if (!perfectCalculation && roughCalculation && !needsReintegrating && roughMillers.size())
     {
         chosenMillerArray = &roughMillers;
     }

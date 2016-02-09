@@ -16,6 +16,8 @@
 #include <fstream>
 #include "SpotVector.h"
 #include "IndexingSolution.h"
+#include "FreeLattice.h"
+#include "CSV.h"
 
 IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
@@ -738,20 +740,26 @@ void IndexManager::powderPattern()
     
     logged << "******* DISTANCE FREQUENCY *******" << std::endl;
     
-    std::ofstream powderLog;
-    powderLog.open("powder.csv");
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
 
+    CSV powder(3, "Distance", "Frequency", "Perfect frequency");
+    
     for (PowderHistogram::iterator it = frequencies.begin(); it != frequencies.end(); it++)
     {
         double distance = it->first * step;
         double freq = it->second.first;
         double perfect = it->second.second;
         
-        powderLog << distance << "," << freq << "," << perfect << std::endl;
+        powder.addEntry(0, distance, freq, perfect);
+        
+//        powderLog << distance << "," << freq << "," << perfect << std::endl;
     }
     
-    powderLog.close();
+    powder.writeToFile("powder.csv");
+    logged << powder.plotColumns(0, 1) << std::endl;
+    sendLog();
+    
+  //  powderLog.close();
     
     /// angles
     
@@ -843,8 +851,8 @@ void IndexManager::powderPattern()
         }
     }
     
-    std::ofstream angleLog;
-    angleLog.open("angle.csv");
+    
+    CSV csv(3, "Angle", "Frequency", "Perfect frequency");
     
     for (std::map<int, int>::iterator it = angleHistogram.begin(); it != angleHistogram.end(); it++)
     {
@@ -855,10 +863,15 @@ void IndexManager::powderPattern()
         if (perfectAngleHistogram.count(it->first))
             perfectFreq = perfectAngleHistogram[it->first];
         
-        angleLog << angle << "," << freq << "," << perfectFreq << "," << std::endl;
+        csv.addEntry(0, angle, freq, perfectFreq);
+        
+ //       angleLog << angle << "," << freq << "," << perfectFreq << "," << std::endl;
     }
     
-    angleLog.close();
+    csv.writeToFile("angle.csv");
+    std::cout << csv.plotColumns(0, 1) << std::endl;
+    
+   // angleLog.close();
 }
 
 ImagePtr IndexManager::getNextImage()
@@ -916,6 +929,21 @@ void IndexManager::index()
     }
 }
 
+void IndexManager::indexFromScratch()
+{
+    std::vector<double> startingData = FileParser::getKey("INDEX_STARTING_DATA", std::vector<double>());
+    
+    if (startingData.size() < 6)
+    {
+        std::cout << "INDEX_STARTING_DATA should be set to dist1, dist2, dist3, angle1, angle2, angle3" << std::endl;
+    }
+    
+    FreeLattice lattice = FreeLattice(startingData[0], startingData[1], startingData[2], startingData[3], startingData[4], startingData[5]);
+    lattice.addExpanded();
+    lattice.addExpanded();
+    lattice.powderPattern();
+    lattice.anglePattern(true);
+}
 
 PowderHistogram IndexManager::generatePowderHistogram()
 {

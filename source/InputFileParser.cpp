@@ -264,6 +264,13 @@ void InputFileParser::parse(bool fromPython)
                 refiner->index();
             }
             
+            if (line == "INDEX_FROM_SCRATCH")
+            {
+                understood = true;
+                
+                refiner->indexFromScratch();
+            }
+            
             if (line == "POWDER_PATTERN")
             {
                 understood = true;

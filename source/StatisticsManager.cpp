@@ -6,7 +6,7 @@
 #include <new>
 #include <fstream>
 #include "FileParser.h"
-
+#include "CSV.h"
 
 
 void StatisticsManager::setMtzs(vector<MtzPtr> newMtzs)
@@ -142,11 +142,14 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 	if (lowResolution == 0)
 		invLow = 0;
 
-	if (!silent)
+	if (!silent || shouldLog)
 	{
         std::ostringstream logged;
         
-        logged << "h k l\tFirst intensity\tSecond intensity\tResolution" << std::endl;
+        if (!silent)
+            logged << "h k l\tFirst intensity\tSecond intensity\tResolution" << std::endl;
+        
+        CSV csv = CSV(6, "h", "k", "l", "First intensity", "Second intensity", "Resolution");
         
 		for (int i = 0; i < num; i++)
 		{
@@ -166,16 +169,15 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
             
             double resolution = 1 / reflections1[i]->getResolution();
 
-			logged << h << " " << k << " " << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << std::endl;
+            csv.addEntry(0, (double)h, (double)k, (double)l, int1, int2, resolution);
+			
+            if (!silent)
+                logged << h << " " << k << " " << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << std::endl;
 		}
 
-        std::string logString = logged.str();
-        std::replace(logString.begin(), logString.end(), '\t', ',');
-        
-        std::ofstream correlationDataLog;
-        correlationDataLog.open("correlation.csv");
-        correlationDataLog << logString << std::endl;
-        correlationDataLog.close();
+        if (!silent)
+            csv.writeToFile("correlation.csv");
+        std::cout << csv.plotColumns(3, 4) << std::endl;
         
         logged << "Data logged to correlation.csv" << std::endl;
         Logger::mainLogger->addStream(&logged);
@@ -222,17 +224,9 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
         if (weight < 0)
             continue;
         
-		double mean1 =
-				shouldLog ?
-						log(reflections1[i]->meanIntensity()) :
-						reflections1[i]->meanIntensity();
+		double mean1 = reflections1[i]->meanIntensity();
 		std::string filename = shot1->getFilename();
-		double mean2 =
-				shouldLog ?
-						log(
-								reflections2[i]->meanIntensityWithExclusion(
-										&filename)) :
-						reflections2[i]->meanIntensityWithExclusion(&filename);
+		double mean2 = reflections2[i]->meanIntensityWithExclusion(&filename);
 
 		if (mean1 != mean1 || mean2 != mean2 || weight != weight)
 			continue;
@@ -257,17 +251,9 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 				&& reflections1[i]->getResolution() < invHigh))
 			continue;
 
-		double amp_x =
-				shouldLog ?
-						log(reflections1[i]->meanIntensity()) :
-						reflections1[i]->meanIntensity();
+		double amp_x = reflections1[i]->meanIntensity();
 		std::string filename = shot1->getFilename();
-		double amp_y =
-				shouldLog ?
-						log(
-								reflections2[i]->meanIntensityWithExclusion(
-										&filename)) :
-						reflections2[i]->meanIntensityWithExclusion(&filename);
+		double amp_y = reflections2[i]->meanIntensityWithExclusion(&filename);
 
 		double weight =
 				useSigmaOne ?

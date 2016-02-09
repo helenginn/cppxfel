@@ -372,11 +372,11 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
 	logged << "N: === R split ===" << std::endl;
     sendLog();
-	idxMerge->rSplitWithManager(invMerge, false, false, 0, expectedResolution);
+	idxMerge->rSplitWithManager(invMerge, false, false, 0, expectedResolution, 20, NULL, true);
 	logged << "N: === CC half ===" << std::endl;
     sendLog();
 	idxMerge->correlationWithManager(invMerge, false, false, 0,
-			expectedResolution);
+			expectedResolution, 20, NULL, true);
     
     sendLog();
 
@@ -596,7 +596,7 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
                     
                     if (fastMerge && !newMiller->accepted())
                     {
-                        continue;?
+                        continue;
                     }
 					reflection->addMiller(newMiller);
                 }
