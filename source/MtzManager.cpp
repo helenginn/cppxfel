@@ -21,7 +21,7 @@
 
 #include "definitions.h"
 #include "FileParser.h"
-
+#include "CSV.h"
 
 using namespace CMtz;
 
@@ -1538,12 +1538,14 @@ void MtzManager::writeToDat()
     std::string name = filename;
     int lastindex = (int)name.find_last_of(".");
     std::string rootName = name.substr(0, lastindex);
-    std::string datName = rootName + ".dat";
-    
+    std::string datName = rootName + ".csv";
+    /*
     std::ofstream datOutput;
     datOutput.open(datName);
     
-    datOutput << this->matrix->description() << std::endl;
+    datOutput << this->matrix->description() << std::endl;*/
+    
+    CSV csv = CSV(10, "h", "k", "l", "wavelength", "intensity", "countingSigma", "xCoord", "yCoord", "partiality", "resolution");
     
     for (int i = 0; i < reflectionCount(); i++)
     {
@@ -1559,19 +1561,14 @@ void MtzManager::writeToDat()
             double combinedX = shiftX + lastX;
             double combinedY = shiftY + lastY;
             
-            datOutput << miller->getH() << "\t" << miller->getK() << "\t" << miller->getL();
-            
-            datOutput << "\t" << miller->getWavelength();
-            datOutput << "\t" << miller->getRawIntensity();
-            datOutput << "\t" << miller->getCountingSigma();
-            datOutput << "\t" <<  combinedX << "\t" << combinedY << "\t"
-            << miller->getPartiality() << "\t" << miller->getBFactorScale() << "\t" << miller->getResolution() << std::endl;
+            csv.addEntry(0, (double)miller->getH(), (double)miller->getK(), (double)miller->getL(), miller->getWavelength(), miller->getRawIntensity(),
+                         miller->getCountingSigma(), combinedX, combinedY, miller->getPartiality(), miller->getResolution());
         }
     }
     
-    logged << "Wrote " << datName << " file" << std::endl;
+    csv.writeToFile(datName);
     
-    datOutput.close();
+    logged << "Wrote " << datName << " file" << std::endl;
 }
 
 void MtzManager::sendLog(LogLevel priority)

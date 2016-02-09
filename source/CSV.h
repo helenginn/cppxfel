@@ -10,5 +10,24 @@
 #define __cppxfel__CSV__
 
 #include <stdio.h>
+#include <vector>
+#include <string>
+#include "parameters.h"
+#include <cstdarg>
+
+typedef std::vector<double> Entry;
+
+class CSV
+{
+private:
+    std::vector<std::string> headers;
+    std::vector<Entry> entries;
+    
+public:
+    CSV(int count, ...);
+    
+    void addEntry(int dummy, ...);
+    void writeToFile(std::string filename);
+};
 
 #endif /* defined(__cppxfel__CSV__) */
