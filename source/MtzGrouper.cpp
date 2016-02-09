@@ -596,7 +596,7 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
                     
                     if (fastMerge && !newMiller->accepted())
                     {
-                        continue;
+                        continue;?
                     }
 					reflection->addMiller(newMiller);
                 }

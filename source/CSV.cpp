@@ -64,3 +64,14 @@ void CSV::writeToFile(std::string filename)
     
     csv.close();
 }
+
+double CSV::valueForEntry(std::string header, int entry)
+{
+    for (int i = 0; i < headerCount(); i++)
+    {
+        if (headers[i] == header)
+        {
+            return entries[entry][i];
+        }
+    }
+}

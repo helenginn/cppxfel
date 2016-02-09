@@ -28,6 +28,17 @@ public:
     
     void addEntry(int dummy, ...);
     void writeToFile(std::string filename);
+    double valueForEntry(std::string header, int entry);
+    
+    int entryCount()
+    {
+        return (int)entries.size();
+    }
+    
+    int headerCount()
+    {
+        return (int)headers.size();
+    }
 };
 
 #endif /* defined(__cppxfel__CSV__) */
