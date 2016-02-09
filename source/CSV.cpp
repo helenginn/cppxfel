@@ -12,6 +12,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <string.h>
 
 CSV::CSV(int count, ...)
 {
