@@ -14,6 +14,7 @@
 #include <string>
 #include "parameters.h"
 #include <cstdarg>
+#include "LoggableObject.h"
 
 typedef enum
 {
@@ -29,7 +30,7 @@ typedef std::vector<double> Entry;
 typedef std::map<int, char> Row;
 typedef std::map<int, Row > Plot;
 
-class CSV
+class CSV : public LoggableObject
 {
 private:
     std::vector<std::string> headers;

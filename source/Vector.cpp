@@ -302,6 +302,11 @@ double angleBetweenVectors(vec vec1, vec vec2)
 	return angle;
 }
 
+double length_of_vector_squared(vec vec)
+{
+    return vec.h * vec.h + vec.k * vec.k + vec.l * vec.l;
+}
+
 double length_of_vector(vec vec)
 {
 	return pow(vec.h * vec.h + vec.k * vec.k + vec.l * vec.l, 0.5);
@@ -331,10 +336,11 @@ void scale_vector_to_distance(vec *vector, double new_distance)
 
 double getEwaldSphereNoMatrix(vec index)
 {
+    if (index.l == 0)
+        return 0;
+
     double ewald_radius = index.h * index.h + index.k * index.k
 			+ index.l * index.l;
-	if (index.l == 0)
-		return 0;
 
 	ewald_radius /= (0 - 2 * index.l);
 	double ewald_wavelength = 1 / ewald_radius;

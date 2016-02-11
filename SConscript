@@ -69,6 +69,7 @@ source = [
 'source/Spot.cpp',
 'source/SpotVector.cpp',
 'source/StatisticsManager.cpp',
+'source/UnitCellLattice.cpp',
 'source/Vector.cpp',
 'source/Wiki.cpp',
 'source/XManager.cpp',

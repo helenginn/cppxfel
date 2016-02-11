@@ -27,6 +27,7 @@ typedef std::map<int, std::pair<int, int> > PowderHistogram;
 class IndexManager : LoggableObject
 {
 protected:
+    UnitCellLatticePtr lattice;
     std::vector<ImagePtr> images;
     std::vector<double> unitCell;
     std::vector<MatrixPtr> symOperators;

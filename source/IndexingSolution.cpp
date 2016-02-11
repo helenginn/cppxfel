@@ -12,8 +12,8 @@
 #include "Logger.h"
 #include <string>
 #include "misc.h"
+#include "UnitCellLattice.h"
 
-std::vector<SpotVectorPtr> IndexingSolution::standardVectors;
 int IndexingSolution::spaceGroupNum = 0;
 CSym::CCP4SPG *IndexingSolution::spaceGroup = NULL;
 std::vector<double> IndexingSolution::unitCell;
@@ -25,7 +25,7 @@ double IndexingSolution::distanceTolerance = 4000;
 double IndexingSolution::distanceToleranceReciprocal = 0.0025;
 double IndexingSolution::angleTolerance = 1.0 * M_PI / 180;
 double IndexingSolution::solutionAngleSpread = 8.0 * M_PI / 180;
-std::vector<MatrixPtr> IndexingSolution::symOperators;
+UnitCellLatticePtr IndexingSolution::lattice;
 Reflection *IndexingSolution::newReflection;
 bool IndexingSolution::notSetup = true;
 bool IndexingSolution::finishedSetup = false;
@@ -44,8 +44,6 @@ void IndexingSolution::setupStandardVectors()
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
     spaceGroup = CSym::ccp4spg_load_by_ccp4_num(spaceGroupNum);
-    
-    Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
     
     unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
     
@@ -74,50 +72,10 @@ void IndexingSolution::setupStandardVectors()
         exit(1);
     }
     
-    unitCellOnly = Matrix::matrixFromUnitCell(unitCell[0], unitCell[1], unitCell[2],
-                                              unitCell[3], unitCell[4], unitCell[5]);
-    
-    
-    MatrixPtr rotationMat = MatrixPtr(new Matrix());
-    
-    unitCellMatrix = MatrixPtr(new Matrix());
-    unitCellMatrix->setComplexMatrix(unitCellOnly, rotationMat);
-    
-    unitCellMatrixInverse = unitCellMatrix->inverse3DMatrix();
-    
     maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
-    double maxDistance = 0;
     
-    
-    for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
-    {
-        for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
-        {
-            for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
-            {
-                if (spaceGroupNum != 19 && spaceGroupNum != 178)
-                    if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
-                        continue;
-                
-                vec hkl = new_vector(i, j, k);
-                vec hkl_transformed = copy_vector(hkl);
-                
-                if (length_of_vector(hkl) > maxMillerIndexTrial)
-                    continue;
-                
-                unitCellMatrix->multiplyVector(&hkl_transformed);
-                
-                double distance = length_of_vector(hkl_transformed);
-                
-                if (distance > maxDistance)
-                    maxDistance = distance;
-                
-                SpotVectorPtr newStandardVector = SpotVectorPtr(new SpotVector(hkl_transformed, hkl));
-                
-                standardVectors.push_back(newStandardVector);
-            }
-        }
-    }
+    lattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
+                                                                        unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
     
     newReflection = new Reflection();
     newReflection->setUnitCellDouble(&unitCell[0]);
@@ -130,21 +88,21 @@ void IndexingSolution::calculateSimilarStandardVectorsForImageVectors(std::vecto
 {
     for (int i = 0; i < vectors.size(); i++)
     {
-        vectors[i]->addSimilarLengthStandardVectors(standardVectors, distanceTolerance);
+        vectors[i]->addSimilarLengthStandardVectors(lattice->getStandardVectors(), distanceTolerance);
     }
 }
 
 bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, bool force)
 {
-    for (int k = 0; k < symOperators.size(); k++)
+    for (int k = 0; k < symOperatorCount(); k++)
     {
-        MatrixPtr symOperator = symOperators[k];
+        MatrixPtr symOp = symOperator(k);
         
         for (int l = 0; l < newReflection->ambiguityCount(); l++)
         {
             MatrixPtr mat3 = mat2->copy();
             MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
-            mat3->getRotation()->preMultiply(*symOperator);
+            mat3->getRotation()->preMultiply(*symOp);
             mat3->getRotation()->preMultiply(*ambiguity);
             
             double angle = mat1->similarityToRotationMatrix(mat3, solutionAngleSpread * 2.5, force);
@@ -186,27 +144,27 @@ bool IndexingSolution::allVectorMatches(SpotVectorPtr firstVector, SpotVectorPtr
 {
     bool good = false;
     
-    for (int i = 0; i < standardVectors.size(); i++)
+    for (int i = 0; i < standardVectorCount(); i++)
     {
-        double firstVectorTrust = firstVector->trustComparedToStandardVector(standardVectors[i]);
+        double firstVectorTrust = firstVector->trustComparedToStandardVector(standardVector(i));
         
         if (firstVectorTrust > distanceTolerance)
         {
-            for (int j = 0; j < standardVectors.size(); j++)
+            for (int j = 0; j < standardVectorCount(); j++)
             {
-                double secondVectorTrust = secondVector->trustComparedToStandardVector(standardVectors[j]);
+                double secondVectorTrust = secondVector->trustComparedToStandardVector(standardVector(j));
                 
                 if (secondVectorTrust > distanceTolerance)
                 {
                     double realAngle = firstVector->angleWithVector(secondVector);
-                    double expectedAngle = standardVectors[i]->angleWithVector(standardVectors[j]);
+                    double expectedAngle = standardVector(i)->angleWithVector(standardVector(j));
                     
                     double difference = fabs(realAngle - expectedAngle);
                     
                     if (difference < angleTolerance)
                     {
-                        firstMatches->push_back(standardVectors[i]);
-                        secondMatches->push_back(standardVectors[j]);
+                        firstMatches->push_back(standardVector(i));
+                        secondMatches->push_back(standardVector(j));
                         
                         good = true;
                     }
@@ -220,27 +178,27 @@ bool IndexingSolution::allVectorMatches(SpotVectorPtr firstVector, SpotVectorPtr
 
 bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr *firstMatch, SpotVectorPtr *secondMatch)
 {
-    for (int i = 0; i < standardVectors.size(); i++)
+    for (int i = 0; i < standardVectorCount(); i++)
     {
-        double firstVectorTrust = firstVector->trustComparedToStandardVector(standardVectors[i]);
+        double firstVectorTrust = firstVector->trustComparedToStandardVector(standardVector(i));
         
         if (firstVectorTrust > distanceTolerance)
         {
-            for (int j = 0; j < standardVectors.size(); j++)
+            for (int j = 0; j < standardVectorCount(); j++)
             {
-                double secondVectorTrust = secondVector->trustComparedToStandardVector(standardVectors[j]);
+                double secondVectorTrust = secondVector->trustComparedToStandardVector(standardVector(j));
                 
                 if (secondVectorTrust > distanceTolerance)
                 {
                     double realAngle = firstVector->angleWithVector(secondVector);
-                    double expectedAngle = standardVectors[i]->angleWithVector(standardVectors[j]);
+                    double expectedAngle = standardVector(i)->angleWithVector(standardVector(j));
                     
                     double difference = fabs(realAngle - expectedAngle);
                     
                     if (difference < angleTolerance)
                     {
-                        *firstMatch = standardVectors[i];
-                        *secondMatch = standardVectors[j];
+                        *firstMatch = standardVector(i);
+                        *secondMatch = standardVector(j);
                         
                         return true;
                     }
@@ -400,9 +358,9 @@ bool IndexingSolution::spotVectorHasAnAppropriateDistance(SpotVectorPtr observed
 {
     double myDistance = observedVector->distance();
     
-    for (int i = 0; i < standardVectors.size(); i++)
+    for (int i = 0; i < standardVectorCount(); i++)
     {
-        double distance = standardVectors[i]->distance();
+        double distance = standardVector(i)->distance();
         
         if (fabs(distance - myDistance) < 1 / distanceTolerance)
         {

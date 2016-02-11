@@ -39,18 +39,22 @@ private:
     static asu p1_asu;
     static cctbx::sgtbx::space_group p1_spg;
     static bool initialised_p1;
+    static bool normalised;
+    static bool correctingPolarisation;
+    static double polarisationFactor;
+    static int maxSlices;
+    static int slices;
+    static double trickyRes;
+    static bool setupStatic;
     
     double h;
     double k;
     double l;
     double phase;
     short int fakeFriedel;
-	bool normalised;
-    RlpModel rlpModel;
-    bool correctingPolarisation;
-	double polarisationCorrection;
-    double polarisationFactor;
-	double getPolarisationCorrection();
+	RlpModel rlpModel;
+    double polarisationCorrection;
+    double getPolarisationCorrection();
 	std::map<std::string, bool> rejectedReasons;
 	double partialCutoff;
 	double bFactor;
@@ -65,9 +69,6 @@ private:
     double lastRlpSize;
     double lastMosaicity;
     double lastNormPartiality;
-    int slices;
-    double trickyRes;
-    double maxSlices;
     
     double lastRadius;
     double lastVolume;
@@ -92,7 +93,7 @@ private:
                                double sigma, double exponent);
     double sliced_integral(double low_wavelength, double high_wavelength,
                           double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
-                          double exponent);
+                          double exponent, bool binary = false);
     
     double integrate_sphere_uniform(double p, double q);
     double integrate_sphere_gaussian(double p, double q);
@@ -110,6 +111,7 @@ public:
     int getK();
     int getL();
     
+    static void setupStaticVariables();
     vec hklVector(bool shouldFlip = true);
     void setFlipMatrix(MatrixPtr flipMat);
 	MatrixPtr matrix;
@@ -162,9 +164,9 @@ public:
 
     void setHorizontalPolarisationFactor(double newFactor);
 	void recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
-			double spotSize, double wavelength, double bandwidth, double exponent);
+			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false);
 	double partialityForHKL(vec hkl, double mosaicity,
-			double spotSize, double wavelength, double bandwidth, double exponent);
+			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false);
 	void applyScaleFactor(double scaleFactor);
 	double calculateNormPartiality(double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent);

@@ -15,7 +15,7 @@
 
 class FreeLattice
 {
-private:
+protected:
     std::vector<SpotVectorPtr> spotVectors;
     std::vector<SpotVectorPtr> expandedSpotVectors;
     
@@ -26,7 +26,7 @@ public:
     FreeLattice(double a, double b, double c, double alpha, double beta, double gamma);
 
     void addExpanded();
-    void powderPattern(bool originOnly = false);
+    void powderPattern(bool originOnly = false, std::string filename = "latticePowder.csv");
     void anglePattern(bool originOnly = false);
 };
 

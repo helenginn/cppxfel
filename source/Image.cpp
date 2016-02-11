@@ -345,8 +345,8 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
         {
             double newValue = 0;
             int count = 0;
-            std::ostringstream pixelLog;
-            pixelLog << "Metrology pixels: ";
+       //     std::ostringstream pixelLog;
+       //     pixelLog << "Metrology pixels: ";
             
             for (int h = i - tolerance2; h <= i + tolerance2 + adjustment; h++)
             {
@@ -359,11 +359,11 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
                     newValue += addition;
                     count++;
                     
-                    pixelLog << addition << ", ";
+               //     pixelLog << addition << ", ";
                 }
             }
             
-            pixelLog << std::endl;
+          //  pixelLog << std::endl;
             
             if (newValue > maxValue)
             {
@@ -371,14 +371,14 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
                 newY = j;
                 maxValue = newValue;
                 latestCount = count;
-                bestPixels = pixelLog.str();
+          //      bestPixels = pixelLog.str();
             }
         }
     }
     
-    logged << bestPixels << std::endl;
-    logged << "Sum of best pixels: " << maxValue << " over " << latestCount << " pixels." << std::endl;
-    sendLog(LogLevelDebug);
+  //  logged << bestPixels << std::endl;
+  //  logged << "Sum of best pixels: " << maxValue << " over " << latestCount << " pixels." << std::endl;
+  //  sendLog(LogLevelDebug);
     
     *x = newX;
     *y = newY;

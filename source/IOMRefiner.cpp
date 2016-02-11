@@ -239,6 +239,9 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     double minSphere = 1 / wavelength * (1 - sphereThickness);
     double maxSphere = 1 / wavelength * (1 + sphereThickness);
     
+    double minSphereSquared = pow(minSphere, 2);
+    double maxSphereSquared = pow(maxSphere, 2);
+    
     nearbyMillers.clear();
     
     int maxMillers[3];
@@ -257,6 +260,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     
     int overRes = 0;
     int underRes = 0;
+    double maxDistSquared = pow(1 / maxResolution, 2);
     
     for (int h = -maxMillers[0]; h < maxMillers[0]; h++)
     {
@@ -287,9 +291,9 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                 vec beam = new_vector(0, 0, -1 / wavelength);
                 vec beamToMiller = vector_between_vectors(beam, hkl);
                 
-                double sphereRadius = length_of_vector(beamToMiller);
+                double sphereRadiusSquared = length_of_vector_squared(beamToMiller);
                 
-                if (sphereRadius < minSphere || sphereRadius > maxSphere)
+                if (sphereRadiusSquared < minSphereSquared || sphereRadiusSquared > maxSphereSquared)
                 {
                     double ewaldSphere = getEwaldSphereNoMatrix(hkl);
                     
@@ -297,13 +301,11 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                     {
                         continue;
                     }
-                    
-//                    continue;
                 }
                 
-                double res = length_of_vector(hkl);
+                double res = length_of_vector_squared(hkl);
                 
-                if (res > 1 / maxResolution)
+                if (res > maxDistSquared)
                 {
                     overRes++;
                     continue;
@@ -427,7 +429,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         }
         
         miller->recalculatePartiality(newMatrix, 0.0, testSpotSize,
-                                      wavelength, bandwidth, 1.5);
+                                      wavelength, bandwidth, 1.5, true);
         
         if (i == 0)
         {

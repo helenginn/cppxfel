@@ -165,6 +165,7 @@ class ImageCluster;
 class CommonCircle;
 class SpotVector;
 class IndexingSolution;
+class UnitCellLattice;
 
 typedef boost::shared_ptr<Miller> MillerPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
@@ -183,6 +184,7 @@ typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
 typedef boost::shared_ptr<SpotVector> SpotVectorPtr;
 typedef boost::shared_ptr<IndexingSolution> IndexingSolutionPtr;
 typedef boost::shared_ptr<std::mutex> MutexPtr;
+typedef boost::shared_ptr<UnitCellLattice> UnitCellLatticePtr;
 
 typedef boost::variant<double, double, std::string, bool, int,
 		vector<double>, vector<int> > ParameterVariant;

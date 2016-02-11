@@ -88,6 +88,9 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     logged << "Calculating distances of unit cell " << spaceGroupNum << std::endl;
     sendLog();
     
+    lattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
+                                                     unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
+    
     for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
     {
         for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
@@ -759,6 +762,8 @@ void IndexManager::powderPattern()
     logged << powder.plotColumns(0, 1) << std::endl;
     sendLog();
     
+    lattice->powderPattern(false, "unitCellLatticePowder.csv");
+    
   //  powderLog.close();
     
     /// angles
@@ -869,7 +874,7 @@ void IndexManager::powderPattern()
     }
     
     csv.writeToFile("angle.csv");
-    std::cout << csv.plotColumns(0, 1) << std::endl;
+    csv.plotColumns(0, 1);
     
    // angleLog.close();
 }
@@ -940,9 +945,9 @@ void IndexManager::indexFromScratch()
     
     FreeLattice lattice = FreeLattice(startingData[0], startingData[1], startingData[2], startingData[3], startingData[4], startingData[5]);
     lattice.addExpanded();
-    lattice.addExpanded();
+//    lattice.addExpanded();
     lattice.powderPattern();
-    lattice.anglePattern(true);
+    lattice.anglePattern(false);
 }
 
 PowderHistogram IndexManager::generatePowderHistogram()

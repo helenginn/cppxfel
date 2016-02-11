@@ -19,13 +19,34 @@
 #include <cctbx/miller.h>
 #include "FileParser.h"
 
-
+bool Miller::normalised = true;
+bool Miller::correctingPolarisation = false;
+double Miller::polarisationFactor = false;
+int Miller::maxSlices = 100;
+int Miller::slices = 8;
+double Miller::trickyRes = 8.0;
+bool Miller::setupStatic = false;
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
 asu Miller::p1_asu = asu();
 bool Miller::initialised_p1 = false;
 space_group Miller::p1_spg = space_group();
+
+void Miller::setupStaticVariables()
+{
+    if (setupStatic)
+        return;
+    
+    normalised = FileParser::getKey("NORMALISE_PARTIALITIES", true);
+    correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
+    polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
+    slices = FileParser::getKey("PARTIALITY_SLICES", 8);
+    trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
+    maxSlices = FileParser::getKey("MAX_SLICES", 100);
+    
+    setupStatic = true;
+}
 
 double Miller::integrate_sphere_gaussian(double p, double q)
 {
@@ -117,7 +138,7 @@ double integrate_beam(double pBandwidth, double qBandwidth, double mean,
 
 double Miller::sliced_integral(double low_wavelength, double high_wavelength,
                               double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
-                              double exponent)
+                              double exponent, bool binary)
 {
     if (resolution() < 1 / trickyRes) slices = maxSlices;
     
@@ -145,13 +166,18 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         
         double sphereSlice = 0;
         
-        if (normalSlice > 0)
+        if (normalSlice > 0 && !binary)
         {
             sphereSlice = integrate_sphere(currentP, currentQ,
                                               spot_size_radius, sphere_volume, circle_surface_area);
         }
         
-        total_integral += normalSlice * sphereSlice;
+        double totalSlice = normalSlice * sphereSlice;
+        
+        if (binary && normalSlice > 0.01)
+            return 1.0;
+        
+        total_integral += totalSlice;
         total_normal += normalSlice;
         total_sphere += sphereSlice;
         
@@ -180,9 +206,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     countingSigma = 0;
     latestHRot = 0;
     latestKRot = 0;
-    normalised = FileParser::getKey("NORMALISE_PARTIALITIES", true);
-    correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
-    polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
     polarisationCorrection = 0;
     lastWavelength = 0;
     rejectedReasons["merge"] = false;
@@ -202,9 +225,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     lastMosaicity = 0;
     lastVolume = 0;
     lastSurfaceArea = 0;
-    slices = FileParser::getKey("PARTIALITY_SLICES", 8);
-    trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
-    maxSlices = FileParser::getKey("MAX_SLICES", 100);
     lastShiftedX = 0;
     lastShiftedY = 0;
     
@@ -542,7 +562,7 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
 }
 
 double Miller::partialityForHKL(vec hkl, double mosaicity,
-                               double spotSize, double wavelength, double bandwidth, double exponent)
+                               double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
 {
     bandwidth = fabs(bandwidth);
     
@@ -655,7 +675,7 @@ double Miller::resolution()
 }
 
 void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
-                                   double spotSize, double wavelength, double bandwidth, double exponent)
+                                   double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
 {
     if (model == PartialityModelFixed)
     {
@@ -669,7 +689,10 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     this->wavelength = getEwaldSphereNoMatrix(hkl);
     
     double tempPartiality = partialityForHKL(hkl, mosaicity,
-                                            spotSize, wavelength, bandwidth, exponent);
+                                            spotSize, wavelength, bandwidth, exponent, binary);
+    
+    if (binary && tempPartiality == 1.0)
+        return;
     
     double normPartiality = 1;
     bool recalculatingNorm = FileParser::getKey("RECALCULATE_NORM", true);
@@ -951,7 +974,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     if (!Panel::shouldUsePanelInfo())
     {
         int search = indexer->getSearchSize();
-        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 2, even);
+        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 0, even);
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
         

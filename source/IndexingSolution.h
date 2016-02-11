@@ -16,6 +16,7 @@
 #include "csymlib.h"
 #include "LoggableObject.h"
 #include "Holder.h"
+#include "UnitCellLattice.h"
 
 typedef std::map<SpotVectorPtr, SpotVectorPtr> SpotVectorMap;
 typedef std::map<SpotVectorPtr, MatrixPtr> SpotVectorMatrixMap;
@@ -24,11 +25,10 @@ typedef std::map<SpotVectorPtr, SpotVectorMatrixMap > SpotVectorMatrixMap2D;
 class IndexingSolution : LoggableObject
 {
 private:
-    static std::vector<SpotVectorPtr> standardVectors;
-    static std::vector<MatrixPtr> symOperators;
     static Reflection *newReflection;
     SpotVectorMap spotVectors;
     SpotVectorMatrixMap2D matrices;
+    static UnitCellLatticePtr lattice;
     
     bool vectorAgreesWithExistingVectors(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
     static bool vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr *firstMatch, SpotVectorPtr *secondMatch);
@@ -81,6 +81,26 @@ public:
     
     IndexingSolutionPtr copy();
     ~IndexingSolution();
+    
+    static int standardVectorCount()
+    {
+        return lattice->standardVectorCount();
+    }
+    
+    static SpotVectorPtr standardVector(int i)
+    {
+        return lattice->standardVector(i);
+    }
+    
+    static int symOperatorCount()
+    {
+        return lattice->symOperatorCount();
+    }
+    
+    static MatrixPtr symOperator(int i)
+    {
+        return lattice->symOperator(i);
+    }
     
     int spotVectorCount()
     {

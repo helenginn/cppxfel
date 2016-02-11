@@ -47,6 +47,7 @@ void FreeLattice::addExpanded()
 
 void FreeLattice::calculateExpandedVectors(bool originOnly)
 {
+    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.075) / 2;
     expandedSpotVectors.clear();
     
     std::vector<SpotVectorPtr> origin;
@@ -64,8 +65,14 @@ void FreeLattice::calculateExpandedVectors(bool originOnly)
         
         for (int i = 0; i < firstVecs->size(); i++)
         {
+            if ((*firstVecs)[i]->distance() > maxDistance)
+                continue;
+            
             for (int j = 0; j < spotVectors.size(); j++)
             {
+                if (spotVectors[j]->distance() > maxDistance)
+                    continue;
+
                 SpotVectorPtr firstVec = (*firstVecs)[i];
                 SpotVectorPtr secondVec = spotVectors[j];
                 
@@ -77,7 +84,7 @@ void FreeLattice::calculateExpandedVectors(bool originOnly)
     }
 }
 
-void FreeLattice::powderPattern(bool originOnly)
+void FreeLattice::powderPattern(bool originOnly, std::string filename)
 {
     double powderPatternStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.001);
     std::vector<double> allDistances;
@@ -92,7 +99,8 @@ void FreeLattice::powderPattern(bool originOnly)
     std::map<double, int> map = histogram(allDistances, powderPatternStep);
     CSV csv = CSV(2, "distance", "frequency");
     csv.histogram(map);
-    csv.writeToFile("freeLatticePowder.csv");
+    csv.plotColumns(0, 1);
+    csv.writeToFile(filename);
 }
 
 void FreeLattice::anglePattern(bool originOnly)
@@ -142,7 +150,7 @@ void FreeLattice::anglePattern(bool originOnly)
     
     std::map<double, int> map = histogram(allAngles, angleStep);
     CSV csv = CSV(2, "angle", "frequency");
-   // std::cout << csv.plotColumns(0, 1) << std::endl;
+    csv.histogram(map);
     csv.writeToFile("freeLatticeAngle.csv");
 
 }

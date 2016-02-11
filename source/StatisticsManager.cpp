@@ -177,7 +177,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 
         if (!silent)
             csv.writeToFile("correlation.csv");
-        std::cout << csv.plotColumns(3, 4) << std::endl;
+        csv.plotColumns(3, 4);
         
         logged << "Data logged to correlation.csv" << std::endl;
         Logger::mainLogger->addStream(&logged);

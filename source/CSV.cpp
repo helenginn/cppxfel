@@ -142,7 +142,7 @@ std::string CSV::plotColumns(int col1, int col2)
     char *cols = std::getenv("COLUMNS");
     char *linesstr = getenv("LINES");
     
-    std::cout << "Plotting " << entries.size() << " points" << std::endl;
+ //   std::cout << "Plotting " << entries.size() << " points" << std::endl;
     
     int columns = 100;
     
@@ -256,6 +256,9 @@ std::string CSV::plotColumns(int col1, int col2)
     ascii << std::endl << headers[col2] << std::endl << std::endl;
     
     ascii << mapToAscii(plot);
+    
+    logged << ascii.str() << std::endl;
+    sendLog(LogLevelNormal);
     
     return ascii.str();
 }

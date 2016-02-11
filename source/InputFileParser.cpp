@@ -130,6 +130,7 @@ void InputFileParser::parse(bool fromPython)
     log.str("");
     
     refiner = boost::shared_ptr<MtzRefiner>(new MtzRefiner());
+    Miller::setupStaticVariables();
     
     int seed = FileParser::getKey("RANDOM_SEED", 0);
     srand((unsigned int)seed);
