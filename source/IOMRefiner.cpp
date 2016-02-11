@@ -261,6 +261,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     int overRes = 0;
     int underRes = 0;
     double maxDistSquared = pow(1 / maxResolution, 2);
+    double minResolutionSquared = pow(1 / minResolution, 2);
     
     for (int h = -maxMillers[0]; h < maxMillers[0]; h++)
     {
@@ -311,7 +312,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                     continue;
                 }
                 
-                if (minResolution > 0 && res < 1 / minResolution)
+                if (minResolution > 0 && res < minResolutionSquared)
                 {
                     underRes++;
                     continue;

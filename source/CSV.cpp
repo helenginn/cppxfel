@@ -85,6 +85,8 @@ std::string CSV::mapToAscii(Plot plot)
     {
         Row row = it->second;
         
+        stream << "N: ";
+        
         for (Row::iterator it2 = row.begin(); it2 != row.end(); it2++)
         {
             char charray[2];
