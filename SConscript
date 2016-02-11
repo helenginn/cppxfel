@@ -40,8 +40,10 @@ if 'BOOST_LOCATION' in os.environ:
 source = [
 'boost_python/cppxfel_ext.cc',
 'source/AmbiguityBreaker.cpp',
+'source/CSV.cpp',
 'source/FileParser.cpp',
 'source/FileReader.cpp',
+'source/FreeLattice.cpp',
 'source/GraphDrawer.cpp',
 'source/Holder.cpp',
 'source/Image.cpp',
