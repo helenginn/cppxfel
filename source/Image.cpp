@@ -820,10 +820,10 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int t
 
 bool Image::accepted(int x, int y)
 {
+    double value = valueAt(x, y);
+    
     if (shouldMaskValue)
     {
-        double value = valueAt(x, y);
-        
         if (value == maskedValue)
         {
             logged << "Masking value at " << x << ", " << y << std::endl;
@@ -832,6 +832,9 @@ bool Image::accepted(int x, int y)
         }
     }
     
+    if (value < -1000)
+        return false;
+
     Coord coord = std::make_pair(x, y);
     
     PanelPtr panel = Panel::panelForCoord(coord);
