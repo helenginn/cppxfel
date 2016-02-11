@@ -30,7 +30,7 @@ typedef std::vector<double> Entry;
 typedef std::map<int, char> Row;
 typedef std::map<int, Row > Plot;
 
-class CSV : public LoggableObject
+class CSV
 {
 private:
     std::vector<std::string> headers;
@@ -39,7 +39,19 @@ private:
     std::string mapToAscii(Plot plot);
     void writeStringToPlot(std::string text, Plot *plot, int x, int y);
 public:
-    CSV(int count, ...);
+    CSV(int count, ...)
+    {
+        va_list arguments;
+        va_start(arguments, count);
+        
+        for (int i = 0; i < count; i++)
+        {
+            std::string header = std::string(va_arg(arguments, char *));
+            headers.push_back(header);
+        }
+        
+        va_end(arguments);
+    }
     
     void addEntry(int dummy, ...);
     void writeToFile(std::string filename);

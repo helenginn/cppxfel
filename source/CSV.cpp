@@ -14,20 +14,6 @@
 #include <iostream>
 #include <string.h>
 
-CSV::CSV(int count, ...)
-{
-    va_list arguments;
-    va_start(arguments, count);
-    
-    for (int i = 0; i < count; i++)
-    {
-        std::string header = std::string(va_arg(arguments, char *));
-        headers.push_back(header);
-    }
-    
-    va_end(arguments);
-}
-
 void CSV::histogram(std::map<double, int> histogram)
 {
     for (std::map<double, int>::iterator it = histogram.begin(); it != histogram.end(); it++)
@@ -257,8 +243,9 @@ std::string CSV::plotColumns(int col1, int col2)
     
     ascii << mapToAscii(plot);
     
+    std::ostringstream logged;
     logged << ascii.str() << std::endl;
-    sendLog(LogLevelNormal);
+    Logger::mainLogger->addStream(&logged);
     
     return ascii.str();
 }
