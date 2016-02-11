@@ -20,6 +20,7 @@ class UnitCellLattice : public FreeLattice
 private:
     CSym::CCP4SPG *spaceGroup;
     MatrixPtr unitCellMatrix;
+    MatrixPtr unitCellOnly;
     MatrixPtr unitCellMatrixInverse;
     static std::vector<MatrixPtr> symOperators;
     int maxMillerIndexTrial;
@@ -51,6 +52,11 @@ public:
     double getMaxDistance()
     {
         return maxDistance;
+    }
+    
+    MatrixPtr getUnitCellOnly()
+    {
+        return unitCellOnly;
     }
     
     std::vector<SpotVectorPtr> getStandardVectors()

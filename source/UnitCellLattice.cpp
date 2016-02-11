@@ -19,7 +19,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
     
-    MatrixPtr unitCellOnly = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
+    unitCellOnly = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
     
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
     

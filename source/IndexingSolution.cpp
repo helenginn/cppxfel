@@ -348,7 +348,7 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
     
     // Create the goods.
     MatrixPtr fullMat = MatrixPtr(new Matrix());
-    fullMat->setComplexMatrix(unitCellOnly->copy(), rotateFinalMatrix);
+    fullMat->setComplexMatrix(lattice->getUnitCellOnly()->copy(), rotateFinalMatrix);
     
     // Send back the goods.
     return fullMat;
