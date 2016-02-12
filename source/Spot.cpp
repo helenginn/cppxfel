@@ -14,6 +14,7 @@
 #include "Vector.h"
 #include <fstream>
 #include "FileParser.h"
+#include "CSV.h"
 
 double Spot::maxResolution = 0;
 double Spot::minIntensity = 0;
@@ -375,20 +376,27 @@ bool Spot::isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees)
 
 void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
 {
-    std::ofstream dat;
-    dat.open(filename);
+  //  std::ofstream dat;
+  //  dat.open(filename);
     int count = 0;
+    
+    CSV csv = CSV(9, "h", "k", "l", "angle", "1", "1", "x", "y", "1");
     
     for (int i = 0; i < spots.size(); i++)
     {
-        dat << "0\t0\t0\t" << spots[i]->angleInPlaneOfDetector() << "\t1\t1\t"
-        << spots[i]->x << "\t" << spots[i]->y
-        << "\t1" << std::endl;
+        csv.addEntry(1000, 0., 0., 0., spots[i]->angleInPlaneOfDetector(), 1., 1., spots[i]->x, spots[i]->y, 1.);
+    
+    //    dat << "0\t0\t0\t" << spots[i]->angleInPlaneOfDetector() << "\t1\t1\t"
+    //    << spots[i]->x << "\t" << spots[i]->y
+    //    << "\t1" << std::endl;
         
         count++;
     }
     
-    dat.close();
+    csv.writeToFile(filename);
+    csv.plotColumns(6, 7);
+    
+//    dat.close();
 }
 
 vec Spot::estimatedVector()
@@ -438,4 +446,19 @@ bool Spot::isSameAs(SpotPtr spot2)
     return (spot2->getX() == getX() && spot2->getY() == getY());
 }
 
+double Spot::closeToSecondSpot(SpotPtr spot2, double squareMinDistance)
+{
+    if (this == &*spot2)
+        return false;
+    
+    vec reciprocalSpot1 = estimatedVector();
+    vec reciprocalSpot2 = spot2->estimatedVector();
+    
+    take_vector_away_from_vector(reciprocalSpot1, &reciprocalSpot2);
+    
+    double square = length_of_vector_squared(reciprocalSpot2);
+    
+
+    return (square < squareMinDistance);
+}
 

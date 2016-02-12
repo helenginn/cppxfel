@@ -1168,7 +1168,7 @@ void Image::findSpots()
     sendLog();
     
     std::string basename = getBasename();
-    Spot::writeDatFromSpots(basename + "_spots.dat", spots);
+    Spot::writeDatFromSpots(basename + "_spots.csv", spots);
     writeSpotsList("_" + basename + "_strong.list");
     
     dropImage();

@@ -38,6 +38,8 @@ typedef enum
     RefinementTypeOrientationMatrixPanelStdev = 11,
     RefinementTypeOrientationMatrixStdevOnly = 12,
     RefinementTypeRefineLAxis = 13,
+    RefinementTypeOrientationMatrixEarlyWeighted = 14,
+    
 } RefinementType;
 
 class IOMRefiner : public boost::enable_shared_from_this<IOMRefiner>

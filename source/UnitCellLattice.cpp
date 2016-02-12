@@ -60,4 +60,15 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
             }
         }
     }
+    
+    minDistance = FLT_MAX;
+    
+    for (int i = 0; i < 3; i++)
+    {
+        vec hkl = new_vector((i == 0), (i == 1), (i == 2));
+        unitCellMatrix->multiplyVector(&hkl);
+        
+        if (length_of_vector(hkl) < minDistance)
+            minDistance = length_of_vector(hkl);
+    }
 }

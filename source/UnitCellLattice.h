@@ -25,6 +25,7 @@ private:
     static std::vector<MatrixPtr> symOperators;
     int maxMillerIndexTrial;
     double maxDistance;
+    double minDistance;
     
 public:
     void setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum);
@@ -57,6 +58,11 @@ public:
     MatrixPtr getUnitCellOnly()
     {
         return unitCellOnly;
+    }
+    
+    double getMinDistance()
+    {
+        return minDistance;
     }
     
     std::vector<SpotVectorPtr> getStandardVectors()

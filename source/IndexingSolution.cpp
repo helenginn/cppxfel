@@ -408,6 +408,27 @@ void IndexingSolution::removeSpotVectors(std::vector<SpotVectorPtr> *spotVectors
     sendLog();
 }
 
+bool IndexingSolution::spotsAreNotTooClose(SpotVectorPtr observedVector)
+{
+    SpotPtr spot1 = observedVector->getFirstSpot();
+    SpotPtr spot2 = observedVector->getSecondSpot();
+    
+    double squareMinDistance = pow(lattice->getMinDistance(), 2);
+    
+    for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
+    {
+        SpotVectorPtr vector = it->first;
+        SpotPtr spot3 = vector->getFirstSpot();
+        SpotPtr spot4 = vector->getSecondSpot();
+        
+        if (spot3->closeToSecondSpot(spot1, squareMinDistance) || spot3->closeToSecondSpot(spot2, squareMinDistance)
+            || spot4->closeToSecondSpot(spot1, squareMinDistance) || spot4->closeToSecondSpot(spot2, squareMinDistance))
+            return false;
+    }
+    
+    return true;
+}
+
 bool IndexingSolution::vectorAgreesWithExistingVectors(SpotVectorPtr observedVector, SpotVectorPtr standardVector)
 {
     for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
@@ -536,6 +557,16 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
             
             if (!agrees)
                 continue;
+            
+            agrees = spotsAreNotTooClose(possibleVector);
+            
+            if (!agrees)
+            {
+                logged << "Too close!" << std::endl;
+                sendLog(LogLevelDetailed);
+                
+                continue;
+            }
             
             agrees = vectorSolutionsAreCompatible(possibleVector, standardSelection[j]);
             

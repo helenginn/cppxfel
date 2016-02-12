@@ -388,6 +388,9 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     
     if (rotationMode == RotationModeHorizontalVertical)
     {
+        logged << "Rotating by " << hRot << ", " << kRot << ", " << lRot << std::endl;
+        sendLog(LogLevelDetailed);
+        
         Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &newMatrix);
     }
     else if (rotationMode == RotationModeUnitCellABC)
@@ -948,6 +951,35 @@ double IOMRefiner::score(int whichAxis, bool silent)
         return score;
     }
     
+    if (refinement == RefinementTypeOrientationMatrixEarlyWeighted)
+    {
+        std::vector<double> wavelengths, weights;
+        
+        for (int i = 0; i < millers.size(); i++)
+        {
+            MillerPtr miller = millers[i];
+            
+            if (!millerReachesThreshold(miller))
+                continue;
+            
+            double weight = miller->getRawestIntensity();
+            
+            if (weight < 0) weight = 0;
+            
+            double wavelength = miller->getWavelength();
+            
+            if (!(wavelength == wavelength && weight == weight))
+                continue;
+            
+            wavelengths.push_back(wavelength);
+            weights.push_back(weight);
+        }
+        
+        double stdev = standard_deviation(&wavelengths, &weights);
+        
+        return stdev;
+    }
+    
     if (refinement == RefinementTypeOrientationMatrixStdevOnly)
     {
         vector<double> wavelengths;
@@ -1474,7 +1506,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                 
                 searchSize = oldSearchSize;
             }
-            if (refinementType == RefinementTypeOrientationMatrixEarly && !refinedH && !refinedK)
+            if (!refinedH && !refinedK)
             {
                 this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
             }

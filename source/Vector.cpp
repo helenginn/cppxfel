@@ -777,7 +777,7 @@ double least_squares_gaussian_fit(vector<double> *means,
 
 double standard_deviation(vector<double> *values, vector<double> *weights)
 {
-    double mean = weighted_mean(values, NULL);
+    double mean = weighted_mean(values, weights);
     
     return standard_deviation(values, weights, mean);
 }
