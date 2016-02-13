@@ -1285,7 +1285,20 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
     double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
     
-
+    int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
+    
+    if (maxSpots > 0)
+    {
+        if (spotCount() > maxSpots)
+        {
+            logged << "N: Aborting image " << getFilename() << " due to too many spots." << std::endl;
+            sendLog();
+            spotVectors.clear();
+            std::vector<SpotVectorPtr>().swap(spotVectors);
+            return;
+        }
+    }
+    
     if (maxReciprocalDistance == 0)
     {
         maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.02);
@@ -1351,21 +1364,6 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         }
         
         sendLog(LogLevelDetailed);
-    }
-    
-    
-    int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
-    
-    if (maxSpots > 0)
-    {
-        if (spotCount() > maxSpots)
-        {
-            logged << "N: Aborting image " << getFilename() << " due to too many spots." << std::endl;
-            sendLog();
-            spotVectors.clear();
-            std::vector<SpotVectorPtr>().swap(spotVectors);
-            return;
-        }
     }
     
     

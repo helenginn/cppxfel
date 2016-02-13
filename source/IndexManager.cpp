@@ -587,8 +587,6 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     
     if (newMethod)
     {
-    //    for (int i = offset; i < indexer->images.size(); i += maxThreads)
-        //    {
         while (true)
         {
             ImagePtr image = indexer->getNextImage();
