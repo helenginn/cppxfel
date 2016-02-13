@@ -18,6 +18,7 @@
 #include <cctbx/miller/asu.h>
 #include <cctbx/miller.h>
 #include "FileParser.h"
+#include "Beam.h"
 
 bool Miller::normalised = true;
 bool Miller::correctingPolarisation = false;
@@ -26,6 +27,7 @@ int Miller::maxSlices = 100;
 int Miller::slices = 8;
 double Miller::trickyRes = 8.0;
 bool Miller::setupStatic = false;
+PartialityModel Miller::model = PartialityModelScaled;
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
@@ -38,6 +40,7 @@ void Miller::setupStaticVariables()
     if (setupStatic)
         return;
     
+    model = FileParser::getKey("BINARY_PARTIALITY", false) ? PartialityModelScaled : PartialityModelBinary;
     normalised = FileParser::getKey("NORMALISE_PARTIALITIES", true);
     correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
     polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
@@ -109,6 +112,11 @@ double Miller::superGaussian(double bandwidth, double mean,
     }
 }
 
+double Miller::integrate_special_beam_slice(double pBandwidth, double qBandwidth)
+{
+    return beam->integralBetweenEwaldWavelengths(pBandwidth, qBandwidth);
+}
+
 double Miller::integrate_beam_slice(double pBandwidth, double qBandwidth, double mean,
                                    double sigma, double exponent)
 {
@@ -138,7 +146,7 @@ double integrate_beam(double pBandwidth, double qBandwidth, double mean,
 
 double Miller::sliced_integral(double low_wavelength, double high_wavelength,
                               double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
-                              double exponent, bool binary)
+                              double exponent, bool binary, bool withBeamObject)
 {
     if (resolution() < 1 / trickyRes) slices = maxSlices;
     
@@ -146,7 +154,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
     
     double fraction_total = 1;
     double currentP = 0;
-    double currentQ = 1 / slices;
+    double currentQ = (double)1 / (double)slices;
     
     double total_integral = 0;
     
@@ -161,8 +169,17 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         double pBandwidth = high_wavelength - bandwidth_span * currentP;
         double qBandwidth = high_wavelength - bandwidth_span * currentQ;
         
-        double normalSlice = integrate_beam_slice(pBandwidth, qBandwidth, mean,
+        double normalSlice = 0;
+        
+        if (!withBeamObject)
+        {
+            normalSlice = integrate_beam_slice(pBandwidth, qBandwidth, mean,
                                                  sigma, exponent);
+        }
+        else
+        {
+            normalSlice = integrate_special_beam_slice(qBandwidth, pBandwidth);
+        }
         
         double sphereSlice = 0;
         
@@ -201,7 +218,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     wavelength = 0;
     lastNormPartiality = 0;
     partiality = -1;
-    model = PartialityModelNone;
     filename = "";
     countingSigma = 0;
     latestHRot = 0;
@@ -561,12 +577,8 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
     return radius;
 }
 
-double Miller::partialityForHKL(vec hkl, double mosaicity,
-                               double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
+void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh)
 {
-    bandwidth = fabs(bandwidth);
-    
-    
     double radius = expectedRadius(spotSize, mosaicity, &hkl);
     
     vec mean_wavelength_ewald_centre = new_vector(0, 0, -1 / wavelength);
@@ -603,6 +615,21 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
     
     double inwards_bandwidth = getEwaldSphereNoMatrix(move_inwards_position);
     double outwards_bandwidth = getEwaldSphereNoMatrix(move_outwards_position);
+    
+    *limitHigh = inwards_bandwidth;
+    *limitLow = outwards_bandwidth;
+}
+
+double Miller::partialityForHKL(vec hkl, double mosaicity,
+                               double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
+{
+    double radius = expectedRadius(spotSize, mosaicity, &hkl);
+    
+    bandwidth = fabs(bandwidth);
+    
+    double inwards_bandwidth = 0; double outwards_bandwidth = 0;
+    
+    limitingEwaldWavelengths(hkl, mosaicity, spotSize, wavelength, &outwards_bandwidth, &inwards_bandwidth);
     
     double stdev = wavelength * bandwidth / 2;
     
@@ -680,6 +707,11 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     if (model == PartialityModelFixed)
     {
         return;
+    }
+    
+    if (model == PartialityModelBinary)
+    {
+        binary = true;
     }
     
     vec hkl = new_vector(h, k, l);
@@ -1083,23 +1115,44 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
     double x = lastShiftedX;
     double y = lastShiftedY;
     int count = 0;
-    int tolerance = 2;
+    double tolerance = 4;
     
     for (int i = 0; i < spots->size(); i++)
     {
-        int x2 = (*spots)[i]->getRawXY().first;
-        int y2 = (*spots)[i]->getRawXY().second;
+        double x2 = (*spots)[i]->getRawXY().first;
+        double y2 = (*spots)[i]->getRawXY().second;
         
         double xDiff = fabs(x2 - x);
         double yDiff = fabs(y2 - y);
-        
+        /*
+        if (x2 > 753 && x2 < 759 && y2 > 958 && y2 < 961)
+        {
+            logged << x2 << ", " << y2 << ", " << xDiff << ", " << yDiff << std::endl;
+            sendLog();
+        }
+        */
         if (xDiff < tolerance && yDiff < tolerance)
         {
+       /*     logged << "ERASING SPOT" << std::endl;
+            
+            SpotPtr deleting = spots->at(i);
+            logged << "Deleting " << deleting->getRawXY().first << ", " << deleting->getRawXY().second << std::endl;
+            sendLog();*/
+            
             spots->erase(spots->begin() + i);
             i--;
             count++;
         }
     }
+    /*
+    if (count)
+    {
+        for (int i = 0; i < spots->size(); i++)
+        {
+            logged << "Spot: " << spots->at(i)->getRawXY().first << ", " << spots->at(i)->getRawXY().second << std::endl;
+            sendLog();
+        }
+    }*/
     
     return (count > 0);
 }
@@ -1170,6 +1223,49 @@ Miller::~Miller()
 void Miller::denormalise()
 {
     denormaliseFactor = calculateDefaultNorm();
+}
+
+void Miller::recalculateBetterPartiality()
+{
+    MatrixPtr bestMatrix = mtzParent->getLatestMatrix();
+    double rlpSize = mtzParent->getSpotSize();
+    double mosaicity = mtzParent->getMosaicity();
+    double limitLow = 0;
+    double limitHigh = 0;
+    double wavelength = beam->getNominalWavelength();
+    
+    vec hkl = getTransformedHKL(bestMatrix);
+    
+    limitingEwaldWavelengths(hkl, mosaicity, rlpSize, wavelength, &limitLow, &limitHigh);
+    
+    if (beam->nonZeroPartialityExpected(limitLow, limitHigh))
+    {
+        partiality = 0;
+        return;
+    }
+    
+    partiality = sliced_integral(limitLow, limitHigh, rlpSize, 0, 1, 0, 0, 0, false, true);
+    
+    if (partiality != partiality)
+        partiality = 0;
+    
+    if (partiality == 0)
+        return;
+    
+    // normalise
+    
+    double d = length_of_vector(hkl);
+    
+    double newH = 0;
+    double newK = sqrt((4 * pow(d, 2) - pow(d, 4) * pow(wavelength, 2)) / 4);
+    double newL = 0 - pow(d, 2) * wavelength / 2;
+    
+    vec newHKL = new_vector(newH, newK, newL);
+    
+    limitingEwaldWavelengths(newHKL, mosaicity, rlpSize, wavelength, &limitLow, &limitHigh);
+    double normPartiality = sliced_integral(limitLow, limitHigh, rlpSize, 0, 1, 0, 0, 0, false, true);
+    
+    partiality /= normPartiality;
 }
 
 // Vector stuff

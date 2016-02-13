@@ -477,6 +477,22 @@ double MtzManager::minimizeParameter(double *meanStep, double **params,
     return param_min_score;
 }
 
+double MtzManager::refineParameterScore(void *object)
+{
+    MtzManager *me = static_cast<MtzManager *>(object);
+    
+    for (int i = 0; i < me->reflectionCount(); i++)
+    {
+        for (int j = 0; j < me->reflection(i)->millerCount(); j++)
+        {
+            MillerPtr miller = me->reflection(i)->miller(j);
+            miller->recalculateBetterPartiality();
+        }
+    }
+    
+    return me->exclusionScore(0, 0, me->defaultScoreType);
+}
+
 double MtzManager::minimize()
 {
     return minimize(exclusionScoreWrapper, this);
@@ -790,6 +806,8 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
 
 void MtzManager::gridSearch(bool silent)
 {
+    bool partialitySpectrumRefinement = FileParser::getKey("REFINE_ENERGY_SPECTRUM", false);
+    
     scoreType = defaultScoreType;
     chooseAppropriateTarget();
     std::string scoreDescription = this->describeScoreType();
@@ -816,7 +834,10 @@ void MtzManager::gridSearch(bool silent)
             setParams(firstParams);
             
             int ambiguity = getActiveAmbiguity();
-            double correl = minimize();
+            double correl = 0;
+            
+            correl = minimize();
+            
             double *params = &(*(bestParams.begin()));
             getParams(&params);
             

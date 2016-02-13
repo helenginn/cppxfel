@@ -1872,7 +1872,7 @@ void Image::writeSpotsList(std::string spotFile)
         std::string basename = getBasename();
         
         spotFile = "_" + basename + "_" + tag + "_spots.list";
-        spotDat = basename + "_spots.dat";
+        spotDat = basename + "_spots.csv";
     }
     
     std::ofstream spotList;

@@ -414,7 +414,7 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 	for (int i = 0; i < shot1->reflectionCount(); i++)
 	{
 		Reflection *reflection = shot1->reflection(i);
-        int reflid = reflection->getReflId();
+        int reflid = (int)reflection->getReflId();
 
 		Reflection *reflection2 = NULL;
 		shot2->findReflectionWithId(reflid, &reflection2);
@@ -422,13 +422,8 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 		if (reflection2 == NULL)
 			continue;
         
-		double int1 =
-				shouldLog ?
-						log(reflection->meanIntensity()) : reflection->meanIntensity();
-		double int2 =
-				shouldLog ?
-						log(reflection2->meanIntensity()) :
-						reflection2->meanIntensity();
+		double int1 = reflection->meanIntensity();
+		double int2 = reflection2->meanIntensity();
         
         double weight = 1;//reflection->meanWeight();
 

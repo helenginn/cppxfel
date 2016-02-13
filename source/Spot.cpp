@@ -229,7 +229,7 @@ void Spot::makeProbe(int height, int background, int length)
 	}
 }
 
-void Spot::setXY(int x, int y)
+void Spot::setXY(double x, double y)
 {
 	this->x = x;
 	this->y = y;
@@ -384,7 +384,7 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
     
     for (int i = 0; i < spots.size(); i++)
     {
-        csv.addEntry(1000, 0., 0., 0., spots[i]->angleInPlaneOfDetector(), 1., 1., spots[i]->x, spots[i]->y, 1.);
+        csv.addEntry(1000, 0., 0., 0., spots[i]->angleInPlaneOfDetector(), 1., 1., spots[i]->getRawXY().first, spots[i]->getRawXY().second, 1.);
     
     //    dat << "0\t0\t0\t" << spots[i]->angleInPlaneOfDetector() << "\t1\t1\t"
     //    << spots[i]->x << "\t" << spots[i]->y
@@ -394,7 +394,7 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
     }
     
     csv.writeToFile(filename);
-    csv.plotColumns(6, 7);
+    //csv.plotColumns(6, 7);
     
 //    dat.close();
 }
@@ -411,7 +411,7 @@ vec Spot::estimatedVector()
     
     double wavelength = getParentImage()->getWavelength();
     
-    double height = getParentImage()->getYDim();
+  //  double height = getParentImage()->getYDim();
     
     double mmX = getX() * getParentImage()->getMmPerPixel();
  //   double mmY = (height - getY()) * getParentImage()->getMmPerPixel();

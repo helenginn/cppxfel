@@ -11,8 +11,9 @@
 #include <algorithm>
 #include "MtzManager.h"
 #include "FileParser.h"
-
-
+#include "GaussianBeam.h"
+#include "SpectrumBeam.h"
+#include "GetterSetterMap.h"
 
 MtzManager *MtzManager::currentManager;
 
@@ -107,6 +108,83 @@ void MtzManager::getSteps(double *ranges[], int paramCount)
     
 }
 
+void MtzManager::addParameters(GetterSetterMapPtr map)
+{
+    if (optimisingRlpSize)
+        map->addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, toleranceRlpSize);
+    
+    if (optimisingMosaicity)
+        map->addParameter(this, getMosaicityStatic, setMosaicityStatic, stepSizeMosaicity, toleranceMosaicity);
+    
+    if (optimisingOrientation)
+    {
+        map->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, toleranceOrientation);
+        map->addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, toleranceOrientation);
+    }
+}
+
+double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
+{
+    this->setActiveAmbiguity(ambiguity);
+    
+    GetterSetterMapPtr refinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    
+    addParameters(refinementMap);
+    
+    if (!beam)
+    {
+        double wavelength = bestWavelength();
+        
+        beam = GaussianBeamPtr(new GaussianBeam(wavelength, bandwidth, exponent));
+        
+        for (int i = 0; i < reflectionCount(); i++)
+        {
+            for (int j = 0; j < reflection(i)->millerCount(); j++)
+            {
+                reflection(i)->miller(j)->setBeam(beam);
+            }
+        }
+    }
+    
+    beam->addParameters(refinementMap);
+    
+    refinementMap->setEvaluationFunction(refineParameterScore, this);
+    refinementMap->setCycles(cycles);
+    
+    refinementMap->refine(GetterSetterStepSearch);
+    
+    return correlation();
+}
+
+void MtzManager::refinePartialities()
+{
+    std::vector<double> correlations;
+    double maxCorrel = -1;
+    int bestAmbiguity = 0;
+    
+    for (int i = 0; i < ambiguityCount(); i++)
+    {
+        correlations.push_back(refinePartialitiesOrientation(i, 10));
+    }
+    
+    for (int i = 0; i < ambiguityCount(); i++)
+    {
+        if (correlations[i] > maxCorrel)
+        {
+            bestAmbiguity = i;
+            maxCorrel = correlations[i];
+        }
+    }
+    
+    refinePartialitiesOrientation(bestAmbiguity);
+    double partCorrel = leastSquaresPartiality(ScoreTypePartialityCorrelation);
+    setRefPartCorrel(partCorrel);
+    
+    setRefCorrelation(correlation());
+    
+    writeToFile(std::string("ref-") + filename);
+}
+
 void MtzManager::refreshPartialities(double parameters[])
 {
     refreshPartialities(parameters[PARAM_HROT],
@@ -145,11 +223,30 @@ void MtzManager::refreshCurrentPartialities()
                         this->cellDim[2]);
 }
 
+void MtzManager::replaceBeamWithSpectrum()
+{
+    GaussianBeamPtr gaussian = boost::static_pointer_cast<GaussianBeam>(beam);
+    
+    if (gaussian)
+    {
+        SpectrumBeamPtr spectrum = SpectrumBeamPtr(new SpectrumBeam(gaussian, shared_from_this()));
+        
+        beam = spectrum;
+        
+        for (int i = 0; i < reflectionCount(); i++)
+        {
+            for (int j = 0; j < reflection(i)->millerCount(); j++)
+            {
+                reflection(i)->miller(j)->setBeam(spectrum);
+            }
+        }
+    }
+}
+
 void MtzManager::refreshPartialities(double hRot, double kRot, double aRot, double bRot, double cRot, double mosaicity,
 		double spotSize, double wavelength, double bandwidth, double exponent,
                                      double a, double b, double c)
 {
-
     this->makeSuperGaussianLookupTable(exponent);
 
     if (!matrix)
@@ -158,10 +255,10 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double aRot, doub
     if (matrix->isComplex())
         this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
     
-    MatrixPtr firstMatrix = MatrixPtr();
+    //MatrixPtr firstMatrix = MatrixPtr();
     MatrixPtr newMatrix = MatrixPtr();
-    Miller::rotateMatrixABC(aRot, bRot, cRot, matrix, &firstMatrix);
-    Miller::rotateMatrixHKL(hRot, kRot, 0, firstMatrix, &newMatrix);
+    //Miller::rotateMatrixABC(aRot, bRot, cRot, matrix, &firstMatrix);
+    Miller::rotateMatrixHKL(hRot, kRot, 0, matrix, &newMatrix);
     
 	for (int i = 0; i < reflections.size(); i++)
 	{

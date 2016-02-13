@@ -163,6 +163,7 @@ void FileParser::generateFunctionList()
     parserMap["STOP_REFINEMENT"] = simpleBool;
 
     parserMap["APPLY_UNREFINED_PARTIALITY"] = simpleBool;
+    parserMap["BINARY_PARTIALITY"] = simpleBool;
     parserMap["MINIMIZATION_METHOD"] = simpleInt;
     parserMap["NELDER_MEAD_CYCLES"] = simpleInt;
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
@@ -205,6 +206,7 @@ void FileParser::generateFunctionList()
     parserMap["SMOOTH_FUNCTION"] = simpleBool;
     parserMap["NORMALISE_PARTIALITIES"] = simpleBool;
     parserMap["REPLACE_REFERENCE"] = simpleBool;
+    parserMap["REFINE_ENERGY_SPECTRUM"] = simpleBool;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;

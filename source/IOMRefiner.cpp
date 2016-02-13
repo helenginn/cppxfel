@@ -449,7 +449,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             continue;
         }
         
-        miller->setPartialityModel(PartialityModelScaled);
+  //      miller->setPartialityModel(PartialityModelScaled);
         miller->getWavelength(newMatrix);
         
         if (complexShoebox)

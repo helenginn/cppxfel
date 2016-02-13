@@ -42,7 +42,7 @@ typedef enum
 
 class Miller;
 
-class MtzManager
+class MtzManager : public boost::enable_shared_from_this<MtzManager>
 {
 
 protected:
@@ -56,7 +56,8 @@ protected:
 	int index_for_reflection(int h, int k, int l, bool inverted);
 	void findMultiplier(MTZ *mtz, int *multiplier, int *offset);
 
-
+    BeamPtr beam;
+    
 	// minimisation stuff
 
 	vector<Reflection *> reflections;
@@ -135,6 +136,7 @@ protected:
 	ScoreType scoreType;
 
     MatrixPtr baseMatrix;
+    MatrixPtr rotatedMatrix;
 	static MtzManager *referenceManager;
 	MtzManager *lastReference;
 
@@ -207,6 +209,7 @@ public:
 	void getRefReflections(vector<Reflection *> *refPointer,
 			vector<Reflection *> *matchPointer);
 	void reallowPartialityOutliers();
+    void replaceBeamWithSpectrum();
 
 	void setUnitCell(double a, double b, double c, double alpha, double beta,
 			double gamma);
@@ -273,7 +276,10 @@ public:
 	double rSplit(double low, double high, bool withCutoff = false, bool set = false);
     double belowPartialityPenalty(double low, double high);
 	std::string describeScoreType();
+    double refinePartialitiesOrientation(int ambiguity, int cycles = 30);
     
+    void refinePartialities();
+
     void refreshCurrentPartialities();
 	void refreshPartialities(double hRot, double kRot, double aRot, double bRot, double cRot, double mosaicity,
                              double spotSize, double wavelength, double bandwidth, double exponent,
@@ -696,6 +702,64 @@ public:
 	{
 		this->scale = scale;
 	}
+    
+    MatrixPtr getLatestMatrix();
+    void addParameters(GetterSetterMapPtr map);
+    static double refineParameterScore(void *object);
+    
+    static double getSpotSizeStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getSpotSize();
+    }
+    
+    static void setSpotSizeStatic(void *object, double newSize)
+    {
+        static_cast<MtzManager *>(object)->setSpotSize(newSize);
+    }
+
+    void refineParametersStepSearch(GetterSetterMap &map);
+    
+    static double getMosaicityStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getMosaicity();
+    }
+    
+    static void setMosaicityStatic(void *object, double newMosaicity)
+    {
+        static_cast<MtzManager *>(object)->setMosaicity(newMosaicity);
+    }
+    
+    void updateLatestMatrix()
+    {
+        if (matrix->isComplex())
+            this->matrix->changeOrientationMatrixDimensions(cellDim[0], cellDim[1], cellDim[2], cellAngles[0], cellAngles[1], cellAngles[2]);
+    
+        rotatedMatrix = matrix->copy();
+        rotatedMatrix->rotate(hRot * M_PI / 180, kRot * M_PI / 180, 0);
+    }
+    
+    static double getHRotStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getHRot();
+    }
+    
+    static void setHRotStatic(void *object, double newHRot)
+    {
+        static_cast<MtzManager *>(object)->setHRot(newHRot);
+        static_cast<MtzManager *>(object)->updateLatestMatrix();
+    }
+    
+    static double getKRotStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getKRot();
+    }
+    
+    static void setKRotStatic(void *object, double newKRot)
+    {
+        static_cast<MtzManager *>(object)->setKRot(newKRot);
+        static_cast<MtzManager *>(object)->updateLatestMatrix();
+    }
+
 };
 
 #endif

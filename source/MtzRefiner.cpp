@@ -120,6 +120,7 @@ void MtzRefiner::cycleThread(int offset)
     
     bool initialGridSearch = FileParser::getKey("INITIAL_GRID_SEARCH", false);
     int secondScore = FileParser::getKey("SECOND_TARGET_FUNCTION", -1);
+    bool partialitySpectrumRefinement = FileParser::getKey("REFINE_ENERGY_SPECTRUM", false);
     
     std::vector<int> targets = FileParser::getKey("TARGET_FUNCTIONS", std::vector<int>());
     
@@ -140,7 +141,15 @@ void MtzRefiner::cycleThread(int offset)
             
             bool silent = (targets.size() > 0);
             
-            image->gridSearch(silent);
+            if (partialitySpectrumRefinement)
+            {
+                image->refinePartialities();
+                image->replaceBeamWithSpectrum();
+            }
+            else
+            {
+                image->gridSearch(silent);
+            }
             
             if (targets.size() > 0)
             {
@@ -149,7 +158,15 @@ void MtzRefiner::cycleThread(int offset)
                 {
                     silent = (i < targets.size() - 1);
                     image->setDefaultScoreType((ScoreType)targets[i]);
-                    image->gridSearch(silent);
+                    
+                    if (partialitySpectrumRefinement)
+                    {
+                        image->refinePartialities();
+                    }
+                    else
+                    {
+                        image->gridSearch(silent);
+                    }
                 }
                 image->setDefaultScoreType(firstScore);
             }

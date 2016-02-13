@@ -49,8 +49,8 @@ private:
 	int xDim;
 	int yDim;
 
-	int beamX;
-	int beamY;
+	double beamX;
+	double beamY;
 	double mmPerPixel;
     bool noCircles;
     double detectorGain;

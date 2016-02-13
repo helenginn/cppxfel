@@ -33,7 +33,7 @@ typedef enum
     RlpModelUniform, RlpModelGaussian,
 } RlpModel;
 
-class Miller
+class Miller : public LoggableObject
 {
 private:
     static asu p1_asu;
@@ -91,9 +91,10 @@ private:
                         double sigma, double exponent);
     double integrate_beam_slice(double pBandwidth, double qBandwidth, double mean,
                                double sigma, double exponent);
+    double integrate_special_beam_slice(double pBandwidth, double qBandwidth);
     double sliced_integral(double low_wavelength, double high_wavelength,
                           double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
-                          double exponent, bool binary = false);
+                          double exponent, bool binary = false, bool withBeamObject = false);
     
     double integrate_sphere_uniform(double p, double q);
     double integrate_sphere_gaussian(double p, double q);
@@ -101,6 +102,7 @@ private:
     
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
     
+    BeamPtr beam;
     ImageWeakPtr image;
     IOMRefiner *indexer;
     ShoeboxPtr shoebox;
@@ -122,7 +124,8 @@ public:
 	MillerPtr copy(void);
 	void printHkl(void);
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
-
+    void limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh);
+    
     bool isOverlappedWithSpots(std::vector<SpotPtr> *spots);
     double calculateDefaultNorm();
     void setPartialityModel(PartialityModel model);
@@ -161,7 +164,8 @@ public:
 	void positionOnDetector(MatrixPtr transformedMatrix, int *x,
 			int *y);
     void calculatePosition(double distance, double wavelength, double beamX, double beamY, double mmPerPixel, MatrixPtr transformedMatrix, double *x, double *y);
-
+    void recalculateBetterPartiality();
+    
     void setHorizontalPolarisationFactor(double newFactor);
 	void recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false);
@@ -182,6 +186,11 @@ public:
     static double averageRawIntensity(vector<MillerPtr> millers);
 
 	virtual ~Miller();
+    
+    void setBeam(BeamPtr newBeam)
+    {
+        beam = newBeam;
+    }
     
     void setExcluded(bool exc = true)
     {
@@ -435,7 +444,7 @@ public:
     static void rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
 
 protected:
-	PartialityModel model;
+	static PartialityModel model;
 	double rawIntensity;
 	double sigma;
 	double countingSigma;

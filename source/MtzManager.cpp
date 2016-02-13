@@ -480,11 +480,13 @@ int MtzManager::refinedParameterCount()
 void MtzManager::setMatrix(double *components)
 {
     matrix = MatrixPtr(new Matrix(components));
+    rotatedMatrix = matrix->copy();
 }
 
 void MtzManager::setMatrix(MatrixPtr newMat)
 {
     matrix = newMat;
+    rotatedMatrix = matrix->copy();
 }
 
 void MtzManager::setDefaultMatrix()
@@ -498,6 +500,11 @@ void MtzManager::setDefaultMatrix()
     
     MatrixPtr mat = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
     matrix = mat->copy();
+}
+
+MatrixPtr MtzManager::getLatestMatrix()
+{
+    return rotatedMatrix;
 }
 
 void MtzManager::getUnitCell(double *a, double *b, double *c, double *alpha,
@@ -704,7 +711,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         miller->setData(intensity, sigma, partiality, wavelength);
         miller->setCountingSigma(sigma);
         miller->setFilename(filename);
-        miller->setPartialityModel(model);
+    //    miller->setPartialityModel(model);
         miller->setPhase(phase);
         miller->setShift(std::make_pair(shiftX, shiftY));
         miller->matrix = this->matrix;

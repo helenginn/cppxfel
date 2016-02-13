@@ -126,7 +126,7 @@ void XManager::loadReflections(PartialityModel model)
                 miller->setData(0, 0, 0, 0);
                 miller->setParent(currentReflection);
                 miller->setMatrix(matrix);
-                miller->setPartialityModel(PartialityModelFixed);
+           //     miller->setPartialityModel(PartialityModelFixed);
                 miller->setFilename(filename);
                 currentReflection->addMiller(miller);
                 
