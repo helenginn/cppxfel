@@ -1655,6 +1655,7 @@ bool IOMRefiner::isGoodSolution()
     double badSolutionStdev = FileParser::getKey("BAD_SOLUTION_ST_DEV", 0.066);
     double goodSolutionSumRatio = FileParser::getKey("GOOD_SOLUTION_SUM_RATIO", 6.5);
     int goodSolutionHighestPeak = FileParser::getKey("GOOD_SOLUTION_HIGHEST_PEAK", 17);
+    int badSolutionHighestPeak = FileParser::getKey("BAD_SOLUTION_HIGHEST_PEAK", 10);
     int minimumReflections = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", 30);
     std::ostringstream details;
     
@@ -1665,6 +1666,42 @@ bool IOMRefiner::isGoodSolution()
     vector<int> frequencies;
     
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
+    
+    
+    double totalMean = 0;
+    double totalStdev = 0;
+    int maxFrequency = 0;
+    
+    histogram_gaussian(&wavelengths, &frequencies, totalMean, totalStdev);
+    
+    for (int i = 0; i < frequencies.size(); i++)
+    {
+        if (frequencies[i] > maxFrequency)
+        {
+            maxFrequency = frequencies[i];
+        }
+    }
+    
+    double diffSquared = 0;
+    double worstSquared = 0;
+    double maxHeight = super_gaussian(totalMean, totalMean, goodSolutionStdev * 0.8, 2) ;
+    
+    for (int i = 0; i < frequencies.size(); i++)
+    {
+        double length = wavelengths[i];
+        double expected = super_gaussian(length, totalMean, goodSolutionStdev * 0.8, 2) * (double)maxFrequency / maxHeight;
+        
+    //    logged << "expected: " << expected << ", frequency: " << frequencies[i] << std::endl;
+        
+        diffSquared += pow(expected - frequencies[i], 2);
+        worstSquared += pow(expected, 2);
+    }
+    
+    diffSquared = sqrt(diffSquared);
+    worstSquared = sqrt(worstSquared);
+    
+    logged << "Gaussian-esque score: " << diffSquared / worstSquared << std::endl;
+    
     std::sort(frequencies.begin(), frequencies.end(), greater());
     
     double highSum = 0;
@@ -1711,6 +1748,12 @@ bool IOMRefiner::isGoodSolution()
     {
         details << "Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;
         good = true;
+    }
+    
+    if (frequencies[0] < badSolutionHighestPeak)
+    {
+        details << "Highest peak is too low (" << frequencies[0] << " vs " << badSolutionHighestPeak << ")" << std::endl;
+        good = false;
     }
     
 //    if (lastScore < 3)

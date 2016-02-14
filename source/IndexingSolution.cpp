@@ -75,7 +75,7 @@ void IndexingSolution::setupStandardVectors()
     maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
     
     lattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
-                                                                        unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
+                                                     unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
     
     newReflection = new Reflection();
     newReflection->setUnitCellDouble(&unitCell[0]);
@@ -264,11 +264,11 @@ MatrixPtr IndexingSolution::createSolution()
         
         scoredSolutions.push_back(std::make_pair(aMat, score));
     }
-
+    
 #ifndef __OPTIMIZE__
     sendLog(LogLevelDebug);
 #endif
-
+    
     std::sort(scoredSolutions.begin(), scoredSolutions.end(), match_greater_than_match);
     
     
@@ -276,14 +276,14 @@ MatrixPtr IndexingSolution::createSolution()
     
     if (scoredSolutions.size())
     {
-   /*     MatrixPtr rotationMat = Matrix::matrixFromEulerAngles(averageTheta, averagePhi, averagePsi);
-        
-        double theta, phi, psi;
-        rotationMat->eulerAngles(&theta, &phi, &psi);
-        
-        MatrixPtr unitCellMat = unitCellOnly->copy();
-        
-        chosenMat->setComplexMatrix(unitCellMat, rotationMat);*/
+        /*     MatrixPtr rotationMat = Matrix::matrixFromEulerAngles(averageTheta, averagePhi, averagePsi);
+         
+         double theta, phi, psi;
+         rotationMat->eulerAngles(&theta, &phi, &psi);
+         
+         MatrixPtr unitCellMat = unitCellOnly->copy();
+         
+         chosenMat->setComplexMatrix(unitCellMat, rotationMat);*/
         
         chosenMat = scoredSolutions[0].first;
 #ifndef __OPTIMIZE__
@@ -309,7 +309,7 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
     // Get our important variables.
     vec observedVec1 = firstObserved->getVector();
     vec observedVec2 = secondObserved->getVector();
- 
+    
     vec simulatedVec1 = firstStandard->getVector();
     vec simulatedVec2 = secondStandard->getVector();
     
@@ -464,8 +464,8 @@ bool IndexingSolution::vectorSolutionsAreCompatible(SpotVectorPtr observedVector
         
         bool similar = ((thetaDiff < solutionAngleSpread) && (phiDiff < solutionAngleSpread) && (psiDiff < solutionAngleSpread));
         
-    //    logged << solutionAngleSpread << ": " << thetaDiff << ", " << phiDiff << ", " << psiDiff << " = " << similar << std::endl;
-    //    sendLog();
+        //    logged << solutionAngleSpread << ": " << thetaDiff << ", " << phiDiff << ", " << psiDiff << " = " << similar << std::endl;
+        //    sendLog();
         
         if (!similar)
             return false;
@@ -573,7 +573,7 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
             if (agrees)
             {
                 added++;
-               
+                
                 addVectorToList(possibleVector, standardSelection[j]);
                 
                 possibleVectors->erase(possibleVectors->begin() + i);
@@ -605,7 +605,7 @@ std::string IndexingSolution::getNetworkPDB()
 {
     std::ostringstream pdbLog;
     int count = 0;
-  
+    
     pdbLog << "HETATM";
     pdbLog << std::fixed;
     pdbLog << std::setw(5) << count << "                   ";
@@ -613,7 +613,7 @@ std::string IndexingSolution::getNetworkPDB()
     pdbLog << std::setprecision(2) << std::setw(8) << 0;
     pdbLog << std::setprecision(2) << std::setw(8) << 0;
     pdbLog << "                       N" << std::endl;
-
+    
     for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
     {
         count++;
@@ -673,7 +673,7 @@ IndexingSolutionPtr IndexingSolution::copy()
 
 IndexingSolution::IndexingSolution()
 {
-
+    
 }
 
 IndexingSolution::IndexingSolution(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr firstMatch, SpotVectorPtr secondMatch)
@@ -713,6 +713,68 @@ std::vector<IndexingSolutionPtr> IndexingSolution::startingSolutionsForVectors(S
     return solutions;
 }
 
+IndexingSolutionPtr IndexingSolution::startingSolutionsForThreeSpots(std::vector<SpotPtr> *spots, std::vector<SpotVectorPtr> *spotVectors)
+{
+    if (notSetup)
+    {
+        setupStandardVectors();
+    }
+    
+    for (int i = 0; i < spots->size() - 2; i++)
+    {
+        for (int j = i + 1; j < spots->size() - 1; j++)
+        {
+            for (int k = j + 1; k < spots->size(); k++)
+            {
+                SpotVectorPtr vector1 = SpotVector::vectorBetweenSpotsFromArray(*spotVectors, spots->at(i), spots->at(j));
+                
+                if (!vector1)
+                    continue;
+                
+                SpotVectorPtr vector2 = SpotVector::vectorBetweenSpotsFromArray(*spotVectors, spots->at(j), spots->at(k));
+                
+                if (!vector2)
+                    continue;
+                
+                SpotVectorPtr vector3 = SpotVector::vectorBetweenSpotsFromArray(*spotVectors, spots->at(k), spots->at(i));
+                
+            //    if (!vector3)
+            //        continue;
+                
+                SpotVectorPtr match12_1 = SpotVectorPtr();
+                SpotVectorPtr match12_2 = SpotVectorPtr();
+                SpotVectorPtr match23_1 = SpotVectorPtr();
+                SpotVectorPtr match23_2 = SpotVectorPtr();
+                SpotVectorPtr match31_1 = SpotVectorPtr();
+                SpotVectorPtr match31_2 = SpotVectorPtr();
+                
+                if ((vectorMatchesVector(vector1, vector2, &match12_1, &match12_2))/* &&
+                    (vectorMatchesVector(vector2, vector3, &match23_1, &match23_2)) &&
+                    (vectorMatchesVector(vector1, vector2, &match31_1, &match31_2))*/)
+                {
+                    // there is still some way in which this will still not match
+                    
+                    IndexingSolutionPtr newSolution = IndexingSolutionPtr(new IndexingSolution(vector1, vector2, match12_1, match12_2));
+                    
+                   // if (newSolution->vectorSolutionsAreCompatible(vector3, match23_2))
+                   // {
+                        spots->erase(spots->begin() + i);
+                        i--;
+                        spots->erase(spots->begin() + j);
+                        j--;
+                  //      spots->erase(spots->begin() + k);
+                  //      k--;
+                        
+                        return newSolution;
+                   // }
+                }
+            }
+        }
+    }
+    
+    return IndexingSolutionPtr();
+}
+
 IndexingSolution::~IndexingSolution()
 {
     spotVectors.clear();
@@ -726,8 +788,8 @@ std::vector<double> IndexingSolution::totalDistances()
     for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
     {
         SpotVectorPtr vector = it->first;
-     //   SpotVectorPtr standard = it->second;
-       
+        //   SpotVectorPtr standard = it->second;
+        
         distances.push_back(vector->distance());
     }
     

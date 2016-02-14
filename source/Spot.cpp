@@ -462,3 +462,28 @@ double Spot::closeToSecondSpot(SpotPtr spot2, double squareMinDistance)
     return (square < squareMinDistance);
 }
 
+void Spot::spotsAndVectorsToResolution(double lowRes, double highRes, std::vector<SpotPtr> spots, std::vector<SpotVectorPtr> spotVectors, std::vector<SpotPtr> *lowResSpots, std::vector<SpotVectorPtr> *lowResSpotVectors)
+{
+    double minResol = lowRes == 0 ? 0 : (1 / lowRes);
+    double maxResol = highRes == 0 ? FLT_MAX : (1 / highRes);
+    
+    for (int i = 0; i < spots.size(); i++)
+    {
+        if (spots[i]->resolution() < maxResol && spots[i]->resolution() > minResol)
+        {
+            lowResSpots->push_back(spots[i]);
+        }
+    }
+    
+    for (int i = 0; i < spotVectors.size(); i++)
+    {
+        SpotPtr firstSpot = spotVectors[i]->getFirstSpot();
+        SpotPtr secondSpot = spotVectors[i]->getSecondSpot();
+        
+        if ((firstSpot->resolution() < maxResol && secondSpot->resolution() < maxResol)
+            && (firstSpot->resolution() > minResol && secondSpot->resolution() > minResol))
+        {
+            lowResSpotVectors->push_back(spotVectors[i]);
+        }
+    }
+}

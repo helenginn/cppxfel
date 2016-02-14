@@ -79,6 +79,7 @@ public:
     std::vector<double> totalAngles();
     std::vector<double> totalDistanceTrusts();
     bool spotsAreNotTooClose(SpotVectorPtr observedVector);
+    static IndexingSolutionPtr startingSolutionsForThreeSpots(std::vector<SpotPtr> *spots, std::vector<SpotVectorPtr> *spotVectors);
     
     IndexingSolutionPtr copy();
     ~IndexingSolution();

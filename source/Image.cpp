@@ -1284,6 +1284,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
 {
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
     double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
+    double maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 0.0);
     
     int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
     
@@ -1319,7 +1320,13 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         
         if (minResolution != 0)
         {
-            if (length_of_vector(spotPos1) > 1 / minResolution)
+            if (length_of_vector(spotPos1) < 1 / minResolution)
+                continue;
+        }
+        
+        if (maxResolution > 0)
+        {
+            if (length_of_vector(spotPos1) > 1 / maxResolution)
                 continue;
         }
         
@@ -1602,6 +1609,15 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
             sendLog(LogLevelDetailed);
             IndexingSolutionStatus success = extendIndexingSolution(copyPtr, newVectors, failures, added + newlyAdded);
             
+            if (success == IndexingSolutionBranchFailure)
+            {
+                if (!biggestFailedSolution || copyPtr->spotVectorCount() > biggestFailedSolution->spotVectorCount())
+                {
+                    biggestFailedSolution = copyPtr;
+                    biggestFailedSolutionVectors = newVectors;
+                }
+            }
+
             if (success != IndexingSolutionBranchFailure)
             {
                 return success;
@@ -1704,6 +1720,43 @@ std::vector<double> Image::anglesBetweenVectorDistances(double distance1, double
     return angles;
 }
 
+bool Image::testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes)
+{
+    bool similar = checkIndexingSolutionDuplicates(newSolution->createSolution(), false);
+    
+    if (similar)
+    {
+        logged << "Solution too similar to another. Continuing..." << std::endl;
+        sendLog(LogLevelDetailed);
+        return true;
+    }
+    
+    logged << "Starting a new solution..." << std::endl;
+    sendLog(LogLevelDetailed);
+    
+    IndexingSolutionStatus success = extendIndexingSolution(newSolution, prunedVectors);
+    
+    if (success == IndexingSolutionTrialSuccess)
+    {
+        logged << "Indexing solution trial success." << std::endl;
+        (*successes)++;
+        
+        return true;
+    }
+    else if (success == IndexingSolutionTrialFailure)
+    {
+        logged << "Indexing solution trial failure." << std::endl;
+        prunedVectors = spotVectors;
+    }
+    else if (success == IndexingSolutionTrialDuplicate)
+    {
+        logged << "Indexing solution trial duplicate." << std::endl;
+        prunedVectors = spotVectors;
+    }
+    
+    return true;
+}
+
 void Image::findIndexingSolutions()
 {
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
@@ -1765,74 +1818,66 @@ void Image::findIndexingSolutions()
     
     IndexingSolution::calculateSimilarStandardVectorsForImageVectors(prunedVectors);
     
-    for (int i = 0; i < prunedVectors.size() - 1 && i < maxSearch && continuing && indexingFailureCount < 10; i++)
+    bool lastWasSuccessful = true;
+    
+    while (lastWasSuccessful)
     {
-        SpotVectorPtr spotVector1 = prunedVectors[i];
-        
-        for (int j = i + 1; j < prunedVectors.size() && continuing && indexingFailureCount < 10; j++)
+        for (int i = 0; i < prunedVectors.size() - 1 && i < maxSearch && continuing && indexingFailureCount < 10; i++)
         {
-            SpotVectorPtr spotVector2 = prunedVectors[j];
+            SpotVectorPtr spotVector1 = prunedVectors[i];
             
-            std::vector<IndexingSolutionPtr> moreSolutions = IndexingSolution::startingSolutionsForVectors(spotVector1, spotVector2);
-            
-            if (moreSolutions.size() > 0)
+            for (int j = i + 1; j < prunedVectors.size() && continuing && indexingFailureCount < 10; j++)
             {
-                bool similar = checkIndexingSolutionDuplicates(moreSolutions[0]->createSolution(), false);
-                bool skip = false;
+                SpotVectorPtr spotVector2 = prunedVectors[j];
                 
-                if (similar)
+                std::vector<IndexingSolutionPtr> moreSolutions = IndexingSolution::startingSolutionsForVectors(spotVector1, spotVector2);
+                
+                if (moreSolutions.size() > 0)
                 {
-                    logged << "Solution too similar to another. Continuing..." << std::endl;
-                    sendLog(LogLevelDetailed);
-                    skip = true;
-                    break;
-                }
-                
-                if (skip) break;
-                
-                logged << "Starting a new solution..." << std::endl;
-                sendLog(LogLevelDetailed);
-                
-                IndexingSolutionStatus success = extendIndexingSolution(moreSolutions[0], prunedVectors);
-                
-                if (success == IndexingSolutionTrialSuccess)
-                {
-                    logged << "Indexing solution trial success." << std::endl;
-                    successes++;
+                    testSeedSolution(moreSolutions[0], prunedVectors, &successes);
                     
                     if (successes >= maxSuccesses || IOMRefinerCount() >= maxLattices)
                     {
                         continuing = false;
                     }
                 }
-                else if (success == IndexingSolutionTrialFailure)
-                {
-                    logged << "Indexing solution trial failure." << std::endl;
-                    prunedVectors = spotVectors;
-                }
-                else if (success == IndexingSolutionTrialDuplicate)
-                {
-                    logged << "Indexing solution trial duplicate." << std::endl;
-                    prunedVectors = spotVectors;
-                }
+                
+                moreSolutions.clear();
+                std::vector<IndexingSolutionPtr>().swap(moreSolutions);
             }
             
-            moreSolutions.clear();
-            std::vector<IndexingSolutionPtr>().swap(moreSolutions);
+            time_t middlecputime;
+            time(&middlecputime);
+            
+            clock_t difference = middlecputime - startcputime;
+            double seconds = difference;
+            
+            if (seconds > indexingTimeLimit)
+            {
+                logged << "N: Time limit reached on image " << filename << " on 0 crystals and " << spotCount() << " remaining spots." << std::endl;
+                sendLog();
+                
+                return;
+            }
         }
         
-        time_t middlecputime;
-        time(&middlecputime);
-        
-        clock_t difference = middlecputime - startcputime;
-        double seconds = difference;
-        
-        if (seconds > indexingTimeLimit)
+        if (!biggestFailedSolution)
         {
-            logged << "N: Time limit reached on image " << filename << " on 0 crystals and " << spotCount() << " remaining spots." << std::endl;
-            sendLog();
-            
-            return;
+            lastWasSuccessful = false;
+            continue;
+        }
+        
+        IndexingSolutionStatus status = tryIndexingSolution(biggestFailedSolution);
+        
+        if (status != IndexingSolutionTrialSuccess)
+        {
+            lastWasSuccessful = false;
+        }
+        
+        if (status == IndexingSolutionTrialSuccess)
+        {
+            spotVectors = biggestFailedSolutionVectors;
+            biggestFailedSolution = IndexingSolutionPtr();
         }
     }
     

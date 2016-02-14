@@ -51,6 +51,7 @@ public:
     void addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> standardVectors, double tolerance);
     double cosineWithVector(SpotVectorPtr spotVector2);
     SpotVectorPtr differenceFromVector(SpotVectorPtr spotVec);
+    static SpotVectorPtr vectorBetweenSpotsFromArray(std::vector<SpotVectorPtr> vectors, SpotPtr spot1, SpotPtr spot2);
     
     std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
     {

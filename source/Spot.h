@@ -38,6 +38,7 @@ public:
 	Spot(ImagePtr image);
 	virtual ~Spot();
 
+    static void spotsAndVectorsToResolution(double lowRes, double highRes, std::vector<SpotPtr> spots, std::vector<SpotVectorPtr> spotVectors, std::vector<SpotPtr> *lowResSpots, std::vector<SpotVectorPtr> *lowResSpotVectors);
     double weight();
 	double maximumLift(ImagePtr image, int x, int y, bool ignoreCovers);
 	double maximumLift(ImagePtr image, int x, int y);

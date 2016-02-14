@@ -347,6 +347,7 @@ void FileParser::generateFunctionList()
     parserMap["REJECT_IF_SPOT_COUNT"] = simpleInt;
     parserMap["POWDER_PATTERN_STEP"] = simpleFloat;
     parserMap["POWDER_PATTERN_STEP_ANGLE"] = simpleFloat;
+    parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
     
     parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
     parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;

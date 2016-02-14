@@ -196,3 +196,23 @@ SpotVectorPtr SpotVector::differenceFromVector(SpotVectorPtr spotVec)
     
     return newVec;
 }
+
+SpotVectorPtr SpotVector::vectorBetweenSpotsFromArray(std::vector<SpotVectorPtr> vectors, SpotPtr spot1, SpotPtr spot2)
+{
+    for (int i = 0; i < vectors.size(); i++)
+    {
+        SpotPtr firstSpot = vectors[i]->getFirstSpot();
+        
+        if (firstSpot == spot1 || firstSpot == spot2)
+        {
+            SpotPtr secondSpot = vectors[i]->getSecondSpot();
+            
+            if ((secondSpot == spot1 || secondSpot == spot2) && secondSpot != firstSpot)
+            {
+                return vectors[i];
+            }
+        }
+    }
+    
+    return SpotVectorPtr();
+}
