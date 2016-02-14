@@ -229,17 +229,7 @@ void MtzManager::replaceBeamWithSpectrum()
     
     if (gaussian)
     {
-        SpectrumBeamPtr spectrum = SpectrumBeamPtr(new SpectrumBeam(gaussian, shared_from_this()));
-        
-        beam = spectrum;
-        
-        for (int i = 0; i < reflectionCount(); i++)
-        {
-            for (int j = 0; j < reflection(i)->millerCount(); j++)
-            {
-                reflection(i)->miller(j)->setBeam(spectrum);
-            }
-        }
+        gaussian->splitPeak(0);
     }
 }
 

@@ -148,13 +148,15 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
                               double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
                               double exponent, bool binary, bool withBeamObject)
 {
-    if (resolution() < 1 / trickyRes) slices = maxSlices;
+    double mySlices = slices;
+    
+    if (resolution() < 1 / trickyRes) mySlices = maxSlices;
     
     double bandwidth_span = high_wavelength - low_wavelength;
     
     double fraction_total = 1;
     double currentP = 0;
-    double currentQ = (double)1 / (double)slices;
+    double currentQ = (double)1 / (double)mySlices;
     
     double total_integral = 0;
     
@@ -163,6 +165,10 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
     
     double sphere_volume = (4 * M_PI / 3) * pow(spot_size_radius, 3);
     double circle_surface_area = pow(spot_size_radius, 2) * M_PI;
+
+    std::ostringstream logged;
+  //  logged << "**** NEW MILLER ****" << std::endl;
+   // Logger::mainLogger->addStream(&logged);
     
     for (int i = 0; i < slices; i++)
     {
@@ -199,8 +205,12 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         total_sphere += sphereSlice;
         
         currentP = currentQ;
-        currentQ += fraction_total / slices;
+        currentQ += fraction_total / mySlices;
+        
+   //     logged << currentP << ", " << currentQ << ", " << pBandwidth << ", " << qBandwidth << ", " << normalSlice << ", " << sphereSlice << ", " << total_integral << std::endl;
     }
+    
+  //  Logger::mainLogger->addStream(&logged);
     
     return total_integral;
 }
@@ -1265,7 +1275,7 @@ void Miller::recalculateBetterPartiality()
     limitingEwaldWavelengths(newHKL, mosaicity, rlpSize, wavelength, &limitLow, &limitHigh);
     double normPartiality = sliced_integral(limitLow, limitHigh, rlpSize, 0, 1, 0, 0, 0, false, true);
     
-    partiality /= normPartiality;
+ //   partiality /= normPartiality;
 }
 
 // Vector stuff

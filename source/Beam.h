@@ -11,8 +11,9 @@
 
 #include <stdio.h>
 #include "parameters.h"
+#include "LoggableObject.h"
 
-class Beam
+class Beam : public LoggableObject
 {
 private:
     
