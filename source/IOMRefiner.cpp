@@ -432,8 +432,10 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             continue;
         }
         
-        miller->recalculatePartiality(newMatrix, 0.0, testSpotSize,
-                                      wavelength, bandwidth, 1.5, true);
+        miller->crossesBeamRoughly(newMatrix, 0.0, testSpotSize, wavelength, bandwidth);
+        
+      //  miller->recalculatePartiality(newMatrix, 0.0, testSpotSize,
+       //                               wavelength, bandwidth, 1.5, true);
         
         if (i == 0)
         {
@@ -1473,12 +1475,20 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
         double bStep = FileParser::getKey("STEP_UNIT_CELL_B", 0.2);
         double cStep = FileParser::getKey("STEP_UNIT_CELL_C", 0.2);
         
+        double alphaStep = FileParser::getKey("STEP_UNIT_CELL_ALPHA", 0.5);
+        double betaStep = FileParser::getKey("STEP_UNIT_CELL_BETA", 0.5);
+        double gammaStep = FileParser::getKey("STEP_UNIT_CELL_GAMMA", 0.5);
+        
         bool refinedH = (rotationMode == RotationModeHorizontalVertical) ? false : true;
         bool refinedK = (rotationMode == RotationModeHorizontalVertical) ? false : true;
         bool refinedL = (rotationMode == RotationModeHorizontalVertical) ? !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", false) : true;
         bool refinedA = !refineA;
         bool refinedB = !refineB;
         bool refinedC = !refineC;
+        bool refinedAlpha = !FileParser::getKey("REFINE_UNIT_CELL_ALPHA", false);
+        bool refinedBeta = !FileParser::getKey("REFINE_UNIT_CELL_BETA", false);
+        bool refinedGamma = !FileParser::getKey("REFINE_UNIT_CELL_GAMMA", false);
+        
         bool refinedARot = (rotationMode == RotationModeUnitCellABC) ? false : true;
         bool refinedBRot = (rotationMode == RotationModeUnitCellABC) ? false : true;
         bool refinedCRot = (rotationMode == RotationModeUnitCellABC) ? false : true;
@@ -1529,6 +1539,21 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                 minimizeParameter(&bStep, &unitCell[1]);
             if (!refinedC)
                 minimizeParameter(&cStep, &unitCell[2]);
+            
+            if (!refinedAlpha)
+            {
+                minimizeParameter(&alphaStep, &unitCell[3]);
+            }
+            
+            if (!refinedBeta)
+            {
+                minimizeParameter(&betaStep, &unitCell[4]);
+            }
+
+            if (!refinedGamma)
+            {
+                minimizeParameter(&gammaStep, &unitCell[5]);
+            }
 
        //     refinementType = RefinementTypeOrientationMatrixEarly;
             
@@ -1578,6 +1603,13 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                 refinedB = true;
             if (cStep < 0.01)
                 refinedC = true;
+            
+            if (alphaStep < 0.01)
+                refinedAlpha = true;
+            if (betaStep < 0.01)
+                refinedBeta = true;
+            if (gammaStep < 0.01)
+                refinedGamma = true;
             
             count++;
         }
@@ -1911,7 +1943,7 @@ void IOMRefiner::sendLog(LogLevel priority)
 
 std::string IOMRefiner::refinementSummaryHeader()
 {
-    return "Filename\tRefl num\tScore\tHoriz rot\tVert rot\tBeam rot\tStdev\tWavelength\tDistance\tUnitCellA\tUnitCellB\tUnitCellC";
+    return "Filename\tRefl num\tScore\tHoriz rot\tVert rot\tBeam rot\tStdev\tWavelength\tDistance\tUnitCellA\tUnitCellB\tUnitCellC\tAlpha\tBeta\tGamma";
 }
 
 std::string IOMRefiner::refinementSummary()
@@ -1923,7 +1955,7 @@ std::string IOMRefiner::refinementSummary()
     double distance = getDetectorDistance();
     MatrixPtr matrix = getMatrix();
     double *lengths = new double[3];
-
+    
     for (int i = 0; i < 3; i++)
     {
         lengths[i] = 0;
@@ -1934,7 +1966,9 @@ std::string IOMRefiner::refinementSummary()
     std::ostringstream summary;
     
     summary << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
-    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2];
+    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << "\t" << unitCell[3] << "\t" << unitCell[4] << "\t" << unitCell[5];
+
+    delete [] lengths;
     
     return summary.str();
 }

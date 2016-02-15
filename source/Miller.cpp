@@ -711,6 +711,31 @@ double Miller::resolution()
     return resol;
 }
 
+bool Miller::crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
+                         double spotSize, double wavelength, double bandwidth)
+{
+    vec hkl = new_vector(h, k, l);
+    
+    rotatedMatrix->multiplyVector(&hkl);
+    
+    double inwards_bandwidth = 0; double outwards_bandwidth = 0;
+    
+    limitingEwaldWavelengths(hkl, mosaicity, spotSize, wavelength, &outwards_bandwidth, &inwards_bandwidth);
+    
+    double limit = 2 * bandwidth;
+    double inwardsLimit = wavelength + limit;
+    double outwardsLimit = wavelength - limit;
+    
+    if (outwards_bandwidth > inwardsLimit || inwards_bandwidth < outwardsLimit)
+    {
+        partiality = 0;
+        return false;
+    }
+    
+    partiality = 1;
+    return true;
+}
+
 void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
                                    double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
 {
