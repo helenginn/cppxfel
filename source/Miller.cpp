@@ -736,6 +736,7 @@ bool Miller::crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
     return true;
 }
 
+
 void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
                                    double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
 {
