@@ -46,21 +46,22 @@ GaussianBeam::GaussianBeam(double aMeanWavelength, double aBandwidth, double anE
 
 double GaussianBeam::integralBetweenEwaldWavelengths(double lowWavelength, double highWavelength)
 {
-    double pValue = valueAtWavelength(lowWavelength);
-    double qValue = valueAtWavelength(highWavelength);
+    double pValue = 0;
+    double qValue = 0;
     
-/*    for (int i = 0; i < meanWavelengths.size(); i++)
+    for (int i = 0; i < meanWavelengths.size(); i++)
     {
         pValue += super_gaussian(lowWavelength, meanWavelengths[i], bandwidths[i], exponents[i]);
         qValue += super_gaussian(highWavelength, meanWavelengths[i], bandwidths[i], exponents[i]);
     }
-    */
- //   double pX = (lowWavelength - meanWavelength) / bandwidth;
- //   double qX = (highWavelength - meanWavelength) / bandwidth;
     
-    double width = fabs(highWavelength - lowWavelength);
+    double width = fabs(highWavelength - lowWavelength) / bandwidths[0];
     
     double area = (pValue + qValue) / 2 * width;
+    
+  //  logged << (lowWavelength + highWavelength) / 2 << "," << area << std::endl;
+    
+  //  sendLog();
     
     return area;
 }
@@ -71,7 +72,7 @@ double GaussianBeam::valueAtWavelength(double aWavelength)
     
     for (int i = 0; i < meanWavelengths.size(); i++)
     {
-        value += super_gaussian(aWavelength, meanWavelengths[i], bandwidths[i], exponents[i]);
+        value += super_gaussian(aWavelength, meanWavelengths[i], bandwidths[i], exponents[i]) * heights[i];
     }
     
     return value;
@@ -140,4 +141,27 @@ bool GaussianBeam::nonZeroPartialityExpected(double lowWavelength, double highWa
         return true;
     
     return false;
+}
+
+void GaussianBeam::splitPeak(int peakToSplit)
+{
+    if (peakToSplit > meanWavelengths.size() - 1)
+    {
+        logged << "Could not split peak, does not exist" << std::endl;
+        sendLog();
+    }
+    
+    double oldWavelength = meanWavelengths[peakToSplit];
+    double oldBandwidth = bandwidths[peakToSplit];
+    
+    double oneWavelength = oldWavelength;// - oldBandwidth;
+    double twoWavelength = oldWavelength;// + oldBandwidth;
+    
+    double newBandwidth = oldBandwidth / sqrt(2);
+    
+    meanWavelengths[peakToSplit] = oneWavelength;
+    bandwidths[peakToSplit] = newBandwidth;
+    
+    meanWavelengths.push_back(twoWavelength);
+    bandwidths.push_back(newBandwidth);
 }
