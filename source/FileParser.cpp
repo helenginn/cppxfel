@@ -305,9 +305,15 @@ void FileParser::generateFunctionList()
     parserMap["REFINE_UNIT_CELL_A"] = simpleBool;
     parserMap["REFINE_UNIT_CELL_B"] = simpleBool;
     parserMap["REFINE_UNIT_CELL_C"] = simpleBool;
+    parserMap["REFINE_UNIT_CELL_ALPHA"] = simpleBool;
+    parserMap["REFINE_UNIT_CELL_BETA"] = simpleBool;
+    parserMap["REFINE_UNIT_CELL_GAMMA"] = simpleBool;
     parserMap["STEP_UNIT_CELL_A"] = simpleFloat;
     parserMap["STEP_UNIT_CELL_B"] = simpleFloat;
     parserMap["STEP_UNIT_CELL_C"] = simpleFloat;
+    parserMap["STEP_UNIT_CELL_ALPHA"] = simpleFloat;
+    parserMap["STEP_UNIT_CELL_BETA"] = simpleFloat;
+    parserMap["STEP_UNIT_CELL_GAMMA"] = simpleFloat;
     parserMap["FROM_DIALS"] = simpleBool;
     parserMap["DO_NOT_REJECT_REFLECTIONS"] = simpleBool;
     parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;

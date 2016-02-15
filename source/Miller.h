@@ -119,6 +119,8 @@ public:
 	MatrixPtr matrix;
 	Reflection *parentReflection;
     MtzManager *mtzParent;
+    bool crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
+                            double spotSize, double wavelength, double bandwidth);
 
 	Miller(MtzManager *parent, int _h = 0, int _k = 0, int _l = 0);
 	MillerPtr copy(void);
