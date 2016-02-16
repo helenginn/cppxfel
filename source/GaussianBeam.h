@@ -37,7 +37,6 @@ public:
     double getNominalWavelength();
     double valueAtWavelength(double aWavelength);
     bool nonZeroPartialityExpected(double lowWavelength, double highWavelength);
-    void splitPeak(int peakToSplit);
     
     static void setWavelength(void *object, double aWavelength, int which)
     {
