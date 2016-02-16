@@ -47,7 +47,8 @@ class MtzManager : public boost::enable_shared_from_this<MtzManager>
 
 protected:
     std::string filename;
-	CCP4SPG *low_group;
+	static CCP4SPG *low_group;
+    static std::mutex spaceGroupMutex;
 	static bool reflection_comparison(Reflection *i, Reflection *j);
 
 	double extreme_index(MTZ *mtz, int max);
@@ -118,8 +119,7 @@ protected:
 	double maxResolutionRlpSize;
 
     vector<double> trialUnitCell;
-    double superGaussianScale;
-    double lastExponent;
+    static double superGaussianScale;
     double *params;
     double detectorDistance;
     
@@ -144,7 +144,9 @@ protected:
     double wavelengthStandardDeviation();
     std::ostringstream logged;
 public:
-    vector<double> superGaussianTable;
+    static vector<double> superGaussianTable;
+    static bool setupSuperGaussian;
+    static std::mutex tableMutex;
     double bFactor;
     double externalScale;
     int removeStrongSpots(std::vector<SpotPtr> *spots);
@@ -307,15 +309,18 @@ public:
 			double (*score)(void *object, double lowRes, double highRes),
 			void *object, double lowRes, double highRes, double low);
 
-    void denormaliseMillers();
-    void makeSuperGaussianLookupTable(double exponent);
+    static void makeSuperGaussianLookupTable(double exponent);
     
     int ambiguityCount();
     
     void flipToActiveAmbiguity();
     void resetFlip();
-    void setAdditionalWeight(double weight);
     
+    static bool setupGaussianTable()
+    {
+        return setupSuperGaussian;
+    }
+
     double getDetectorDistance()
     {
         return detectorDistance;
@@ -356,11 +361,6 @@ public:
     double getSuperGaussianScale() const
     {
         return superGaussianScale;
-    }
-    
-    double getLastExponent() const
-    {
-        return lastExponent;
     }
     
 	double getBandwidth() const

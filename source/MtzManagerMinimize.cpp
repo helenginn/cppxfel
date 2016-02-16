@@ -1020,7 +1020,7 @@ void MtzManager::excludeFromLogCorrelation()
         if (it->first > 0.06)
         {
             imgReflections[correlationResults[it->first]]->miller(0)->setRejected(
-                                                                              "correl", true);
+                                                                              RejectReasonCorrelation, true);
             count++;
         }
     }
@@ -1045,7 +1045,7 @@ void MtzManager::reallowPartialityOutliers()
 {
     for (int i = 0; i < reflectionCount(); i++)
     {
-        reflection(i)->miller(0)->setRejected("partiality", false);
+        reflection(i)->miller(0)->setRejected(RejectReasonPartiality, false);
     }
 }
 
@@ -1099,7 +1099,7 @@ void MtzManager::excludePartialityOutliers()
             if (imgReflection->betweenResolutions(1.7, 0))
                 continue;
             
-            imgReflection->miller(0)->setRejected("partiality", true);
+            imgReflection->miller(0)->setRejected(RejectReasonPartiality, true);
             rejectedCount++;
         }
     }

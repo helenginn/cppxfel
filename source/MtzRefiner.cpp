@@ -243,13 +243,6 @@ void MtzRefiner::refine()
         initialMerge();
     }
     
-    bool denormalise = FileParser::getKey("DENORMALISE_PARTIALITY", false);
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        if (denormalise)
-            mtzManagers[i]->denormaliseMillers();
-    }
-    
     bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", false);
     
     if (fixUnitCell)
@@ -1295,13 +1288,6 @@ void MtzRefiner::merge()
         mtzManagers[i]->excludeFromLogCorrelation();
         if (partialityRejection)
             mtzManagers[i]->excludePartialityOutliers();
-    }
-    
-    bool denormalise = FileParser::getKey("DENORMALISE_PARTIALITY", false);
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        if (denormalise)
-            mtzManagers[i]->denormaliseMillers();
     }
     
     correlationAndInverse(true);

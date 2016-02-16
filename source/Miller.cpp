@@ -8,6 +8,7 @@
 #include "Panel.h"
 #include "Miller.h"
 
+#include "Holder.h"
 #include "definitions.h"
 #include "Vector.h"
 #include <cmath>
@@ -24,8 +25,8 @@ bool Miller::normalised = true;
 bool Miller::correctingPolarisation = false;
 double Miller::polarisationFactor = false;
 int Miller::maxSlices = 100;
-int Miller::slices = 8;
-double Miller::trickyRes = 8.0;
+short int Miller::slices = 8;
+float Miller::trickyRes = 8.0;
 bool Miller::setupStatic = false;
 PartialityModel Miller::model = PartialityModelScaled;
 
@@ -91,7 +92,7 @@ double Miller::integrate_sphere(double p, double q, double radius, double sphere
 double Miller::superGaussian(double bandwidth, double mean,
                             double sigma, double exponent)
 {
-    if (mtzParent == NULL || mtzParent->getLastExponent() == 0)
+    if (mtzParent == NULL || !mtzParent->setupGaussianTable())
     {
         return super_gaussian(bandwidth, mean, sigma, exponent);
     }
@@ -213,36 +214,26 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     lastX = 0;
     lastY = 0;
     rawIntensity = 0;
-    gainScale = 1;
     sigma = 1;
     wavelength = 0;
-    lastNormPartiality = 0;
     partiality = -1;
     filename = "";
     countingSigma = 0;
     latestHRot = 0;
     latestKRot = 0;
     polarisationCorrection = 0;
-    lastWavelength = 0;
-    rejectedReasons["merge"] = false;
+    rejectedReasons[RejectReasonMerge] = false;
     scale = 1;
     bFactor = 0;
     bFactorScale = 0;
     resol = 0;
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
-    selfPtr = MillerPtr();
     fakeFriedel = -1;
     rejected = false;
     calculatedRejected = true;
-    denormaliseFactor = 1;
     excluded = false;
-    lastRlpSize = 0;
-    lastMosaicity = 0;
-    lastVolume = 0;
-    lastSurfaceArea = 0;
-    lastShiftedX = 0;
-    lastShiftedY = 0;
+    flipMatrix = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -253,7 +244,11 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     mtzParent = parent;
     parentReflection = NULL;
     matrix = MatrixPtr();
-    flipMatrix = MatrixPtr(new Matrix());
+}
+
+MatrixPtr Miller::getFlipMatrix()
+{
+    return Reflection::getFlipMatrix(flipMatrix);
 }
 
 vec Miller::hklVector(bool shouldFlip)
@@ -262,7 +257,7 @@ vec Miller::hklVector(bool shouldFlip)
     
     if (shouldFlip)
     {
-        flipMatrix->multiplyVector(&newVec);
+        getFlipMatrix()->multiplyVector(&newVec);
     }
     
     return newVec;
@@ -284,9 +279,9 @@ int Miller::getL()
     return hklVector().l;
 }
 
-void Miller::setFlipMatrix(MatrixPtr flipMat)
+void Miller::setFlipMatrix(int i)
 {
-    flipMatrix = flipMat;
+    flipMatrix = i;
 }
 
 void Miller::setParent(Reflection *reflection)
@@ -346,7 +341,7 @@ bool Miller::isRejected()
     
     rejected = false;
     
-    for (std::map<std::string, bool>::iterator it = rejectedReasons.begin();
+    for (std::map<RejectReason, bool>::iterator it = rejectedReasons.begin();
          it != rejectedReasons.end(); ++it)
     {
         if (rejectedReasons[it->first])
@@ -394,13 +389,13 @@ double Miller::intensity(bool withCutoff)
 {
     if ((this->accepted() && withCutoff) || !withCutoff)
     {
-        double modifier = scale * gainScale;
+        double modifier = scale;
         modifier /= getBFactorScale();
         modifier /= correctingPolarisation ? getPolarisationCorrection() : 1;
         
         if (model == PartialityModelScaled)
         {
-            modifier /= partiality * denormaliseFactor;
+            modifier /= partiality;
         }
         
         if (partiality == 0)
@@ -431,7 +426,7 @@ double Miller::getSigma(void)
 {
     // bigger sigma - larger error
     
-    double correction = gainScale * scale;
+    double correction = scale;
     /*
     double bFactorScale = getBFactorScale();
     correction /= bFactorScale;
@@ -753,24 +748,12 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
         return;
     
     double normPartiality = 1;
-    bool recalculatingNorm = FileParser::getKey("RECALCULATE_NORM", true);
     
     if (normalised && tempPartiality > 0)
     {
-        normPartiality = lastNormPartiality;
-        if (recalculatingNorm || lastNormPartiality == 0)
-        {
-            normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
-            lastNormPartiality = normPartiality;
-        }
+        normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
     }
     
-    lastWavelength = wavelength;
-    lastBandwidth = bandwidth;
-    lastRlpSize = spotSize;
-    lastMosaicity = mosaicity;
-    lastRadius = expectedRadius(spotSize, mosaicity, &hkl);
-
     partiality = tempPartiality / normPartiality;
     
     if ((!std::isfinite(partiality)) || (partiality != partiality))
@@ -782,8 +765,6 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
 double Miller::twoTheta(bool horizontal)
 {
     double usedWavelength = wavelength;
-    if (lastWavelength != 0)
-        usedWavelength = lastWavelength;
     
     double rlpCoordinates[2];
     double beamCoordinates[2];
@@ -872,8 +853,6 @@ MillerPtr Miller::copy(void)
     newMiller->countingSigma = countingSigma;
     newMiller->lastX = lastX;
     newMiller->lastY = lastY;
-    newMiller->lastShiftedX = lastShiftedX;
-    newMiller->lastShiftedY = lastShiftedY;
     newMiller->shift = shift;
     
     return newMiller;
@@ -1069,9 +1048,6 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             *y = intLastY;
         }
     }
-    
-    lastShiftedX = *x;
-    lastShiftedY = *y;
 }
 
 void Miller::makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize)
@@ -1090,9 +1066,7 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     
     if (!shoebox)
     {
-        MillerPtr strongSelf = selfPtr.lock();
-        
-        shoebox = ShoeboxPtr(new Shoebox(strongSelf));
+        shoebox = ShoeboxPtr(new Shoebox(shared_from_this()));
         
         int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
                                                   SHOEBOX_FOREGROUND_PADDING);
@@ -1138,8 +1112,8 @@ void Miller::incrementOverlapMask(double hRot, double kRot)
 
 bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
 {
-    double x = lastShiftedX;
-    double y = lastShiftedY;
+    double x = lastX + shift.first;
+    double y = lastY + shift.second;
     int count = 0;
     double tolerance = 4;
     
@@ -1193,7 +1167,7 @@ bool Miller::isOverlapped()
     return (max >= 2);
 }
 
-void Miller::setRejected(std::string reason, bool rejection)
+void Miller::setRejected(RejectReason reason, bool rejection)
 {
     rejectedReasons[reason] = rejection;
     
@@ -1205,7 +1179,7 @@ void Miller::setRejected(std::string reason, bool rejection)
     calculatedRejected = false;
 }
 
-bool Miller::isRejected(std::string reason)
+bool Miller::isRejected(RejectReason reason)
 {
     if (rejectedReasons.count(reason) == 0)
         return false;
@@ -1244,11 +1218,6 @@ double Miller::observedPartiality(MtzManager *reference)
 Miller::~Miller()
 {
 //    if (shoebox) std::cout << "Shoebox still exists, deallocating Miller" << std::endl;
-}
-
-void Miller::denormalise()
-{
-    denormaliseFactor = calculateDefaultNorm();
 }
 
 void Miller::recalculateBetterPartiality()

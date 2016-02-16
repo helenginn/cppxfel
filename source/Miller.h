@@ -33,7 +33,7 @@ typedef enum
     RlpModelUniform, RlpModelGaussian,
 } RlpModel;
 
-class Miller : public LoggableObject
+class Miller : public LoggableObject, public boost::enable_shared_from_this<Miller>
 {
 private:
     static asu p1_asu;
@@ -43,49 +43,34 @@ private:
     static bool correctingPolarisation;
     static double polarisationFactor;
     static int maxSlices;
-    static int slices;
-    static double trickyRes;
+    static short int slices;
+    static float trickyRes;
     static bool setupStatic;
     
-    double h;
-    double k;
-    double l;
-    double phase;
-    short int fakeFriedel;
+    short int h;
+    short int k;
+    short int l;
+    float phase;
+    char fakeFriedel;
 	RlpModel rlpModel;
     double polarisationCorrection;
     double getPolarisationCorrection();
-	std::map<std::string, bool> rejectedReasons;
+	std::map<RejectReason, bool> rejectedReasons;
 	double partialCutoff;
-	double bFactor;
-	double scale;
-    double gainScale;
-	double lastX;
-	double lastY;
-    double lastShiftedX;
-    double lastShiftedY;
-    double lastBandwidth;
-    double lastWavelength;
-    double lastRlpSize;
-    double lastMosaicity;
-    double lastNormPartiality;
-    
-    double lastRadius;
-    double lastVolume;
-    double lastSurfaceArea;
-    bool sizeChanged;
+	float bFactor;
+	float scale;
+	float lastX;
+	float lastY;
     
     double latestHRot;
     double latestKRot;
-    double bFactorScale;
+    float bFactorScale;
     bool excluded;
     bool rejected;
     bool calculatedRejected;
-    double additionalWeight;
-    double denormaliseFactor;
     
 	std::pair<double, double> shift;
-    double resol;
+    float resol;
  
     double superGaussian(double bandwidth, double mean,
                         double sigma, double exponent);
@@ -106,8 +91,7 @@ private:
     ImageWeakPtr image;
     IOMRefiner *indexer;
     ShoeboxPtr shoebox;
-    boost::weak_ptr<Miller> selfPtr;
-    MatrixPtr flipMatrix;
+    unsigned char flipMatrix;
 public:
     int getH();
     int getK();
@@ -115,7 +99,10 @@ public:
     
     static void setupStaticVariables();
     vec hklVector(bool shouldFlip = true);
-    void setFlipMatrix(MatrixPtr flipMat);
+    void setFlipMatrix(int i);
+    
+    MatrixPtr getFlipMatrix();
+    
 	MatrixPtr matrix;
 	Reflection *parentReflection;
     MtzManager *mtzParent;
@@ -136,8 +123,8 @@ public:
 	void setParent(Reflection *reflection);
 	void setFree(bool newFree);
 	bool positiveFriedel(bool *positive, int *isym = NULL);
-	void setRejected(std::string reason, bool rejection);
-	bool isRejected(std::string reason);
+	void setRejected(RejectReason reason, bool rejection);
+	bool isRejected(RejectReason reason);
 	void makeScalesPermanent();
     void integrateIntensity(MatrixPtr transformedMatrix);
     vec getTransformedHKL(double hRot, double kRot);
@@ -159,7 +146,6 @@ public:
 	double resolution();
     double twoTheta(bool horizontal);
 	double scatteringAngle(ImagePtr image);
-    void denormalise();
 
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
@@ -204,16 +190,6 @@ public:
         return excluded;
     }
     
-    void setAdditionalWeight(double weight)
-    {
-        additionalWeight = weight;
-    }
-    
-    double getAdditionalWeight()
-    {
-        return additionalWeight;
-    }
-    
     MtzManager *&getMtzParent()
     {
         return mtzParent;
@@ -236,7 +212,7 @@ public:
 
 	double getRawIntensity() const
 	{
-		return rawIntensity * scale * gainScale;
+		return rawIntensity * scale;
 	}
 
 	void setRawIntensity(double rawIntensity)
@@ -249,12 +225,6 @@ public:
 		this->sigma = sigma;
 	}
     
-    void setGainScale(double newScale)
-    {
-        if (newScale == newScale)
-            gainScale = newScale;
-    }
-
 	const std::string& getFilename() const
 	{
 		return filename;
@@ -269,7 +239,7 @@ public:
 
 	double getCountingSigma() const
 	{
-		return countingSigma * gainScale * scale;
+		return countingSigma * scale;
 	}
 
 	void setCountingSigma(double countingSigma)
@@ -302,29 +272,9 @@ public:
 		this->polarisationCorrection = polarisationCorrection;
 	}
 
-	double getLastWavelength() const
-	{
-		return lastWavelength;
-	}
-
-	double getLastBandwidth()
-    {
-        return lastBandwidth;
-    }
-    
-    double getLastMosaicity()
-    {
-        return lastMosaicity;
-    }
-    
-    double getLastRlpSize()
-    {
-        return lastRlpSize;
-    }
-
 	void setRejected(bool rejected)
 	{
-        setRejected("merge", rejected);        
+        setRejected(RejectReasonMerge, rejected);
 	}
 
 	double getLastX() const
@@ -420,11 +370,6 @@ public:
     ImagePtr getImage()
     {
         return image.lock();
-    }
-    
-    void setSelf(MillerPtr ptr)
-    {
-        selfPtr = ptr;
     }
     
     void setCorrectingPolarisation(bool on)

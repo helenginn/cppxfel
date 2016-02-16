@@ -26,9 +26,15 @@
 using namespace CMtz;
 
 using namespace CSym;
+CCP4SPG *MtzManager::low_group = NULL;
+std::mutex MtzManager::spaceGroupMutex;
+
+vector<double> MtzManager::superGaussianTable;
+bool MtzManager::setupSuperGaussian = false;
+std::mutex MtzManager::tableMutex;
+double MtzManager::superGaussianScale = 0;
 
 MtzManager *MtzManager::referenceManager;
-//ScoreType MtzManager::scoreType = ScoreTypeCorrelation;
 double MtzManager::highRes = 3.5;
 double MtzManager::lowRes = 0;
 
@@ -69,11 +75,16 @@ std::string MtzManager::describeScoreType()
 
 void MtzManager::makeSuperGaussianLookupTable(double exponent)
 {
-    if (optimisingExponent)
+    if (setupSuperGaussian)
         return;
     
-    if (exponent == lastExponent)
+    tableMutex.lock();
+    
+    if (setupSuperGaussian)
+    {
+        tableMutex.unlock();
         return;
+    }
     
     superGaussianScale = pow((M_PI / 2), (2 / exponent - 1));
     
@@ -95,7 +106,8 @@ void MtzManager::makeSuperGaussianLookupTable(double exponent)
         count++;
     }
     
-    lastExponent = exponent;
+    setupSuperGaussian = true;
+    tableMutex.unlock();
 }
 
 std::string MtzManager::filenameRoot()
@@ -294,7 +306,6 @@ MtzManager::MtzManager(void)
     failedCount = 0;
     filename = "";
     reflections.resize(0);
-    low_group = NULL;
     bandwidth = INITIAL_BANDWIDTH;
     hRot = 0;
     kRot = 0;
@@ -319,7 +330,6 @@ MtzManager::MtzManager(void)
     rejected = false;
     scale = 1;
     externalScale = -1;
-    lastExponent = 0;
     previousReference = NULL;
     previousAmbiguity = -1;
     activeAmbiguity = 0;
@@ -361,8 +371,8 @@ MtzPtr MtzManager::copy()
 {
     MtzPtr newManager = MtzPtr(new MtzManager());
     newManager->filename = filename;
-    double lowNum = low_group->spg_num;
-    newManager->setSpaceGroup(lowNum);
+//    double lowNum = low_group->spg_num;
+//    newManager->setSpaceGroup(lowNum);
     newManager->bandwidth = bandwidth;
     newManager->hRot = hRot;
     newManager->kRot = kRot;
@@ -555,7 +565,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     
     int spgnum = FileParser::getKey("SPACE_GROUP", fromMtzNum);
     
-    low_group = ccp4spg_load_by_ccp4_num(spgnum);
+    setSpaceGroup(spgnum);
     
     if (low_group == NULL)
     {
@@ -818,7 +828,23 @@ std::string MtzManager::getFilename(void)
 
 void MtzManager::setSpaceGroup(int spgnum)
 {
+    if (low_group != NULL)
+        return;
+    
+    spaceGroupMutex.lock();
+
+    if (low_group != NULL)
+    {
+        spaceGroupMutex.unlock();
+        return;
+    }
+    
     low_group = ccp4spg_load_by_ccp4_num(spgnum);
+    
+    logged << "Loaded space group " << spgnum << " for all MTZs" << std::endl;
+    sendLog();
+    
+    spaceGroupMutex.unlock();
 }
 
 int MtzManager::findReflectionWithId(long unsigned int refl_id, Reflection **reflection, bool insertionPoint)
@@ -1365,7 +1391,6 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
     MTZSET *set;
     MTZCOL *colout[9];
     
-    
     /*  Removed: General CCP4 initializations e.g. HKLOUT on command line */
     
     cell[0] = cellDim[0];
@@ -1481,10 +1506,6 @@ MtzManager::~MtzManager(void)
     
     reflections.clear();
     vector<Reflection *>().swap(reflections);
-    
-    if (low_group != NULL)
-        ccp4spg_free(&low_group);
-    
 }
 
 void MtzManager::description(void)
@@ -1738,24 +1759,6 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
     sendLog();
 }
 
-void MtzManager::setAdditionalWeight(double weight)
-{
-    for (int i = 0; i < reflectionCount(); i++)
-    {
-        reflection(i)->setAdditionalWeight(weight);
-    }
-}
-
-void MtzManager::denormaliseMillers()
-{
-    for (int i = 0; i < reflectionCount(); i++)
-    {
-        for (int j = 0; j < reflection(i)->millerCount(); j++)
-        {
-            reflection(i)->miller(j)->denormalise();
-        }
-    }
-}
 
 bool MtzManager::checkUnitCell(double trueA, double trueB, double trueC, double tolerance)
 {

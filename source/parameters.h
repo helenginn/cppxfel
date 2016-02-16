@@ -152,6 +152,13 @@ typedef enum
     PanelTagBad = 1,
 } PanelTag;
 
+typedef enum
+{
+    RejectReasonMerge,
+    RejectReasonPartiality,
+    RejectReasonCorrelation,
+} RejectReason;
+
 class Panel;
 class Logger;
 class Image;

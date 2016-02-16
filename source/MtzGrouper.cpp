@@ -205,8 +205,6 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
         double rSplit = 0;
         if (MtzManager::getReferenceManager() != NULL)
             rSplit = mtzManagers[i]->rSplit(0, expectedResolution, true, true);
-        if (rSplit > 0)
-            mtzManagers[i]->setAdditionalWeight(rSplit);
         
         double partCorrel = mtzManagers[i]->getRefPartCorrel();
         

@@ -28,6 +28,9 @@ bool Reflection::setupUnitCell = false;
 space_group_type Reflection::spgType = cctbx::sgtbx::space_group_type();
 cctbx::sgtbx::space_group Reflection::spaceGroup = cctbx::sgtbx::space_group();
 cctbx::uctbx::unit_cell Reflection::unitCell;
+unsigned char Reflection::spgNum = 0;
+std::mutex Reflection::setupMutex;
+std::vector<MatrixPtr> Reflection::flipMatrices;
 
 MatrixPtr Reflection::matrixForAmbiguity(int i)
 {
@@ -151,20 +154,36 @@ int Reflection::ambiguityCount()
 
 void Reflection::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_type newSpgType, asu newAsymmetricUnit)
 {
+    if (hasSetup)
+        return;
+    
+    setupMutex.lock();
+    
+    if (hasSetup)
+    {
+        setupMutex.unlock();
+        return;
+    }
     if (ccp4spg == NULL)
         return;
     
     char *hallSymbol = ccp4spg_symbol_Hall(ccp4spg);
     spgNum = ccp4spg->spg_num;
     
-    if (hasSetup)
-        return;
-    
     spaceGroup = space_group(hallSymbol);
     spgType = newSpgType;
     asymmetricUnit = newAsymmetricUnit;
     
+    int totalAmbiguities = ambiguityCount();
+    
+    for (int i = 0; i < totalAmbiguities; i++)
+    {
+        flipMatrices.push_back(matrixForAmbiguity(i));
+    }
+    
     hasSetup = true;
+    
+    setupMutex.unlock();
 }
 
 void Reflection::setSpaceGroup(int spaceGroupNum)
@@ -274,13 +293,8 @@ Reflection::Reflection(float *unitCell, CSym::CCP4SPG *spg)
     
     // TODO Auto-generated constructor stub
     
-    refIntensity = 0;
-    refSigma = 0;
-    refl_id = 0;
-    inv_refl_id = 0;
     resolution = 0;
     activeAmbiguity = 0;
-    toRemove = false;
 }
 
 MillerPtr Reflection::acceptedMiller(int num)
@@ -359,12 +373,7 @@ Reflection *Reflection::copy(bool copyMillers)
     newReflection->spgNum = spgNum;
     newReflection->activeAmbiguity = activeAmbiguity;
     newReflection->reflectionIds = reflectionIds;
-    newReflection->refIntensity = refIntensity;
-    newReflection->refSigma = refSigma;
-    newReflection->refl_id = refl_id;
-    newReflection->inv_refl_id = inv_refl_id;
     newReflection->resolution = resolution;
-    newReflection->toRemove = toRemove;
     
     for (int i = 0; i < millerCount(); i++)
     {
@@ -622,7 +631,7 @@ void Reflection::resetFlip()
 {
     for (int j = 0; j < millerCount(); j++)
     {
-        miller(j)->setFlipMatrix(MatrixPtr(new Matrix()));
+        miller(j)->setFlipMatrix(0);
     }
 }
 
@@ -630,9 +639,7 @@ void Reflection::setFlip(int i)
 {
     for (int j = 0; j < millerCount(); j++)
     {
-        MatrixPtr ambiguityMat = matrixForAmbiguity(i);
-        
-        miller(j)->setFlipMatrix(ambiguityMat);
+        miller(j)->setFlipMatrix(i);
     }
 }
 
@@ -805,7 +812,7 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
         for (int i = 0; i < millerCount(); i++)
         {
             miller(i)->setRejected(false);
-            //	miller(i)->setRejected("partiality", false);
+            //	miller(i)->setRejected(RejectReasonPartiality, false);
         }
     }
     
@@ -900,7 +907,7 @@ bool Reflection::anyAccepted()
 double Reflection::observedPartiality(MtzManager *reference, Miller *miller)
 {
     Reflection *refReflection;
-    double reflId = refl_id;
+    double reflId = getReflId();
     reference->findReflectionWithId(reflId, &refReflection);
     
     if (refReflection != NULL)
@@ -973,11 +980,4 @@ int Reflection::checkOverlaps()
     return count;
 }
 
-void Reflection::setAdditionalWeight(double weight)
-{
-    for (int i = 0; i < millerCount(); i++)
-    {
-        miller(i)->setAdditionalWeight(weight);
-    }
-}
 

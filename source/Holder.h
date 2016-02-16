@@ -33,19 +33,16 @@ class Reflection
 {
 private:
 	vector<MillerPtr> millers;
-	int refl_id;
-	int inv_refl_id;
-	double refIntensity;
-	double refSigma;
 	double resolution;
-    bool toRemove;
     static space_group spaceGroup;
-    int spgNum;
+    static unsigned char spgNum;
     static space_group_type spgType;
     static asu asymmetricUnit;
     static bool hasSetup;
+    static std::mutex setupMutex;
     static bool setupUnitCell;
-    int activeAmbiguity;
+    static std::vector<MatrixPtr> flipMatrices;
+    unsigned char activeAmbiguity;
     vector<long unsigned int> reflectionIds;
     static cctbx::uctbx::unit_cell unitCell;
     MutexPtr millerMutex;
@@ -96,7 +93,6 @@ public:
     
     int reflectionIdForMiller(cctbx::miller::index<> cctbxMiller);
     void generateReflectionIds();
-    void setAdditionalWeight(double weight);
     
     asu *getAsymmetricUnit()
     {
@@ -140,17 +136,6 @@ public:
 		this->millers = millers;
 	}
 
-	double getRefIntensity() const
-	{
-		return refIntensity;
-	}
-
-	void setRefIntensity(double refIntensity)
-	{
-		this->refIntensity = refIntensity;
-	}
-    
-
     long unsigned int getReflId()
     {
    /*     if (activeAmbiguity > ambiguityCount())
@@ -161,26 +146,6 @@ public:
         return reflectionIds[activeAmbiguity];
     }
     
-    void setToRemove(bool newRemove = true)
-    {
-        toRemove = newRemove;
-    }
-    
-    bool shouldRemove()
-    {
-        return toRemove;
-    }
-    
-	double getRefSigma() const
-	{
-		return refSigma;
-	}
-
-	void setRefSigma(double refSigma)
-	{
-		this->refSigma = refSigma;
-	}
-
 	double getResolution() const
 	{
 		return resolution;
@@ -190,6 +155,11 @@ public:
 	{
 		this->resolution = resolution;
 	}
+    
+    static MatrixPtr getFlipMatrix(int i)
+    {
+        return flipMatrices[i];
+    }
 };
 
 #endif /* HOLDER_H_ */
