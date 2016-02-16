@@ -652,24 +652,6 @@ int IOMRefiner::getTotalReflectionsWithinBandwidth()
     return count;
 }
 
-double IOMRefiner::getTotalIntegratedSignal()
-{
-    double totalIntensity = 0;
-    
-    for (int i = 0; i < millers.size(); i++)
-    {
-        if (!std::isfinite(millers[i]->getRawIntensity()))
-            continue;
-        
-        if (millers[i]->getRawIntensity() <= 0)
-            continue;
-        
-        totalIntensity += millers[i]->getRawIntensity();
-    }
-    
-    return totalIntensity;
-}
-
 void IOMRefiner::findSpots()
 {
     int tolerance = 60;
@@ -789,24 +771,6 @@ void IOMRefiner::duplicateSpots(vector<ImagePtr> images)
     std::cout << "Spots removed: " << spotsRemoved << std::endl;
 }
 
-void IOMRefiner::scatterSpots(vector<ImagePtr> images)
-{
-    for (int i = 0; i < images.size(); i++)
-    {
-        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
-        {
-            IOMRefinerPtr IOMRefiner = images[i]->getIOMRefiner(j);
-            
-            vector<Spot *> spots = IOMRefiner->getSpots();
-            
-            for (int j = 0; j < spots.size(); j++)
-            {
-                std::cout << spots[j]->scatteringAngle(images[i]) << std::endl;
-            }
-        }
-    }
-}
-
 void IOMRefiner::writeDatFromSpots(std::string filename)
 {
     std::ofstream dat;
@@ -831,55 +795,6 @@ void IOMRefiner::writeDatFromSpots(std::string filename)
     dat.close();
 }
 
-
-int IOMRefiner::identicalSpotsAndMillers()
-{
-    int count = 0;
-    
-    for (int i = 0; i < expectedSpots && i < spots.size(); i++)
-    {
-        for (int j = 0; j < millers.size(); j++)
-        {
-            int x1 = spots[i]->getX();
-            int x2 = millers[j]->getLastX();
-            
-            int y1 = spots[i]->getY();
-            int y2 = millers[j]->getLastY();
-            
-            int diffX = abs(x2 - x1);
-            int diffY = abs(y2 - y1);
-            
-            if (diffX < 4 && diffY < 4)
-                count++;
-        }
-    }
-    
-    return count;
-}
-
-double IOMRefiner::medianIntensity()
-{
-    vector<double> intensities = vector<double>();
-    
-    for (int i = 0; i < millers.size(); i++)
-    {
-        intensities.push_back(millers[i]->getRawIntensity());
-    }
-    
-    std::sort(intensities.begin(), intensities.end());
-    
-    int mid = (int)intensities.size() / 2;
-    
-    if (intensities.size() % 2 == 0)
-    {
-        return intensities[mid];
-    }
-    else
-    {
-        return (intensities[mid] + intensities[mid + 1]) / 2;
-    }
-    
-}
 
 double IOMRefiner::score(int whichAxis, bool silent)
 {
@@ -1003,11 +918,6 @@ double IOMRefiner::score(int whichAxis, bool silent)
         return stdev;
     }
     
-    if (refinement == RefinementTypeOrientationMatrixPanelStdev)
-    {
-        return Panel::scoreBetweenResolutions(0, 1.6);
-    }
-    
     if (refinement == RefinementTypeOrientationMatrixHighestPeak)
     {
         vector<double> wavelengths;
@@ -1038,83 +948,6 @@ double IOMRefiner::score(int whichAxis, bool silent)
         return 1 / sum;
     }
     
-    if (refinement == RefinementTypeOrientationMatrixSpots)
-    {
-        double score = 0;
-        checkAllMillers(maxResolution, testBandwidth);
-        
-        for (int j = 0; j < expectedSpots && j < spots.size(); j++)
-        {
-            for (int i = 0; i < millers.size(); i++)
-            {
-                double millerAngle = millers[i]->scatteringAngle(getImage());
-                double spotAngle = spots[j]->scatteringAngle(getImage());
-                
-                if (fabs(spotAngle - millerAngle) < ANGLE_TOLERANCE)
-                {
-                    spots[j]->setParentImage(getImage());
-                    score += spots[j]->weight();
-                    j++;
-                    i = 0;
-                }
-            }
-        }
-        
-        //	score /= millers.size();
-        
-        return 0 - score;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixExactSpots)
-    {
-        double score = 0;
-        checkAllMillers(maxResolution, testBandwidth);
-        
-        for (int j = 0; j < expectedSpots && j < spots.size(); j++)
-        {
-            for (int i = 0; i < millers.size(); i++)
-            {
-                double millerX = millers[i]->getLastX();
-                double millerY = millers[i]->getLastY();
-                
-                double spotX = spots[j]->getX();
-                double spotY = spots[j]->getY();
-                
-                double distance = sqrt(pow(spotY - millerY, 2) + pow(spotX - millerX, 2));
-                
-                if (distance < SPOT_DISTANCE_TOLERANCE)
-                {
-                    spots[j]->setParentImage(getImage());
-                    score += spots[j]->weight();
-                    j++;
-                    i = 0;
-                }
-            }
-        }
-        
-        return 0 - score;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixMedian)
-    {
-        return 0 - identicalSpotsAndMillers();
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixTotalSignal)
-    {
-        double total = 0;
-        
-        for (int i = 0; i < millers.size(); i++)
-        {
-            if (millerReachesThreshold(millers[i]))
-            {
-                total -= millers[i]->getRawestIntensity();
-            }
-        }
-        
-        return total;
-    }
-    
     if (refinement == RefinementTypeOrientationMatrixRough)
     {
         vector<double> wavelengths;
@@ -1133,19 +966,6 @@ double IOMRefiner::score(int whichAxis, bool silent)
         double newScore = stdev / num;
         
         return newScore;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixLate)
-    {
-        vector<double> wavelengths;
-        vector<int> frequencies;
-        
-        getWavelengthHistogram(wavelengths, frequencies);
-        
-        double leastSquares = least_squares_gaussian_fit(&wavelengths,
-                                                        &frequencies);
-        
-        return leastSquares;
     }
     
     return 0;
@@ -1228,101 +1048,6 @@ void IOMRefiner::refineDetectorAndWavelength(MtzManager *reference)
     getImage()->setDetectorDistance(testDistance);
     
     setSearchSize(oldSearch);
-}
-
-// in degrees, returns degree rotation
-double IOMRefiner::refineRoundBeamAxis(double start, double end, double wedge,
-                                   bool allSolutions)
-{
-   // double startRad = start * M_PI / 180;
-    vector<double> scores = vector<double>();
-    vector<double> wedges = vector<double>();
-    vector<double> hRads = vector<double>();
-    vector<double> kRads = vector<double>();
-    vector<MatrixPtr> matrices = vector<MatrixPtr>();
-    
-    refinement = RefinementTypeOrientationMatrixExactSpots;
-    
-    MatrixPtr copyMatrix = this->getMatrix()->copy();
-    
-    int solutionCount = allSolutions ? (int)solutions.size() : 1;
-    
-    for (int j = 0; j < solutionCount; j++)
-    {
-        double hRad = allSolutions ? solutions[j][0] : 0;
-        double kRad = allSolutions ? solutions[j][1] : 0;
-        
-        for (double i = start; i < end; i += wedge)
-        {
-            double radians = i * M_PI / 180;
-            
-            this->getMatrix()->rotate(hRad, kRad, radians);
-            checkAllMillers(maxResolution, testBandwidth);
-            
-            double total = score();
-            hRads.push_back(hRad);
-            kRads.push_back(kRad);
-            scores.push_back(total);
-            wedges.push_back(radians);
-            matrices.push_back(this->getMatrix()->copy());
-            logged << hRad << "\t" << kRad << "\t" << i << "\t" << total
-            << std::endl;
-            sendLog(LogLevelNormal);
-            
-            this->setMatrixCopy(copyMatrix);
-        }
-
-    }
-    
-    double bestScore = 0;
-    double bestWedge = 0;
-    double bestHRad = 0;
-    double bestKRad = 0;
-    MatrixPtr bestMatrix = MatrixPtr();
-    
-    for (int i = 0; i < scores.size(); i++)
-    {
-        if (scores[i] < bestScore)
-        {
-            bestScore = scores[i];
-            bestWedge = wedges[i];
-            bestHRad = hRads[i];
-            bestKRad = kRads[i];
-            bestMatrix = matrices[i];
-        }
-    }
-    
-    logged << "Rotating to best score for " << bestWedge
-    << "º rotation for " << bestHRad << ", " << bestKRad
-    << std::endl;
-    this->setMatrixCopy(bestMatrix);
-    logged << "Score: " << score() << std::endl;
-    
-    sendLog(LogLevelNormal);
-
-    
-    return bestWedge;
-}
-
-void IOMRefiner::refineRoundBeamAxis()
-{
-    refineRoundBeamAxis(0, 360, 10, true);
-  //  double betterWedge = refineRoundBeamAxis(-6, 6, 1, false);
-    
-    checkAllMillers(maxResolution, testBandwidth);
-    
-    double total = getTotalIntegratedSignal();
-    total /= millers.size();
-    
-    logged << "Signal is: " << total << std::endl;
-    sendLog(LogLevelNormal);
-    
-    this->getMatrix()->printDescription();
-}
-
-void IOMRefiner::matchMatrixToSpots()
-{
-    matchMatrixToSpots(RefinementTypeOrientationMatrixSpots);
 }
 
 bool compareScore(std::pair<vector<double>, double> a, std::pair<vector<double>, double> b)
@@ -1672,8 +1397,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     
     checkAllMillers(maxResolution, testBandwidth);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
-    gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
-                 &theScore, true);
     
     sendLog(LogLevelNormal);
 }

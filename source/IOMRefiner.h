@@ -27,15 +27,9 @@ typedef enum
     RefinementTypeOrientationMatrixEarly = 0,
 	RefinementTypeDetectorWavelength = 1,
     RefinementTypeOrientationMatrixVeryEarly = 2,
-    RefinementTypeOrientationMatrixLate = 3,
-	RefinementTypeOrientationMatrixSpots = 4,
-    RefinementTypeOrientationMatrixExactSpots = 5,
-	RefinementTypeOrientationMatrixRough = 6,
-	RefinementTypeOrientationMatrixMedian = 7,
-    RefinementTypeOrientationMatrixTotalSignal = 8,
-    RefinementTypeOrientationMatrixHighestPeak = 9,
+    RefinementTypeOrientationMatrixRough = 6,
+	RefinementTypeOrientationMatrixHighestPeak = 9,
     RefinementTypeOrientationMatrixEarlySeparated = 10,
-    RefinementTypeOrientationMatrixPanelStdev = 11,
     RefinementTypeOrientationMatrixStdevOnly = 12,
     RefinementTypeRefineLAxis = 13,
     RefinementTypeOrientationMatrixEarlyWeighted = 14,
@@ -114,8 +108,7 @@ public:
 	void findSpots();
 	static void duplicateSpots(vector<ImagePtr>images);
 	void writeDatFromSpots(std::string filename);
-	static void scatterSpots(vector<ImagePtr> images);
-
+	
 	void matchMatrixToSpots();
 	void matchMatrixToSpots(RefinementType refinement);
 	double minimizeParameter(double *meanStep, double *param, int whichAxis = 0);
@@ -125,17 +118,12 @@ public:
 	void refineDetectorAndWavelength(MtzManager *reference = NULL);
 	void refineOrientationMatrix();
 	void refineOrientationMatrix(RefinementType refinementType);
-	double refineRoundBeamAxis(double start, double end, double wedge, bool allSolutions);
-	void refineRoundBeamAxis();
-
+	
     bool millerWithinBandwidth(MillerPtr miller);
 	int getTotalReflections();
 	int getTotalReflections(double threshold);
     int getTotalReflectionsWithinBandwidth();
-    double medianIntensity();
-	int identicalSpotsAndMillers();
-	double getTotalIntegratedSignal();
-
+    
     double getRot(int rotNum);
 	void dropMillers();
 
