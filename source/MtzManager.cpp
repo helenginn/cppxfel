@@ -1782,20 +1782,6 @@ void MtzManager::resetFailedCount()
     failedCount = 0;
 }
 
-#define PARAM_HROT 0
-#define PARAM_KROT 1
-#define PARAM_MOS 2
-#define PARAM_SPOT_SIZE 3
-#define PARAM_WAVELENGTH 4
-#define PARAM_BANDWIDTH 5
-#define PARAM_EXPONENT 6
-#define PARAM_B_FACTOR 7
-#define PARAM_SCALE_FACTOR 8
-#define PARAM_UNIT_CELL_A 9
-#define PARAM_UNIT_CELL_B 10
-#define PARAM_UNIT_CELL_C 11
-#define PARAM_NUM 12
-
 std::string MtzManager::getParamLine()
 {
     std::ostringstream line;
