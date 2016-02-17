@@ -210,9 +210,9 @@ typedef std::pair<CommonLinePtr, CommonLinePtr> CommonLinePair;
 typedef std::pair<CommonCirclePtr, CommonCirclePtr> CommonCirclePair;
 
 typedef double (StatisticsFunction)(MtzManager *, MtzManager *, int, int *,
-		double *, double, double, bool);
+		double *, double, double, bool, bool);
 typedef double (RFactorFunction)(RFactorType, MtzManager *, int *, double *,
-		double, double);
+		double, double, bool);
 typedef std::pair<vec, double> VectorDistance;
 typedef std::pair<std::pair<SpotVectorPtr, VectorDistance>, double> Match;
 

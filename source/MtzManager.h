@@ -228,23 +228,23 @@ public:
 
 	double correlationWithManager(MtzManager *otherManager, bool printHits = false,
 			bool silent = true, double lowRes = 0, double highRes = 0, int bins = 20,
-			vector<boost::tuple<double, double, double, int> > *correlations = NULL, bool shouldLog = false);
+			vector<boost::tuple<double, double, double, int> > *correlations = NULL, bool shouldLog = false, bool freeOnly = false);
 
 	double rSplitWithManager(MtzManager *otherManager, bool printHits = false,
 			bool silent = true, double lowRes = 0, double highRes = 0, int bins = 20,
-			vector<boost::tuple<double, double, double, int> > *correlations = NULL, bool shouldLog = false);
+			vector<boost::tuple<double, double, double, int> > *correlations = NULL, bool shouldLog = false, bool freeOnly = false);
 
 	double statisticsWithManager(MtzManager *otherManager, StatisticsFunction *function,
 			bool printHits, bool silent, double lowRes, double highRes, int bins,
 			vector<boost::tuple<double, double, double, int> > *correlations,
-			bool shouldLog);
+			bool shouldLog, bool freeOnly = false);
 
 	double statisticsWithManager(MtzManager *otherManager,
 			StatisticsFunction *function, RFactorFunction *rFactorFunction,
 			RFactorType rFactor, bool printHits, bool silent, double lowRes,
 			double highRes, int bins,
 			vector<boost::tuple<double, double, double, int> > *correlations,
-			bool shouldLog);
+			bool shouldLog, bool freeOnly = false);
 
 	double rFactorWithManager(RFactorType rFactor, bool printHits = false, bool silent = true, double lowRes = 0,
 			double highRes = 0, int bins = 20,

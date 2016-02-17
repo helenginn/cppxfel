@@ -207,6 +207,8 @@ void FileParser::generateFunctionList()
     parserMap["NORMALISE_PARTIALITIES"] = simpleBool;
     parserMap["REPLACE_REFERENCE"] = simpleBool;
     parserMap["REFINE_ENERGY_SPECTRUM"] = simpleBool;
+    parserMap["FREE_MILLER_LIST"] = simpleString;
+    parserMap["FREE_MILLER_PROPORTION"] = simpleFloat;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;

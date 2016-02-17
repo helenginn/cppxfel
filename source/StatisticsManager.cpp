@@ -103,13 +103,13 @@ void StatisticsManager::generateResolutionBins(double minD, double maxD,
 
 double StatisticsManager::cc_pearson(int num1, int num2, int silent,
 		int *hits, double *multiplicity, double lowResolution,
-		double highResolution, bool shouldLog)
+		double highResolution, bool shouldLog, bool freeOnly)
 {
 	MtzManager *shot1 = &*(mtzs[num1]);
 	MtzManager *shot2 = &*(mtzs[num2]);
 
 	return cc_pearson(shot1, shot2, silent, hits, multiplicity,
-			lowResolution, highResolution, shouldLog);
+			lowResolution, highResolution, shouldLog, freeOnly);
 }
 
 void StatisticsManager::convertResolutions(double lowAngstroms,
@@ -121,11 +121,12 @@ void StatisticsManager::convertResolutions(double lowAngstroms,
 
 double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 		int silent, int *hits, double *multiplicity,
-		double lowResolution, double highResolution, bool shouldLog)
+		double lowResolution, double highResolution, bool shouldLog, bool freeOnly)
 {
 	vector<Reflection *> reflections1;
 	vector<Reflection *> reflections2;
 	int num = 0;
+    CSV csv = CSV(0);
 
 	shot1->findCommonReflections(shot2, reflections1, reflections2, &num);
 
@@ -150,7 +151,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
         if (!silent)
             logged << "h k l\tFirst intensity\tSecond intensity\tResolution" << std::endl;
         
-        CSV csv = CSV(6, "h", "k", "l", "First intensity", "Second intensity", "Resolution");
+        csv = CSV(6, "h", "k", "l", "First intensity", "Second intensity", "Resolution");
         
 		for (int i = 0; i < num; i++)
 		{
@@ -158,6 +159,9 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
             int k = reflections1[i]->miller(0)->getK();
             int l = reflections1[i]->miller(0)->getL();
             
+            if (freeOnly && !reflections2[i]->miller(0)->isFree())
+                continue;
+
 			double int1 = reflections1[i]->meanIntensity();
 			std::string filename = shot1->getFilename();
 			double int2 = reflections2[i]->meanIntensityWithExclusion(&filename);
@@ -208,6 +212,9 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 
 	for (int i = 0; i < num; i++)
 	{
+        if (freeOnly && !reflections2[i]->miller(0)->isFree())
+            continue;
+
 		if (!(reflections1[i]->getResolution() > invLow
 				&& reflections1[i]->getResolution() < invHigh))
 			continue;
@@ -248,6 +255,9 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 
 	for (int i = 0; i < num; i++)
 	{
+        if (freeOnly && !reflections2[i]->miller(0)->isFree())
+            continue;
+
 		if (!(reflections1[i]->getResolution() > invLow
 				&& reflections1[i]->getResolution() < invHigh))
 			continue;
@@ -298,7 +308,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 }
 
 double StatisticsManager::r_factor(RFactorType rFactor, MtzManager *shot1, int *hits,
-		double *multiplicity, double lowResolution, double highResolution)
+		double *multiplicity, double lowResolution, double highResolution, bool freeOnly)
 {
 	double rmerge_numerator = 0;
 	double rmerge_denominator = 0;
@@ -399,7 +409,7 @@ double StatisticsManager::r_factor(RFactorType rFactor, MtzManager *shot1, int *
 
 double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 		int silent, int *hits, double *multiplicity,
-		double lowResolution, double highResolution, bool shouldLog)
+		double lowResolution, double highResolution, bool shouldLog, bool freeOnly)
 {
 	double sum_numerator = 0;
 	double sum_denominator = 0;
@@ -422,6 +432,9 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 
 		if (reflection2 == NULL)
 			continue;
+        
+        if (freeOnly && !reflection2->miller(0)->isFree())
+            continue;
         
 		double int1 = reflection->meanIntensity();
 		double int2 = reflection2->meanIntensity();

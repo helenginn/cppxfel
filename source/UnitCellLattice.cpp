@@ -13,7 +13,20 @@
 
 std::vector<MatrixPtr> UnitCellLattice::symOperators;
 
-void UnitCellLattice::setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum)
+void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax)
+{
+    double *lengths = new double[3];
+    
+    unitCellMatrix->unitCellLengths(&lengths);
+    
+    *hMax = lengths[0] / resolution;
+    *kMax = lengths[1] / resolution;
+    *lMax = lengths[2] / resolution;
+    
+    delete [] lengths;
+}
+
+void UnitCellLattice::setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution)
 {
     spaceGroup = CSym::ccp4spg_load_by_ccp4_num(spaceGroupNum);
     
@@ -28,14 +41,27 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     unitCellMatrixInverse = unitCellMatrix->inverse3DMatrix();
     
-    maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 8);
+    maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 0);
     maxDistance = 0;
     
-    for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
+    int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
+    
+    if (maxMillerIndexTrial == 0 && resolution == 0)
     {
-        for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
+        maxMillerIndexTrialH = maxMillerIndexTrial;
+        maxMillerIndexTrialK = maxMillerIndexTrial;
+        maxMillerIndexTrialL = maxMillerIndexTrial;
+    }
+    else
+    {
+        getMaxMillerIndicesForResolution(resolution, &maxMillerIndexTrialH, &maxMillerIndexTrialK, &maxMillerIndexTrialL);
+    }
+    
+    for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
+    {
+        for (int j = -maxMillerIndexTrialK; j <= maxMillerIndexTrialK; j++)
         {
-            for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
+            for (int k = -maxMillerIndexTrialL; k <= maxMillerIndexTrialL; k++)
             {
                 if (spaceGroupNum != 19 && spaceGroupNum != 178)
                     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
@@ -44,7 +70,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
                 
-                if (length_of_vector(hkl) > maxMillerIndexTrial)
+                if (resolution == 0 && length_of_vector(hkl) > maxMillerIndexTrial)
                     continue;
                 
                 unitCellMatrix->multiplyVector(&hkl_transformed);
@@ -55,6 +81,9 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                     maxDistance = distance;
                 
                 SpotVectorPtr newStandardVector = SpotVectorPtr(new SpotVector(hkl_transformed, hkl));
+                
+                vec3<int> integer = vec3<int>(i, j, k);
+                integerVectors.push_back(integer);
                 
                 spotVectors.push_back(newStandardVector);
             }

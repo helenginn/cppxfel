@@ -16,6 +16,7 @@
 #include <fstream>
 #include "AmbiguityBreaker.h"
 #include "IndexManager.h"
+#include "FreeMillerLibrary.h"
 
 #include "FileParser.h"
 #include "parameters.h"
@@ -232,13 +233,26 @@ void MtzRefiner::initialMerge()
     reference->writeToFile("initialMerge.mtz");
 }
 
+void MtzRefiner::setupFreeMillers()
+{
+    std::string freeMiller = FileParser::getKey("FREE_MILLER_LIST", std::string(""));
+    double freeMillerProportion = FileParser::getKey("FREE_MILLER_PROPORTION", 0.0);
+    
+    if (freeMiller.length() && freeMillerProportion > 0)
+    {
+        FreeMillerLibrary::setup();
+    }
+}
+
 void MtzRefiner::refine()
 {
+    setupFreeMillers();
+    
     MtzManager *originalMerge = NULL;
     
     bool initialExists = loadInitialMtz();
     readMatricesAndMtzs();
-
+    
     if (!initialExists)
     {
         initialMerge();
@@ -1274,6 +1288,8 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
 
 void MtzRefiner::merge()
 {
+    setupFreeMillers();
+    
     loadInitialMtz();
     MtzManager::setReference(this->reference);
     readMatricesAndMtzs();

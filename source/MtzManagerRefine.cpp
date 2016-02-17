@@ -427,33 +427,33 @@ double MtzManager::correlation(bool silent, double lowResolution,
 double MtzManager::rSplitWithManager(MtzManager *otherManager, bool printHits,
 		bool silent, double lowRes, double highRes, int bins,
 		vector<boost::tuple<double, double, double, int> > *correlations,
-		bool shouldLog)
+		bool shouldLog, bool freeOnly)
 {
 	StatisticsFunction *function = StatisticsManager::r_split;
 
 	return statisticsWithManager(otherManager, function, printHits, silent,
-			lowRes, highRes, bins, correlations, shouldLog);
+			lowRes, highRes, bins, correlations, shouldLog, freeOnly);
 }
 
 double MtzManager::correlationWithManager(MtzManager *otherManager,
 		bool printHits, bool silent, double lowRes, double highRes, int bins,
 		vector<boost::tuple<double, double, double, int> > *correlations,
-		bool shouldLog)
+		bool shouldLog, bool freeOnly)
 {
 	StatisticsFunction *function = StatisticsManager::cc_pearson;
 
 	return statisticsWithManager(otherManager, function, printHits, silent,
-			lowRes, highRes, bins, correlations, shouldLog);
+			lowRes, highRes, bins, correlations, shouldLog, freeOnly);
 }
 
 double MtzManager::statisticsWithManager(MtzManager *otherManager,
 		StatisticsFunction *function, bool printHits, bool silent, double lowRes,
 		double highRes, int bins,
 		vector<boost::tuple<double, double, double, int> > *correlations,
-		bool shouldLog)
+		bool shouldLog, bool freeOnly)
 {
 	return statisticsWithManager(otherManager, function, NULL, RFactorNone,
-			printHits, silent, lowRes, highRes, bins, correlations, shouldLog);
+			printHits, silent, lowRes, highRes, bins, correlations, shouldLog, freeOnly);
 }
 
 double MtzManager::rFactorWithManager(RFactorType rFactor, bool printHits,
@@ -471,7 +471,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 		RFactorType rFactor, bool printHits, bool silent, double lowRes,
 		double highRes, int bins,
 		vector<boost::tuple<double, double, double, int> > *correlations,
-		bool shouldLog)
+		bool shouldLog, bool freeOnly)
 {
 	vector<double> shells;
 
@@ -501,10 +501,10 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 
 	if (rFactor == RFactorNone)
 		statistic = function(this, otherManager, !printHits, &hits,
-				&multiplicity, lowRes, highRes, false);
+				&multiplicity, lowRes, highRes, false, freeOnly);
 	else
 		statistic = rFactorFunction(rFactor, this, &hits, &multiplicity, lowRes,
-				highRes);
+				highRes, freeOnly);
 
     if (!silent)
         std::cout << "N: " << "lowRes\thighRes\tValue\tHits\tMultiplicity" << std::endl;
@@ -520,10 +520,10 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 
 			if (rFactor == RFactorNone)
 				statistic = function(this, otherManager, 1, &hits,
-						&multiplicity, shells[i], shells[i + 1], false);
+						&multiplicity, shells[i], shells[i + 1], false, freeOnly);
 			else
 				statistic = rFactorFunction(rFactor, this, &hits, &multiplicity,
-						shells[i], shells[i + 1]);
+						shells[i], shells[i + 1], freeOnly);
 
 			if (!silent)
 			{
@@ -547,10 +547,10 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 
 		if (rFactor == RFactorNone)
 			statistic = function(this, otherManager, 1,  &hits,
-					&multiplicity, lowRes, highRes, shouldLog);
+					&multiplicity, lowRes, highRes, shouldLog, freeOnly);
 		else
 			statistic = rFactorFunction(rFactor, this, &hits, &multiplicity,
-					lowRes, highRes);
+					lowRes, highRes, freeOnly);
 
 		std::cout << "N: *** Overall ***" << std::endl;
 		std::cout << "N: " << lowRes << "\t" << highRes << "\t" << statistic

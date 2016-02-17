@@ -153,10 +153,7 @@ public:
 		this->resolution = resolution;
 	}
     
-    static MatrixPtr getFlipMatrix(int i)
-    {
-        return flipMatrices[i];
-    }
+    static MatrixPtr getFlipMatrix(int i);
 };
 
 #endif /* HOLDER_H_ */

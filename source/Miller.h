@@ -49,6 +49,7 @@ private:
     short int h;
     short int k;
     short int l;
+    bool free;
     float phase;
     char fakeFriedel;
 	RlpModel rlpModel;
@@ -130,7 +131,11 @@ public:
     double getEwaldWeight(double hRot, double kRot, bool isH);
     
 	bool accepted(void);
-	bool free(void);
+	bool isFree()
+    {
+        return free;
+    }
+    
 	void flip(void);
 
     bool isRejected();
@@ -385,6 +390,22 @@ public:
     {
         return phase;
     }
+    /*
+    int Miller::noFlipH()
+    {
+        return h;
+    }
+
+    int Miller::noFlipK()
+    {
+        return k;
+    }
+
+    int Miller::noFlipL()
+    {
+        return l;
+    }*/
+
 
     static void rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
     static void rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);

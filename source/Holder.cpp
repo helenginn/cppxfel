@@ -631,6 +631,13 @@ void Reflection::setFlip(int i)
     }
 }
 
+MatrixPtr Reflection::getFlipMatrix(int i)
+{
+    if (flipMatrices.size() == 0)
+        return MatrixPtr(new Matrix());
+    
+    return flipMatrices[i];
+}
 
 void Reflection::reflectionDescription()
 {

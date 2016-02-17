@@ -24,6 +24,7 @@
 #include "IOMRefiner.h"
 #include "Image.h"
 #include "Spot.h"
+#include "FreeMillerLibrary.h"
 
 bool Miller::normalised = true;
 bool Miller::correctingPolarisation = false;
@@ -244,6 +245,8 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     
     int rlpInt = FileParser::getKey("RLP_MODEL", 0);
     rlpModel = (RlpModel)rlpInt;
+    
+    free = FreeMillerLibrary::isMillerFree(this);
     
     mtzParent = parent;
     parentReflection = NULL;

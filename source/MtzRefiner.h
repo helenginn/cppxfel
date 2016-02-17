@@ -97,6 +97,7 @@ public:
         isPython = newValue;
     }
     
+    void setupFreeMillers();
     void refineDistances();
     void polarisationGraph();
     void displayIndexingHands();

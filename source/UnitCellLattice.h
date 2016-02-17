@@ -14,6 +14,9 @@
 #include "csymlib.h"
 #include "Matrix.h"
 #include "parameters.h"
+#include <scitbx/vec3.h>
+
+using scitbx::vec3;
 
 class UnitCellLattice : public FreeLattice
 {
@@ -26,13 +29,20 @@ private:
     int maxMillerIndexTrial;
     double maxDistance;
     double minDistance;
-    
+    std::vector<vec3<int> > integerVectors;
+    void getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax);
+
 public:
-    void setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum);
+    void setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0);
     
     int standardVectorCount()
     {
         return (int)spotVectors.size();
+    }
+    
+    vec3<int> intVector(int i)
+    {
+        return (vec3<int>)integerVectors[i];
     }
     
     SpotVectorPtr standardVector(int i)
@@ -70,9 +80,9 @@ public:
         return spotVectors;
     }
     
-    UnitCellLattice(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum) : FreeLattice()
+    UnitCellLattice(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0) : FreeLattice()
     {
-        setup(a, b, c, alpha, beta, gamma, spaceGroupNum);
+        setup(a, b, c, alpha, beta, gamma, spaceGroupNum, resolution);
     }
 };
 

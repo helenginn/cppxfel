@@ -22,7 +22,7 @@
 
 #include "FileParser.h"
 #include "GraphDrawer.h"
-
+#include "FreeMillerLibrary.h"
 
 
 MtzGrouper::MtzGrouper()
@@ -377,6 +377,17 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	idxMerge->correlationWithManager(invMerge, false, false, 0,
 			expectedResolution, 20, NULL, true);
     
+    if (FreeMillerLibrary::active())
+    {
+        logged << "N: === R split (free only) ===" << std::endl;
+        sendLog();
+        idxMerge->rSplitWithManager(invMerge, false, false, 0, expectedResolution, 20, NULL, true, true);
+        logged << "N: === CC half (free only) ===" << std::endl;
+        sendLog();
+        idxMerge->correlationWithManager(invMerge, false, false, 0,
+                                         expectedResolution, 20, NULL, false, true);
+    }
+        
     sendLog();
 
 	delete idxMerge;

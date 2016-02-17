@@ -1242,6 +1242,9 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
     
     for (int i = 0; i < num; i++)
     {
+        if (reflections1[i]->miller(0)->isFree())
+            continue;
+        
         if (reflections1[i]->acceptedCount() == 0 && withCutoff)
             continue;
         
