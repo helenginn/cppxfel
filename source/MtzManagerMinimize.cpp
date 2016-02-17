@@ -843,8 +843,6 @@ void MtzManager::gridSearch(bool silent)
             double *params = &(*(bestParams.begin()));
             getParams(&params);
             
-            int hits = 0;
-            
             std::pair<vector<double>, double> result = std::make_pair(bestParams, correl);
             
             ambiguityResults[ambiguity] = result;
@@ -1176,10 +1174,6 @@ void MtzManager::findSteps(int param1, int param2, std::string csvName)
     double jMinParam = 0;
     double jMaxParam = 0;
     double jStep = 1;
-    
-    double kMinParam = 0;
-    double kMaxParam = 0;
-    double kStep = 1;
     
     if (param1 >= 0)
     {

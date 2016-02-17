@@ -282,7 +282,7 @@ double ScalingManager::residualsForImage(MtzManager *reference,
     
     for (int j = 0; j < image->reflectionCount(); j++)
     {
-        int refl_id = image->reflection(j)->getReflId();
+        int refl_id = (int)image->reflection(j)->getReflId();
         
         Reflection *mainImage;
         reference->findReflectionWithId(refl_id, &mainImage);

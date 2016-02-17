@@ -524,9 +524,6 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     
     shoebox->sideLengths(&slowSide, &fastSide);
     
-    int startX = x - centreX;
-    int startY = y - centreY;
-    
     std::vector<double> xxs, xys, xs, yys, ys, xzs, yzs, zs, allXs, allYs, allZs;
     
     for (int i = 0; i < slowSide; i++)
@@ -1145,15 +1142,6 @@ void Image::findSpots()
                     spots.push_back(testSpot);
                 }
                 
-                double x = testSpot->getX();
-                double y = testSpot->getY();
-                /*
-                PanelPtr ptr = PanelPtr(new Panel(x - 2, y - 2, x + 2, y + 2, PanelTagBad));
-                Panel::setupPanel(ptr);
-                panelsToDelete.push_back(ptr);
-                
-                testSpot = SpotPtr(new Spot(shared_from_this()));
-                */
                 count++;
             }
         }

@@ -31,8 +31,6 @@ void FreeLattice::addExpanded()
             SpotVectorPtr iSpot = expandedSpotVectors[i];
             SpotVectorPtr jSpot = expandedSpotVectors[j];
             
-            double similarity = iSpot->similarityToSpotVector(jSpot);
-            
             if (iSpot->isCloseToSpotVector(jSpot, reciprocalTolerance))
             {
                 expandedSpotVectors.erase(expandedSpotVectors.begin() + j);

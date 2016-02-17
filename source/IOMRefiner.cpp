@@ -1541,9 +1541,6 @@ void IOMRefiner::calculateOnce()
     vector<double> wavelengths;
     vector<int> frequencies;
     
-    double mean = 0;
-    double stdev = 0;
-    
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed, 0);
 }
 

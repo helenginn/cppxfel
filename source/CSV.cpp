@@ -169,8 +169,8 @@ std::string CSV::plotColumns(int col1, int col2)
     minMaxCol(col1, &xMin, &xMax);
     minMaxCol(col2, &yMin, &yMax);
     
-    double xStep = (xMax - xMin) / (double)graphCols;
-    double yStep = (yMax - yMin) / (double)graphLines;
+  //  double xStep = (xMax - xMin) / (double)graphCols;
+  //  double yStep = (yMax - yMin) / (double)graphLines;
     
     for (int i = 0; i < graphLines; i++)
     {

@@ -331,8 +331,8 @@ public:
     
     int goodOrBadSolutionCount(bool good = true)
     {
-        if (good) return goodSolutions.size();
-        else return badSolutions.size();
+        if (good) return (int)goodSolutions.size();
+        else return (int)badSolutions.size();
     }
 };
 

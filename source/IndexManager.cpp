@@ -681,7 +681,6 @@ void IndexManager::powderPattern()
         {
             SpotVectorPtr spotVec = images[i]->spotVector(j);
             
-            double angle = spotVec->angleWithVertical();
             vec spotDiff = copy_vector(spotVec->getSpotDiff());
             spotDiff.h *= 106 * 20;
             spotDiff.k *= 106 * 20;
@@ -1023,7 +1022,6 @@ double IndexManager::metrologyTarget(void *object)
         }
     }
     
-    double minAve = minSum / minCount;
     double result = -maxSum;
     
     static_cast<IndexManager *>(object)->logged << "Metrology target result: " << result << std::endl;
