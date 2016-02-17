@@ -132,8 +132,9 @@ void FreeMillerLibrary::setup()
 
 void FreeMillerLibrary::printSummary()
 {
+    std::ostringstream logged;
     logged << "Total number of free Miller indices: " << freeIndexCount() << std::endl;
-    sendLog();
+    Logger::mainLogger->addStream(&logged);
 }
 
 bool FreeMillerLibrary::isCertainMillerFree(Miller *miller)

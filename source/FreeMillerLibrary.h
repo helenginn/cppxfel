@@ -18,7 +18,7 @@
 
 using scitbx::vec3;
 
-class FreeMillerLibrary : LoggableObject
+class FreeMillerLibrary
 {
 private:
     std::vector<vec3<int> > freeIndices;
