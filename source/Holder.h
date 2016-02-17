@@ -105,11 +105,10 @@ public:
     }
     
     void incrementAmbiguity();
-    int ambiguityCount();
-    MatrixPtr matrixForAmbiguity(int i);
+    static int ambiguityCount();
+    static MatrixPtr matrixForAmbiguity(int i);
 
-    void setSpaceGroup(int spaceGroupNum);
-    void setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_type newSpgType, asu newAsymmetricUnit);
+    static void setSpaceGroup(int spaceGroupNum);
     void setUnitCellDouble(double *theUnitCell);
 
     void resetFlip();

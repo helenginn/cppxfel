@@ -34,6 +34,8 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
 {
     int spgNum = FileParser::getKey("SPACE_GROUP", -1);
     
+    Reflection::setSpaceGroup(spgNum);
+    
     spaceGroup = ccp4spg_load_by_standard_num(spgNum);
     initialStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
     
@@ -1613,7 +1615,7 @@ MtzPtr IOMRefiner::newMtz(int index)
         else
         {
             Reflection *reflection = new Reflection();
-            reflection->setSpaceGroup(spaceGroup, spgType, asymmetricUnit);
+            reflection->setSpaceGroup(spaceGroup->spg_num);
             reflection->addMiller(miller);
             reflection->calculateResolution(&*mtz);
             miller->setParent(reflection);

@@ -152,7 +152,8 @@ int Reflection::ambiguityCount()
     return 1;
 }
 
-void Reflection::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group_type newSpgType, asu newAsymmetricUnit)
+
+void Reflection::setSpaceGroup(int spaceGroupNum)
 {
     if (hasSetup)
         return;
@@ -164,15 +165,13 @@ void Reflection::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group
         setupMutex.unlock();
         return;
     }
-    if (ccp4spg == NULL)
+
+    spgNum = spaceGroupNum;
+    space_group_symbols spaceGroupSymbol = space_group_symbols(spaceGroupNum);
+    std::string hallSymbol = spaceGroupSymbol.hall();
+    
+    if (hasSetup)
         return;
-    
-    char *hallSymbol = ccp4spg_symbol_Hall(ccp4spg);
-    spgNum = ccp4spg->spg_num;
-    
-    spaceGroup = space_group(hallSymbol);
-    spgType = newSpgType;
-    asymmetricUnit = newAsymmetricUnit;
     
     int totalAmbiguities = ambiguityCount();
     
@@ -181,25 +180,13 @@ void Reflection::setSpaceGroup(CSym::CCP4SPG *ccp4spg, cctbx::sgtbx::space_group
         flipMatrices.push_back(matrixForAmbiguity(i));
     }
     
-    hasSetup = true;
-    
-    setupMutex.unlock();
-}
-
-void Reflection::setSpaceGroup(int spaceGroupNum)
-{
-    spgNum = spaceGroupNum;
-    space_group_symbols spaceGroupSymbol = space_group_symbols(spaceGroupNum);
-    std::string hallSymbol = spaceGroupSymbol.hall();
-    
-    if (hasSetup)
-        return;
-    
     spaceGroup = space_group(hallSymbol);
     spgType = cctbx::sgtbx::space_group_type(spaceGroup);
     asymmetricUnit = asu(spgType);
     
     hasSetup = true;
+    
+    setupMutex.unlock();
 }
 
 int Reflection::reflectionIdForCoordinates(int h, int k, int l)

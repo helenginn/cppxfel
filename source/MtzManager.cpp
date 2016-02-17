@@ -747,7 +747,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
             Reflection *newReflection = new Reflection();
             reflections.push_back(newReflection);
             newReflection->setUnitCell(cell);
-            newReflection->setSpaceGroup(low_group, spgType, asymmetricUnit);
+            newReflection->setSpaceGroup(low_group->spg_num);
             
             reflections[num]->addMiller(miller);
             miller->setParent(reflections[num]);
