@@ -238,12 +238,12 @@ void MtzRefiner::refine()
 {
     MtzManager *originalMerge = NULL;
     
-    readMatricesAndMtzs();
-    
     if (!loadInitialMtz())
     {
         initialMerge();
     }
+    
+    readMatricesAndMtzs();
     
     bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", false);
     
@@ -1715,8 +1715,8 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
 
 void MtzRefiner::index()
 {
-    this->readMatricesAndImages();
     loadPanels();
+    this->readMatricesAndImages();
     std::cout << "N: Total images loaded: " << images.size() << std::endl;
    
     if (!indexManager)
