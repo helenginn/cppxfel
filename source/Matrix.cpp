@@ -24,6 +24,8 @@
 //#include <boost/python.hpp>
 #include "FileParser.h"
 
+MatrixPtr Matrix::identityMatrix = MatrixPtr(new Matrix());
+
 double *Matrix::array()
 {
     return components;

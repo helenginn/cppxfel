@@ -40,8 +40,14 @@ private:
     double eulerB;
     double eulerC;
     
+    static MatrixPtr identityMatrix;
 public:
     double components[16];
+    
+    static MatrixPtr getIdentityPtr()
+    {
+        return identityMatrix;
+    }
     
     bool isIdentity();
     void multiply(double scalar);
