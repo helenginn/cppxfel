@@ -8,6 +8,7 @@
 #include "InputFileParser.h"
 #include "FileReader.h"
 #include "MtzRefiner.h"
+#include "Miller.h"
 #include <sstream>
 #include "Logger.h"
 //#include <boost/python.hpp>

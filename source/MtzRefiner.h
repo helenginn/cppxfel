@@ -11,6 +11,9 @@
 #include "parameters.h"
 #include "MtzManager.h"
 #include "PanelParser.h"
+#include "LoggableObject.h"
+#include <scitbx/mat3.h>
+
 class IndexManager;
 
 class MtzRefiner : public LoggableObject

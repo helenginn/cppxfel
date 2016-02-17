@@ -7,7 +7,8 @@
 #include <fstream>
 #include "FileParser.h"
 #include "CSV.h"
-
+#include "Holder.h"
+#include "Miller.h"
 
 void StatisticsManager::setMtzs(vector<MtzPtr> newMtzs)
 {

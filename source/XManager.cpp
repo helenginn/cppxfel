@@ -11,7 +11,7 @@
 #include "Miller.h"
 #include "parameters.h"
 #include "FileParser.h"
-
+#include "Holder.h"
 
 
 XManager::XManager()

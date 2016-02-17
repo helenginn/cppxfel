@@ -13,6 +13,7 @@
 #include <cctbx/miller/sym_equiv.h>
 #include <cctbx/miller/asu.h>
 #include <cctbx/miller.h>
+#include "Miller.h"
 
 #include "FileParser.h"
 #include "StatisticsManager.h"

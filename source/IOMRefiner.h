@@ -11,7 +11,6 @@
 #include "Image.h"
 #include "parameters.h"
 #include "IndexManager.h"
-#include "Miller.h"
 #include "Matrix.h"
 #include "MtzManager.h"
 #include "csymlib.h"

@@ -14,6 +14,8 @@
 #include <iostream>
 #include <boost/variant.hpp>
 #include "StatisticsManager.h"
+#include "Holder.h"
+#include "Miller.h"
 
 #include <cstdlib>
 #include <cmath>

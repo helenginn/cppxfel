@@ -7,6 +7,7 @@
 
 #include "Panel.h"
 #include "Miller.h"
+#include "MtzManager.h"
 
 #include "Holder.h"
 #include "definitions.h"
@@ -20,6 +21,9 @@
 #include <cctbx/miller.h>
 #include "FileParser.h"
 #include "Beam.h"
+#include "IOMRefiner.h"
+#include "Image.h"
+#include "Spot.h"
 
 bool Miller::normalised = true;
 bool Miller::correctingPolarisation = false;

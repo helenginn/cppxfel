@@ -12,15 +12,14 @@
 #include <string>
 
 #include <map>
-#include "MtzManager.h"
-#include "Image.h"
 #include "definitions.h"
 #include "parameters.h"
 #include <cctbx/miller/asu.h>
-#include "Holder.h"
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
+class MtzManager;
+class Reflection;
 class Image;
 
 typedef enum

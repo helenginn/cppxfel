@@ -12,6 +12,7 @@
 #include <boost/thread/thread.hpp>
 #include "GraphDrawer.h"
 #include "Image.h"
+#include "Miller.h"
 #include <fstream>
 #include "AmbiguityBreaker.h"
 #include "IndexManager.h"
@@ -23,6 +24,7 @@
 #include "Panel.h"
 #include "Logger.h"
 #include "XManager.h"
+#include "MtzGrouper.h"
 
 bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;

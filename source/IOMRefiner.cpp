@@ -17,7 +17,7 @@
 #include <fstream>
 #include "Panel.h"
 #include "FileParser.h"
-
+#include "Miller.h"
 
 
 #define BIG_BANDWIDTH 0.015

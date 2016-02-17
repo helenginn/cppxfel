@@ -8,6 +8,8 @@
 
 #include "SpectrumBeam.h"
 #include "MtzManager.h"
+#include "Holder.h"
+#include "Miller.h"
 
 SpectrumBeam::SpectrumBeam(GaussianBeamPtr gaussianStart, MtzPtr mtzStart)
 {

@@ -6,18 +6,19 @@
 #include "cmtzlib.h"
 #include "csymlib.h"
 #include <vector>
-#include "Matrix.h"
 
-#include "Holder.h"
-#include "Miller.h"
-//#include <tr1/memory>
 #include "definitions.h"
 #include "parameters.h"
 #include <tuple>
 #include "Logger.h"
+#include "Matrix.h"
 
 using namespace CMtz;
 using namespace CSym;
+
+class Miller;
+class Reflection;
+class Matrix;
 
 typedef enum
 {

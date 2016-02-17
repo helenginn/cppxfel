@@ -12,7 +12,9 @@
 #include "Logger.h"
 #include <string>
 #include "misc.h"
+#include <iomanip>
 #include "UnitCellLattice.h"
+#include "Holder.h"
 
 int IndexingSolution::spaceGroupNum = 0;
 CSym::CCP4SPG *IndexingSolution::spaceGroup = NULL;

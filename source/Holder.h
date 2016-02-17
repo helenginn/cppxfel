@@ -13,8 +13,6 @@
 class Reflection;
 
 #include "parameters.h"
-#include "Miller.h"
-#include "MtzGrouper.h"
 #include "headers/csymlib.h"
 #include <cctbx/sgtbx/space_group.h>
 #include <cctbx/sgtbx/symbols.h>

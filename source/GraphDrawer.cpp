@@ -21,8 +21,8 @@
 #include <cctbx/miller/asu.h>
 #include <cctbx/miller.h>
 #include <cctbx/sgtbx/space_group.h>
-
-
+#include "Holder.h"
+#include "Miller.h"
 
 GraphDrawer::GraphDrawer(MtzManager *mtz)
 {
