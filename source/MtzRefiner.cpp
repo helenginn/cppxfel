@@ -120,8 +120,6 @@ void MtzRefiner::cycleThread(int offset)
     int img_num = (int)mtzManagers.size();
     int j = 0;
     
-    bool initialGridSearch = FileParser::getKey("INITIAL_GRID_SEARCH", false);
-    int secondScore = FileParser::getKey("SECOND_TARGET_FUNCTION", -1);
     bool partialitySpectrumRefinement = FileParser::getKey("REFINE_ENERGY_SPECTRUM", false);
     
     std::vector<int> targets = FileParser::getKey("TARGET_FUNCTIONS", std::vector<int>());
@@ -238,12 +236,13 @@ void MtzRefiner::refine()
 {
     MtzManager *originalMerge = NULL;
     
-    if (!loadInitialMtz())
+    bool initialExists = loadInitialMtz();
+    readMatricesAndMtzs();
+
+    if (!initialExists)
     {
         initialMerge();
     }
-    
-    readMatricesAndMtzs();
     
     bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", false);
     
@@ -494,7 +493,7 @@ int MtzRefiner::imageMax(size_t lineCount)
     end += skip;
     
     if (end > lineCount)
-        end = lineCount;
+        end = (int)lineCount;
     
     return end;
 }
@@ -946,10 +945,6 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
     double overPredBandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH",
                                                   OVER_PRED_BANDWIDTH);
     overPredBandwidth /= 2;
-    
-    // @TODO add orientation tolerance as flexible
-    double orientationTolerance = FileParser::getKey(
-                                                     "INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
     
     double orientationStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
     
