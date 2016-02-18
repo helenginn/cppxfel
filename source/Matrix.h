@@ -44,6 +44,7 @@ private:
 public:
     double components[16];
     
+    // for SPEEDY CALCULATIONS when you need an identity pointer. Don't change it or you'll mess everyone else up.
     static MatrixPtr getIdentityPtr()
     {
         return identityMatrix;

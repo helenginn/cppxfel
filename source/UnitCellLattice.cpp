@@ -46,7 +46,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
     
-    if (maxMillerIndexTrial == 0 && resolution == 0)
+    if (resolution == 0)
     {
         maxMillerIndexTrialH = maxMillerIndexTrial;
         maxMillerIndexTrialK = maxMillerIndexTrial;
