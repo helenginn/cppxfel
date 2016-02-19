@@ -1415,7 +1415,7 @@ bool IOMRefiner::isGoodSolution()
     int minimumReflections = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", 30);
     std::ostringstream details;
     
-    logged << "Standard deviation: " << lastStdev << std::endl;
+    logged << "(" << getImage()->getFilename() << ") Standard deviation: " << lastStdev << std::endl;
     sendLog(LogLevelNormal);
     
     vector<double> wavelengths;
@@ -1456,8 +1456,6 @@ bool IOMRefiner::isGoodSolution()
     diffSquared = sqrt(diffSquared);
     worstSquared = sqrt(worstSquared);
     
-    logged << "Gaussian-esque score: " << diffSquared / worstSquared << std::endl;
-    
     std::sort(frequencies.begin(), frequencies.end(), greater());
     
     double highSum = 0;
@@ -1485,30 +1483,30 @@ bool IOMRefiner::isGoodSolution()
     if (lastStdev < goodSolutionStdev)
     {
         good = true;
-        details << "Standard deviation is sufficiently low (" << lastStdev << " vs " << goodSolutionStdev << ")" << std::endl;
+        details << "(" << getImage()->getFilename() << ") Standard deviation is sufficiently low (" << lastStdev << " vs " << goodSolutionStdev << ")" << std::endl;
     }
 
     if (highSum > stdevLow * goodSolutionSumRatio)
     {
         good = true;
-        details << "Sum ratio is sufficiently high (" << highSum << " vs " << stdevLow << ")" << std::endl;
+        details << "(" << getImage()->getFilename() << ") Sum ratio is sufficiently high (" << highSum << " vs " << stdevLow << ")" << std::endl;
     }
     
     if (highSum <= 5)
     {
-        details << "However, high sum not high enough (" << highSum << ")" << std::endl;
+        details << "(" << getImage()->getFilename() << ") However, high sum not high enough (" << highSum << ")" << std::endl;
         good = false;
     }
     
     if (frequencies[0] > goodSolutionHighestPeak)
     {
-        details << "Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;
+        details << "(" << getImage()->getFilename() << ") Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;
         good = true;
     }
     
     if (frequencies[0] < badSolutionHighestPeak)
     {
-        details << "Highest peak is too low (" << frequencies[0] << " vs " << badSolutionHighestPeak << ")" << std::endl;
+        details << "(" << getImage()->getFilename() << ") Highest peak is too low (" << frequencies[0] << " vs " << badSolutionHighestPeak << ")" << std::endl;
         good = false;
     }
     
@@ -1517,14 +1515,14 @@ bool IOMRefiner::isGoodSolution()
     
     if (getTotalReflections() < minimumReflections)
     {
-        details << "However, not enough reflections (" << getTotalReflections() << " vs " << minimumReflections << ")" << std::endl;
+        details << "(" << getImage()->getFilename() << ") However, not enough reflections (" << getTotalReflections() << " vs " << minimumReflections << ")" << std::endl;
         good = false;
     }
     
     if (lastStdev > badSolutionStdev)
     {
         good = false;
-        details << "However, standard deviation too high (" << lastStdev << " vs " << badSolutionStdev << ")" << std::endl;
+        details << "(" << getImage()->getFilename() << ") However, standard deviation too high (" << lastStdev << " vs " << badSolutionStdev << ")" << std::endl;
     }
     
     details << "Decision: " << (good ? "keep." : "throw away.") << std::endl;
