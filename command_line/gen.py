@@ -129,19 +129,20 @@ def printData(path):
 	global output
 	baseFile = baseName(path)
 	spotPickleName = "_" + baseFile + "_strong.pickle"
+	spotListName = spotPickleName.replace('pickle', 'list')
 	experimentsJson = "_" + baseFile + "_experiments.json"
 	from cppxfel import dials_print_spots
 	
 	print "Finding data for", path
 	
 	if (os.path.isfile(path)):
-		print >> output, "image", path
+		print >> output, "image", baseFile
 	
 	if os.path.isfile(spotPickleName):
 		print "Found spots."
 		dials_print_spots.printSpots([spotPickleName])
-		spotListName = spotPickleName.replace('pickle', 'list')
-		
+	
+	if (os.path.isfile(spotListName)):
 		print >> output, "spots", spotListName
 	else:
 		print >> output, "spots find"
