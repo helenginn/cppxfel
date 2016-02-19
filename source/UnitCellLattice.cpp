@@ -32,6 +32,15 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
     
+    Logger::mainLogger->addString("\nSymmetry operators:");
+    
+    for (int i = 0; i < symOperatorCount(); i++)
+    {
+        symOperator(i)->printDescription();
+    }
+    
+    Logger::mainLogger->addString("\n");
+    
     unitCellOnly = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
     
     MatrixPtr rotationMat = MatrixPtr(new Matrix());

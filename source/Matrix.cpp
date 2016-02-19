@@ -212,16 +212,7 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
 
 void Matrix::printDescription(bool detailed)
 {
-    std::cout << description(detailed) << std::endl;
-    /*
-     for (int i = 0; i < 9; i += 3)
-     {
-     for (int j = i; j < i + 3; j++)
-     {
-     std::cout << components[j] << "\t";
-     }
-     std::cout << std::endl;
-     }*/
+    Logger::mainLogger->addString(description(detailed));
 }
 
 MatrixPtr Matrix::matrixFromUnitCellVersion2(double a, double b, double c, double alpha, double beta, double gamma)

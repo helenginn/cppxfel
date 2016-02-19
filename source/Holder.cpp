@@ -944,13 +944,13 @@ void Reflection::detailedDescription()
     std::cout << std::endl;
 }
 
-int Reflection::checkSpotOverlaps(std::vector<SpotPtr> *spots)
+int Reflection::checkSpotOverlaps(std::vector<SpotPtr> *spots, bool actuallyDelete)
 {
     int count = 0;
     
     for (int i = 0; i < millerCount(); i++)
     {
-        if (miller(i)->isOverlappedWithSpots(spots))
+        if (miller(i)->isOverlappedWithSpots(spots, actuallyDelete))
         {
             count++;
         }

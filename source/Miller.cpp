@@ -1117,7 +1117,7 @@ void Miller::incrementOverlapMask(double hRot, double kRot)
 }
 
 
-bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
+bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDelete)
 {
     double x = lastX + shift.first;
     double y = lastY + shift.second;
@@ -1146,8 +1146,11 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots)
             logged << "Deleting " << deleting->getRawXY().first << ", " << deleting->getRawXY().second << std::endl;
             sendLog();*/
             
-            spots->erase(spots->begin() + i);
-            i--;
+            if (actuallyDelete)
+            {
+                spots->erase(spots->begin() + i);
+                i--;
+            }
             count++;
         }
     }

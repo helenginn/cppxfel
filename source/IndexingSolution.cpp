@@ -150,12 +150,15 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
         }
     }
     
-    if (minTrace < 0.25)
+  /*  std::ostringstream logged;
+    logged << "Min trace: " << minTrace << "" << std::endl;
+    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
+    */
+    
+    double badMinTrace = sqrt(4 * (1 - cos(solutionAngleSpread)));
+
+    if (minTrace < badMinTrace)
     {
-        std::ostringstream logged;
-        logged << "Too similar, min trace: " << minTrace << "" << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelDetailed);
-        
         return true;
     }
     else
@@ -598,6 +601,13 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
             if (!agrees)
                 continue;
             
+            agrees = vectorSolutionsAreCompatible(possibleVector, standardSelection[j]);
+            
+            if (!agrees)
+            {
+                continue;
+            }
+            
             agrees = spotsAreNotTooClose(possibleVector);
             
             if (!agrees)
@@ -607,8 +617,6 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
                 
                 continue;
             }
-            
-            agrees = vectorSolutionsAreCompatible(possibleVector, standardSelection[j]);
             
             if (agrees)
             {

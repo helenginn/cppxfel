@@ -81,7 +81,7 @@ private:
 	bool checkShoebox(ShoeboxPtr shoebox, int x, int y);
     double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
     bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
-    bool testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
+    IndexingSolutionStatus testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
     IndexingSolutionPtr biggestFailedSolution;
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
 public:

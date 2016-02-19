@@ -115,7 +115,7 @@ public:
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
     void limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh);
     
-    bool isOverlappedWithSpots(std::vector<SpotPtr> *spots);
+    bool isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDelete = true);
     double calculateDefaultNorm();
     void setPartialityModel(PartialityModel model);
 	void setData(double _intensity, double _sigma, double _partiality,

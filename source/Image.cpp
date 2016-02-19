@@ -1500,6 +1500,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     
     bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     bool refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
+    int minimumSpotsExplained = FileParser::getKey("MINIMUM_SPOTS_EXPLAINED", 20);
     
     logged << solutionPtr->printNetwork();
     logged << solutionPtr->getNetworkPDB();
@@ -1531,11 +1532,20 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     
     bool successfulImage = refiner->isGoodSolution();
     
+    MtzPtr mtz = refiner->newMtz(lastRefiner);
+    int spotsRemoved = mtz->removeStrongSpots(&spots, false);
+    
+    if (spotsRemoved < minimumSpotsExplained)
+    {
+        logged << "(" << getFilename() << ") However, does not explain enough spots (" << spotsRemoved << " vs  " << minimumSpotsExplained << ")" << std::endl;
+        sendLog();
+        successfulImage = false;
+    }
+    
     if (successfulImage || acceptAllSolutions)
     {
         logged << "Successful crystal for " << getFilename() << std::endl;
         goodSolutions.push_back(solutionPtr);
-        MtzPtr mtz = refiner->newMtz(lastRefiner);
         int spotCountBefore = (int)spots.size();
         
         mtz->removeStrongSpots(&spots);
@@ -1635,8 +1645,6 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
     {
         IndexingSolutionStatus success = tryIndexingSolution(solutionPtr);
         
-        this->spotVectors = newVectors;
-        
         return success;
     }
     
@@ -1708,7 +1716,7 @@ std::vector<double> Image::anglesBetweenVectorDistances(double distance1, double
     return angles;
 }
 
-bool Image::testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes)
+IndexingSolutionStatus Image::testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes)
 {
     bool similar = checkIndexingSolutionDuplicates(newSolution->createSolution(), false);
     
@@ -1716,7 +1724,7 @@ bool Image::testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVe
     {
         logged << "Solution too similar to another. Continuing..." << std::endl;
         sendLog(LogLevelDetailed);
-        return true;
+        return IndexingSolutionTrialDuplicate;
     }
     
     logged << "Starting a new solution..." << std::endl;
@@ -1728,8 +1736,6 @@ bool Image::testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVe
     {
         logged << "Indexing solution trial success." << std::endl;
         (*successes)++;
-        
-        return true;
     }
     else if (success == IndexingSolutionTrialFailure)
     {
@@ -1742,7 +1748,7 @@ bool Image::testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVe
         prunedVectors = spotVectors;
     }
     
-    return true;
+    return success;
 }
 
 void Image::findIndexingSolutions()
@@ -1822,7 +1828,13 @@ void Image::findIndexingSolutions()
                 
                 if (moreSolutions.size() > 0)
                 {
-                    testSeedSolution(moreSolutions[0], prunedVectors, &successes);
+                    IndexingSolutionStatus status = testSeedSolution(moreSolutions[0], prunedVectors, &successes);
+                    
+                    if (status == IndexingSolutionTrialSuccess || status == IndexingSolutionTrialDuplicate)
+                    {
+                        prunedVectors = spotVectors;
+                        logged << "Now on " << prunedVectors.size() << " pruned vectors." << std::endl;
+                    }
                     
                     if (successes >= maxSuccesses || IOMRefinerCount() >= maxLattices)
                     {

@@ -150,7 +150,7 @@ public:
     static std::mutex tableMutex;
     double bFactor;
     double externalScale;
-    int removeStrongSpots(std::vector<SpotPtr> *spots);
+    int removeStrongSpots(std::vector<SpotPtr> *spots, bool actuallyDelete = true);
     int rejectOverlaps();
 
 	MtzManager(void);
