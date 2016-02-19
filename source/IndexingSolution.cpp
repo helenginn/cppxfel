@@ -96,6 +96,8 @@ void IndexingSolution::calculateSimilarStandardVectorsForImageVectors(std::vecto
 
 bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, bool force)
 {
+    double minTrace = FLT_MAX;
+    
     for (int k = 0; k < symOperatorCount(); k++)
     {
         MatrixPtr symOp = symOperator(k);
@@ -106,7 +108,7 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
             MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
             mat3->getRotation()->preMultiply(*symOp);
             mat3->getRotation()->preMultiply(*ambiguity);
-            
+            /*
             double angle = mat1->similarityToRotationMatrix(mat3, solutionAngleSpread * 2.5, force);
             
             double theta, phi, psi;
@@ -122,13 +124,49 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
             Logger::mainLogger->addStream(&logged, LogLevelDebug);
 #endif
             
+            std::ostringstream logged;
             if (angle < solutionAngleSpread * 2.5 && angle != -1)
             {
-                return true;
+                logged << "Solutions are similar by old method" << std::endl;
+       //         return true;
             }
+            else
+            {
+                logged << "Solutions are NOT similar by old method" << std::endl;
+            }*/
+            
+            MatrixPtr subtractedMat = mat1->getRotation()->copy();
+            subtractedMat->subtract(mat3->getRotation());
+            MatrixPtr transposedMat = subtractedMat->copy()->transpose();
+            transposedMat->multiply(*subtractedMat);
+            
+            double trace = transposedMat->trace();
+        //    logged << "New trace: " << trace << std::endl;
+            
+            if (trace < minTrace)
+                minTrace = trace;
+            
+         //   Logger::mainLogger->addStream(&logged);
         }
     }
     
+    if (minTrace < 0.25)
+    {
+        std::ostringstream logged;
+        logged << "Too similar, min trace: " << minTrace << "" << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelDetailed);
+        
+        return true;
+    }
+    else
+    {
+  /*      std::ostringstream logged;
+        logged << "Solutions are NOT similar by new method (" << minTrace << ")" << std::endl;
+        Logger::mainLogger->addStream(&logged);
+        */
+        return false;
+    }
+
     return false;
 }
 

@@ -50,6 +50,7 @@ public:
         return identityMatrix;
     }
     
+    double trace();
     bool isIdentity();
     void multiply(double scalar);
     void add(MatrixPtr secondMatrix);
@@ -62,7 +63,7 @@ public:
     std::string description(bool detailed = false, bool submatrix = false);
     Matrix inverse2DMatrix();
     MatrixPtr inverse3DMatrix();
-    Matrix transpose();
+    MatrixPtr transpose();
     cctbx::miller::index<double> multiplyIndex(cctbx::miller::index<> *index);
     static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup);
     static MatrixPtr matrixFromEulerAngles(double theta, double phi, double psi);

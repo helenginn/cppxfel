@@ -320,8 +320,8 @@ MatrixPtr Matrix::matrixFromUnitCell(double a, double b, double c, double alpha,
 // might be totally crap
 void Matrix::orientationMatrixUnitCell(double *a, double *b, double *c)
 {
-    Matrix orientationTranspose = this->transpose();
-    Matrix transposeTimesMatrix = orientationTranspose * *this;
+    MatrixPtr orientationTranspose = this->transpose();
+    Matrix transposeTimesMatrix = *orientationTranspose * *this;
     MatrixPtr inverted = transposeTimesMatrix.inverse3DMatrix();
     
     double aSquared = (*inverted)[0];
@@ -928,25 +928,35 @@ double Matrix::determinant()
     
 }
 
-Matrix Matrix::transpose()
+double Matrix::trace()
 {
-    Matrix transpose = Matrix();
+    double trace = 0;
+    trace += components[0];
+    trace += components[5];
+    trace += components[10];
     
-    transpose[0] = components[0];
-    transpose[1] = components[4];
-    transpose[2] = components[8];
-    transpose[3] = components[12];
-    transpose[4] = components[1];
-    transpose[5] = components[5];
-    transpose[6] = components[9];
-    transpose[8] = components[2];
-    transpose[9] = components[6];
-    transpose[10] = components[10];
-    transpose[11] = components[14];
-    transpose[12] = components[3];
-    transpose[13] = components[7];
-    transpose[14] = components[11];
-    transpose[15] = components[15];
+    return trace;
+}
+
+MatrixPtr Matrix::transpose()
+{
+    MatrixPtr transpose = MatrixPtr(new Matrix());
+    
+    (*transpose)[0] = components[0];
+    (*transpose)[1] = components[4];
+    (*transpose)[2] = components[8];
+    (*transpose)[3] = components[12];
+    (*transpose)[4] = components[1];
+    (*transpose)[5] = components[5];
+    (*transpose)[6] = components[9];
+    (*transpose)[8] = components[2];
+    (*transpose)[9] = components[6];
+    (*transpose)[10] = components[10];
+    (*transpose)[11] = components[14];
+    (*transpose)[12] = components[3];
+    (*transpose)[13] = components[7];
+    (*transpose)[14] = components[11];
+    (*transpose)[15] = components[15];
     
     return transpose;
 }
