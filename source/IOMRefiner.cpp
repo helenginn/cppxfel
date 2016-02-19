@@ -1395,6 +1395,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     bRot = 0;
     cRot = 0;
     
+    needsReintegrating = true;
     checkAllMillers(maxResolution, testBandwidth);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     
@@ -1555,8 +1556,6 @@ MtzPtr IOMRefiner::newMtz(int index)
     double stdev = 0;
     double theScore = 0;
     
-  //  getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 1);
-  //  getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 2);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 0);
     gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
                  &theScore, true);
