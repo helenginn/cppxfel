@@ -1352,7 +1352,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
                     continue;
                 
                 logged << "vec\t" << spots[i]->getX() << "\t" << spots[i]->getY() << "\t" << spots[j]->getX() << "\t" << spots[j]->getY() << "\t0\t0\t0\t" << distance << std::endl;
-                sendLog(LogLevelDetailed);
+                sendLog(LogLevelDebug);
                 
                 spotVectors.push_back(newVec);
             }
@@ -1869,6 +1869,10 @@ void Image::findIndexingSolutions()
                 spotVectors = biggestFailedSolutionVectors;
                 biggestFailedSolution = IndexingSolutionPtr();
             }
+        }
+        else
+        {
+            break;
         }
     }
     
