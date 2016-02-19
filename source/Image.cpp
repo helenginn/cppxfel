@@ -1849,23 +1849,26 @@ void Image::findIndexingSolutions()
             }
         }
         
-        if (!biggestFailedSolution)
+        if (continuing)
         {
-            lastWasSuccessful = false;
-            continue;
-        }
-        
-        IndexingSolutionStatus status = tryIndexingSolution(biggestFailedSolution);
-        
-        if (status != IndexingSolutionTrialSuccess)
-        {
-            lastWasSuccessful = false;
-        }
-        
-        if (status == IndexingSolutionTrialSuccess)
-        {
-            spotVectors = biggestFailedSolutionVectors;
-            biggestFailedSolution = IndexingSolutionPtr();
+            if (!biggestFailedSolution)
+            {
+                lastWasSuccessful = false;
+                continue;
+            }
+            
+            IndexingSolutionStatus status = tryIndexingSolution(biggestFailedSolution);
+            
+            if (status != IndexingSolutionTrialSuccess)
+            {
+                lastWasSuccessful = false;
+            }
+            
+            if (status == IndexingSolutionTrialSuccess)
+            {
+                spotVectors = biggestFailedSolutionVectors;
+                biggestFailedSolution = IndexingSolutionPtr();
+            }
         }
     }
     
