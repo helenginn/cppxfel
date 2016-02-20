@@ -1608,7 +1608,14 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     vector<double> wavelengths;
     vector<int> frequencies;
     
-    showHistogram(silent);
+    
+    double mean = 0;
+    double stdev = 0;
+    double theScore = 0;
+    
+    getWavelengthHistogram(wavelengths, frequencies, silent ? LogLevelDebug : LogLevelNormal, 0);
+    gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
+                 &theScore, true);
     
     bool complexShoebox = FileParser::getKey("COMPLEX_SHOEBOX", false);
     

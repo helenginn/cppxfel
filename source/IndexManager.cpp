@@ -1028,7 +1028,7 @@ void IndexManager::index()
     nextImage = -1;
     int maxLearnCycles = 50;
     
-    for (int i = 0; i < (learningToIndex ? maxLearnCycles : 1); i++)
+    for (int num = 0; num < (learningToIndex ? maxLearnCycles : 1); num++)
     {
         time_t startcputime;
         time(&startcputime);
@@ -1048,7 +1048,7 @@ void IndexManager::index()
         double seconds = difference;
         lastTime = seconds;
         
-        if (learningToIndex && i != maxLearnCycles - 1)
+        if (learningToIndex && num != maxLearnCycles - 1)
         {
             IndexingSolution::reset();
             bool finish = modifyParameters();
