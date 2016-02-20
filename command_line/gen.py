@@ -322,13 +322,14 @@ print >> integrateTxt, "COMMANDS\n"
 print >> integrateTxt, "INTEGRATE"
 
 outputFilename = "integrate.txt"
-outputFile = open(outputFilename, 'w')
-print >>outputFile, integrateTxt.getvalue()
-outputFile.close()
 
-print "New template input file integrate.txt"
-print "Please check your target unit cell and space group"
-
+if not os.path.isfile(outputFilename):
+	outputFile = open(outputFilename, 'w')
+	print >>outputFile, integrateTxt.getvalue()
+	outputFile.close()
+	print "New template input file integrate.txt"
+	print "Please check your target unit cell and space group"
+	
 refineTxt = StringIO.StringIO()
 
 print >> refineTxt, "ORIENTATION_MATRIX_LIST refine-orientations.dat"
@@ -339,11 +340,14 @@ print >> refineTxt, "COMMANDS\n"
 print >> refineTxt, "REFINE_PARTIALITY"
 
 outputFilename = "refine.txt"
-outputFile = open(outputFilename, 'w')
-print >>outputFile, refineTxt.getvalue()
-outputFile.close()
 
-print "New template input file refine.txt"
+if not os.path.isfile(outputFilename):
+	outputFile = open(outputFilename, 'w')
+	print >>outputFile, refineTxt.getvalue()
+	outputFile.close()
+	print "New template input file refine.txt"
+
+
 
 mergeTxt = StringIO.StringIO()
 
@@ -358,11 +362,12 @@ print >> mergeTxt, "COMMANDS\n"
 print >> mergeTxt, "MERGE"
 
 outputFilename = "merge.txt"
-outputFile = open(outputFilename, 'w')
-print >>outputFile, mergeTxt.getvalue()
-outputFile.close()
 
-print "New template input file merge.txt"
+if not os.path.isfile(outputFilename):
+	outputFile = open(outputFilename, 'w')
+	print >>outputFile, mergeTxt.getvalue()
+	outputFile.close()
+	print "New template input file merge.txt"
 
 if distance == 0:
 	print "You MUST change the experimental parameters in integrate.txt"
