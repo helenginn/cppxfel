@@ -41,9 +41,11 @@ protected:
     double minimumTrustDistance;
     double minimumTrustAngle;
     double solutionAngleSpread;
+    double lastTime;
     ImagePtr getNextImage();
     int nextImage;
     std::mutex indexMutex;
+    bool modifyParameters();
     
     void updateAllSpots();
     static double metrologyTarget(void *object);

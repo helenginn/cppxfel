@@ -1404,6 +1404,50 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
 
 struct greater { template<class T> bool operator()(T const &a, T const &b) const { return a > b; } };
 
+bool IOMRefiner::isBasicGoodSolution()
+{
+    vector<double> wavelengths;
+    vector<int> frequencies;
+    
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
+    
+    int maxFrequency = 0;
+    int freqMaxNum = 0;
+    int all = 0;
+    
+    for (int i = 0; i < frequencies.size(); i++)
+    {
+        if (frequencies[i] > maxFrequency)
+        {
+            maxFrequency = frequencies[i];
+            freqMaxNum = i;
+        }
+        
+        all += frequencies[i];
+    }
+
+    int totalSquashed = 0.33 * frequencies.size();
+    int start = freqMaxNum - totalSquashed / 2;
+    int end = freqMaxNum + totalSquashed / 2;
+    
+    if (start < 0) start = 0;
+    if (end > frequencies.size()) end = frequencies.size();
+    
+    int highSum = 0;
+    
+    for (int i = start; i < end; i++)
+    {
+        highSum += frequencies[i];
+    }
+
+    double squashedProportion = (double)highSum / (double)all;
+    
+    logged << "(" << getImage()->getFilename() << ") squashed proportion: " << squashedProportion << std::endl;
+    sendLog();
+    
+    return (squashedProportion > 0.6);
+}
+
 bool IOMRefiner::isGoodSolution()
 {
     bool good = false;
@@ -1543,10 +1587,8 @@ void IOMRefiner::calculateOnce()
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed, 0);
 }
 
-MtzPtr IOMRefiner::newMtz(int index)
+void IOMRefiner::showHistogram(bool silent)
 {
-    calculateNearbyMillers(true);
-    checkAllMillers(maxResolution, testBandwidth);
     vector<double> wavelengths;
     vector<int> frequencies;
     
@@ -1554,9 +1596,19 @@ MtzPtr IOMRefiner::newMtz(int index)
     double stdev = 0;
     double theScore = 0;
     
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelNormal, 0);
+    getWavelengthHistogram(wavelengths, frequencies, silent ? LogLevelDebug : LogLevelNormal, 0);
     gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
                  &theScore, true);
+}
+
+MtzPtr IOMRefiner::newMtz(int index, bool silent)
+{
+    calculateNearbyMillers(true);
+    checkAllMillers(maxResolution, testBandwidth);
+    vector<double> wavelengths;
+    vector<int> frequencies;
+    
+    showHistogram(silent);
     
     bool complexShoebox = FileParser::getKey("COMPLEX_SHOEBOX", false);
     

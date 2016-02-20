@@ -894,8 +894,131 @@ ImagePtr IndexManager::getNextImage()
     }
 }
 
+bool IndexManager::modifyParameters()
+{
+    int minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
+    double distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.);
+    double maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+    bool finish = false;
+    
+    int goodSolutions = 0;
+    int failedSolutions = 0;
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        goodSolutions += images[i]->IOMRefinerCount();
+        failedSolutions += images[i]->failedRefinerCount();
+    }
+    
+    double percentIndexed = (double)goodSolutions / (double)images.size();
+    double percentRubbish = (double)failedSolutions / (double)goodSolutions;
+    
+    logged << "Percentage indexed correctly: " << percentIndexed * 100 << "%" << std::endl;
+    logged << "Incorrect results: " << percentRubbish * 100 << "%" << std::endl;
+    
+    sendLog();
+    
+    if (goodSolutions == 0)
+        percentRubbish = 0;
+    
+    int maxThreads = FileParser::getMaxThreads();
+    double timePerImage = lastTime * (double)maxThreads / (double)images.size();
+    
+    // now we need to decide if we want to lower one of these...
+    
+    if (percentIndexed < 0.8)
+    {
+        logged << "Indexing percentage is not yet above 80%. Deciding what to do about it..." << std::endl;
+        
+        if (percentRubbish > 0.3)
+        {
+            logged << "The percentage of incorrect results is high. Multiplying the MINIMUM_SOLUTION_VECTOR_NETWORK by 1.2." << std::endl;
+            minimumSolutionNetworkCount *= 0.8;
+        }
+        else if (percentRubbish < 0.1)
+        {
+            logged << "The percentage of incorrect results is low and so might be missing good solutions as well. Multiplying the MINIMUM_SOLUTION_VECTOR_NETWORK by 0.8." << std::endl;
+            minimumSolutionNetworkCount *= 0.8;
+        }
+        
+        if (percentRubbish < 0.3)
+        {
+            logged << "The percentage of incorrect results is low and perhaps the distance tolerance is too stringent. Multiplying the distance tolerance by 0.9." << std::endl;
+            distanceTolerance *= 0.9;
+        }
+        else if (percentRubbish > 0.6)
+        {
+            logged << "The percentage of incorrect results is low and perhaps the distance tolerance is not stringent enough. Multiplying the distance tolerance by 1.1." << std::endl;
+            distanceTolerance *= 1.1;
+        }
+        
+        if (timePerImage < 45)
+        {
+            logged << "There are not many solutions but the time taken per image is very low. Perhaps we increase the distance of considered vectors in the lattice. Multiplying MAX_RECIPROCAL_DISTANCE by 1.2 and reducing MINIMUM_SOLUTION_VECTOR_NETWORK by 0.9." << std::endl;
+            minimumSolutionNetworkCount *= 0.9;
+            maxReciprocalDistance *= 1.2;
+        }
+    }
+    else if (percentIndexed >= 0.8)
+    {
+        logged << "Indexing percentage is good." << std::endl;
+        
+        if (timePerImage > 180)
+        {
+            logged << "Indexing takes longer than 3 mins per image." << std::endl;
+            
+            if (percentRubbish > 0.3)
+            {
+                logged << "A lot of time is spent wading through incorrect results. Multiplying the MINIMUM_SOLUTION_VECTOR_NETWORK value by " << 1 + percentRubbish << std::endl;
+                minimumSolutionNetworkCount *= 1 + percentRubbish / 2;
+            }
+            else
+            {
+                logged << "Not much time is wasted on incorrect results." << std::endl;
+                finish = true;
+            }
+        }
+        else
+        {
+            finish = true;
+
+        }
+    }
+    
+    FileParser::setKey("MINIMUM_SOLUTION_NETWORK_COUNT", minimumSolutionNetworkCount);
+    FileParser::setKey("MINIMUM_TRUST_DISTANCE", distanceTolerance);
+    FileParser::setKey("MAX_RECIPROCAL_DISTANCE", maxReciprocalDistance);
+    
+    logged << std::endl << " ************************ " << std::endl;
+    logged << " ****** New values ****** " << std::endl;
+    logged << " ************************ " << std::endl;
+    logged << std::endl << "MINIMUM_SOLUTION_VECTOR_NETWORK " << minimumSolutionNetworkCount << std::endl;
+    logged << "MINIMUM_TRUST_DISTANCE " << distanceTolerance << std::endl;
+    logged << "MAX_RECIPROCAL_DISTANCE " << maxReciprocalDistance << std::endl << std::endl;
+ 
+    if (finish)
+    {
+        logged << "Please copy and paste these parameters into your index.txt file." << std::endl;
+        logged << "When you wish to stop teaching, switch LEARNING_TO_INDEX to OFF." << std::endl;
+    }
+    
+    sendLog();
+    
+    return finish;
+}
+
 void IndexManager::index()
 {
+    bool learningToIndex = FileParser::getKey("LEARNING_TO_INDEX", false);
+    
+    if (learningToIndex)
+    {
+        for (int i = 0; i < images.size(); i++)
+        {
+            images[i]->setLearningToIndex(true);
+        }
+    }
+    
     int maxThreads = FileParser::getMaxThreads();
     IndexingSolution::setupStandardVectors();
     
@@ -903,17 +1026,45 @@ void IndexManager::index()
     vector<vector<MtzPtr> > managerSubsets;
     managerSubsets.resize(maxThreads);
     nextImage = -1;
+    int maxLearnCycles = 50;
     
-    for (int i = 0; i < maxThreads; i++)
+    for (int i = 0; i < (learningToIndex ? maxLearnCycles : 1); i++)
     {
-        boost::thread *thr = new boost::thread(indexThread, this, &managerSubsets[i], i);
-        threads.add_thread(thr);
+        time_t startcputime;
+        time(&startcputime);
+
+        for (int i = 0; i < maxThreads; i++)
+        {
+            boost::thread *thr = new boost::thread(indexThread, this, &managerSubsets[i], i);
+            threads.add_thread(thr);
+        }
+
+        threads.join_all();
+    
+        time_t endcputime;
+        time(&endcputime);
+        
+        clock_t difference = endcputime - startcputime;
+        double seconds = difference;
+        lastTime = seconds;
+        
+        if (learningToIndex && i != maxLearnCycles - 1)
+        {
+            IndexingSolution::reset();
+            bool finish = modifyParameters();
+
+            if (finish)
+                break;
+            
+            for (int i = 0; i < images.size(); i++)
+            {
+                images[i]->reset();
+            }
+        }
+
+        nextImage = -1;
     }
     
-    
-    threads.join_all();
-    
-    nextImage = -1;
     
     int total = 0;
     

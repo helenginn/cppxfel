@@ -33,6 +33,12 @@ bool IndexingSolution::notSetup = true;
 bool IndexingSolution::finishedSetup = false;
 bool IndexingSolution::checkingCommonSpots = true;
 
+void IndexingSolution::reset()
+{
+    notSetup = true;
+    setupStandardVectors();
+}
+
 void IndexingSolution::setupStandardVectors()
 {
     notSetup = false;

@@ -1122,7 +1122,7 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDel
     double x = lastX + shift.first;
     double y = lastY + shift.second;
     int count = 0;
-    double tolerance = 4;
+    double tolerance = 2.5;
     
     for (int i = 0; i < spots->size(); i++)
     {

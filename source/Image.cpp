@@ -24,6 +24,7 @@ Image::Image(std::string filename, double wavelength,
              double distance)
 {
     vector<double> dims = FileParser::getKey("DETECTOR_SIZE", vector<double>());
+    learningToIndex = false;
     
     xDim = 1765;
     yDim = 1765;
@@ -39,7 +40,7 @@ Image::Image(std::string filename, double wavelength,
     noCircles = false;
     commonCircleThreshold = FileParser::getKey("COMMON_CIRCLE_THRESHOLD", 0.05);
     
-    minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 5);
+    minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
     indexingFailureCount = 0;
     data = vector<int>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
@@ -1193,6 +1194,8 @@ void Image::processSpotList()
         return;
     }
     
+    spots.clear();
+    
     vector<std::string> spotLines = FileReader::split(spotContents, '\n');
     
     double x = beamX;
@@ -1290,7 +1293,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     
     if (maxReciprocalDistance == 0)
     {
-        maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.02);
+        maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
     }
     
     spotVectors.clear();
@@ -1367,7 +1370,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         filterSpotVectors();
     }
     
-    bool scramble = FileParser::getKey("SCRAMBLE_SPOT_VECTORS", false);
+    bool scramble = FileParser::getKey("SCRAMBLE_SPOT_VECTORS", true);
     
     if (scramble)
     {
@@ -1532,8 +1535,11 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     
     bool successfulImage = refiner->isGoodSolution();
     
-    MtzPtr mtz = refiner->newMtz(lastRefiner);
+    MtzPtr mtz = refiner->newMtz(lastRefiner, true);
     int spotsRemoved = mtz->removeStrongSpots(&spots, false);
+    
+    if (learningToIndex)
+        successfulImage = refiner->isBasicGoodSolution();
     
     if (spotsRemoved < minimumSpotsExplained)
     {
@@ -1547,6 +1553,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         logged << "Successful crystal for " << getFilename() << std::endl;
         goodSolutions.push_back(solutionPtr);
         int spotCountBefore = (int)spots.size();
+        refiner->showHistogram(false);
         
         mtz->removeStrongSpots(&spots);
         compileDistancesFromSpots();
@@ -1563,6 +1570,10 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         logged << "Unsuccessful crystal for " << getFilename() << std::endl;
         badSolutions.push_back(solutionPtr);
         removeRefiner(lastRefiner);
+        
+        if (learningToIndex)
+            failedRefiners.push_back(refiner);
+        
         Logger::mainLogger->addStream(&logged); logged.str("");
         indexingFailureCount++;
         
@@ -1861,7 +1872,7 @@ void Image::findIndexingSolutions()
             }
         }
         
-        if (continuing)
+        if (continuing && !learningToIndex)
         {
             if (!biggestFailedSolution)
             {
@@ -1936,4 +1947,13 @@ void Image::writeSpotsList(std::string spotFile)
     spotList.close();
     
     Spot::writeDatFromSpots(spotDat, spots);
+}
+
+void Image::reset()
+{
+    clearIOMRefiners();
+    failedRefiners.clear();
+    minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
+    
+    processSpotList();
 }

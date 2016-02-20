@@ -37,8 +37,10 @@ private:
 	void loadImage();
     void findSpots();
     vector<IOMRefinerPtr> indexers;
+    vector<IOMRefinerPtr> failedRefiners;
     bool shouldMaskValue;
     bool maskedValue;
+    bool learningToIndex;
     bool fitBackgroundAsPlane;
     std::string spotsFile;
     IndexingSolutionStatus extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures = NULL, int added = 0);
@@ -111,6 +113,7 @@ public:
     void refineDistances();
     IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
+    void reset();
     
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
 
@@ -333,6 +336,21 @@ public:
     {
         if (good) return (int)goodSolutions.size();
         else return (int)badSolutions.size();
+    }
+    
+    void setLearningToIndex(bool learning)
+    {
+        learningToIndex = learning;
+    }
+    
+    int failedRefinerCount()
+    {
+        return (int)failedRefiners.size();
+    }
+    
+    IOMRefinerPtr failedRefiner(int i)
+    {
+        return failedRefiners[i];
     }
 };
 

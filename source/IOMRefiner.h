@@ -98,7 +98,7 @@ public:
     void lockUnitCellDimensions();
     void calculateOnce();
 	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true);
-	MtzPtr newMtz(int i);
+	MtzPtr newMtz(int i, bool silent = false);
 	void getWavelengthHistogram(vector<double> &wavelengths,
 			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
 	double score(int whichAxis = 0, bool silent = false);
@@ -118,6 +118,7 @@ public:
 	void refineOrientationMatrix();
 	void refineOrientationMatrix(RefinementType refinementType);
 	
+    void showHistogram(bool silent);
     bool millerWithinBandwidth(MillerPtr miller);
 	int getTotalReflections();
 	int getTotalReflections(double threshold);
@@ -127,6 +128,8 @@ public:
 	void dropMillers();
 
     bool isGoodSolution();
+    bool isBasicGoodSolution();
+
     double getDetectorDistance();
     double getWavelength();
     std::string refinementSummary();

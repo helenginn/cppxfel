@@ -322,6 +322,8 @@ void FileParser::generateFunctionList()
     parserMap["SKIP_BAD_PIXELS"] = simpleBool;
     parserMap["ROUGH_CALCULATION"] = simpleBool;
 
+    parserMap["LEARNING_TO_INDEX"] = simpleBool;
+    parserMap["MINIMUM_SPOTS_EXPLAINED"] = simpleInt;
     parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
     parserMap["MINIMUM_TRUST_DISTANCE"] = simpleFloat;
     parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;

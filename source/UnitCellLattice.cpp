@@ -32,12 +32,12 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
     
-    Logger::mainLogger->addString("\nSymmetry operators:");
+ /*   Logger::mainLogger->addString("\nSymmetry operators:");
     
     for (int i = 0; i < symOperatorCount(); i++)
     {
         symOperator(i)->printDescription();
-    }
+    }*/
     
     Logger::mainLogger->addString("\n");
     
@@ -54,6 +54,11 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     maxDistance = 0;
     
     int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
+    
+    if (resolution == 0 && maxMillerIndexTrial == 0)
+    {
+        resolution = 1 / FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+    }
     
     if (resolution == 0)
     {
