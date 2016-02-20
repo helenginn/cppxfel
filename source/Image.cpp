@@ -1844,6 +1844,13 @@ void Image::findIndexingSolutions()
                     if (status == IndexingSolutionTrialSuccess || status == IndexingSolutionTrialDuplicate)
                     {
                         prunedVectors = spotVectors;
+                        
+                        if (prunedVectors.size() == 0)
+                        {
+                            continuing = false;
+                            break;
+                        }
+                        
                         logged << "Now on " << prunedVectors.size() << " pruned vectors." << std::endl;
                     }
                     
