@@ -135,6 +135,8 @@ MatrixPtr Reflection::matrixForAmbiguity(int i)
 
 int Reflection::ambiguityCount()
 {
+ //   std::cout << "spgNum: " << (int)spgNum << std::endl;
+    
     if (spgNum >= 195 && spgNum <= 199)
         return 2;
     
@@ -269,8 +271,6 @@ void Reflection::setUnitCell(float *theUnitCell)
 
 Reflection::Reflection(float *unitCell, CSym::CCP4SPG *spg)
 {
-    spgNum = 0;
-    
     if (spg != NULL)
         setSpaceGroup(spg->spg_num);
 
