@@ -1711,42 +1711,53 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
 {
     double maxRes = maxResolution();
     vector<double> resolutions;
-    StatisticsManager::generateResolutionBins(0, maxRes, 10, &resolutions);
+    StatisticsManager::generateResolutionBins(0, 1 / maxRes, 10, &resolutions);
 
-    double cutoffResolution = maxResolution();
+    logged << resolutions.size() << " bins to " << 1 / maxRes << " Å." << std::endl;
+    logged << "(" << getFilename() << ") I/SigI by shell:" << std::endl;
     
-    for (int i = (int)resolutions.size() - 1; i > 0 && cutoffResolution == 0; i--)
+    double cutoffResolution = 1 / maxResolution();
+    bool alreadyCut = false;
+    
+    for (int i = (int)resolutions.size() - 1; i > 0; i--)
     {
         double isigiSum = 0;
         double weights = 0;
+        double highRes = resolutions[i];
+        double lowRes = resolutions[i - 1];
         
-        for (int i = 0; i < reflectionCount(); i++)
+        for (int j = 0; j < reflectionCount(); j++)
         {
-            double highRes = resolutions[i];
-            double lowRes = resolutions[i - 1];
-            
-            if (!reflection(i)->betweenResolutions(lowRes, highRes))
+            if (!reflection(j)->betweenResolutions(lowRes, highRes))
                 continue;
 
-            for (int j = 0; j < reflection(i)->millerCount(); j++)
+            for (int k = 0; k < reflection(j)->millerCount(); k++)
             {
-                MillerPtr miller = reflection(i)->miller(j);
+                MillerPtr miller = reflection(j)->miller(k);
                 
-                double weight = 1;
                 double isigi = miller->getRawIntensity() / miller->getCountingSigma();
+                double weight = 1;
                 
-                isigiSum += isigi;
+                isigiSum += isigi * weight;
                 weights += weight;
             }
         }
         
         double isigi = isigiSum / weights;
         
-        if (isigi > acceptableSigma)
+        logged << lowRes << " to " << highRes << " Å: " << isigi << " from " << weights;
+        
+        if (isigi > acceptableSigma && !alreadyCut)
         {
             cutoffResolution = highRes;
+            logged << " *** CUT HERE ***";
+            alreadyCut = true;
         }
+        
+        logged << std::endl;
     }
+    
+    sendLog();
     
     for (int i = 0; i < reflectionCount(); i++)
     {
@@ -1757,7 +1768,7 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
         }
     }
     
-    logged << filename << ": rejected reflections over " << 1 / cutoffResolution << " Å." << std::endl;
+    logged << filename << ": I/sigI cutoff rejected reflections over " << cutoffResolution << " Å." << std::endl;
     sendLog();
 }
 
