@@ -97,7 +97,7 @@ public:
         return &asymmetricUnit;
     }
     
-    space_group *getSpaceGroup()
+    static space_group *getSpaceGroup()
     {
         return &spaceGroup;
     }

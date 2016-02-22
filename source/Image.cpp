@@ -1547,6 +1547,12 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         sendLog();
         successfulImage = false;
     }
+    else
+    {
+        logged << "(" << getFilename() << ") Enough spots are explained (" << spotsRemoved << " vs  " << minimumSpotsExplained << ")" << std::endl;
+        sendLog();
+
+    }
     
     if (successfulImage || acceptAllSolutions)
     {
@@ -1557,6 +1563,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         
         mtz->removeStrongSpots(&spots);
         compileDistancesFromSpots();
+        IndexingSolution::calculateSimilarStandardVectorsForImageVectors(spotVectors);
         
         int spotCountAfter = (int)spots.size();
         
@@ -1751,12 +1758,10 @@ IndexingSolutionStatus Image::testSeedSolution(IndexingSolutionPtr newSolution, 
     else if (success == IndexingSolutionTrialFailure)
     {
         logged << "Indexing solution trial failure." << std::endl;
-        prunedVectors = spotVectors;
     }
     else if (success == IndexingSolutionTrialDuplicate)
     {
         logged << "Indexing solution trial duplicate." << std::endl;
-        prunedVectors = spotVectors;
     }
     
     return success;
@@ -1804,16 +1809,11 @@ void Image::findIndexingSolutions()
     
     int indexingTimeLimit = FileParser::getKey("INDEXING_TIME_LIMIT", 1200);
     
-    std::vector<SpotVectorPtr> prunedVectors = spotVectors;
-    IndexingSolution::pruneSpotVectors(&prunedVectors);
-    spotVectors = prunedVectors;
+    IndexingSolution::calculateSimilarStandardVectorsForImageVectors(spotVectors);
     
-    logged << "Pruning " << filename << " spot vectors to " << prunedVectors.size() << std::endl;
-    sendLog();
-    
-    if (prunedVectors.size() == 0)
+    if (spotVectors.size() == 0)
     {
-        logged << "No vectors left - giving up." << std::endl;
+        logged << "No vectors - giving up." << std::endl;
         sendLog();
         return;
     }
@@ -1821,37 +1821,33 @@ void Image::findIndexingSolutions()
     time_t startcputime;
     time(&startcputime);
     
-    IndexingSolution::calculateSimilarStandardVectorsForImageVectors(prunedVectors);
-    
     bool lastWasSuccessful = true;
     
     while (lastWasSuccessful)
     {
-        for (int i = 0; i < prunedVectors.size() - 1 && i < maxSearch && continuing && indexingFailureCount < 10; i++)
+        for (int i = 0; i < spotVectors.size() - 1 && i < maxSearch && continuing && indexingFailureCount < 10; i++)
         {
-            SpotVectorPtr spotVector1 = prunedVectors[i];
+            SpotVectorPtr spotVector1 = spotVectors[i];
             
-            for (int j = i + 1; j < prunedVectors.size() && continuing && indexingFailureCount < 10; j++)
+            for (int j = i + 1; j < spotVectors.size() && continuing && indexingFailureCount < 10; j++)
             {
-                SpotVectorPtr spotVector2 = prunedVectors[j];
+                SpotVectorPtr spotVector2 = spotVectors[j];
                 
                 std::vector<IndexingSolutionPtr> moreSolutions = IndexingSolution::startingSolutionsForVectors(spotVector1, spotVector2);
                 
                 if (moreSolutions.size() > 0)
                 {
-                    IndexingSolutionStatus status = testSeedSolution(moreSolutions[0], prunedVectors, &successes);
+                    IndexingSolutionStatus status = testSeedSolution(moreSolutions[0], spotVectors, &successes);
                     
                     if (status == IndexingSolutionTrialSuccess || status == IndexingSolutionTrialDuplicate)
                     {
-                        prunedVectors = spotVectors;
-                        
-                        if (prunedVectors.size() == 0)
+                        if (spotVectors.size() == 0)
                         {
                             continuing = false;
                             break;
                         }
                         
-                        logged << "Now on " << prunedVectors.size() << " pruned vectors." << std::endl;
+                        logged << "(" << getFilename() << ") now on " << spotVectors.size() << " vectors." << std::endl;
                     }
                     
                     if (successes >= maxSuccesses || IOMRefinerCount() >= maxLattices)

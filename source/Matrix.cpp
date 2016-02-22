@@ -19,10 +19,16 @@
 #include <cctbx/miller.h>
 #include <cctbx/uctbx.h>
 #include <scitbx/vec3.h>
+#include <cctbx/sgtbx/space_group.h>
+#include <cctbx/sgtbx/rt_mx.h>
+#include <cctbx/sgtbx/rot_mx.h>
 #include <cctbx/crystal_orientation.h>
 #include "Logger.h"
 //#include <boost/python.hpp>
 #include "FileParser.h"
+
+using cctbx::sgtbx::rt_mx;
+using cctbx::sgtbx::rot_mx;
 
 MatrixPtr Matrix::identityMatrix = MatrixPtr(new Matrix());
 
@@ -181,31 +187,56 @@ double Matrix::similarityToRotationMatrix(MatrixPtr mat2, double tolerance, bool
     return sqrt(sumSqr);
 }
 
-void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup)
+MatrixPtr Matrix::getNegativeCopy()
 {
-    int symmetryOperatorCount = spaceGroup->nsymop;
+    MatrixPtr newMat = this->copy();
     
-    for (int i = 0; i < symmetryOperatorCount; i++)
+    for (int i = 0; i < 16; i++)
     {
-        for (int j = 0; j < 2; j++)
+        newMat->components[i] = - newMat->components[i];
+    }
+    
+    return newMat;
+}
+
+void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma)
+{
+    cctbx::sgtbx::space_group_symbols spaceGroupSymbol = cctbx::sgtbx::space_group_symbols(spaceGroup->spg_num);
+    std::string hallSymbol = spaceGroupSymbol.hall();
+    
+    cctbx::sgtbx::space_group spaceGroupCctbx = cctbx::sgtbx::space_group(hallSymbol);
+    
+    scitbx::af::shared<rt_mx> allOps = spaceGroupCctbx.all_ops();
+    scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
+    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
+    
+    std::ostringstream logged;
+    
+    for (int j = 0; j < allOps.size(); j++)
+    {
+        rot_mx rotation = allOps[j].r();
+        cctbx::uc_mat3 orthogonal_rotation = uc.matrix_cart(rotation);
+        
+        for (int i = 0; i < 9; i++)
         {
-            CSym::ccp4_symop symop;
-            
-            if (j == 0) symop = spaceGroup->symop[i];
-            if (j == 1) symop = spaceGroup->invsymop[i];
             MatrixPtr newMat = MatrixPtr(new Matrix());
             
-            newMat->components[0] = symop.rot[0][0];
-            newMat->components[4] = symop.rot[0][1];
-            newMat->components[8] = symop.rot[0][2];
-            newMat->components[1] = symop.rot[1][0];
-            newMat->components[5] = symop.rot[1][1];
-            newMat->components[9] = symop.rot[1][2];
-            newMat->components[2] = symop.rot[2][0];
-            newMat->components[6] = symop.rot[2][1];
-            newMat->components[10] = symop.rot[2][2];
+            newMat->components[0] = orthogonal_rotation[0];
+            newMat->components[4] = orthogonal_rotation[1];
+            newMat->components[8] = orthogonal_rotation[2];
             
-            matrices->push_back(newMat);
+            newMat->components[1] = orthogonal_rotation[3];
+            newMat->components[5] = orthogonal_rotation[4];
+            newMat->components[9] = orthogonal_rotation[5];
+            
+            newMat->components[2] = orthogonal_rotation[6];
+            newMat->components[6] = orthogonal_rotation[7];
+            newMat->components[10] = orthogonal_rotation[8];
+
+            MatrixPtr transposeMat = newMat->copy();
+            matrices->push_back(transposeMat->transpose());
+            MatrixPtr transNegMat = transposeMat->getNegativeCopy();
+            matrices->push_back(transNegMat);
         }
     }
 }

@@ -85,7 +85,8 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
     maxDistance = 0;
     
-    Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
+    Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, unitCell[0], unitCell[1], unitCell[2],
+                                           unitCell[3], unitCell[4], unitCell[5]);
     
     logged << "Calculating distances of unit cell " << spaceGroupNum << std::endl;
     sendLog();

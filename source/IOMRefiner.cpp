@@ -1536,12 +1536,12 @@ bool IOMRefiner::isGoodSolution()
         details << "(" << getImage()->getFilename() << ") Sum ratio is sufficiently high (" << highSum << " vs " << stdevLow << ")" << std::endl;
     }
     
-    if (highSum <= 5)
+  /*  if (highSum <= 5)
     {
         details << "(" << getImage()->getFilename() << ") However, high sum not high enough (" << highSum << ")" << std::endl;
         good = false;
     }
-    
+    */
     if (frequencies[0] > goodSolutionHighestPeak)
     {
         details << "(" << getImage()->getFilename() << ") Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;

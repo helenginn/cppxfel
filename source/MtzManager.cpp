@@ -1638,9 +1638,6 @@ int MtzManager::removeStrongSpots(std::vector<SpotPtr> *spots, bool actuallyDele
     
     int after = (int)spots->size();
     
-    logged << "Before spot removal: " << before << " - after: " << after << std::endl;
-    sendLog(LogLevelDetailed);
-    
     return count;
 }
 

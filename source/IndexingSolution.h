@@ -44,6 +44,7 @@ private:
     static double distanceToleranceReciprocal;
     static double angleTolerance;
     static double solutionAngleSpread;
+    static double approximateCosineDelta;
     static bool checkingCommonSpots;
     static int spaceGroupNum;
     static CSym::CCP4SPG *spaceGroup;

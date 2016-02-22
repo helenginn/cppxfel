@@ -140,6 +140,7 @@ SpotVectorPtr SpotVector::copy()
     newPtr->hkl = copy_vector(hkl);
     newPtr->spotDiff = copy_vector(spotDiff);
     newPtr->update = update;
+    newPtr->sameLengthStandardVectors = sameLengthStandardVectors;
     
     return newPtr;
 }

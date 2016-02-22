@@ -30,17 +30,17 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
 {
     spaceGroup = CSym::ccp4spg_load_by_ccp4_num(spaceGroupNum);
     
-    Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup);
-    
- /*   Logger::mainLogger->addString("\nSymmetry operators:");
+    Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, a, b, c, alpha, beta, gamma);
+    /*
+    Logger::mainLogger->addString("\nSymmetry operators:");
     
     for (int i = 0; i < symOperatorCount(); i++)
     {
         symOperator(i)->printDescription();
-    }*/
+    }
     
     Logger::mainLogger->addString("\n");
-    
+    */
     unitCellOnly = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
     
     MatrixPtr rotationMat = MatrixPtr(new Matrix());

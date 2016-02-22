@@ -16,6 +16,11 @@
 #include "UnitCellLattice.h"
 #include "Holder.h"
 
+using cctbx::sgtbx::space_group;
+using cctbx::sgtbx::rt_mx;
+using cctbx::sgtbx::rot_mx;
+using cctbx::uctbx::unit_cell;
+
 int IndexingSolution::spaceGroupNum = 0;
 CSym::CCP4SPG *IndexingSolution::spaceGroup = NULL;
 std::vector<double> IndexingSolution::unitCell;
@@ -27,6 +32,7 @@ double IndexingSolution::distanceTolerance = 4000;
 double IndexingSolution::distanceToleranceReciprocal = 0.0025;
 double IndexingSolution::angleTolerance = 1.0 * M_PI / 180;
 double IndexingSolution::solutionAngleSpread = 8.0 * M_PI / 180;
+double IndexingSolution::approximateCosineDelta = 0.012;
 UnitCellLatticePtr IndexingSolution::lattice;
 Reflection *IndexingSolution::newReflection;
 bool IndexingSolution::notSetup = true;
@@ -48,6 +54,11 @@ void IndexingSolution::setupStandardVectors()
     angleTolerance = FileParser::getKey("MINIMUM_TRUST_ANGLE", 1.0) * M_PI / 180;
     solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 8.0) * M_PI / 180;
     checkingCommonSpots = FileParser::getKey("CHECKING_COMMON_SPOTS", true);
+    
+    double fortyFiveAngle = M_PI / 4;
+    double slightlySmallerAngle = fortyFiveAngle - angleTolerance;
+    
+    approximateCosineDelta = fabs(cos(fortyFiveAngle) - cos(slightlySmallerAngle));
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -104,6 +115,9 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
 {
     double minTrace = FLT_MAX;
     
+    std::ostringstream logged;
+    
+    
     for (int k = 0; k < symOperatorCount(); k++)
     {
         MatrixPtr symOp = symOperator(k);
@@ -114,32 +128,6 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
             MatrixPtr ambiguity = newReflection->matrixForAmbiguity(l);
             mat3->getRotation()->preMultiply(*symOp);
             mat3->getRotation()->preMultiply(*ambiguity);
-            /*
-            double angle = mat1->similarityToRotationMatrix(mat3, solutionAngleSpread * 2.5, force);
-            
-            double theta, phi, psi;
-            mat3->eulerAngles(&theta, &phi, &psi);
-            
-            double theta2, phi2, psi2;
-            mat1->eulerAngles(&theta2, &phi2, &psi2);
-            
-#ifndef __OPTIMIZE__
-            std::ostringstream logged;
-            
-            logged << "Similarity angle: " << angle << " for angles (" << theta << ", " << phi << ", " << psi << ") and (" << theta2 << ", " << phi2 << ", " << psi2 << ")" << std::endl;
-            Logger::mainLogger->addStream(&logged, LogLevelDebug);
-#endif
-            
-            std::ostringstream logged;
-            if (angle < solutionAngleSpread * 2.5 && angle != -1)
-            {
-                logged << "Solutions are similar by old method" << std::endl;
-       //         return true;
-            }
-            else
-            {
-                logged << "Solutions are NOT similar by old method" << std::endl;
-            }*/
             
             MatrixPtr subtractedMat = mat1->getRotation()->copy();
             subtractedMat->subtract(mat3->getRotation());
@@ -147,46 +135,32 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
             transposedMat->multiply(*subtractedMat);
             
             double trace = transposedMat->trace();
-        //    logged << "New trace: " << trace << std::endl;
             
             if (trace < minTrace)
                 minTrace = trace;
-            
-         //   Logger::mainLogger->addStream(&logged);
         }
     }
     
-  /*  std::ostringstream logged;
-    logged << "Min trace: " << minTrace << "" << std::endl;
-    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
-    */
-    
     double badMinTrace = sqrt(4 * (1 - cos(solutionAngleSpread)));
-
-    if (minTrace < badMinTrace)
-    {
-        return true;
-    }
-    else
-    {
-  /*      std::ostringstream logged;
-        logged << "Solutions are NOT similar by new method (" << minTrace << ")" << std::endl;
-        Logger::mainLogger->addStream(&logged);
-        */
-        return false;
-    }
-
-    return false;
+   
+    return (minTrace < badMinTrace);
 }
 
 bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2)
 {
+    double standardCos = standard1->cosineWithVector(standard2);
+    double realCos = firstObserved->cosineWithVector(secondObserved);
+    
+    double difference = fabs(realCos - standardCos);
+    
+    return (difference < approximateCosineDelta);
+    /*
     double standardAngle = standard1->angleWithVector(standard2);
     double realAngle = firstObserved->angleWithVector(secondObserved);
     
     double difference = fabs(realAngle - standardAngle);
     
-    return (difference < angleTolerance);
+    return (difference < angleTolerance);*/
 }
 
 bool IndexingSolution::allVectorMatches(SpotVectorPtr firstVector, SpotVectorPtr secondVector, std::vector<SpotVectorPtr> *firstMatches, std::vector<SpotVectorPtr> *secondMatches)
