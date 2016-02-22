@@ -1670,6 +1670,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
             Reflection *reflection = new Reflection();
             reflection->setSpaceGroup(spaceGroup->spg_num);
             reflection->addMiller(miller);
+            reflection->setUnitCellDouble(&unitCell[0]);
             reflection->calculateResolution(&*mtz);
             miller->setParent(reflection);
             mtz->addReflection(reflection);
