@@ -1807,6 +1807,9 @@ void Image::findIndexingSolutions()
     if (maxLattices < maxSuccesses)
         maxLattices = maxSuccesses;
     
+    if (IOMRefinerCount() >= maxLattices)
+        return;
+    
     int indexingTimeLimit = FileParser::getKey("INDEXING_TIME_LIMIT", 1200);
     
     IndexingSolution::calculateSimilarStandardVectorsForImageVectors(spotVectors);
