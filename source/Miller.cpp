@@ -103,9 +103,6 @@ double Miller::superGaussian(double bandwidth, double mean,
     }
     else
     {
-        if (bandwidth != bandwidth || mean != mean)
-            return 0;
-        
         double standardisedX = fabs((bandwidth - mean) / sigma);
         
         if (standardisedX > MAX_SUPER_GAUSSIAN)
@@ -126,13 +123,13 @@ double Miller::integrate_special_beam_slice(double pBandwidth, double qBandwidth
 double Miller::integrate_beam_slice(double pBandwidth, double qBandwidth, double mean,
                                    double sigma, double exponent)
 {
+    if (mean != mean || sigma != sigma)
+        return 0;
+    
     double pValue = superGaussian(pBandwidth, mean, sigma, exponent);
     double qValue = superGaussian(qBandwidth, mean, sigma, exponent);
     
-    double pX = (pBandwidth - mean) / sigma;
-    double qX = (qBandwidth - mean) / sigma;
-    
-    double width = fabs(qX - pX);
+    double width = fabs(pBandwidth - qBandwidth);
     
     double area = (pValue + qValue) / 2 * width;
     
@@ -154,13 +151,15 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
                               double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
                               double exponent, bool binary, bool withBeamObject)
 {
-    if (resolution() < 1 / trickyRes) slices = maxSlices;
+    double mySlices = slices;
+    
+    if (resolution() < 1 / trickyRes) mySlices = maxSlices;
     
     double bandwidth_span = high_wavelength - low_wavelength;
     
     double fraction_total = 1;
     double currentP = 0;
-    double currentQ = (double)1 / (double)slices;
+    double currentQ = (double)1 / (double)mySlices;
     
     double total_integral = 0;
     
@@ -205,7 +204,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         total_sphere += sphereSlice;
         
         currentP = currentQ;
-        currentQ += fraction_total / slices;
+        currentQ += fraction_total / mySlices;
     }
     
     return total_integral;
