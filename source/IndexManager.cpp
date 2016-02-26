@@ -139,7 +139,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
         }
     }
 
-    maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.02);
+    maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
     
     smallestDistance = FLT_MAX;
     
@@ -584,7 +584,7 @@ int IndexManager::indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset)
 
 void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset)
 {
-    bool newMethod = FileParser::getKey("NEW_INDEXING_METHOD", false);
+    bool newMethod = FileParser::getKey("NEW_INDEXING_METHOD", true);
     int maxThreads = FileParser::getMaxThreads();
     std::ostringstream logged;
     

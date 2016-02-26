@@ -10,6 +10,7 @@
 #include "csymlib.h"
 #include "FileParser.h"
 #include "SpotVector.h"
+#include "Logger.h"
 
 std::vector<MatrixPtr> UnitCellLattice::symOperators;
 
@@ -71,6 +72,8 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
         getMaxMillerIndicesForResolution(resolution, &maxMillerIndexTrialH, &maxMillerIndexTrialK, &maxMillerIndexTrialL);
     }
     
+    int count = 0;
+    
     for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
     {
         for (int j = -maxMillerIndexTrialK; j <= maxMillerIndexTrialK; j++)
@@ -100,9 +103,14 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 integerVectors.push_back(integer);
                 
                 spotVectors.push_back(newStandardVector);
+                count++;
             }
         }
     }
+    
+    std::ostringstream logged;
+    logged << "Added " << count << " test vectors from space group / unit cell." << std::endl;
+    Logger::mainLogger->addStream(&logged);
     
     minDistance = FLT_MAX;
     

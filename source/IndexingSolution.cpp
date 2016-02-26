@@ -163,55 +163,21 @@ bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, Spot
     return (difference < angleTolerance);*/
 }
 
-bool IndexingSolution::allVectorMatches(SpotVectorPtr firstVector, SpotVectorPtr secondVector, std::vector<SpotVectorPtr> *firstMatches, std::vector<SpotVectorPtr> *secondMatches)
-{
-    bool good = false;
-    
-    for (int i = 0; i < standardVectorCount(); i++)
-    {
-        double firstVectorTrust = firstVector->trustComparedToStandardVector(standardVector(i));
-        
-        if (firstVectorTrust > distanceTolerance)
-        {
-            for (int j = 0; j < standardVectorCount(); j++)
-            {
-                double secondVectorTrust = secondVector->trustComparedToStandardVector(standardVector(j));
-                
-                if (secondVectorTrust > distanceTolerance)
-                {
-                    double realAngle = firstVector->angleWithVector(secondVector);
-                    double expectedAngle = standardVector(i)->angleWithVector(standardVector(j));
-                    
-                    double difference = fabs(realAngle - expectedAngle);
-                    
-                    if (difference < angleTolerance)
-                    {
-                        firstMatches->push_back(standardVector(i));
-                        secondMatches->push_back(standardVector(j));
-                        
-                        good = true;
-                    }
-                }
-            }
-        }
-    }
-    
-    return false;
-}
-
 bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr *firstMatch, SpotVectorPtr *secondMatch)
 {
     for (int i = 0; i < standardVectorCount(); i++)
     {
         double firstVectorTrust = firstVector->trustComparedToStandardVector(standardVector(i));
+        double firstTolerance = firstVector->getMinDistanceTolerance();
         
-        if (firstVectorTrust > distanceTolerance)
+        if (firstVectorTrust > firstTolerance)
         {
             for (int j = 0; j < standardVectorCount(); j++)
             {
                 double secondVectorTrust = secondVector->trustComparedToStandardVector(standardVector(j));
+                double secondTolerance = secondVector->getMinDistanceTolerance();
                 
-                if (secondVectorTrust > distanceTolerance)
+                if (secondVectorTrust > secondTolerance)
                 {
                     double realAngle = firstVector->angleWithVector(secondVector);
                     double expectedAngle = standardVector(i)->angleWithVector(standardVector(j));
@@ -380,12 +346,13 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
 bool IndexingSolution::spotVectorHasAnAppropriateDistance(SpotVectorPtr observedVector)
 {
     double myDistance = observedVector->distance();
+    double myTolerance = observedVector->getMinDistanceTolerance();
     
     for (int i = 0; i < standardVectorCount(); i++)
     {
         double distance = standardVector(i)->distance();
         
-        if (fabs(distance - myDistance) < 1 / distanceTolerance)
+        if (fabs(distance - myDistance) < 1 / myTolerance)
         {
             return true;
         }

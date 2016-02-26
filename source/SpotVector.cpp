@@ -9,6 +9,7 @@
 #include "SpotVector.h"
 #include "Matrix.h"
 #include "misc.h"
+#include "FileParser.h"
 
 double SpotVector::distanceDifference(SpotVectorPtr standardVector)
 {
@@ -30,7 +31,9 @@ SpotVector::SpotVector(vec transformedHKL, vec normalHKL)
 {
     firstSpot = SpotPtr();
     secondSpot = SpotPtr();
-    
+    approxResolution = 0;
+    minDistanceTolerance = 0;
+  
     update = false;
     hkl = normalHKL;
     spotDiff = copy_vector(transformedHKL);
@@ -42,6 +45,8 @@ SpotVector::SpotVector(SpotPtr first, SpotPtr second)
     firstSpot = first;
     secondSpot = second;
     update = false;
+    approxResolution = 0;
+    minDistanceTolerance = 0;
     
     if (!first || !second)
         return;
@@ -178,12 +183,16 @@ std::string SpotVector::description()
 void SpotVector::addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> standardVectors, double tolerance)
 {
     sameLengthStandardVectors.clear();
+    tolerance = this->getMinDistanceTolerance();
     
     for (int i = 0; i < standardVectors.size(); i++)
     {
         double trust = trustComparedToStandardVector(standardVectors[i]);
+        
         if (trust > tolerance)
+        {
             sameLengthStandardVectors.push_back(standardVectors[i]);
+        }
     }
 }
 
@@ -216,4 +225,57 @@ SpotVectorPtr SpotVector::vectorBetweenSpotsFromArray(std::vector<SpotVectorPtr>
     }
     
     return SpotVectorPtr();
+}
+
+double SpotVector::getResolution()
+{
+    if (approxResolution != 0)
+        return approxResolution;
+    
+    double resol1 = firstSpot->resolution();
+    double resol2 = secondSpot->resolution();
+    
+    double minResolution = std::max(resol1, resol2);
+    
+    approxResolution = minResolution;
+    
+    return approxResolution;
+}
+
+double SpotVector::getMinDistanceTolerance()
+{
+    if (minDistanceTolerance != 0)
+        return minDistanceTolerance;
+    
+    double resolution = getResolution();
+    
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+    //double mosaicity = FileParser::getKey("INITIAL_MOSAICITY", 0.0);
+    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.);
+    
+    double minWavelength = wavelength * (1 - bandwidth * 2);
+    double maxWavelength = wavelength * (1 + bandwidth * 2);
+    
+    // we set k = 0
+    
+    double minRadius = 1 / minWavelength;
+    double minL = - resolution / (2 * minRadius);
+    double minH = sqrt(pow(resolution, 2) - pow(minL, 2));
+    
+    double maxRadius = 1 / maxWavelength;
+    double maxL = - resolution / (2 * maxRadius);
+    double maxH = sqrt(pow(resolution, 2) - pow(maxL, 2));
+    
+    vec minVec = new_vector(minH, 0, minL);
+    vec maxVec = new_vector(maxH, 0, maxL);
+    
+    take_vector_away_from_vector(minVec, &maxVec);
+    
+    minDistanceTolerance = length_of_vector(maxVec);
+    minDistanceTolerance += rlpSize;
+
+    minDistanceTolerance = 1 / minDistanceTolerance;
+    
+    return minDistanceTolerance;
 }

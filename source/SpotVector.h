@@ -20,6 +20,8 @@ private:
     SpotPtr secondSpot;
     bool update;
     double cachedDistance;
+    double approxResolution;
+    double minDistanceTolerance;
     
     std::vector<SpotVectorPtr> sameLengthStandardVectors;
     vec hkl;
@@ -37,6 +39,8 @@ public:
     bool hasCommonSpotWithVector(SpotVectorPtr spotVector2);
     double distance();
     void calculateDistance();
+    double getResolution();
+    double getMinDistanceTolerance();
     double angleWithVertical();
     double angleWithVector(SpotVectorPtr spotVector2);
     double angleWithVector(SpotVectorPtr spotVector2, MatrixPtr mat);
