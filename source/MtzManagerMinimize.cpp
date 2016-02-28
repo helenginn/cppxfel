@@ -238,6 +238,9 @@ double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
         Reflection *reflection = reflections1[i];
         Reflection *reflection2 = reflections2[i];
         
+        if (reflection2->millerCount() == 0)
+            continue;
+        
         if (reflection2->miller(0)->isFree())
             continue;
         
