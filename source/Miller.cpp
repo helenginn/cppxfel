@@ -129,7 +129,7 @@ double Miller::integrate_beam_slice(double pBandwidth, double qBandwidth, double
     double pValue = superGaussian(pBandwidth, mean, sigma, exponent);
     double qValue = superGaussian(qBandwidth, mean, sigma, exponent);
     
-    double width = fabs(pBandwidth - qBandwidth);
+    double width = fabs(pBandwidth - qBandwidth) / sigma;
     
     double area = (pValue + qValue) / 2 * width;
     
@@ -669,12 +669,12 @@ double Miller::calculateDefaultNorm()
     return normPartiality;
 }
 
-double Miller::calculateNormPartiality(double mosaicity,
+double Miller::calculateNormPartiality(MatrixPtr rotatedMatrix, double mosaicity,
                                       double spotSize, double wavelength, double bandwidth, double exponent)
 {
     vec hkl = new_vector(h, k, l);
     
-    matrix->multiplyVector(&hkl);
+    rotatedMatrix->multiplyVector(&hkl);
     
     double d = length_of_vector(hkl);
     
@@ -757,11 +757,26 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     
     if (normalised && tempPartiality > 0)
     {
-        normPartiality = calculateNormPartiality(mosaicity, spotSize, wavelength, bandwidth, exponent);
+        normPartiality = calculateNormPartiality(rotatedMatrix, mosaicity, spotSize, wavelength, bandwidth, exponent);
+    }
+    else
+    {
+        partiality = 0;
+        return;
     }
     
     partiality = tempPartiality / normPartiality;
     
+    if (partiality > 1.2)
+        partiality = 0;
+    if (partiality > 1.0)
+        partiality = 1;
+    
+    if (partiality > 1 && std::isfinite(partiality))
+    {
+        std::cout << "Partiality: " << partiality << std::endl;
+    }
+        
     if ((!std::isfinite(partiality)) || (partiality != partiality))
     {
         partiality = 0;
@@ -1017,7 +1032,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     if (!Panel::shouldUsePanelInfo())
     {
         int search = indexer->getSearchSize();
-        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 0, even);
+        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 3, even);
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
         

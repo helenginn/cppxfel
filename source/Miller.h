@@ -164,7 +164,7 @@ public:
 	double partialityForHKL(vec hkl, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false);
 	void applyScaleFactor(double scaleFactor);
-	double calculateNormPartiality(double mosaicity,
+	double calculateNormPartiality(MatrixPtr rotatedMatrix, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent);
 	double calculateNormFromResolution(MatrixPtr rotatedMatrix, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent,
