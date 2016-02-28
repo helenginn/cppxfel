@@ -1032,7 +1032,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     if (!Panel::shouldUsePanelInfo())
     {
         int search = indexer->getSearchSize();
-        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 3, even);
+        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 0, even);
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
         
@@ -1052,7 +1052,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             int xInt = shiftedX;
             int yInt = shiftedY;
             
-            getImage()->focusOnAverageMax(&xInt, &yInt, search, 1, even);
+            getImage()->focusOnAverageMax(&xInt, &yInt, search, 0, even);
             
             shift = std::make_pair(xInt + 0.5 - x_coord, yInt + 0.5 - y_coord);
             
@@ -1063,7 +1063,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         {
             int search = indexer->getSearchSize();
             
-            getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 1, even);
+            getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 0, even);
             
             *x = intLastX;
             *y = intLastY;
