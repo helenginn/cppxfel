@@ -439,7 +439,7 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 		double int1 = reflection->meanIntensity();
 		double int2 = reflection2->meanIntensity();
         
-        double weight = 1;//reflection->meanWeight();
+        double weight = reflection->meanWeight();
 
         if (int1 == 0 || weight == 0 || weight != weight)
             continue;
