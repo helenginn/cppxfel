@@ -154,6 +154,7 @@ def printData(path):
 def dumpPanels(images):
 	import pickle
 	global panels
+	global distance
 	print "Attempting to dump panel file"
 	# i is an integer specifying the image counter
 	i = 0
@@ -176,6 +177,10 @@ def dumpPanels(images):
 		
 		successful = True
 		panels = x['ACTIVE_AREAS']
+		distance = x['DISTANCE']
+		
+		# TODO: find distance, wavelength, beam centre from first file.
+		
 		panelTxt = StringIO.StringIO()
 	
 		for i in range(0, len(panels), 4):
@@ -246,7 +251,7 @@ paths = sys.argv[1:]
 if (len(paths) == 0):
 	print "Please specify the images you want to dump, e.g.:"
 	print "\tcppxfel.input_gen shot*.pickle"
-	print "\tcppxfel.input_gen shot*.cbf"
+#	print "\tcppxfel.input_gen shot*.cbf"
 	exit()
 
 # Start the output stringIO which will be written to matrices.dat
@@ -291,9 +296,70 @@ for i in range(0, thread_count):
 
 print "Creating input files"
 
+indexTxt = StringIO.StringIO()
+
+print >> indexTxt, "ORIENTATION_MATRIX_LIST matrices.dat"
+print >> indexTxt, "NEW_MATRIX_LIST indexed.dat"
+
+print >> indexTxt, "#Be sure to set the UNIT_CELL and SPACE_GROUP for indexing. Cppxfel cannot index without this knowledge."
+
+if spacegroup > 0:
+	print >> indexTxt, "SPACE_GROUP", spacegroup
+
+if len(unit_cell_dimensions):
+	print >> indexTxt, "UNIT_CELL",
+	for dimension in unit_cell_dimensions:
+		print >> indexTxt, dimension,
+print >> indexTxt, ""
+
+print >> indexTxt, "MM_PER_PIXEL", pixelSize[0]
+print >> indexTxt, "BEAM_CENTRE", centre[0], centre[1]
+print >> indexTxt, "DETECTOR_DISTANCE", distance
+print >> indexTxt, "INTEGRATION_WAVELENGTH", wavelength, "\n"
+print >> indexTxt, "PANEL_LIST panels.txt"
+print >> indexTxt, "METROLOGY_SEARCH_SIZE 1\n\n"
+print >> indexTxt, "#If your crystal is highly mosaic or the detector is quite far back you may need to alter the padding values.\nSHOEBOX_FOREGROUND_PADDING 1"
+print >> indexTxt, "SHOEBOX_NEITHER_PADDING 2"
+print >> indexTxt, "SHOEBOX_BACKGROUND_PADDING 3\n\n"
+print >> indexTxt, "#If you see too many spots, increase the intensity threshold.\nINTENSITY_THRESHOLD 12"
+print >> indexTxt, "ABSOLUTE_INTENSITY OFF\n"
+print >> indexTxt, "OVER_PRED_BANDWIDTH 0.07\n"
+print >> indexTxt, "REFINE_ORIENTATIONS ON\n"
+
+print >> indexTxt, "# Specifies maximum multiple lattices to index in total"
+print >> indexTxt, "SOLUTION_ATTEMPTS 1\n"
+
+print >> indexTxt, "# Maximum reciprocal distance from spot to spot to consider for analysis."
+print >> indexTxt, "# A maximum reciprocal distance of 0.1 would be equivalent separation"
+print >> indexTxt, "# between the beam centre and the 10 Angstrom resolution ring."
+print >> indexTxt, "MAX_RECIPROCAL_DISTANCE 0.15\n"
+
+print >> indexTxt, "# Initial rlp size: used to determine the tolerances for the vector lengths in the crystal."
+print >> indexTxt, "# For a 1 micron crystal with no mosaicity, the initial rlp size is 0.0001 Ang^-1 (i.e.,"
+print >> indexTxt, "# 1 / 10000 Ang). To be more strict, lower this number; to be less strict increase it."
+print >> indexTxt, "INITIAL_RLP_SIZE 0.0001\n"
+
+print >> indexTxt, "# If you wish to see more verbose output, change to 1 (moderate), or 2 (debug, usually too much)."
+print >> indexTxt, "VERBOSITY_LEVEL 0\n"
+print >> indexTxt, "COMMANDS\n"
+print >> indexTxt, "INDEX"
+
+outputFilename = "index.txt"
+
+if not os.path.isfile(outputFilename):
+	outputFile = open(outputFilename, 'w')
+	print >>outputFile, indexTxt.getvalue()
+	outputFile.close()
+	print "New template input file index.txt"
+	print "Please check your target unit cell and space group"
+	
+
 integrateTxt = StringIO.StringIO()
 
 print >> integrateTxt, "ORIENTATION_MATRIX_LIST matrices.dat"
+print >> integrateTxt, "# Enable this line to take results from cppxfel indexing (as opposed to DIALS):"
+print >> integrateTxt, "# ORIENTATION_MATRIX_LIST integrate-indexed.dat"
+
 print >> integrateTxt, "NEW_MATRIX_LIST orientations.dat\n"
 
 if spacegroup > 0:
@@ -317,7 +383,7 @@ print >> integrateTxt, "SHOEBOX_BACKGROUND_PADDING 3\n"
 print >> integrateTxt, "INTENSITY_THRESHOLD 12"
 print >> integrateTxt, "ABSOLUTE_INTENSITY OFF"
 print >> integrateTxt, "REFINE_ORIENTATIONS ON\n"
-print >> integrateTxt, "VERBOSITY_LEVEL 1\n"
+print >> integrateTxt, "VERBOSITY_LEVEL 0\n"
 print >> integrateTxt, "COMMANDS\n"
 print >> integrateTxt, "INTEGRATE"
 
