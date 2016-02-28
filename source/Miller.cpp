@@ -103,9 +103,15 @@ double Miller::superGaussian(double bandwidth, double mean,
     }
     else
     {
+        if (bandwidth != bandwidth || mean != mean)
+            return 0;
+        
         double standardisedX = fabs((bandwidth - mean) / sigma);
         
         if (standardisedX > MAX_SUPER_GAUSSIAN)
+            return 0;
+        
+        if (!std::isfinite(standardisedX) || standardisedX != standardisedX)
             return 0;
         
         const double step = SUPER_GAUSSIAN_STEP;
