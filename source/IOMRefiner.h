@@ -32,6 +32,7 @@ typedef enum
     RefinementTypeOrientationMatrixStdevOnly = 12,
     RefinementTypeRefineLAxis = 13,
     RefinementTypeOrientationMatrixEarlyWeighted = 14,
+    RefinementTypeOrientationMatrixReverse = 15,
     
 } RefinementType;
 
@@ -44,6 +45,7 @@ private:
     vector<MillerPtr> roughMillers;
 	vector<Spot *>spots;
     MatrixPtr matrix;
+    MatrixPtr lastRotatedMatrix;
     std::vector<Match> indexingMatches;
     MtzPtr lastMtz;
 

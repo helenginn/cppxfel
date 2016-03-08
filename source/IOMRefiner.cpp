@@ -398,6 +398,8 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         Miller::rotateMatrixABC(aRot, bRot, cRot, matrix, &newMatrix);
     }
     
+    lastRotatedMatrix = newMatrix;
+    
     std::vector<MillerPtr> *chosenMillerArray = &nearbyMillers;
     
     if (!perfectCalculation && roughCalculation && !needsReintegrating && roughMillers.size())
@@ -800,7 +802,54 @@ double IOMRefiner::score(int whichAxis, bool silent)
 {
     if (refinement == RefinementTypeDetectorWavelength)
     {
-        return 0 - getTotalReflectionsWithinBandwidth();
+        double value = getTotalReflections();
+        logged << "Total reflections within bandwidth: " << value << std::endl;
+        sendLog();
+        return 0 - value;
+    }
+    
+    if (refinement == RefinementTypeOrientationMatrixReverse)
+    {
+        MatrixPtr invRotation = lastRotatedMatrix->getRotation()->inverse3DMatrix();
+        MatrixPtr invTransform = lastRotatedMatrix->getUnitCell()->inverse3DMatrix();
+        MatrixPtr newMatrix = MatrixPtr();
+        Miller::rotateMatrixHKL(hRot, kRot, lRot, MatrixPtr(new Matrix()), &newMatrix);
+
+        std::vector<double> ewaldWavelengths;
+        
+        for (int i = 0; i < getImage()->spotCount(); i++)
+        {
+            SpotPtr spot = getImage()->spot(i);
+            
+            vec estimatedVec = spot->estimatedVector();
+            
+            newMatrix->multiplyVector(&estimatedVec);
+            
+            double ewald = getEwaldSphereNoMatrix(estimatedVec);
+            
+            ewaldWavelengths.push_back(ewald);
+            
+          //  invRotation->printDescription();
+            
+            invTransform->multiplyVector(&estimatedVec);
+            invRotation->multiplyVector(&estimatedVec);
+            
+        //    vec remainder = new_vector(fmod(estimatedVec.h, 1), fmod(estimatedVec.k, 1), fmod(estimatedVec.l, 1));
+            logged << estimatedVec.h << ", " << estimatedVec.k << ", " << estimatedVec.l << std::endl;
+            
+         //   double addition = length_of_vector_squared(remainder);
+            
+         //   sumSqrDiff += addition;
+            
+         //   sendLog();
+        }
+        
+        double stdev = standard_deviation(&ewaldWavelengths);
+        
+        logged << "Standard deviation of Ewald sphere wavelengths: " << stdev << std::endl;
+        sendLog();
+        
+        return stdev;
     }
     
     if (refinement == RefinementTypeRefineLAxis)
@@ -1304,7 +1353,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
                     this->calculateNearbyMillers(true);
                 }
                 
-                refinement = RefinementTypeOrientationMatrixStdevOnly;
+            //    refinement = RefinementTypeOrientationMatrixStdevOnly;
             }
             
             if (hRotStep < orientationTolerance)
