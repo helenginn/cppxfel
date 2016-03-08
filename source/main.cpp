@@ -424,7 +424,20 @@ void new_main(int argc, char *argv[])
         mtz->applyScaleFactorsForBins(50);
         mtz->writeToFile("scaled-" + std::string(argv[3]));
     }
-
+    
+    if (strcmp(argv[1], "-bfac") == 0)
+    {
+        MtzManager *reference = new MtzManager();
+        reference->setFilename(argv[2]);
+        reference->loadReflections(1);
+        
+        double bFactor = atof(argv[3]);
+        
+        reference->applyBFactor(bFactor);
+        reference->writeToFile("bfac-" + reference->getFilename(), true);
+        
+    }
+    
 	if (strcmp(argv[1], "-bfactor") == 0)
 	{
 		if (argc <= 2)

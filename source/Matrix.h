@@ -125,6 +125,11 @@ public:
         return rotation;
     }
     
+    MatrixPtr getUnitCell()
+    {
+        return unitCell;
+    }
+    
     double determinant();
     Matrix operator*=(Matrix &b);
     Matrix operator*(Matrix &b);

@@ -29,6 +29,7 @@ class IndexManager : LoggableObject
 protected:
     UnitCellLatticePtr lattice;
     std::vector<ImagePtr> images;
+    std::vector<ImagePtr> mergeImages;
     std::vector<double> unitCell;
     std::vector<MatrixPtr> symOperators;
     MatrixPtr unitCellOnly;
@@ -57,6 +58,7 @@ protected:
     double minReciprocalDistance;
     PowderHistogram generatePowderHistogram();
     std::vector<VectorDistance> vectorDistances;
+    std::vector<IOMRefinerPtr> consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both);
 public:
     ImagePtr getImage(int i)
     {
@@ -68,6 +70,12 @@ public:
         return mtzs;
     }
     
+    void setMergeImages(std::vector<ImagePtr> otherImages)
+    {
+        mergeImages = otherImages;
+    }
+    
+    void combineLists();
     void indexingParameterAnalysis();
     void refineMetrology();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);

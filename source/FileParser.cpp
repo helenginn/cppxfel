@@ -245,6 +245,7 @@ void FileParser::generateFunctionList()
     parserMap["OPTIMISING_UNIT_CELL_C"] = simpleBool;
 
 	parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
+    parserMap["SECOND_MATRIX_LIST"] = simpleString;
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;
 	parserMap["INITIAL_MTZ"] = simpleString;
     parserMap["IMAGE_LIMIT"] = simpleInt;

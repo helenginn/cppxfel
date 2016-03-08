@@ -507,7 +507,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 				highRes, freeOnly);
 
     if (!silent)
-        std::cout << "N: " << "lowRes\thighRes\tValue\tHits\tMultiplicity" << std::endl;
+        logged << "N: " << "lowRes\thighRes\tValue\tHits\tMultiplicity" << std::endl;
     
 	if (bins > 1 || !silent)
 	{
@@ -527,7 +527,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 
 			if (!silent)
 			{
-				std::cout << "N: " << shells[i] << "\t" << shells[i + 1] << "\t"
+				logged << "N: " << shells[i] << "\t" << shells[i + 1] << "\t"
 						<< statistic << "\t" << hits << "\t" << multiplicity
 						<< std::endl;
 			}
@@ -552,11 +552,13 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 			statistic = rFactorFunction(rFactor, this, &hits, &multiplicity,
 					lowRes, highRes, freeOnly);
 
-		std::cout << "N: *** Overall ***" << std::endl;
-		std::cout << "N: " << lowRes << "\t" << highRes << "\t" << statistic
+		logged << "N: *** Overall ***" << std::endl;
+		logged << "N: " << lowRes << "\t" << highRes << "\t" << statistic
 				<< "\t" << hits << "\t" << multiplicity << std::endl;
 	}
 
+    sendLog();
+    
 	return statistic;
 }
 

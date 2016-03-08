@@ -726,8 +726,9 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
     int backNum = 0;
     
     //	print = true;
-    logged << "Foreground pixels: ";
-    
+//    logged << "Foreground pixels: ";
+//    std::ostringstream logged2;
+//    logged2 << "Background pixels: ";
     
     for (int i = 0; i < slowSide; i++)
     {
@@ -747,7 +748,7 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
                 foreNum += weight;
                 foreground += value * weight;
                 
-                logged << value << ", ";
+           //     logged << value << ", ";
                 
                 if (value > pixelCountCutoff && pixelCountCutoff > 0)
                 {
@@ -756,15 +757,19 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
             }
             else if (flag == MaskBackground)
             {
+          //      logged2 << value << ", ";
                 backNum++;
                 background += value;
             }
         }
     }
     
-    logged << std::endl;
+ /*   logged << std::endl;
     sendLog(LogLevelDebug);
     
+    logged2 << std::endl;
+    Logger::mainLogger->addStream(&logged2, LogLevelDebug);
+  */  
     double aveBackground = (double) background / (double) backNum;
     double backgroundInForeground = aveBackground * (double) foreNum;
     
@@ -773,8 +778,8 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
     
     double intensity = (foreground - backgroundInForeground);
     
-    if (intensity > 1000)
-        printBox(x, y, 3);
+ //   if (intensity > 1000)
+        printBox(x, y, 5);
     
     return intensity;
 }
@@ -830,7 +835,7 @@ bool Image::accepted(int x, int y)
         }
     }
     
-    if (value < -1000)
+    if (value == -100000)
         return false;
 
     Coord coord = std::make_pair(x, y);
@@ -1276,6 +1281,11 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
     double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
     double maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 0.0);
+    
+    if (rejectCloseSpots && tooCloseDistance == 0)
+    {
+        tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
+    }
     
     int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
     

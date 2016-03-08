@@ -182,6 +182,11 @@ public:
         indexers.erase(indexers.begin() + j);
     }
     
+    void setIOMRefiners(std::vector<IOMRefinerPtr> refiners)
+    {
+        indexers = refiners;
+    }
+    
     int spotVectorCount()
     {
         return (int)spotVectors.size();

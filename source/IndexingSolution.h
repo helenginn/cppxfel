@@ -16,6 +16,7 @@
 #include "csymlib.h"
 #include "LoggableObject.h"
 #include "Holder.h"
+#include <mutex>
 #include "UnitCellLattice.h"
 
 typedef std::map<SpotVectorPtr, SpotVectorPtr> SpotVectorMap;
@@ -29,6 +30,7 @@ private:
     SpotVectorMap spotVectors;
     SpotVectorMatrixMap2D matrices;
     static UnitCellLatticePtr lattice;
+    static std::mutex setupMutex;
     
     bool vectorAgreesWithExistingVectors(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
     static bool vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr *firstMatch, SpotVectorPtr *secondMatch);
@@ -114,6 +116,8 @@ public:
     {
         return spotVectors.size();
     }
+    
+    static double getMinDistance();
 };
 
 #endif /* defined(__cppxfel__IndexingSolution__) */

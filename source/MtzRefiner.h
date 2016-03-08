@@ -68,8 +68,9 @@ public:
 	static void integrateImagesWrapper(MtzRefiner *object,
 			vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
 	void integrateImages(vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
-	void readMatricesAndImages(std::string *filename = NULL, bool areImages = true);
-
+	void readMatricesAndImages(std::string *filename = NULL, bool areImages = true, std::vector<ImagePtr> *targetImages = NULL);
+    void combineLists();
+    
 	static void readMatrix(double (&matrix)[9], std::string line);
 	static void singleThreadRead(vector<std::string> lines,
 			vector<MtzPtr> *mtzManagers, int offset);

@@ -45,6 +45,7 @@ private:
     static short int slices;
     static float trickyRes;
     static bool setupStatic;
+    static int peakSize;
     
     short int h;
     short int k;

@@ -1301,3 +1301,146 @@ void IndexManager::indexingParameterAnalysis()
     std::map<double, int> badAnglesHistogram = histogram(badAngleTrusts, 0.05);
     histogramCSV("angleTrustAnalysis.csv", goodAnglesHistogram, badAnglesHistogram);
 }
+
+std::vector<IOMRefinerPtr> IndexManager::consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both)
+{
+    std::vector<IOMRefinerPtr> refiners;
+    
+    for (int i = 0; i < image1->IOMRefinerCount(); i++)
+    {
+        bool found = false;
+        IOMRefinerPtr refiner1 = image1->getIOMRefiner(i);
+        
+        for (int j = 0; j < image2->IOMRefinerCount(); j++)
+        {
+            IOMRefinerPtr refiner2 = image2->getIOMRefiner(j);
+            
+            MatrixPtr mat1 = refiner1->getMatrix();
+            MatrixPtr mat2 = refiner2->getMatrix();
+            
+            if (IndexingSolution::matrixSimilarToMatrix(mat1, mat2))
+            {
+                found = true;
+                refiners.push_back(refiner1);
+                (*both)++;
+
+                // ignore refiner2 as it is duplicate
+            }
+        }
+        
+        if (found == false)
+        {
+            refiners.push_back(refiner1);
+            (*oneHand)++;
+        }
+    }
+    
+    for (int i = 0; i < image2->IOMRefinerCount(); i++)
+    {
+        IOMRefinerPtr refiner1 = image2->getIOMRefiner(i);
+        bool found = false;
+        
+        for (int j = 0; j < image1->IOMRefinerCount(); j++)
+        {
+            IOMRefinerPtr refiner2 = image1->getIOMRefiner(j);
+            
+            MatrixPtr mat1 = refiner1->getMatrix();
+            MatrixPtr mat2 = refiner2->getMatrix();
+            
+            if (IndexingSolution::matrixSimilarToMatrix(mat1, mat2))
+            {
+                found = true;
+                // ignore both as it would have been done in the previous loop
+                break;
+            }
+        }
+        
+        if (!found)
+        {
+            refiners.push_back(refiner1);
+            (*otherHand)++;
+        }
+    }
+    
+    return refiners;
+}
+
+void IndexManager::combineLists()
+{
+    IndexingSolution::setupStandardVectors();
+    
+    std::vector<ImagePtr> mergedImages;
+    logged << "Combining lists from " << images.size() << " images and " << mergeImages.size() << " images." << std::endl;
+    
+    int oneHand = 0;
+    int otherHand = 0;
+    int both = 0;
+    
+    // first we iterate through array 1
+    for (int i = 0; i < images.size(); i++)
+    {
+        ImagePtr image1 = images[i];
+        bool found = false;
+        
+        for (int j = 0; j < mergeImages.size(); j++)
+        {
+            ImagePtr image2 = mergeImages[j];
+            
+            // Are image1 and image2 the same
+            
+            if (image1->getFilename() == image2->getFilename())
+            {
+                found = true;
+                // we have a duplicate! check individual orientations
+                
+                std::vector<IOMRefinerPtr> newRefiners = consolidateOrientations(image1, image2, &oneHand, &otherHand, &both);
+                image1->clearIOMRefiners();
+                image1->setIOMRefiners(newRefiners);
+                mergedImages.push_back(image1);
+                
+                break;
+            }
+        }
+        
+        if (!found)
+        {
+            mergedImages.push_back(image1);
+            oneHand += image1->IOMRefinerCount();
+        }
+    }
+    
+    for (int i = 0; i < mergeImages.size(); i++)
+    {
+        ImagePtr image1 = mergeImages[i];
+        bool found = false;
+        
+        for (int j = 0; j < images.size(); j++)
+        {
+            ImagePtr image2 = images[j];
+            // Are image1 and image2 the same
+            
+            if (image1->getFilename() == image2->getFilename())
+            {
+                // we do not consider this image because it was covered in the last loop
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found)
+        {
+            mergedImages.push_back(image1);
+            otherHand += image1->IOMRefinerCount();
+        }
+    }
+    
+    logged << "Unique to list 1: " << oneHand << std::endl;
+    logged << "Unique to list 2: " << otherHand << std::endl;
+    logged << "Present in both lists: " << both << std::endl;
+
+    sendLog();
+    
+    images = mergedImages;
+    mergeImages.clear();
+    std::vector<ImagePtr>().swap(mergeImages);
+}

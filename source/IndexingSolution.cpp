@@ -38,6 +38,7 @@ Reflection *IndexingSolution::newReflection;
 bool IndexingSolution::notSetup = true;
 bool IndexingSolution::finishedSetup = false;
 bool IndexingSolution::checkingCommonSpots = true;
+std::mutex IndexingSolution::setupMutex;
 
 void IndexingSolution::reset()
 {
@@ -47,6 +48,15 @@ void IndexingSolution::reset()
 
 void IndexingSolution::setupStandardVectors()
 {
+    if (finishedSetup) return;
+    
+    setupMutex.lock();
+    
+    if (finishedSetup)
+    {
+        return;
+    }
+    
     notSetup = false;
     
     distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 4000.0);
@@ -101,6 +111,8 @@ void IndexingSolution::setupStandardVectors()
     newReflection->setSpaceGroup(spaceGroupNum);
     
     finishedSetup = true;
+    
+    setupMutex.unlock();
 }
 
 void IndexingSolution::calculateSimilarStandardVectorsForImageVectors(std::vector<SpotVectorPtr> vectors)
@@ -837,3 +849,10 @@ std::vector<double> IndexingSolution::totalDistanceTrusts()
     
     return trusts;
 }
+
+double IndexingSolution::getMinDistance()
+{
+    setupStandardVectors();
+    return lattice->getMinDistance();
+}
+

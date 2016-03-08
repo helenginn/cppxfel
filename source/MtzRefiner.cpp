@@ -851,9 +851,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
 }
 
-void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages)
+void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
 {
-    if (images.size() > 0)
+    if (targetImages == NULL && images.size() > 0)
         return;
     
     std::string aFilename = "";
@@ -915,15 +915,20 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages)
             total += mtzSubsets[i].size();
     }
     
+    if (targetImages == NULL)
+    {
+        targetImages = &images;
+    }
+
     mtzManagers.reserve(total);
-    images.reserve(total);
+    targetImages->reserve(total);
     int lastPos = 0;
     
     for (int i = 0; i < maxThreads; i++)
     {
         if (areImages)
         {
-            images.insert(images.begin() + lastPos,
+            targetImages->insert(targetImages->begin() + lastPos,
                           imageSubsets[i].begin(), imageSubsets[i].end());
             lastPos += imageSubsets[i].size();
         }
@@ -1736,6 +1741,28 @@ void MtzRefiner::index()
     indexManager->index();
     
     mtzManagers = indexManager->getMtzs();
+    
+    writeNewOrientations();
+    integrationSummary();
+}
+
+void MtzRefiner::combineLists()
+{
+    loadPanels();
+    this->readMatricesAndImages();
+    std::cout << "N: Total images loaded in file 1: " << images.size() << std::endl;
+    
+    std::string secondList = FileParser::getKey("SECOND_MATRIX_LIST", std::string(""));
+    std::vector<ImagePtr> secondImages;
+    
+    this->readMatricesAndImages(&secondList, true, &secondImages);
+    std::cout << "N: Total images loaded in file 2 (" << secondList << "): " << secondImages.size() << std::endl;
+    
+    if (!indexManager)
+        indexManager = new IndexManager(images);
+    
+    indexManager->setMergeImages(secondImages);
+    indexManager->combineLists();
     
     writeNewOrientations();
     integrationSummary();

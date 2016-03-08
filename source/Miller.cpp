@@ -34,6 +34,7 @@ short int Miller::slices = 8;
 float Miller::trickyRes = 8.0;
 bool Miller::setupStatic = false;
 PartialityModel Miller::model = PartialityModelScaled;
+int Miller::peakSize = 0;
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
@@ -53,6 +54,7 @@ void Miller::setupStaticVariables()
     slices = FileParser::getKey("PARTIALITY_SLICES", 8);
     trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
     maxSlices = FileParser::getKey("MAX_SLICES", 100);
+    peakSize = FileParser::getKey("FOCUS_ON_PEAK_SIZE", 0);
     
     setupStatic = true;
 }
@@ -1038,7 +1040,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     if (!Panel::shouldUsePanelInfo())
     {
         int search = indexer->getSearchSize();
-        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 0, even);
+        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
         
@@ -1058,7 +1060,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             int xInt = shiftedX;
             int yInt = shiftedY;
             
-            getImage()->focusOnAverageMax(&xInt, &yInt, search, 0, even);
+            getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
             
             shift = std::make_pair(xInt + 0.5 - x_coord, yInt + 0.5 - y_coord);
             
@@ -1069,7 +1071,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         {
             int search = indexer->getSearchSize();
             
-            getImage()->focusOnAverageMax(&intLastX, &intLastY, search, 0, even);
+            getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
             
             *x = intLastX;
             *y = intLastY;
@@ -1115,6 +1117,12 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     
     rawIntensity = getImage()->intensityAt(x, y, shoebox, &countingSigma, 0);
 
+    if (h == 4 && k == -2 && l == -2)
+    {
+        logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    
+    }
     
     if (rawIntensity > 1000 && false)
     {

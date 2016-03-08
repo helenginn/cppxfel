@@ -285,6 +285,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->indexingParameterAnalysis();
             }
             
+            if (line == "COMBINE_LISTS")
+            {
+                understood = true;
+                refiner->combineLists();
+            }
+            
             if (!understood)
             {
                 log << "Skipping line " << line << std::endl;
