@@ -154,7 +154,7 @@ def printData(path):
 def dumpPanels(images):
 	import pickle
 	global panels
-	global distance
+	global distance, wavelength, centre, pixelSize
 	print "Attempting to dump panel file"
 	# i is an integer specifying the image counter
 	i = 0
@@ -176,8 +176,16 @@ def dumpPanels(images):
 		# now we dump from this pickle file and stop the while loop
 		
 		successful = True
-		panels = x['ACTIVE_AREAS']
-		distance = x['DISTANCE']
+		
+		try:
+			panels = x['ACTIVE_AREAS']
+			distance = x['DISTANCE']
+			wavelength = x['WAVELENGTH']
+			pixelSize = (x['PIXEL_SIZE'], 0)
+			centre = (x['BEAM_CENTER_X'] / pixelSize[0], x['BEAM_CENTER_Y'] / pixelSize[0])
+		except Exception as e:
+			print Exception
+			break
 		
 		# TODO: find distance, wavelength, beam centre from first file.
 		
@@ -301,30 +309,30 @@ indexTxt = StringIO.StringIO()
 print >> indexTxt, "ORIENTATION_MATRIX_LIST matrices.dat"
 print >> indexTxt, "NEW_MATRIX_LIST indexed.dat"
 
-print >> indexTxt, "#Be sure to set the UNIT_CELL and SPACE_GROUP for indexing. Cppxfel cannot index without this knowledge."
-
-if spacegroup > 0:
-	print >> indexTxt, "SPACE_GROUP", spacegroup
+print >> indexTxt, "# Be sure to set the UNIT_CELL and SPACE_GROUP for indexing. cppxfel cannot index without this knowledge."
+print >> indexTxt, "SPACE_GROUP", spacegroup
 
 if len(unit_cell_dimensions):
 	print >> indexTxt, "UNIT_CELL",
 	for dimension in unit_cell_dimensions:
 		print >> indexTxt, dimension,
-print >> indexTxt, ""
+print >> indexTxt, "\n"
 
 print >> indexTxt, "MM_PER_PIXEL", pixelSize[0]
 print >> indexTxt, "BEAM_CENTRE", centre[0], centre[1]
 print >> indexTxt, "DETECTOR_DISTANCE", distance
 print >> indexTxt, "INTEGRATION_WAVELENGTH", wavelength, "\n"
 print >> indexTxt, "PANEL_LIST panels.txt"
-print >> indexTxt, "METROLOGY_SEARCH_SIZE 1\n\n"
-print >> indexTxt, "#If your crystal is highly mosaic or the detector is quite far back you may need to alter the padding values.\nSHOEBOX_FOREGROUND_PADDING 1"
+print >> indexTxt, "METROLOGY_SEARCH_SIZE 2\n"
+print >> indexTxt, "# If your crystal is highly mosaic or the detector is quite far back you may need to increase the padding values."
+print >> indexTxt, "SHOEBOX_FOREGROUND_PADDING 1"
 print >> indexTxt, "SHOEBOX_NEITHER_PADDING 2"
-print >> indexTxt, "SHOEBOX_BACKGROUND_PADDING 3\n\n"
-print >> indexTxt, "#If you see too many spots, increase the intensity threshold.\nINTENSITY_THRESHOLD 12"
+print >> indexTxt, "SHOEBOX_BACKGROUND_PADDING 3\n"
+print >> indexTxt, "# If you see too many spots, increase the intensity threshold.\nINTENSITY_THRESHOLD 12"
 print >> indexTxt, "ABSOLUTE_INTENSITY OFF\n"
 print >> indexTxt, "OVER_PRED_BANDWIDTH 0.07\n"
-print >> indexTxt, "REFINE_ORIENTATIONS ON\n"
+print >> indexTxt, "REFINE_ORIENTATIONS ON"
+print >> indexTxt, "ROUGH_CALCULATION ON\n"
 
 print >> indexTxt, "# Specifies maximum multiple lattices to index in total"
 print >> indexTxt, "SOLUTION_ATTEMPTS 1\n"
@@ -336,7 +344,7 @@ print >> indexTxt, "MAX_RECIPROCAL_DISTANCE 0.15\n"
 
 print >> indexTxt, "# Initial rlp size: used to determine the tolerances for the vector lengths in the crystal."
 print >> indexTxt, "# For a 1 micron crystal with no mosaicity, the initial rlp size is 0.0001 Ang^-1 (i.e.,"
-print >> indexTxt, "# 1 / 10000 Ang). To be more strict, lower this number; to be less strict increase it."
+print >> indexTxt, "# 1 / 10000 Ang). To be more strict for indexing, lower this number; to be less strict increase it."
 print >> indexTxt, "INITIAL_RLP_SIZE 0.0001\n"
 
 print >> indexTxt, "# If you wish to see more verbose output, change to 1 (moderate), or 2 (debug, usually too much)."
@@ -362,13 +370,12 @@ print >> integrateTxt, "# ORIENTATION_MATRIX_LIST integrate-indexed.dat"
 
 print >> integrateTxt, "NEW_MATRIX_LIST orientations.dat\n"
 
-if spacegroup > 0:
-	print >> integrateTxt, "SPACE_GROUP", spacegroup
+print >> indexTxt, "# Be sure to set the SPACE_GROUP for integration."
+print >> integrateTxt, "SPACE_GROUP", spacegroup
 
-if len(unit_cell_dimensions):
-	print >> integrateTxt, "UNIT_CELL",
-	for dimension in unit_cell_dimensions:
-		print >> integrateTxt, dimension,
+print >> integrateTxt, "UNIT_CELL",
+for dimension in unit_cell_dimensions:
+	print >> integrateTxt, dimension,
 print >> integrateTxt 
 print >> integrateTxt, "FIX_UNIT_CELL ON\n"
 print >> integrateTxt, "MM_PER_PIXEL", pixelSize[0]
@@ -377,12 +384,16 @@ print >> integrateTxt, "DETECTOR_DISTANCE", distance
 print >> integrateTxt, "INTEGRATION_WAVELENGTH", wavelength, "\n"
 print >> integrateTxt, "PANEL_LIST panels.txt"
 print >> integrateTxt, "METROLOGY_SEARCH_SIZE 1\n"
+print >> integrateTxt, "# If your crystal is highly mosaic or the detector is quite far back you may need to increase the padding values."
 print >> integrateTxt, "SHOEBOX_FOREGROUND_PADDING 1"
 print >> integrateTxt, "SHOEBOX_NEITHER_PADDING 2"
 print >> integrateTxt, "SHOEBOX_BACKGROUND_PADDING 3\n"
+print >> integrateTxt, "# If you see too many spots, increase the intensity threshold."
 print >> integrateTxt, "INTENSITY_THRESHOLD 12"
-print >> integrateTxt, "ABSOLUTE_INTENSITY OFF"
+print >> integrateTxt, "ABSOLUTE_INTENSITY OFF\n"
 print >> integrateTxt, "REFINE_ORIENTATIONS ON\n"
+print >> integrateTxt, "# Enable the following line to be a rougher, quicker calculation"
+print >> integrateTxt, "# ROUGH_CALCULATION ON\n"
 print >> integrateTxt, "VERBOSITY_LEVEL 0\n"
 print >> integrateTxt, "COMMANDS\n"
 print >> integrateTxt, "INTEGRATE"
@@ -414,7 +425,6 @@ if not os.path.isfile(outputFilename):
 	print "New template input file refine.txt"
 
 
-
 mergeTxt = StringIO.StringIO()
 
 print >> mergeTxt, "ORIENTATION_MATRIX_LIST merge-orientations.dat"
@@ -436,4 +446,29 @@ if not os.path.isfile(outputFilename):
 	print "New template input file merge.txt"
 
 if distance == 0:
-	print "You MUST change the experimental parameters in integrate.txt"
+	print "You MUST change the experimental parameters in index.txt and integrate.txt"
+
+
+print "Now what?"
+print "********************"
+print "***** INDEXING *****"
+print "********************"
+print
+print "To index, change the space group and unit cell dimensions in index.txt."
+print "After indexing, alter integrate.txt to accept the alternative value for"
+print "ORIENTATION_MATRIX_LIST (uncomment the line)."
+print
+print "Command to index: cppxfel.run -i index.txt"
+print
+print "********************"
+print "*** INTEGRATION ****"
+print "********************"
+print
+print "To integrate orientations from indexing using DIALS, simply skip index.txt."
+print "CHECK the unit cell and space group listed in integrate.txt, and then"
+print "run the integrate.txt input file. This includes initial orientation matrix"
+print "refinement."
+print
+print "Command to integrate: cppxfel.run -i integrate.txt"
+print
+print "... but first, wait for image dumps:"
