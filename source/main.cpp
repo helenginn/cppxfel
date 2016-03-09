@@ -312,20 +312,23 @@ void new_main(int argc, char *argv[])
             double threshold = -100;
             int h = 0; int k = 0; int l = 0;
             
-            if (argc >= 4)
+            if (argc >= 3)
             {
                 threshold = atof(argv[3]);
+                std::cout << "Threshold set to " << threshold << std::endl;
             }
             
-            if (argc >= 7)
+            if (argc >= 6)
             {
                 h = atoi(argv[4]);
                 k = atoi(argv[5]);
                 l = atoi(argv[6]);
+
+                std::cout << "Searching for " << h << " " << k << " " << l << std::endl;
             }
 
             GraphDrawer drawer = GraphDrawer(&*stats.mtzs[0]);
-            drawer.plotPartialityStats();
+            drawer.plotPartialityStats(h, k, l);
 		}
 	}
     
