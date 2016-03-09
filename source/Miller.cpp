@@ -56,7 +56,7 @@ void Miller::setupStaticVariables()
     trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
     maxSlices = FileParser::getKey("MAX_SLICES", 100);
     peakSize = FileParser::getKey("FOCUS_ON_PEAK_SIZE", 0);
-    maximumIntensity = FileParser::getKey("MAXIMUM_INTENSITY", 0);
+    maximumIntensity = FileParser::getKey("MAXIMUM_INTENSITY", 0.);
     
     setupStatic = true;
 }
