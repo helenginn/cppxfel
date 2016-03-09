@@ -769,7 +769,7 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
     
     logged2 << std::endl;
     Logger::mainLogger->addStream(&logged2, LogLevelDebug);
-  */  
+  */
     double aveBackground = (double) background / (double) backNum;
     double backgroundInForeground = aveBackground * (double) foreNum;
     
@@ -1216,6 +1216,12 @@ void Image::processSpotList()
     newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
     
     spots.push_back(newSpot);
+    double tooCloseDistance = 0;
+    bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
+    if (rejectCloseSpots)
+    {
+        tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
+    }
     
     for (int i = 0; i < spotLines.size(); i++)
     {
@@ -1238,12 +1244,30 @@ void Image::processSpotList()
         newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
         bool add = true;
         
+        vec myVec = newSpot->estimatedVector();
+        
+        for (int j = 0; j < spots.size(); j++)
+        {
+            SpotPtr testSpot = spots[j];
+            
+            if (tooCloseDistance > 0)
+            {
+                vec testVec = testSpot->estimatedVector();
+                vec copyVec = copy_vector(myVec);
+                take_vector_away_from_vector(testVec, &copyVec);
+                
+                double distance = length_of_vector(copyVec);
+                if (distance < tooCloseDistance)
+                {
+                    add = false;
+                }
+            }
+        }
+        
         for (int j = 0; j < spots.size(); j++)
         {
             if (newSpot->isSameAs(spots[j]))
             {
-                logged << "Same spot for " << getFilename() << ", ignoring" << std::endl;
-                sendLog();
                 add = false;
             }
         }
@@ -1881,7 +1905,7 @@ void Image::findIndexingSolutions()
             
             if (seconds > indexingTimeLimit)
             {
-                logged << "N: Time limit reached on image " << filename << " on 0 crystals and " << spotCount() << " remaining spots." << std::endl;
+                logged << "N: Time limit reached on image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
                 sendLog();
                 
                 return;

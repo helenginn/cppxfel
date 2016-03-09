@@ -54,6 +54,7 @@ void IndexingSolution::setupStandardVectors()
     
     if (finishedSetup)
     {
+        setupMutex.unlock();
         return;
     }
     
