@@ -347,7 +347,7 @@ bool Miller::accepted(void)
         return false;
     }
     
-    if (rawIntensity > maximumIntensity)
+    if (maximumIntensity > 0 && rawIntensity > maximumIntensity)
     {
         return false;
     }
