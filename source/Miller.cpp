@@ -35,7 +35,6 @@ float Miller::trickyRes = 8.0;
 bool Miller::setupStatic = false;
 PartialityModel Miller::model = PartialityModelScaled;
 int Miller::peakSize = 0;
-float Miller::maximumIntensity = 0;
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
@@ -56,7 +55,6 @@ void Miller::setupStaticVariables()
     trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
     maxSlices = FileParser::getKey("MAX_SLICES", 100);
     peakSize = FileParser::getKey("FOCUS_ON_PEAK_SIZE", 0);
-    maximumIntensity = FileParser::getKey("MAXIMUM_INTENSITY", 0);
     
     setupStatic = true;
 }
@@ -343,11 +341,6 @@ bool Miller::accepted(void)
     double sigma = this->getSigma();
     
     if (sigma == 0)
-    {
-        return false;
-    }
-    
-    if (rawIntensity > maximumIntensity)
     {
         return false;
     }
