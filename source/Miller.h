@@ -46,6 +46,7 @@ private:
     static float trickyRes;
     static bool setupStatic;
     static int peakSize;
+    static float maximumIntensity;
     
     short int h;
     short int k;
