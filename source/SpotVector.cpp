@@ -194,6 +194,10 @@ void SpotVector::addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> stan
             sameLengthStandardVectors.push_back(standardVectors[i]);
         }
     }
+    
+    std::ostringstream logged;
+    logged << "Added " << sameLengthStandardVectors.size() << " similar standard lengths to vector (min tolerance " << getMinDistanceTolerance() << ")." << std::endl;
+    Logger::mainLogger->addStream(&logged, LogLevelDebug);
 }
 
 SpotVectorPtr SpotVector::differenceFromVector(SpotVectorPtr spotVec)
@@ -260,11 +264,11 @@ double SpotVector::getMinDistanceTolerance()
     // we set k = 0
     
     double minRadius = 1 / minWavelength;
-    double minL = - resolution / (2 * minRadius);
+    double minL = - pow(resolution, 2) / (2 * minRadius);
     double minH = sqrt(pow(resolution, 2) - pow(minL, 2));
     
     double maxRadius = 1 / maxWavelength;
-    double maxL = - resolution / (2 * maxRadius);
+    double maxL = - pow(resolution, 2) / (2 * maxRadius);
     double maxH = sqrt(pow(resolution, 2) - pow(maxL, 2));
     
     vec minVec = new_vector(minH, 0, minL);
@@ -274,7 +278,7 @@ double SpotVector::getMinDistanceTolerance()
     
     minDistanceTolerance = length_of_vector(maxVec);
     minDistanceTolerance += rlpSize;
-
+    
     minDistanceTolerance = 1 / minDistanceTolerance;
     
     return minDistanceTolerance;
