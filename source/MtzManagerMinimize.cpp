@@ -940,6 +940,7 @@ void MtzManager::gridSearch(bool silent)
     delete[] firstParams;
     
     writeToFile(std::string("ref-") + filename);
+    writeToDat("ref-");
 }
 
 void MtzManager::excludeFromLogCorrelation()

@@ -218,12 +218,6 @@ void InputFileParser::parse(bool fromPython)
                 refiner->readMatricesAndMtzs();
             }
             
-            if (line == "DETECTOR_GAINS")
-            {
-                understood = true;
-                refiner->plotDetectorGains();
-            }
-            
             if (line == "LOAD_INITIAL_MTZ")
             {
                 understood = true;

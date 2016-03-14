@@ -1499,6 +1499,14 @@ bool IOMRefiner::isBasicGoodSolution()
 
 bool IOMRefiner::isGoodSolution()
 {
+    if (getImage()->getClass() == ImageClassDIALS)
+    {
+        logged << "Solution refinement has not been enabled for DIALS images yet - assuming good solution." << std::endl;
+        sendLog();
+        
+        return true;
+    }
+    
     bool good = false;
     double goodSolutionStdev = FileParser::getKey("GOOD_SOLUTION_ST_DEV", 0.04);
     double badSolutionStdev = FileParser::getKey("BAD_SOLUTION_ST_DEV", 0.066);

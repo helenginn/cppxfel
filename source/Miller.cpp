@@ -646,7 +646,7 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
     double inwardsLimit = wavelength + limit;
     double outwardsLimit = wavelength - limit;
     
-    if ((outwards_bandwidth > inwardsLimit || inwards_bandwidth < outwardsLimit) && resolution() > 1 / trickyRes)
+    if ((outwards_bandwidth > inwardsLimit || inwards_bandwidth < outwardsLimit) && resolution() > (2 / trickyRes))
     {
         return 0;
     }
@@ -993,41 +993,21 @@ void flattenAngle(double *radians)
     }
 }
 
-void Miller::calculatePosition(double distance, double wavelength, double beamX, double beamY, double mmPerPixel, MatrixPtr transformedMatrix, double *x, double *y)
-{
-    vec hkl = new_vector(h, k, l);
-    transformedMatrix->multiplyVector(&hkl);
-    
-    double x_mm = (hkl.k * distance / (1 / wavelength + hkl.l));
-    double y_mm = (hkl.h * distance / (1 / wavelength + hkl.l));
-    
-    double x_coord = beamX - x_mm / mmPerPixel;
-    double y_coord = beamY - y_mm / mmPerPixel;
-    
-    lastX = x_coord;
-    lastY = y_coord;
-    
-    *x = lastX;
-    *y = lastY;
-}
-
 void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
                                 int *y)
 {
     double x_coord = 0;
     double y_coord = 0;
     
-    double distance = getImage()->getDetectorDistance();
-    double wavelength = getImage()->getWavelength();
+    vec hkl = new_vector(h, k, l);
+    transformedMatrix->multiplyVector(&hkl);
+    
+    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl);
+    x_coord = coord.first;
+    y_coord = coord.second;
+    
     bool even = shoebox->isEven();
 
-    int beamX = getImage()->getBeamX();
-    int beamY = getImage()->getBeamY();
-    double mmPerPixel = getImage()->getMmPerPixel();
-    
-    calculatePosition(distance, wavelength, beamX, beamY, mmPerPixel,
-                      transformedMatrix, &x_coord, &y_coord);
-    
     int intLastX = int(x_coord);
     int intLastY = int(y_coord);
     
@@ -1036,6 +1016,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         intLastX = round(x_coord);
         intLastY = round(y_coord);
     }
+    
+    lastX = x_coord;
+    lastY = y_coord;
     
     if (!Panel::shouldUsePanelInfo())
     {
@@ -1124,11 +1107,12 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     
     }
     
-    if (rawIntensity > 1000 && false)
+ //   if (rawIntensity > 1000 && false)
+    if (h == -12 && k == 4 && l == 4 && false)
     {
         logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelDebug);
-        getImage()->printBox(x, y, 5);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal);
+        getImage()->printBox(x, y, 8);
         shoebox->printShoebox();
     }
 }

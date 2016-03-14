@@ -725,7 +725,9 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         miller->setFilename(filename);
     //    miller->setPartialityModel(model);
         miller->setPhase(phase);
-        miller->setShift(std::make_pair(shiftX, shiftY));
+        miller->setLastX(shiftX);
+        miller->setLastY(shiftY);
+//        miller->setShift(std::make_pair(shiftX, shiftY));
         miller->matrix = this->matrix;
         
         Reflection *prevReflection;
@@ -1476,8 +1478,8 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
             
             if (shifts)
             {
-                fdata[7] = reflections[i]->miller(j)->getShift().first;
-                fdata[8] = reflections[i]->miller(j)->getShift().second;
+                fdata[7] = reflections[i]->miller(j)->getShift().first + reflections[i]->miller(j)->getLastX();
+                fdata[8] = reflections[i]->miller(j)->getShift().second + reflections[i]->miller(j)->getLastY();
             }
             
             ccp4_lwrefl(mtzout, fdata, colout, columns, num);
@@ -1566,12 +1568,12 @@ int MtzManager::accepted(void)
 }
 
 
-void MtzManager::writeToDat()
+void MtzManager::writeToDat(std::string prefix)
 {
     std::string name = filename;
     int lastindex = (int)name.find_last_of(".");
     std::string rootName = name.substr(0, lastindex);
-    std::string datName = rootName + ".csv";
+    std::string datName = prefix + rootName + ".csv";
     /*
     std::ofstream datOutput;
     datOutput.open(datName);

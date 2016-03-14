@@ -54,8 +54,6 @@ public:
 	void readMatricesAndMtzs();
     void refineDetectorGeometry();
     void refineMetrology();
-    void loadMillersIntoPanels();
-    void plotDetectorGains();
     void initialMerge();
     void orientationPlot();
     void applyUnrefinedPartiality();

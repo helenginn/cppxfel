@@ -136,6 +136,19 @@ std::string Matrix::description(bool detailed, bool submatrix)
     return description.str();
 }
 
+void Matrix::sensibleComponents(double *returnedComponents[9])
+{
+    (*returnedComponents)[0] = components[0];
+    (*returnedComponents)[1] = components[4];
+    (*returnedComponents)[2] = components[8];
+    (*returnedComponents)[3] = components[1];
+    (*returnedComponents)[4] = components[5];
+    (*returnedComponents)[5] = components[9];
+    (*returnedComponents)[6] = components[2];
+    (*returnedComponents)[7] = components[6];
+    (*returnedComponents)[8] = components[10];
+}
+
 void Matrix::eulerAngles(double *theta, double *phi, double *psi, bool force)
 {
     Matrix *chosenMat = rotation ? &*rotation : this;

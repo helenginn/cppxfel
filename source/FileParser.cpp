@@ -298,6 +298,7 @@ void FileParser::generateFunctionList()
     parserMap["ORIENTATION_SCORE"] = simpleInt;
     parserMap["ORIENTATION_CORRECTION"] = doubleVector;
     parserMap["IMAGE_MASKED_VALUE"] = simpleInt;
+    parserMap["IMAGE_IGNORE_UNDER_VALUE"] = simpleInt;
     parserMap["SPHERE_THICKNESS"] = simpleFloat;
     parserMap["SIGMA_RESOLUTION_CUTOFF"] = simpleFloat;
     parserMap["PIXEL_COUNT_CUTOFF"] = simpleInt;

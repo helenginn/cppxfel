@@ -44,6 +44,7 @@ public:
 	double maximumLift(ImagePtr image, int x, int y);
 	void makeProbe(int height, int background, int size);
 	void setXY(double x, double y);
+    void setXYFromEstimatedVector(vec hkl);
 	double scatteringAngle(ImagePtr image = ImagePtr());
 	bool isAcceptable(ImagePtr image);
 	static void sortSpots(vector<Spot *> *spots);

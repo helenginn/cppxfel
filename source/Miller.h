@@ -156,7 +156,6 @@ public:
     bool isOverlapped();
 	void positionOnDetector(MatrixPtr transformedMatrix, int *x,
 			int *y);
-    void calculatePosition(double distance, double wavelength, double beamX, double beamY, double mmPerPixel, MatrixPtr transformedMatrix, double *x, double *y);
     void recalculateBetterPartiality();
     
     void setHorizontalPolarisationFactor(double newFactor);

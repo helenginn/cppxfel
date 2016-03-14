@@ -401,35 +401,17 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
 
 vec Spot::estimatedVector()
 {
- /*   if (lastEstimatedVector.h != 0 && lastEstimatedVector.k != 0 && lastEstimatedVector.l != 0)
-    {
-        return lastEstimatedVector;
-    }
-    */
-    double beamX = getParentImage()->getBeamX() * getParentImage()->getMmPerPixel();
-    double beamY = getParentImage()->getBeamY() * getParentImage()->getMmPerPixel();
+    vec estimated = getParentImage()->pixelsToReciprocalCoordinates(getX(), getY());
     
-    double wavelength = getParentImage()->getWavelength();
+    return estimated;
+}
+
+void Spot::setXYFromEstimatedVector(vec hkl)
+{
+    std::pair<double, double> xyPix = getParentImage()->reciprocalCoordinatesToPixels(hkl);
     
-  //  double height = getParentImage()->getYDim();
-    
-    double mmX = getX() * getParentImage()->getMmPerPixel();
- //   double mmY = (height - getY()) * getParentImage()->getMmPerPixel();
-    double mmY = getY() * getParentImage()->getMmPerPixel();
-    
-    double detector_distance = getParentImage()->getDetectorDistance();
-    
-    vec crystalVec = new_vector(beamX, beamY, 0 - detector_distance);
-    vec spotVec = new_vector(mmX, mmY, 0);
-    vec reciprocalCrystalVec = new_vector(0, 0, 0 - 1 / wavelength);
-    
-    vec crystalToSpot = vector_between_vectors(crystalVec, spotVec);
-    scale_vector_to_distance(&crystalToSpot, 1 / wavelength);
-    add_vector_to_vector(&reciprocalCrystalVec, crystalToSpot);
-    
-    reciprocalCrystalVec.k *= -1;
-    
-    return reciprocalCrystalVec;
+    x = xyPix.first;
+    y = xyPix.second;
 }
 
 std::string Spot::spotLine()

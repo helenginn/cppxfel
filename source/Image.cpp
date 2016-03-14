@@ -47,9 +47,16 @@ Image::Image(std::string filename, double wavelength,
     vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
     
     shouldMaskValue = FileParser::hasKey("IMAGE_MASKED_VALUE");
+    shouldMaskUnderValue = FileParser::hasKey("IMAGE_IGNORE_UNDER_VALUE");
+    
+    maskedValue = 0;
+    maskedUnderValue = 0;
     
     if (shouldMaskValue)
         maskedValue = FileParser::getKey("IMAGE_MASKED_VALUE", 0);
+    
+    if (shouldMaskUnderValue)
+        maskedUnderValue = FileParser::getKey("IMAGE_MASKED_UNDER_VALUE", 0);
     
     detectorGain = FileParser::getKey("DETECTOR_GAIN", 1.0);
     
@@ -404,8 +411,8 @@ void Image::focusOnMaximum(int *x, int *y, int tolerance, double shiftX, double 
         }
     }
     
-    if (tolerance > 0 && accepted(newX, newY))
-        printBox(newX, newY, tolerance);
+  //  if (tolerance > 0 && accepted(newX, newY))
+  //      printBox(newX, newY, tolerance);
     
     *x = newX;
     *y = newY;
@@ -492,6 +499,43 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
     return true;
 }
 
+std::pair<double, double> Image::reciprocalCoordinatesToPixels(vec hkl)
+{
+    double x_mm = (hkl.k * detectorDistance / (1 / wavelength + hkl.l));
+    double y_mm = (hkl.h * detectorDistance / (1 / wavelength + hkl.l));
+    
+    double x_coord = beamX - x_mm / mmPerPixel;
+    double y_coord = beamY - y_mm / mmPerPixel;
+    
+    return std::make_pair(x_coord, y_coord);
+}
+
+vec Image::pixelsToReciprocalCoordinates(double xPix, double yPix)
+{
+    double mmX = xPix * getMmPerPixel();
+    double mmY = yPix * getMmPerPixel();
+    
+    return millimetresToReciprocalCoordinates(mmX, mmY);
+}
+
+vec Image::millimetresToReciprocalCoordinates(double xmm, double ymm)
+{
+    double mmBeamX = getBeamX() * getMmPerPixel();
+    double mmBeamY = getBeamY() * getMmPerPixel();
+    
+    vec crystalVec = new_vector(mmBeamX, mmBeamY, 0 - getDetectorDistance());
+    vec spotVec = new_vector(xmm, ymm, 0);
+    vec reciprocalCrystalVec = new_vector(0, 0, 0 - 1 / getWavelength());
+    
+    vec crystalToSpot = vector_between_vectors(crystalVec, spotVec);
+    scale_vector_to_distance(&crystalToSpot, 1 / getWavelength());
+    add_vector_to_vector(&reciprocalCrystalVec, crystalToSpot);
+    
+    reciprocalCrystalVec.k *= -1;
+    
+    return reciprocalCrystalVec;
+}
+
 void Image::printBox(int x, int y, int tolerance)
 {
     std::ostringstream logged;
@@ -509,7 +553,7 @@ void Image::printBox(int x, int y, int tolerance)
     
     logged << std::endl;
     
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    Logger::mainLogger->addStream(&logged, LogLevelNormal);
     
 }
 
@@ -778,8 +822,6 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
     
     double intensity = (foreground - backgroundInForeground);
     
- //   if (intensity > 1000)
-        printBox(x, y, 5);
     
     return intensity;
 }
@@ -829,8 +871,16 @@ bool Image::accepted(int x, int y)
     {
         if (value == maskedValue)
         {
-            logged << "Masking value at " << x << ", " << y << std::endl;
-            sendLog(LogLevelDebug);
+       //     logged << "Masking value at " << x << ", " << y << std::endl;
+       //     sendLog(LogLevelDebug);
+            return false;
+        }
+    }
+    
+    if (shouldMaskUnderValue)
+    {
+        if (value < maskedUnderValue)
+        {
             return false;
         }
     }

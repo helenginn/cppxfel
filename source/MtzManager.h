@@ -223,7 +223,7 @@ public:
 	void applyPolarisation(void);
 
 	void writeToFile(std::string newFilename, bool announce = false, bool shifts = false, bool includeAmbiguity = false);
-	void writeToDat();
+    void writeToDat(std::string prefix = "");
     void sendLog(LogLevel priority = LogLevelNormal);
 
 	double correlationWithManager(MtzManager *otherManager, bool printHits = false,

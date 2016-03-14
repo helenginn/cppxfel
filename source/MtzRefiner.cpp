@@ -1572,51 +1572,6 @@ void MtzRefiner::refineDetectorGeometry()
 
 // MARK: Dry integrating
 
-void MtzRefiner::loadMillersIntoPanels()
-{
-    loadPanels();
-    
-    loadInitialMtz();
-    MtzManager::setReference(reference);
-    
-    double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
-    double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
-    double mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
-    
-    vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
-    
-    if (beam.size() == 0)
-    {
-        beam.push_back(BEAM_CENTRE_X);
-        beam.push_back(BEAM_CENTRE_Y);
-    }
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        MtzPtr mtz = mtzManagers[i];
-        
-        MatrixPtr matrix = mtz->getMatrix();
-        
-        for (int j = 0; j < mtz->reflectionCount(); j++)
-        {
-            for (int k = 0; k < mtz->reflection(j)->millerCount(); k++)
-            {
-                MillerPtr miller = mtz->reflection(j)->miller(k);
-                
-                double x, y;
-                
-                miller->calculatePosition(detectorDistance, wavelength, beam[0], beam[1], mmPerPixel, matrix, &x, &y);
-                
-                if (miller->accepted())
-                {
-                    Panel::addMillerToPanelArray(miller);
-                }
-            }
-        }
-    }
-    
-    Panel::finaliseMillerArrays();
-}
 /*
 // ARK: Find spots
 
@@ -1804,35 +1759,8 @@ void MtzRefiner::indexingParameterAnalysis()
 
 void MtzRefiner::refineMetrology()
 {
- //   loadInitialMtz();
-    
-    if (!Panel::hasMillers())
-    {
-        loadMillersIntoPanels();
-    }
-    
     Panel::printToFile("new_panels.txt");
     Panel::plotAll(PlotTypeAbsolute);
-}
-
-void MtzRefiner::plotDetectorGains()
-{
-    bool hasMillers = Panel::hasMillers();
-    
-    if (!hasMillers)
-    {
-        loadMillersIntoPanels();
-    }
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        MtzManager *ref = MtzManager::getReferenceManager();
-        
-        double scale = mtzManagers[i]->gradientAgainstManager(ref);
-        mtzManagers[i]->applyScaleFactor(scale);
-    }
-    
-    Panel::checkDetectorGains();
 }
 
 void MtzRefiner::xFiles()

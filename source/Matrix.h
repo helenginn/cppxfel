@@ -111,7 +111,8 @@ public:
     void recalculateOrientationMatrix();
     std::string summary();
     void setIdentity();
-    
+    void sensibleComponents(double *returnedComponents[9]);
+
     bool isComplex()
     {
         if (unitCell)
@@ -129,6 +130,7 @@ public:
     {
         return unitCell;
     }
+    
     
     double determinant();
     Matrix operator*=(Matrix &b);
