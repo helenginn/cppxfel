@@ -604,6 +604,8 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
     bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
+    bool setSigmaToUnity = FileParser::getKey("SET_SIGMA_TO_UNITY", true);
+    
     bool ignoreMissing = FileParser::getKey("IGNORE_MISSING_IMAGES", false);
     const std::string contents = FileReader::get_file_contents(
                                                                filename->c_str());
@@ -827,7 +829,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             newManager->setFilename(imgName.c_str());
             newManager->setMatrix(newMatrix);
             newManager->loadReflections(PartialityModelScaled, true);
-            newManager->setSigmaToUnity();
+            
+            if (setSigmaToUnity)
+                newManager->setSigmaToUnity();
             newManager->loadParametersMap();
             newManager->setParamLine(paramsLine);
             
