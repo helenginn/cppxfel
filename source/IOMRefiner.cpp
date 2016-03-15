@@ -1743,7 +1743,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         mtz->cutToResolutionWithSigma(cutoff);
     
     std::string imgFilename = "img-" + getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz";
-    mtz->writeToFile(imgFilename, true, true);
+    mtz->writeToFile(imgFilename, true, true, false, true);
     mtz->writeToDat();
 
     nearbyMillers.clear();

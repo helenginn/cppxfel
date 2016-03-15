@@ -1376,7 +1376,7 @@ void MtzManager::applyPolarisation(void)
     }
 }
 
-void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity)
+void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity, bool useCountingSigma)
 {
     int columns = 7;
     if (includeAmbiguity)
@@ -1453,6 +1453,7 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
             double sigma = reflections[i]->miller(j)->getSigma();
             double partiality = reflections[i]->miller(j)->getPartiality();
             double bFactor = reflections[i]->miller(j)->getBFactorScale();
+            double countingSigma = reflections[i]->miller(j)->getCountingSigma();
             
             if (intensity != intensity)
             {
@@ -1472,7 +1473,7 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
             fdata[1] = k;
             fdata[2] = l;
             fdata[3] = intensity / bFactor;
-            fdata[4] = sigma;
+            fdata[4] = useCountingSigma ? countingSigma : sigma;
             fdata[5] = partiality;
             fdata[6] = reflections[i]->miller(j)->getWavelength();
             
