@@ -46,6 +46,8 @@ Image::Image(std::string filename, double wavelength,
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
     vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
     
+    metrologyMoveThreshold = FileParser::getKey("METROLOGY_MOVE_THRESHOLD", 1.0);
+    
     shouldMaskValue = FileParser::hasKey("IMAGE_MASKED_VALUE");
     shouldMaskUnderValue = FileParser::hasKey("IMAGE_IGNORE_UNDER_VALUE");
     
@@ -308,34 +310,6 @@ int Image::valueAt(int x, int y)
     
     return data[position] * panelGain;
 }
-/*
-void Image::focusOnSpot(int *x, int *y, int tolerance1, int tolerance2)
-{
-    Spot *spot = new Spot(shared_from_this());
-    spot->makeProbe(150, 5);
-    
-    double maxLift = 0;
-    double maxX = *x;
-    double maxY = *y;
-    
-    for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
-    {
-        for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
-        {
-            double lift = spot->maximumLift(shared_from_this(), i, j, true);
-            
-            if (lift > maxLift)
-            {
-                maxLift = lift;
-                maxX = i;
-                maxY = j;
-            }
-        }
-    }
-    
-    *x = maxX;
-    *y = maxY;
-}*/
 
 void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even)
 {
@@ -398,7 +372,7 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
     }
     
     // only move if the new value is significantly higher
-    if (maxValue > oldValue + stdev)
+    if (maxValue > oldValue + metrologyMoveThreshold * stdev)
     {
         *x = newX;
         *y = newY;

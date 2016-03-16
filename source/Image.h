@@ -44,6 +44,7 @@ private:
     void findSpots();
     vector<IOMRefinerPtr> indexers;
     vector<IOMRefinerPtr> failedRefiners;
+    double metrologyMoveThreshold;
     bool shouldMaskValue;
     bool shouldMaskUnderValue;
     int maskedValue;

@@ -282,6 +282,7 @@ void FileParser::generateFunctionList()
 	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["ABSOLUTE_INTENSITY"] = simpleBool;
 	parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;
+    parserMap["METROLOGY_MOVE_THRESHOLD"] = simpleDouble;
     parserMap["FOCUS_ON_PEAK_SIZE"] = simpleInt;
 	parserMap["SHOEBOX_FOREGROUND_PADDING"] = simpleInt;
 	parserMap["SHOEBOX_NEITHER_PADDING"] = simpleInt;
