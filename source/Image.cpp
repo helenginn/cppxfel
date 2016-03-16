@@ -342,10 +342,23 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
     int maxValue = 0;
     int newX = *x;
     int newY = *y;
+    int oldValue = valueAt(newX, newY);
     int adjustment = (even ? -1 : 0);
     int latestCount = 0;
     std::string bestPixels;
+    std::vector<double> values;
     
+    for (int i = *x - tolerance1 - tolerance2; i <= *x + tolerance1 + tolerance2; i++)
+    {
+        for (int j = *y - tolerance1 - tolerance2; j <= *y + tolerance1 + tolerance2; j++)
+        {
+            int aValue = valueAt(i, j);
+            
+            values.push_back(aValue);
+        }
+    }
+    
+    double stdev = standard_deviation(&values);
     
     for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
     {
@@ -384,12 +397,12 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
         }
     }
     
-  //  logged << bestPixels << std::endl;
-  //  logged << "Sum of best pixels: " << maxValue << " over " << latestCount << " pixels." << std::endl;
-  //  sendLog(LogLevelDebug);
-    
-    *x = newX;
-    *y = newY;
+    // only move if the new value is significantly higher
+    if (maxValue > oldValue + stdev)
+    {
+        *x = newX;
+        *y = newY;
+    }
 }
 
 void Image::focusOnMaximum(int *x, int *y, int tolerance, double shiftX, double shiftY)
