@@ -568,6 +568,11 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
             
             Mask flag = flagAtShoeboxIndex(shoebox, i, j);
             
+            if (!accepted(panelPixelX, panelPixelY))
+            {
+                return std::nan(" ");
+            }
+            
             if (flag == MaskForeground || flag == MaskNeither)
                 continue;
             
@@ -773,6 +778,11 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
             
             Mask flag = flagAtShoeboxIndex(shoebox, i, j);
             
+            if (!accepted(panelPixelX, panelPixelY))
+            {
+                return std::nan(" ");
+            }
+            
             if (flag == MaskForeground)
             {
                 double weight = weightAtShoeboxIndex(shoebox, i, j);
@@ -817,14 +827,14 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
 {
     if (!fitBackgroundAsPlane)
     {
-        return integrateSimpleSummation(x, y, shoebox, error);
+        double intensity = integrateSimpleSummation(x, y, shoebox, error);
+        
+        return intensity;
     }
     else
     {
         return integrateFitBackgroundPlane(x, y, shoebox, error);
     }
-    
-    return 0;
 }
 
 double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int tolerance)
@@ -839,11 +849,11 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int t
         else
             focusOnAverageMax(&x1, &y1, tolerance, 1, shoebox->isEven());
     }
-    
+    /*
     if (checkShoebox(shoebox, x1, y1) == 0)
     {
         return nan("");
-    }
+    }*/
     
     double integral = integrateWithShoebox(x1, y1, shoebox, error);
     
@@ -858,8 +868,6 @@ bool Image::accepted(int x, int y)
     {
         if (value == maskedValue)
         {
-       //     logged << "Masking value at " << x << ", " << y << std::endl;
-       //     sendLog(LogLevelDebug);
             return false;
         }
     }
