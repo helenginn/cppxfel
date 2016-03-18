@@ -47,7 +47,8 @@ void Miller::setupStaticVariables()
     if (setupStatic)
         return;
     
-    model = FileParser::getKey("BINARY_PARTIALITY", false) ? PartialityModelScaled : PartialityModelBinary;
+    model = FileParser::getKey("BINARY_PARTIALITY", false) ? PartialityModelBinary : PartialityModelScaled;
+    
     normalised = FileParser::getKey("NORMALISE_PARTIALITIES", true);
     correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
     polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
@@ -452,6 +453,11 @@ double Miller::getSigma(void)
 
 double Miller::getPartiality()
 {
+    if (model == PartialityModelBinary)
+    {
+        return (partiality > partialCutoff);
+    }
+    
     return partiality;
 }
 
@@ -746,7 +752,7 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     
     if (model == PartialityModelBinary)
     {
-        binary = true;
+  //      binary = true;
     }
     
     vec hkl = new_vector(h, k, l);
