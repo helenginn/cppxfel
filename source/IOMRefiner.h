@@ -77,6 +77,7 @@ private:
 	int searchSize;
 	static double intensityThreshold;
     static bool absoluteIntensity;
+    static bool lowIntensityPenalty;
 	double maxResolution;
 	MtzManager *reference;
 	void calculateNearbyMillers(bool rough);

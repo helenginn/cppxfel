@@ -29,6 +29,7 @@
 
 double IOMRefiner::intensityThreshold;
 bool IOMRefiner::absoluteIntensity = false;
+bool IOMRefiner::lowIntensityPenalty = false;
 
 IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
 {
@@ -71,6 +72,7 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     refinement = RefinementTypeOrientationMatrixEarly;
     image = newImage;
     absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
+    lowIntensityPenalty = FileParser::getKey("LOW_INTENSITY_PENALTY", false);
     this->matrix = matrix;
     refineA = FileParser::getKey("REFINE_UNIT_CELL_A", false);
     refineB = FileParser::getKey("REFINE_UNIT_CELL_B", false);;
@@ -203,7 +205,18 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
             
             total += weight;
             if (strong)
+            {
                 frequency += weight;
+            }
+            else if (lowIntensityPenalty)
+            {
+                frequency -= weight / 4;
+            }
+            
+            if (frequency < 0)
+            {
+                frequency = 0;
+            }
         }
         
         logged << std::setprecision(4) << i << "\t";
@@ -906,7 +919,7 @@ double IOMRefiner::score(int whichAxis, bool silent)
         double total = getTotalReflectionsWithinBandwidth();
         //	double totalIntensity = getTotalIntegratedSignal();
         
-        double totalWeight = 15;
+        double totalWeight = 20;
         double stdevWeight = 15;
         
         double totalChange = total / lastTotal - 1;
@@ -992,7 +1005,7 @@ double IOMRefiner::score(int whichAxis, bool silent)
         
         double sum = 0;
         for (int i = 0; i < 3; i++)
-            sum += highest[0];
+            sum += highest[i];
         
         return 1 / sum;
     }

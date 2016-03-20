@@ -279,6 +279,7 @@ void FileParser::generateFunctionList()
     parserMap["REFINE_ORIENTATIONS"] = simpleBool;
     parserMap["REFINE_DISTANCES"] = simpleBool;
     parserMap["INDEXING_ORIENTATION_TOLERANCE"] = simpleFloat;
+    parserMap["LOW_INTENSITY_PENALTY"] = simpleBool;
 	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["ABSOLUTE_INTENSITY"] = simpleBool;
 	parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;
