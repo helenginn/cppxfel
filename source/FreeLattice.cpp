@@ -87,11 +87,11 @@ void FreeLattice::powderPattern(bool originOnly, std::string filename)
     double powderPatternStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.001);
     std::vector<double> allDistances;
     
-    calculateExpandedVectors(originOnly);
+  //  calculateExpandedVectors(originOnly);
     
-    for (int i = 0; i < expandedSpotVectors.size(); i++)
+    for (int i = 0; i < spotVectors.size(); i++)
     {
-        allDistances.push_back(expandedSpotVectors[i]->distance());
+        allDistances.push_back(spotVectors[i]->distance());
     }
     
     std::map<double, int> map = histogram(allDistances, powderPatternStep);
