@@ -72,9 +72,13 @@ private:
     
     std::map<boost::thread::id, vector<MillerPtr> > tempMillers;
     
-    static void calculateMetrology(PanelPtr thisPanel);
+    static void calculateMetrologyThread(int offset);
     static std::string printAllThreaded();
     double detectorGain(double *error);
+
+    Coord relativeToMidPointForMiller(Miller *miller);
+    double angleForMiller(Miller *miller);
+    double distanceFromMidPointForMiller(Miller *miller);
 
     double stdevScore(double minRes, double maxRes);
     vector<MillerPtr> millers;

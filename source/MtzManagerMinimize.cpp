@@ -718,17 +718,17 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         {
             if (!optimisedUnitCellA)
             {
-                minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, 0, maxResolutionAll);
+                minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, minResolution, maxResolutionAll);
             }
             
             if (!optimisedUnitCellB)
             {
-                minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, 0, maxResolutionAll);
+                minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, minResolution, maxResolutionAll);
             }
             
             if (!optimisedUnitCellC)
             {
-                minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
+                minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, minResolution, maxResolutionAll);
             }
             
             //    std::cout << (*score)(object, 0, maxResolutionAll) << ", " << correlation() << std::endl;
@@ -802,7 +802,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         return rFactorWithManager(RFactorTypeMeas);
     }
     
-    double correl = correlation(true);
+    double correl = correlation(true, minResolution, maxResolutionAll);
     this->refCorrelation = correl;
     
     logged << "Returning correl: " << correl << std::endl;
