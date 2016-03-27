@@ -15,6 +15,8 @@
 #include "GraphDrawer.h"
 #include "Vector.h"
 #include "Spot.h"
+#include "CSV.h"
+#include <complex>
 
 vector<PanelPtr> Panel::panels;
 vector<PanelPtr> Panel::badPanels;
@@ -157,6 +159,13 @@ Coord Panel::midPoint()
     
     return std::make_pair(x, y);
 }
+/*
+Coord Panel::correctedMidpoint()
+{
+    Coord mid = midPoint();
+    mid.first += bestShift.first;
+    mid.second += bestShift.second;
+}*/
 
 bool Panel::addMiller(MillerPtr miller)
 {
@@ -215,9 +224,14 @@ void Panel::finaliseMillerArray()
     
 }
 
-void Panel::calculateMetrology(PanelPtr thisPanel)
+void Panel::calculateMetrologyThread(int offset)
 {
-    thisPanel->findAllParameters();
+    int maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = offset; i < panels.size(); i += maxThreads)
+    {
+        panels[i]->findAllParameters();
+    }
 }
 
 void Panel::print(std::ostringstream *stream)
@@ -257,7 +271,7 @@ std::string Panel::printAllThreaded()
     
     for (int i = 0; i < totalThreads; i++)
     {
-        boost::thread *thr = new boost::thread(calculateMetrology, panels[i]);
+        boost::thread *thr = new boost::thread(calculateMetrologyThread, i);
         threads.add_thread(thr);
     }
     
@@ -394,15 +408,23 @@ Coord Panel::getSwivelCoords(Miller *miller)
 
 Coord Panel::getSwivelShift(Miller *miller)
 {
-    return std::make_pair(0, 0);
-    /*
-    Coord swivelCoords = getSwivelCoords(miller);
-    Coord position = miller->position();
+    Coord relative = relativeToMidPointForMiller(miller);
     
-    Coord shift = std::make_pair(swivelCoords.first - position.first,
-                            swivelCoords.second - position.second);
+    if (swivel == 0)
+        return std::make_pair(0, 0);
     
-    return shift;*/
+    double angle = angleForMiller(miller);
+    double distance = distanceFromMidPointForMiller(miller);
+    
+    angle += swivel;
+    
+    double x = distance * cos(angle * M_PI / 180);
+    double y = distance * sin(angle * M_PI / 180);
+    
+    x -= relative.first;
+    y -= relative.second;
+    
+    return std::make_pair(x, y);
 }
 
 
@@ -470,6 +492,47 @@ void Panel::plotAll(PlotType plotType)
     }
 }
 
+Coord Panel::relativeToMidPointForMiller(Miller *miller)
+{
+    double pos_x = miller->getLastX();
+    double pos_y = miller->getLastY();
+    
+    Coord panelMidPoint = midPoint();
+    
+    double rel_x = pos_x - panelMidPoint.first;
+    double rel_y = pos_y - panelMidPoint.second;
+    
+    return std::make_pair(rel_x, rel_y);
+}
+
+double Panel::distanceFromMidPointForMiller(Miller *miller)
+{
+    Coord relative = relativeToMidPointForMiller(miller);
+    
+    return sqrt(relative.first * relative.first + relative.second * relative.second);
+}
+
+double Panel::angleForMiller(Miller *miller)
+{
+    Coord relative = relativeToMidPointForMiller(miller);
+    
+    double rel_x = relative.first;
+    double rel_y = relative.second;
+    
+    double angle = atan(rel_y / rel_x) * 180 / M_PI;
+    
+    if ((rel_x < 0 && rel_y > 0) || (rel_x < 0 && rel_y < 0))
+    {
+        angle += 180;
+    }
+    else if (rel_x > 0 && rel_y < 0)
+    {
+        angle += 360;
+    }
+    
+    return angle;
+}
+
 void Panel::plotVectors(int i, PlotType plotType)
 {
 #ifdef MAC
@@ -490,10 +553,12 @@ void Panel::plotVectors(int i, PlotType plotType)
         if (bins.size() == 2 && j == 1)
             break;
 
-        vector<double> xRed, yRed;
+   /*     vector<double> xRed, yRed;
         vector<double> xBlue, yBlue;
+    */
         vector<MillerPtr> resMillers;
     
+        
         double minD = 0;
         double maxD = 0;
         
@@ -526,6 +591,8 @@ void Panel::plotVectors(int i, PlotType plotType)
         
         double minX = FLT_MAX; double minY = FLT_MAX; double maxX = -FLT_MAX; double maxY = -FLT_MAX;
         
+        CSV csv = CSV(7, "shift_x", "shift_y", "intensity", "rel_x", "rel_y", "angle");
+        
         for (int k = 0; k < resMillers.size(); k++)
         {
             MillerPtr miller = resMillers[k];
@@ -557,20 +624,51 @@ void Panel::plotVectors(int i, PlotType plotType)
             difference.second = expectedShift.second - shift.second;
             }
             
+            double pos_x = miller->getLastX();
+            double pos_y = miller->getLastY();
+            
+            Coord panelMidPoint = midPoint();
+            
+            double rel_x = pos_x - panelMidPoint.first;
+            double rel_y = pos_y - panelMidPoint.second;
+            
+            double angle = angleForMiller(&*miller);
+            
+            double shiftAngle = cartesian_to_angle(difference);
+            shiftAngle *= 180 / M_PI;
+            
             bool under = intensity < aveIntensity * 2.5;
             under = (miller->getRawIntensity() / miller->getCountingSigma() < 17);
             double strength = miller->getRawIntensity();// / miller->getCountingSigma();
             
-            xRed.push_back(difference.first);
+            csv.addEntry(0, difference.first, difference.second, strength, rel_x, rel_y, angle);
+            
+      /*      xRed.push_back(difference.first);
             yRed.push_back(difference.second);
             xBlue.push_back(strength);
-            yBlue.push_back(0);
+            yBlue.push_back(0); */
             
         }
         
+        std::ostringstream resString;
+        if (j < bins.size())
+        {
+            resString << bins[j];
+        }
+        else
+        {
+            resString << "all";
+        }
+        
+        std::ostringstream filename_stream;
+        filename_stream << std::string("panel_plot_") << i << "_" << j << "_" << resString.str() + ".csv";
+        std::string filename = filename_stream.str();
+        
+        csv.writeToFile(filename);
+        
         resMillers.clear();
         vector<MillerPtr>().swap(resMillers);
-        
+        /*
         vector<vector<double> > xs;
         vector<vector<double> > ys;
         xs.push_back(xRed); // actually green
@@ -612,7 +710,7 @@ void Panel::plotVectors(int i, PlotType plotType)
         filename_stream << std::string("panel_plot_") << i << "_" << j << "_" << resString.str();
         std::string filename = filename_stream.str();
         
-        drawer.plot(filename, map, xs, ys);
+        drawer.plot(filename, map, xs, ys);*/
     }
 #endif
 }
@@ -828,10 +926,10 @@ void Panel::fractionalCoordinates(Coord coord, Coord *frac)
 
 void Panel::findAllParameters()
 {
-    logged << "***** NEW PANEL *****" << std::endl;
-    
     if (millers.size() == 0)
+    {
         return;
+    }
     
     findShift(2, 0.4);
     this->findAxisDependence(3);
@@ -841,6 +939,9 @@ void Panel::findAllParameters()
 
 void Panel::findShift(double windowSize, double step, double x, double y)
 {
+    std::ostringstream logged;
+    logged << "**** NEW PANEL ****" << std::endl;
+    
     vector<std::pair<Coord, double> > scores;
     logged << "Miller count: " << millers.size() << std::endl;
     
@@ -896,13 +997,35 @@ void Panel::findShift(double windowSize, double step, double x, double y)
 
 double Panel::swivelShiftScoreWrapper(void *object)
 {
-    static_cast<Panel *>(object)->tiltHorizontalAxis = true;
-    double xScore = static_cast<Panel *>(object)->tiltShiftScore();
+    double threshold = 200;
     
-    static_cast<Panel *>(object)->tiltHorizontalAxis = false;
-    double yScore = static_cast<Panel *>(object)->tiltShiftScore();
+    Panel *panel = static_cast<Panel *>(object);
     
-    return xScore + yScore;
+    std::vector<double> shiftXs, shiftYs;
+    
+    for (int i = 0; i < panel->millers.size(); i++)
+    {
+        if (panel->millers[i]->getRawIntensity() > threshold)
+        {
+            MillerPtr miller = panel->millers[i];
+            
+            Coord shift = shiftForMiller(&*miller);
+            
+            shiftXs.push_back(shift.first);
+            shiftYs.push_back(shift.second);
+        }
+    }
+    
+    double stdevX = standard_deviation(&shiftXs);
+    double stdevY = standard_deviation(&shiftYs);
+    
+    double score = stdevX + stdevY;
+    
+ //   std::ostringstream logged;
+ //   logged << "Swivel score: " << score << " for " << panel->swivel << std::endl;
+ //   Logger::mainLogger->addStream(&logged);
+    
+    return score;
 }
 
 double Panel::tiltShiftScoreWrapper(void *object)
@@ -954,7 +1077,32 @@ double Panel::tiltShiftScore(double stdev)
 
 void Panel::refineAllParameters(double windowSize)
 {
-    double xStep = 0.2;
+    double swivelStep = 0.2;
+    bool minimised = false;
+    int count = 0;
+    std::ostringstream logged;
+    
+    double before = swivelShiftScoreWrapper(this);
+    
+    while (count < 20 && !minimised)
+    {
+        double swivelScore = minimizeParameter(swivelStep, &this->swivel, swivelShiftScoreWrapper, this);
+        
+        logged << swivel << ", " << swivelScore << std::endl;
+        
+        if (swivelStep < 0.001)
+            break;
+        
+        count++;
+    }
+
+    double after = swivelShiftScoreWrapper(this);
+
+    
+    logged << "Swivel angle " << swivel << " - score " << before << ", after refinement " << after << "." << std::endl;
+    Logger::mainLogger->addStream(&logged);
+    
+/*    double xStep = 0.2;
     double yStep = 0.2;
     bool minimized = false;
     int count = 0;
@@ -984,7 +1132,7 @@ void Panel::refineAllParameters(double windowSize)
     logged << std::endl;
     
     minimized = false;
-    count = 0;
+    count = 0;*/
 }
 
 double Panel::detectorGain(double *error)
