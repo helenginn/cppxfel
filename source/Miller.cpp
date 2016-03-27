@@ -162,8 +162,10 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
 {
     double mySlices = slices;
     
-    if (resolution() < 1 / trickyRes) mySlices = maxSlices;
-    
+    if (resolution() < 1 / trickyRes)
+    {
+        mySlices = maxSlices;
+    }
     double bandwidth_span = high_wavelength - low_wavelength;
     
     double fraction_total = 1;
@@ -1224,7 +1226,12 @@ double Miller::averageRawIntensity(vector<MillerPtr> millers)
     {
         MillerPtr miller = millers[i];
         
-        allIntensities += miller->getRawIntensity();
+        double anIntensity = miller->getRawIntensity();
+        
+        if (anIntensity != anIntensity)
+            continue;
+        
+        allIntensities += anIntensity;
         num++;
     }
     
