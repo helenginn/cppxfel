@@ -1378,7 +1378,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     spotVectors.clear();
     std::vector<SpotVectorPtr>().swap(spotVectors);
     
-    for (int i = 0; i < spots.size(); i++)
+    for (int i = 0; i < spots.size() - 1; i++)
     {
         if (spots[i]->isRejected() && rejectCloseSpots)
         {
