@@ -198,13 +198,13 @@ class EntryDumper():
 			test = "Test"
 			self.lock.acquire()
 			print "Lock acquired"
-			print self.lock.__repr__()
-
-			dataEntry = cxi[anEntry.name + "/data"]
-			image = dataEntry
-			rowSize = len(image[0])
-			self.lock.release()
-			print "Lock released"
+			try:
+				dataEntry = cxi[anEntry.name + "/data"]
+				image = dataEntry
+				rowSize = len(image[0])
+			finally:
+				self.lock.release()
+				print "Lock released"
 
 			alldata = []
 			alldata = numpy.concatenate(image[:])
