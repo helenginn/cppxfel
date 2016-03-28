@@ -254,8 +254,21 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double aRot, doub
     if (!matrix)
         return;
     
+    
+    double spgNum = getLowGroup()->spg_num;
+    if (spgNum >= 75 && spgNum <= 194)
+    {
+        b = a;
+    }
+    if (spgNum >= 195)
+    {
+        b = a;
+        c = a;
+    }
+
     if (matrix->isComplex())
         this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
+    
     
     //MatrixPtr firstMatrix = MatrixPtr();
     MatrixPtr newMatrix = MatrixPtr();

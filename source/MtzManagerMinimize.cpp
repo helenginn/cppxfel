@@ -668,22 +668,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             {
                 std::cout << "stdev" << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << (*score)(object, 0, 0) << std::endl;
             }
-            /*
-             if (!optimisedUnitCellA && count > 5)
-             {
-             minimizeParameter(&aStep, &params, PARAM_UNIT_CELL_A, score, object, 0, maxResolutionAll);
-             }
-             
-             if (!optimisedUnitCellB && count > 5)
-             {
-             minimizeParameter(&bStep, &params, PARAM_UNIT_CELL_B, score, object, 0, maxResolutionAll);
-             }
-             
-             if (!optimisedUnitCellC && count > 5)
-             {
-             minimizeParameter(&cStep, &params, PARAM_UNIT_CELL_C, score, object, 0, maxResolutionAll);
-             }*/
-            
         }
         
         bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);
