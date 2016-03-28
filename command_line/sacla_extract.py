@@ -202,12 +202,12 @@ class EntryDumper():
 				dataEntry = cxi[anEntry.name + "/data"]
 				image = dataEntry
 				rowSize = len(image[0])
+				alldata = []
+				alldata = numpy.concatenate(image[:])
 			finally:
 				self.lock.release()
 				print "Lock released"
 
-			alldata = []
-			alldata = numpy.concatenate(image[:])
 					
 			origTopLeftX = int(panelInfo[panel]['min_fs'])
 			origTopLeftY = int(panelInfo[panel]['min_ss'])
