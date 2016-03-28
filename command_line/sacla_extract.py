@@ -8,6 +8,7 @@ import numpy
 import os
 from multiprocessing import Process
 from scitbx.array_family.flex import grid
+from multiprocessing import Lock
 
 """
 cxiKey is a h5py file key. allKeys is a list of keys found.
@@ -16,7 +17,7 @@ def findTags(cxiKey, allKeys):
 	subKeys = None
 	try:
 		subKeys = cxiKey.keys()
-	
+
 		for subKey in subKeys:
 			if subKey[:4] == "tag-":
 				if subKey[5].isnumeric():
@@ -46,7 +47,7 @@ for arg in sys.argv[1:]:
 	if (len(key_value) < 2):
 		print "Did not understand", arg
 		continue
-	
+
 	if (key_value[0] == "filename"):
 		filename = key_value[1]
 	elif (key_value[0] == "geometry"):
@@ -71,11 +72,11 @@ for arg in sys.argv[1:]:
 if len(filename) == 0:
 	print "No filename selected, use filename=xxx.cxi"
 	exit()
-	
+
 if len(geometry) == 0:
 	print "No geometry file selected, use geometry=xxx.geom"
 	exit()
-	
+
 print "Selected filename:", filename
 print "Applying geometry:", geometry
 
@@ -134,11 +135,11 @@ for panel in panels:
 			key_value = line.split("=")
 			key = key_value[0].strip()
 			value = key_value[1].strip()
-		
+	
 			id_property = key.split("/")
 			id = id_property[0]
 			property = id_property[1]
-		
+	
 			if len(value.split(" ")) > 1:
 				subProperties = value.split(" ")
 				for i in range(len(subProperties)):
@@ -147,7 +148,7 @@ for panel in panels:
 				value = subProperties
 			else:
 				value = float(value)
-		
+	
 			print "Found value", value, "for panel", panel, ", property", property
 			panelInfo[panel][property] = value
 
@@ -162,118 +163,131 @@ if max == 0:
 if (skip + max) > len(entries):
 	realMax = len(entries)
 
+lock = Lock()
 
-def dumpEntry(anEntry):
-	global beamX, beamY, width, height, wavelength
-	num_images = 1
+class EntryDumper():
+	def __init__(self):
+		self.lock = Lock()
 
-	sample_file = open('sample.pickle', 'rb')
-	sample = pickle.load(sample_file)
+	def dumpEntry(self, anEntry):
+		global beamX, beamY, width, height, wavelength
+		num_images = 1
 
-	realEntryMin = 0
-	realEntryMax = 1
+		sample_file = open('sample.pickle', 'rb')
+		sample = pickle.load(sample_file)
 
-	distance = 50
-	pixelSize = 0.05
+		realEntryMin = 0
+		realEntryMax = 1
 
-	identifier = anEntry.name[1:]
-	print "Dumping", identifier
+		distance = 50
+		pixelSize = 0.05
 
-	totalPicklePixels = width * height
-	print "Generating canvas for pickle image with", totalPicklePixels, "pixels."
+		identifier = anEntry.name[1:]
+		print "Dumping", identifier
 
-	picklePixels = scitbx_array_family_flex_ext.int()
-	picklePixels.resize(totalPicklePixels)
-	count = 0
+		totalPicklePixels = width * height
+		print "Generating canvas for pickle image with", totalPicklePixels, "pixels."
 
-	for panel in panelInfo:
-		count += 1
+		picklePixels = scitbx_array_family_flex_ext.int()
+		picklePixels.resize(totalPicklePixels)
+		count = 0
 
-		dataEntry = cxi[anEntry.name + "/data"]
-		image = dataEntry
+		for panel in panelInfo:
+			count += 1
 
-		alldata = []
-		rowSize = len(image[0])
-		alldata = numpy.concatenate(image[:])
+			test = "Test"
+			self.lock.acquire()
+			print "Lock acquired"
+			print self.lock.__repr__()
 
+			dataEntry = cxi[anEntry.name + "/data"]
+			image = dataEntry
+			rowSize = len(image[0])
+			self.lock.release()
+			print "Lock released"
 
-		origTopLeftX = int(panelInfo[panel]['min_fs'])
-		origTopLeftY = int(panelInfo[panel]['min_ss'])
-		origBottomRightX = int(panelInfo[panel]['max_fs'])
-		origBottomRightY = int(panelInfo[panel]['max_ss'])
-		relativeNewX = panelInfo[panel]['corner_x']
-		relativeNewY = panelInfo[panel]['corner_y']
-		absoluteNewX = int(beamX + relativeNewX)
-		absoluteNewY = int(beamY + relativeNewY)
-		axisXX = int(round(panelInfo[panel]['fs'][0]))
-		axisXY = int(round(panelInfo[panel]['fs'][1]))
-		axisYX = int(round(panelInfo[panel]['ss'][0]))
-		axisYY = int(round(panelInfo[panel]['ss'][1]))
+			alldata = []
+			alldata = numpy.concatenate(image[:])
+					
+			origTopLeftX = int(panelInfo[panel]['min_fs'])
+			origTopLeftY = int(panelInfo[panel]['min_ss'])
+			origBottomRightX = int(panelInfo[panel]['max_fs'])
+			origBottomRightY = int(panelInfo[panel]['max_ss'])
+			relativeNewX = panelInfo[panel]['corner_x']
+			relativeNewY = panelInfo[panel]['corner_y']
+			absoluteNewX = int(beamX + relativeNewX)
+			absoluteNewY = int(beamY + relativeNewY)
+			axisXX = int(round(panelInfo[panel]['fs'][0]))
+			axisXY = int(round(panelInfo[panel]['fs'][1]))
+			axisYX = int(round(panelInfo[panel]['ss'][0]))
+			axisYY = int(round(panelInfo[panel]['ss'][1]))
 
-		print panel + "\t" + str(origTopLeftX) + "\t" + str(origTopLeftY) + "\t" + str(origBottomRightX) + "\t" + str(origBottomRightY) + "\t" + str(absoluteNewX) + "\t"  + str(absoluteNewY) + "\t" + str(axisXX) + "\t" + str(axisXY) + "\t" + str(axisYX) + "\t" + str(axisYY)
+			print panel + "\t" + str(origTopLeftX) + "\t" + str(origTopLeftY) + "\t" + str(origBottomRightX) + "\t" + str(origBottomRightY) + "\t" + str(absoluteNewX) + "\t"  + str(absoluteNewY) + "\t" + str(axisXX) + "\t" + str(axisXY) + "\t" + str(axisYX) + "\t" + str(axisYY)
 
-		for k in range(origTopLeftX, origBottomRightX):
-			xOffset = k - origTopLeftX
-			for j in range(origTopLeftY, origBottomRightY):
-				yOffset = j - origTopLeftY
-				newX = absoluteNewY + axisXX * yOffset + axisXY * xOffset
-				newY = absoluteNewX + axisYX * yOffset + axisYY * xOffset
-	
-				try:
-					newValue = int(alldata[j * rowSize + k])
-				except IndexError:
-					print "Geometry file specifies coordinates out of range of hdf5 data."
-					exit()
-				
-				try:
-					picklePixels[newX * width + newY] = newValue
-				except IndexError:
-					print "Error: image canvas is not large enough."
-					print "Tried to access point", newX, newY, "- please increase canvas size."
-					print "Specify width=x height=y on the command line."
-					exit()
+			for k in range(origTopLeftX, origBottomRightX):
+				xOffset = k - origTopLeftX
+				for j in range(origTopLeftY, origBottomRightY):
+					yOffset = j - origTopLeftY
+					newX = absoluteNewY + axisXX * yOffset + axisXY * xOffset
+					newY = absoluteNewX + axisYX * yOffset + axisYY * xOffset
 
-	string = picklePixels.as_numpy_array().tostring()
-	newFile = open(identifier + '.img', 'wb')
-	newFile.write(string)
-	newFile.close()
+					try:
+						newValue = int(alldata[j * rowSize + k])
+					except IndexError:
+						print "Geometry file specifies coordinates out of range of hdf5 data."
+						exit()
+			
+					try:
+						picklePixels[newX * width + newY] = newValue
+					except IndexError:
+						print "Error: image canvas is not large enough."
+						print "Tried to access point", newX, newY, "- please increase canvas size."
+						print "Specify width=x height=y on the command line."
+						exit()
 
-	sample['DISTANCE'] = distance
-	sample['SIZE1'] = width
-	sample['SIZE2'] = height
-	sample['ACTIVE_AREAS'] = scitbx_array_family_flex_ext.int([0, 0, width, height])
-	sample['PIXEL_SIZE'] = pixelSize
-	sample['BEAM_CENTER_X'] = width / 2 * pixelSize
-	sample['BEAM_CENTER_Y'] = height / 2 * pixelSize
-	sample['WAVELENGTH'] = wavelength
+		string = picklePixels.as_numpy_array().tostring()
+		newFile = open(identifier + '.img', 'wb')
+		newFile.write(string)
+		newFile.close()
 
-	picklePixels.reshape(grid(width, height))
+		sample['DISTANCE'] = distance
+		sample['SIZE1'] = width
+		sample['SIZE2'] = height
+		sample['ACTIVE_AREAS'] = scitbx_array_family_flex_ext.int([0, 0, width, height])
+		sample['PIXEL_SIZE'] = pixelSize
+		sample['BEAM_CENTER_X'] = width / 2 * pixelSize
+		sample['BEAM_CENTER_Y'] = height / 2 * pixelSize
+		sample['WAVELENGTH'] = wavelength
 
-	sample['DATA'] = picklePixels
+		picklePixels.reshape(grid(width, height))
 
-	pickleName = identifier + '.pickle'
-	new_pickle = open(pickleName, 'wb')
-	pickle.dump(sample, new_pickle)
-	print "Dumped pickle", pickleName, "and img", identifier + ".img"
+		sample['DATA'] = picklePixels
 
-	newFile.close()
-	new_pickle.close()
+		pickleName = identifier + '.pickle'
+		new_pickle = open(pickleName, 'wb')
+		pickle.dump(sample, new_pickle)
+		print "Dumped pickle", pickleName, "and img", identifier + ".img"
 
-	compressCommand = "cxi.image2pickle " + pickleName
-	os.system(compressCommand)
+		newFile.close()
+		new_pickle.close()
+
+		compressCommand = "cxi.image2pickle " + pickleName
+		os.system(compressCommand)
+
+	def dumpEntryThread(self, threadNum):
+		global realMin, realMax, entries
+		for i in range(realMin + threadNum, realMax, maxThreads):
+			print "Dumping entry", i
+			
+			self.dumpEntry(entries[i])
 
 maxThreads = int(os.getenv('NSLOTS', 4))
 
 threads = []
-
-def dumpEntryThread(threadNum):
-	global realMin, realMax, entries
-	for i in range(realMin + threadNum, realMax, maxThreads):
-		print "Dumping entry", i
-		dumpEntry(entries[i])
-
+dumper = EntryDumper()
+	
 for thread in range(0, maxThreads):
-	aThread = Process(target=dumpEntryThread, args=(thread, ))
+	aThread = Process(target=dumper.dumpEntryThread, args=(thread, ))
 	threads.append(aThread)
 	aThread.start()
 
