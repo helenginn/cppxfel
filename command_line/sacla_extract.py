@@ -1,7 +1,7 @@
 #!/usr/bin/env libtbx.python
 
 import h5py
-import pickle
+import cPickle as pickle
 import sys
 import scitbx_array_family_flex_ext
 import numpy
@@ -265,14 +265,14 @@ class EntryDumper():
 
 		pickleName = identifier + '.pickle'
 		new_pickle = open(pickleName, 'wb')
-		pickle.dump(sample, new_pickle)
+		pickle.dump(sample, new_pickle, protocol=-1)
 		print "Dumped pickle", pickleName, "and img", identifier + ".img"
 
 		newFile.close()
 		new_pickle.close()
 
-		compressCommand = "cxi.image2pickle " + pickleName
-		os.system(compressCommand)
+#		compressCommand = "cxi.image2pickle " + pickleName
+#		os.system(compressCommand)
 
 	def dumpEntryThread(self, threadNum):
 		global realMin, realMax, entries
