@@ -326,6 +326,7 @@ void FileParser::generateFunctionList()
     parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
     parserMap["SKIP_BAD_PIXELS"] = simpleBool;
     parserMap["ROUGH_CALCULATION"] = simpleBool;
+    parserMap["BINS"] = simpleInt;
 
     parserMap["LEARNING_TO_INDEX"] = simpleBool;
     parserMap["MINIMUM_SPOTS_EXPLAINED"] = simpleInt;

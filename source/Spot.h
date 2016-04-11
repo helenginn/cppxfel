@@ -56,7 +56,8 @@ public:
     static void writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots);
     bool isSameAs(SpotPtr spot2);
     double closeToSecondSpot(SpotPtr spot2, double squareMinDistance);
-    
+    double integrate();
+
     Coord getXY();
     double getX(bool update = false);
     double getY(bool update = false);

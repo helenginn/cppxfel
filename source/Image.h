@@ -92,6 +92,7 @@ private:
     IndexingSolutionStatus testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
     IndexingSolutionPtr biggestFailedSolution;
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
+    double resolutionAtPixel(double x, double y);
 protected:
     std::vector<SpotPtr> spots;
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
@@ -130,7 +131,9 @@ public:
     void reset();
     
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
-
+    void radialAverage();
+    void integrateSpots();
+    
 	const std::string& getFilename() const
 	{
 		return filename;

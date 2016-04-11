@@ -152,6 +152,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->integrate();
 			}
             
+            if (line == "INTEGRATE_SPOTS")
+            {
+                understood = true;
+                refiner->integrateSpots();
+            }
+            
             if (line == "REFINE_DETECTOR_GEOMETRY")
             {
                 understood = true;
@@ -283,6 +289,12 @@ void InputFileParser::parse(bool fromPython)
             {
                 understood = true;
                 refiner->combineLists();
+            }
+            
+            if (line == "RADIAL_AVERAGE")
+            {
+                understood = true;
+                refiner->radialAverage();
             }
             
             if (!understood)

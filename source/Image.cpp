@@ -19,6 +19,9 @@
 #include "Spot.h"
 #include "Vector.h"
 #include "IndexingSolution.h"
+#include "StatisticsManager.h"
+#include "CSV.h"
+#include "polyfit.hpp"
 
 Image::Image(std::string filename, double wavelength,
              double distance)
@@ -2044,4 +2047,136 @@ void Image::reset()
     minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
     
     processSpotList();
+}
+
+double Image::resolutionAtPixel(double x, double y)
+{
+    vec reciprocal = pixelsToReciprocalCoordinates(x, y);
+    return length_of_vector(reciprocal);
+}
+
+void Image::integrateSpots()
+{
+    CSV integratedCSV = CSV(3, "x", "y", "intensity");
+    
+    for (int i = 0; i < spotCount(); i++)
+    {
+        double intensity = spot(i)->integrate();
+        
+        integratedCSV.addEntry(0, spot(i)->getX(), spot(i)->getY(), intensity);
+    }
+    
+    std::string csvName = "spot-int-" + getBasename() + ".csv";
+    
+    integratedCSV.writeToFile(csvName);
+    
+    logged << "Written to file: " << csvName << std::endl;
+    sendLog();
+}
+
+void Image::radialAverage()
+{
+    double maxIntegratedResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 3.5);
+    double minIntegratedResolution = FileParser::getKey("MIN_INTEGRATED_RESOLUTION", 100);
+    double binCount = FileParser::getKey("BINS", 100);
+    
+    std::vector<double> bins;
+    StatisticsManager::generateResolutionBins(minIntegratedResolution, maxIntegratedResolution, binCount, &bins);
+    
+    std::vector<double> intensities = std::vector<double>(bins.size(), 0);
+    std::vector<double> counts = std::vector<double>(bins.size(), 0);
+    std::vector<double> subtracted = std::vector<double>(bins.size(), 0);
+    
+    for (int i = 0; i < xDim; i++)
+    {
+        for (int j = 0; j < yDim; j++)
+        {
+            double resolution = 1 / resolutionAtPixel(i, j);
+            double value = valueAt(i, j);
+            
+            for (int k = 0; k < bins.size() - 1; k++)
+            {
+                if ((resolution < bins[k]) && (resolution > bins[k + 1]))
+                {
+                    intensities[k] += value;
+                    counts[k] += 1;
+                }
+            }
+        }
+    }
+    
+    for (int i = 0; i < bins.size(); i++)
+    {
+        intensities[i] /= counts[i];
+    }
+    
+    double buffer = binCount * 0.1;
+    double bufferRatio = 3;
+    logged << "Buffer size set to: " << buffer << std::endl;
+    sendLog();
+    
+    for (int i = buffer; i < intensities.size() - buffer; i++)
+    {
+        std::vector<double> intensityPortion, binsPortion;
+        
+        for (int j = i - buffer; j < i + buffer; j++)
+        {
+            if (j < i + (buffer / bufferRatio) && j > i - (buffer / bufferRatio))
+            {
+                continue;
+            }
+            
+            binsPortion.push_back(bins[j]);
+            intensityPortion.push_back(intensities[j]);
+        }
+        
+        for (int j = 0; j < binsPortion.size(); j++)
+        {
+            logged << binsPortion[j] << "\t" << intensityPortion[j] << std::endl;
+        }
+        
+        sendLog();
+        
+     //   logged << "Intensity portion size: " << intensityPortion.size() << std::endl;
+     //   sendLog();
+        
+        std::vector<double> coeffs = polyfit(binsPortion, intensityPortion, 2);
+        
+        double backgroundSum = 0;
+        
+        for (int j = i - buffer / bufferRatio; j < i + buffer / bufferRatio; j++)
+        {
+            double x = bins[j];
+            backgroundSum += coeffs[2] * pow(x, 2) + coeffs[1] * x + coeffs[0];
+        }
+        
+        backgroundSum /= buffer * 2 / bufferRatio;
+        
+        subtracted[i] = intensities[i] - backgroundSum;
+    }
+    
+    CSV csv = CSV(2, "1 over d squared", "Average intensity");
+    
+    for (int i = 0; i < bins.size(); i++)
+    {
+        double bFacRes = 1 / bins[i];
+        csv.addEntry(0, bFacRes, subtracted[i]);
+    }
+    
+    csv.writeToFile("sub-" + getFilename() + ".csv");
+    
+    CSV csv2 = CSV(2, "1 over d squared", "Average intensity");
+    
+    for (int i = 0; i < bins.size(); i++)
+    {
+        double bFacRes = 1 / bins[i];
+        csv2.addEntry(0, bFacRes, intensities[i]);
+    }
+    
+    csv2.writeToFile("rad-" + getFilename() + ".csv");
+    
+    logged << "Written csv: sub-" << getFilename() << ".csv" << std::endl;
+    sendLog();
+    
+    dropImage();
 }

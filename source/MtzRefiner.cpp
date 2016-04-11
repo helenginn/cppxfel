@@ -1705,6 +1705,7 @@ void MtzRefiner::index()
     integrationSummary();
 }
 
+
 void MtzRefiner::combineLists()
 {
     loadPanels();
@@ -1757,6 +1758,69 @@ void MtzRefiner::indexingParameterAnalysis()
         indexManager = new IndexManager(images);
     
     indexManager->indexingParameterAnalysis();
+}
+
+// MARK: SACLA stuff for April 2016
+
+
+void MtzRefiner::radialAverageThread(MtzRefiner *me, int offset)
+{
+    double maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = offset; i < me->images.size(); i += maxThreads)
+    {
+        me->images[i]->radialAverage();
+    }
+}
+
+void MtzRefiner::radialAverage()
+{
+    loadPanels();
+    this->readMatricesAndImages();
+    std::cout << "N: Total images loaded: " << images.size() << std::endl;
+    double maxThreads = FileParser::getMaxThreads();
+    
+    boost::thread_group threads;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(radialAverageThread, this, i);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+    
+    std::cout << "Finished radial averages." << std::endl;
+}
+
+void MtzRefiner::integrateSpotsThread(MtzRefiner *me, int offset)
+{
+    double maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = offset; i < me->images.size(); i += maxThreads)
+    {
+        me->images[i]->integrateSpots();
+    }
+}
+
+void MtzRefiner::integrateSpots()
+{
+    loadPanels();
+    this->readMatricesAndImages();
+    std::cout << "N: Total images loaded: " << images.size() << std::endl;
+    double maxThreads = FileParser::getMaxThreads();
+    
+    boost::thread_group threads;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(integrateSpotsThread, this, i);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+    
+    std::cout << "Finished integrating spots." << std::endl;
 }
 
 // MARK: Miscellaneous

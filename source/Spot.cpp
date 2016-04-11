@@ -15,6 +15,7 @@
 #include <fstream>
 #include "FileParser.h"
 #include "CSV.h"
+#include "Shoebox.h"
 
 double Spot::maxResolution = 0;
 double Spot::minIntensity = 0;
@@ -404,6 +405,25 @@ vec Spot::estimatedVector()
     vec estimated = getParentImage()->pixelsToReciprocalCoordinates(getX(), getY());
     
     return estimated;
+}
+
+double Spot::integrate()
+{
+    int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
+                                              SHOEBOX_FOREGROUND_PADDING);
+    int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_PADDING",
+                                           SHOEBOX_NEITHER_PADDING);
+    int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
+                                              SHOEBOX_BACKGROUND_PADDING);
+    bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
+    
+    ShoeboxPtr shoebox = ShoeboxPtr(new Shoebox(MillerPtr()));
+    shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
+    
+    double counting = 0;
+    double intensity = getParentImage()->intensityAt(getX(), getY(), shoebox, &counting);
+    
+    return intensity;
 }
 
 void Spot::setXYFromEstimatedVector(vec hkl)

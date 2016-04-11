@@ -34,6 +34,8 @@ private:
     bool hasRefined;
     bool isPython;
     static int imageSkip(size_t totalCount);
+    static void radialAverageThread(MtzRefiner *me, int offset);
+    static void integrateSpotsThread(MtzRefiner *me, int offset);
 public:
 	MtzRefiner();
 	virtual ~MtzRefiner();
@@ -104,6 +106,8 @@ public:
     
     void writeNewOrientations(bool includeRots = false, bool detailed = false);
     void removeSigmaValues();
+    void radialAverage();
+    void integrateSpots();
     void readXFiles(std::string filename);
     void xFiles();
     
