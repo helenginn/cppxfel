@@ -78,6 +78,9 @@ void Panel::init(vector<double> dimensions, PanelTag newTag)
         swivel = dimensions[8];
     }
     
+    sinSwivel = sin(swivel * M_PI / 180);
+    cosSwivel = cos(swivel * M_PI / 180);
+    
     if (dimensions.size() >= 10)
     {
         gainScale = dimensions[9];
@@ -154,18 +157,11 @@ bool Panel::isCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
 
 Coord Panel::midPoint()
 {
-    double x = topLeft.first + width() / 2;
-    double y = topLeft.second + height() / 2;
+    double x = topLeft.first + width() / 2 + bestShift.first;
+    double y = topLeft.second + height() / 2 + bestShift.second;
     
     return std::make_pair(x, y);
 }
-/*
-Coord Panel::correctedMidpoint()
-{
-    Coord mid = midPoint();
-    mid.first += bestShift.first;
-    mid.second += bestShift.second;
-}*/
 
 bool Panel::addMiller(MillerPtr miller)
 {
@@ -413,18 +409,16 @@ Coord Panel::getSwivelShift(Miller *miller)
     if (swivel == 0)
         return std::make_pair(0, 0);
     
-    double angle = angleForMiller(miller);
-    double distance = distanceFromMidPointForMiller(miller);
+    double oldX = relative.first;
+    double oldY = relative.second;
     
-    angle += swivel;
+    double newX = cosSwivel * oldX - sinSwivel * oldY;
+    double newY = sinSwivel * oldX + cosSwivel * oldY;
     
-    double x = distance * cos(angle * M_PI / 180);
-    double y = distance * sin(angle * M_PI / 180);
+    newX -= relative.first;
+    newY -= relative.second;
     
-    x -= relative.first;
-    y -= relative.second;
-    
-    return std::make_pair(x, y);
+    return std::make_pair(newX, newY);
 }
 
 
@@ -494,8 +488,8 @@ void Panel::plotAll(PlotType plotType)
 
 Coord Panel::relativeToMidPointForMiller(Miller *miller)
 {
-    double pos_x = miller->getLastX();
-    double pos_y = miller->getLastY();
+    double pos_x = miller->getLastX() + bestShift.first;
+    double pos_y = miller->getLastY() + bestShift.second;
     
     Coord panelMidPoint = midPoint();
     

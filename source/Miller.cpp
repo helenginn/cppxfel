@@ -1011,8 +1011,19 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     transformedMatrix->multiplyVector(&hkl);
     
     std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl);
+    PanelPtr panel = Panel::panelForCoord(coord);
+    
+    if (!panel)
+    {
+        *x = -INT_MAX;
+        *y = -INT_MAX;
+        
+        return;
+    }
+    
     x_coord = coord.first;
     y_coord = coord.second;
+    
     
     bool even = shoebox->isEven();
 
@@ -1105,6 +1116,12 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     int y = 0;
     
     positionOnDetector(transformedMatrix, &x, &y);
+    
+    if (x == -INT_MAX || y == -INT_MAX)
+    {
+        rawIntensity = nan(" ");
+        return;
+    }
     
     rawIntensity = getImage()->intensityAt(x, y, shoebox, &countingSigma, 0);
 

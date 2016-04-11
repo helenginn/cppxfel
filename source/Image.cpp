@@ -886,11 +886,7 @@ bool Image::accepted(int x, int y)
     if (value == -100000)
         return false;
 
-    Coord coord = std::make_pair(x, y);
-    
-    PanelPtr panel = Panel::panelForCoord(coord);
-    
-    return !panel ? false : true;
+    return true;
 }
 
 void Image::index()

@@ -38,6 +38,8 @@ private:
 	int allowedSearchSpace;
     PanelTag tag;
     double swivel;
+    double sinSwivel;
+    double cosSwivel;
     double gainScale;
     double height();
     double width();
