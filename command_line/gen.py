@@ -242,7 +242,7 @@ def dumpImages(imagePaths):
 		data_array = array.array('i')
 
 		for i in range(0, len(data)):
-			data_array.append(data[i])
+			data_array.append(int(data[i]))
 
 		string = data_array.tostring()
 		newFile = open(imageName, 'wb')
