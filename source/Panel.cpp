@@ -601,8 +601,8 @@ void Panel::plotVectors(int i, PlotType plotType)
             
             Coord shift = miller->getShift();
             Coord expectedShift = this->getTotalShift(&*miller);
-            shift.first += originalShift.first;
-            shift.second += originalShift.second;
+            shift.first -= originalShift.first; // plot relative shift away from the last round of refinement
+            shift.second -= originalShift.second;
             
             if (shift.first < minX)
                 minX = shift.first;
@@ -950,7 +950,9 @@ void Panel::findShift(double windowSize, double step, double x, double y)
     double minY = -defaultShift + originalShift.second + y + 0.5;
     double maxY = defaultShift + originalShift.second + y - 0.5;
     
-    logged << "Finding best shift within window (" << minX << ", " << minY << "), (" << maxX << ", " << maxY << ")" << std::endl;
+    double intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", 12.);
+    
+    logged << "Finding best shift within window x(" << minX << ", " << maxX << "), y(" << minY << ", " << maxY << ")" << std::endl;
     
     for (double i = minX; i < maxX; i += step)
     {
@@ -967,17 +969,27 @@ void Panel::findShift(double windowSize, double step, double x, double y)
             for (int k = 0; k < millers.size(); k++)
             {
                 if (!millers[k])
+                {
                     continue;
+                }
                 
                 Coord translationShift = millers[k]->getShift();
-                Coord millerShift = translationShift;
+                Coord millerShift = std::make_pair(translationShift.first,
+                                                   translationShift.second);
                 
                 bool inWindow = isCoordInPanel(millerShift, &windowTopLeft,
                                                &windowBottomRight);
                 
-                bool strong = millers[k]->getRawIntensity() / millers[k]->getCountingSigma() > 12;
+                if (!inWindow)
+                {
+                    continue;
+                }
                 
-                if (inWindow && strong)
+                
+                
+                bool strong = millers[k]->getRawIntensity() / millers[k]->getCountingSigma() > intensityThreshold;
+                
+                if (strong)
                 {
                     score++;
                 }
