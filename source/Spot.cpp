@@ -322,8 +322,6 @@ Coord Spot::getXY()
     Coord shift = Panel::translationShiftForSpot(this);
     Coord swivelShift = Panel::swivelShiftForSpot(this);
     
- //   logged << x << "," << shift.first << "," << y << "," << shift.second << std::endl;
-    
     if (shift.first == FLT_MAX)
     {
         shift.first = 0;

@@ -137,6 +137,7 @@ double Panel::height()
 bool Panel::isCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
 {
     double x = coord.first;
+    double y = coord.second;
     
     if (topLeft == NULL)
         topLeft = &this->topLeft;
@@ -147,18 +148,24 @@ bool Panel::isCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
     if (x < topLeft->first || x > bottomRight->first)
         return false;
     
-    double y = coord.second;
-    
     if (y < topLeft->second || y > bottomRight->second)
         return false;
+    /*
+    logged << "Success!" << std::endl;
+    sendLog();*/
     
     return true;
 }
 
+bool Panel::isMillerInPanel(Miller *miller)
+{
+    return isCoordInPanel(miller->getLastXY());
+}
+
 Coord Panel::midPoint()
 {
-    double x = topLeft.first + width() / 2 + bestShift.first;
-    double y = topLeft.second + height() / 2 + bestShift.second;
+    double x = topLeft.first + width() / 2;
+    double y = topLeft.second + height() / 2;
     
     return std::make_pair(x, y);
 }
@@ -321,15 +328,77 @@ bool scoreComparisonDescending(std::pair<double, double> score1,
 
 PanelPtr Panel::panelForMiller(Miller *miller)
 {
-    Coord coord = std::make_pair(miller->getLastX(), miller->getLastY());
+    for (int i = 0; i < badPanels.size(); i++)
+    {
+        if (badPanels[i]->isMillerInPanel(miller))
+        {
+            //     Logger::mainLogger->addString("Hit bad mask", LogLevelDetailed);
+            return PanelPtr();
+        }
+    }
     
-    return panelForCoord(coord);
+    for (int i = 0; i < panels.size(); i++)
+    {
+        if (panels[i]->isMillerInPanel(miller))
+        {
+            return panels[i];
+        }
+    }
+    
+    return PanelPtr();
 }
 
+Coord Panel::shiftSpot(Coord xy)
+{
+    Coord shift = bestShift;
+    Coord swivelShift = getSwivelShift(xy, true);
+    
+    if (shift.first == FLT_MAX)
+    {
+        shift.first = 0;
+        shift.second = 0;
+    }
+    
+    Coord translated = std::make_pair(xy.first - shift.first, xy.second - shift.second);
+    
+ //   logged << "trans/swivel:\t" << bestShift.first << "\t" << bestShift.second << "\t" << swivelShift.first << "\t" << swivelShift.second << std::endl;
+    sendLog();
+    
+    translated.first += swivelShift.first;
+    translated.second += swivelShift.second;
+    
+    return translated;
+}
 
 PanelPtr Panel::panelForSpot(Spot *spot)
 {
     Coord coord = spot->getRawXY();
+    
+    for (int i = 0; i < badPanels.size(); i++)
+    {
+        Coord shifted = badPanels[i]->shiftSpot(coord);
+        
+        if (badPanels[i]->isCoordInPanel(shifted))
+        {
+            return PanelPtr();
+        }
+    }
+    
+    for (int i = 0; i < panels.size(); i++)
+    {
+        Coord shifted = panels[i]->shiftSpot(coord);
+      
+  //      panels[i]->logged << "compare\t" << coord.first << "\t" << coord.second << "\t" << shifted.first << "\t" << shifted.second << "\t" << panels[i]->topLeft.first << "\t"  << panels[i]->topLeft.second << "\t"  << panels[i]->bottomRight.first << "\t"  << panels[i]->bottomRight.second << "\t"  << std::endl;
+        panels[i]->sendLog();
+        
+        
+        if (panels[i]->isCoordInPanel(shifted))
+        {
+            return panels[i];
+        }
+    }
+    
+    return PanelPtr();
     
     return panelForCoord(coord);
 }
@@ -402,9 +471,9 @@ Coord Panel::getSwivelCoords(Coord coord)
     return std::make_pair(xReal, yReal);*/
 }
 
-Coord Panel::getSwivelShift(Coord millerCoord, bool negative)
+Coord Panel::getSwivelShift(Coord millerCoord, bool isSpot)
 {
-    Coord relative = relativeToMidPointForMiller(millerCoord);
+    Coord relative = relativeToMidPointForMiller(millerCoord, isSpot);
     
     if (swivel == 0)
         return std::make_pair(0, 0);
@@ -412,7 +481,7 @@ Coord Panel::getSwivelShift(Coord millerCoord, bool negative)
     double oldX = relative.first;
     double oldY = relative.second;
     
-    double newSinSwivel = negative ? -sinSwivel : sinSwivel;
+    double newSinSwivel = isSpot ? -sinSwivel : sinSwivel;
     
     double newX = cosSwivel * oldX - newSinSwivel * oldY;
     double newY = newSinSwivel * oldX + cosSwivel * oldY;
@@ -436,13 +505,14 @@ Coord Panel::getTiltShift(Coord millerCoord)
     return std::make_pair(xShift, yShift);
 }
 
-Coord Panel::getTotalShift(Coord millerCoord)
+Coord Panel::getTotalShift(Coord millerCoord, bool isMiller)
 {
     Coord swivelShift = getSwivelShift(millerCoord);
     Coord tiltShift = getTiltShift(millerCoord);
     
     double x = bestShift.first + tiltShift.first + swivelShift.first;
     double y = bestShift.second + tiltShift.second + swivelShift.second;
+    
     
     return std::make_pair(x, y);
 }
@@ -495,12 +565,15 @@ void Panel::plotAll(PlotType plotType)
     }
 }
 
-Coord Panel::relativeToMidPointForMiller(Coord coord)
+Coord Panel::relativeToMidPointForMiller(Coord coord, bool isSpot)
 {
-    double pos_x = coord.first + bestShift.first;
-    double pos_y = coord.second + bestShift.second;
+    double pos_x = coord.first;
+    double pos_y = coord.second;
     
     Coord panelMidPoint = midPoint();
+    
+    panelMidPoint.first += isSpot ? bestShift.first : 0;
+    panelMidPoint.second += isSpot ? bestShift.second : 0;
     
     double rel_x = pos_x - panelMidPoint.first;
     double rel_y = pos_y - panelMidPoint.second;

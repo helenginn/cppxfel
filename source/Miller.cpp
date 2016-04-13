@@ -1011,7 +1011,11 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     transformedMatrix->multiplyVector(&hkl);
     
     std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl);
-    PanelPtr panel = Panel::panelForCoord(coord);
+    
+    lastX = int(coord.first);
+    lastY = int(coord.second);
+    
+    PanelPtr panel = Panel::panelForMiller(this);
     
     if (!panel)
     {
@@ -1052,7 +1056,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     else
     {
         int search = indexer->getSearchSize();
-        Coord bestShift = Panel::shiftForMiller(this);
+        Coord bestShift = panel->shiftForMiller(this);
         
         if (bestShift.first != FLT_MAX)
         {

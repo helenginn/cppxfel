@@ -45,11 +45,12 @@ private:
     static Coord beamCentre;
     Coord midPoint();
 
-    Coord getSwivelShift(Coord millerCoord, bool negative = false);
+    Coord getSwivelShift(Coord millerCoord, bool isSpot = false);
     Coord getSwivelCoords(Coord millerCoord);
     Coord getTiltShift(Coord millerCoord);
-	Coord getTotalShift(Coord millerCoord);
-    
+	Coord getTotalShift(Coord millerCoord, bool isMiller = false);
+    Coord shiftSpot(Coord xy);
+
     void fractionalCoordinates(Coord coord, Coord *frac);
     void fractionalCoordinates(Miller *miller, Coord *frac);
 
@@ -76,7 +77,7 @@ private:
     static std::string printAllThreaded();
     double detectorGain(double *error);
 
-    Coord relativeToMidPointForMiller(Coord coord);
+    Coord relativeToMidPointForMiller(Coord coord, bool isSpot = false);
     double angleForMiller(Miller *miller);
     double distanceFromMidPointForMiller(Miller *miller);
 
@@ -92,6 +93,7 @@ public:
 
     static double scoreBetweenResolutions(double minRes, double maxRes);
     bool isCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
+    bool isMillerInPanel(Miller *miller);
 	static void addMillerToPanelArray(MillerPtr miller);
 	static PanelPtr panelForMiller(Miller *miller);
     static PanelPtr panelForSpot(Spot *spot);
