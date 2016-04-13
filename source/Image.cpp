@@ -300,16 +300,16 @@ int Image::valueAt(int x, int y)
             return 0;
     }
     
-    int position = y * yDim + x;
+    int position = y * xDim + x;
     
     if (position < 0 || position >= data.size())
         return 0;
     
-    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
+//    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
     double panelGain = detectorGain;
     
-    if (panel)
-        panelGain *= panel->getGainScale();
+//    if (panel)
+//        panelGain *= panel->getGainScale();
     
     return data[position] * panelGain;
 }
