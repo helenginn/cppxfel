@@ -377,9 +377,9 @@ double cartesian_to_angle(Coord dV)
     return angle;
 }
 
-Coord Panel::getSwivelCoords(Miller *miller)
+Coord Panel::getSwivelCoords(Coord coord)
 {
-    return miller->position();
+    return coord;
    /*
     Coord fracCoords;
     fractionalCoordinates(miller, &fracCoords);
@@ -402,9 +402,9 @@ Coord Panel::getSwivelCoords(Miller *miller)
     return std::make_pair(xReal, yReal);*/
 }
 
-Coord Panel::getSwivelShift(Miller *miller)
+Coord Panel::getSwivelShift(Coord millerCoord, bool negative)
 {
-    Coord relative = relativeToMidPointForMiller(miller);
+    Coord relative = relativeToMidPointForMiller(millerCoord);
     
     if (swivel == 0)
         return std::make_pair(0, 0);
@@ -412,8 +412,10 @@ Coord Panel::getSwivelShift(Miller *miller)
     double oldX = relative.first;
     double oldY = relative.second;
     
-    double newX = cosSwivel * oldX - sinSwivel * oldY;
-    double newY = sinSwivel * oldX + cosSwivel * oldY;
+    double newSinSwivel = negative ? -sinSwivel : sinSwivel;
+    
+    double newX = cosSwivel * oldX - newSinSwivel * oldY;
+    double newY = newSinSwivel * oldX + cosSwivel * oldY;
     
     newX -= relative.first;
     newY -= relative.second;
@@ -422,9 +424,9 @@ Coord Panel::getSwivelShift(Miller *miller)
 }
 
 
-Coord Panel::getTiltShift(Miller *miller)
+Coord Panel::getTiltShift(Coord millerCoord)
 {
-    Coord swivelCoords = getSwivelCoords(miller);
+    Coord swivelCoords = millerCoord;
     Coord fracCoords;
     fractionalCoordinates(swivelCoords, &fracCoords);
     
@@ -434,10 +436,10 @@ Coord Panel::getTiltShift(Miller *miller)
     return std::make_pair(xShift, yShift);
 }
 
-Coord Panel::getTotalShift(Miller *miller)
+Coord Panel::getTotalShift(Coord millerCoord)
 {
-    Coord swivelShift = getSwivelShift(miller);
-    Coord tiltShift = getTiltShift(miller);
+    Coord swivelShift = getSwivelShift(millerCoord);
+    Coord tiltShift = getTiltShift(millerCoord);
     
     double x = bestShift.first + tiltShift.first + swivelShift.first;
     double y = bestShift.second + tiltShift.second + swivelShift.second;
@@ -452,20 +454,27 @@ Coord Panel::shiftForMiller(Miller *miller)
     if (!panel)
         return std::make_pair(FLT_MAX, FLT_MAX);
     
-    return panel->getTotalShift(miller);
+    return panel->getTotalShift(miller->getLastXY());
 }
 
-Coord Panel::shiftForSpot(Spot *spot)
+Coord Panel::translationShiftForSpot(Spot *spot)
 {
     PanelPtr panel = panelForSpot(spot);
     
     if (!panel)
         return std::make_pair(FLT_MAX, FLT_MAX);
     
-    double x = panel->bestShift.first;
-    double y = panel->bestShift.second;
+    return panel->bestShift;
+}
+
+Coord Panel::swivelShiftForSpot(Spot *spot)
+{
+    PanelPtr panel = panelForSpot(spot);
     
-    return std::make_pair(x, y);
+    if (!panel)
+        return std::make_pair(FLT_MAX, FLT_MAX);
+    
+    return panel->getSwivelShift(spot->getRawXY(), true);
 }
 
 double Panel::scaleForMiller(Miller *miller)
@@ -486,10 +495,10 @@ void Panel::plotAll(PlotType plotType)
     }
 }
 
-Coord Panel::relativeToMidPointForMiller(Miller *miller)
+Coord Panel::relativeToMidPointForMiller(Coord coord)
 {
-    double pos_x = miller->getLastX() + bestShift.first;
-    double pos_y = miller->getLastY() + bestShift.second;
+    double pos_x = coord.first + bestShift.first;
+    double pos_y = coord.second + bestShift.second;
     
     Coord panelMidPoint = midPoint();
     
@@ -501,14 +510,14 @@ Coord Panel::relativeToMidPointForMiller(Miller *miller)
 
 double Panel::distanceFromMidPointForMiller(Miller *miller)
 {
-    Coord relative = relativeToMidPointForMiller(miller);
+    Coord relative = relativeToMidPointForMiller(miller->getLastXY());
     
     return sqrt(relative.first * relative.first + relative.second * relative.second);
 }
 
 double Panel::angleForMiller(Miller *miller)
 {
-    Coord relative = relativeToMidPointForMiller(miller);
+    Coord relative = relativeToMidPointForMiller(miller->getLastXY());
     
     double rel_x = relative.first;
     double rel_y = relative.second;
@@ -594,7 +603,7 @@ void Panel::plotVectors(int i, PlotType plotType)
             double intensity = miller->getRawIntensity();
             
             Coord shift = miller->getShift();
-            Coord expectedShift = this->getTotalShift(&*miller);
+            Coord expectedShift = this->getTotalShift((&*miller)->getLastXY());
             shift.first -= originalShift.first; // plot relative shift away from the last round of refinement
             shift.second -= originalShift.second;
             

@@ -319,7 +319,8 @@ void Spot::setUpdate()
 
 Coord Spot::getXY()
 {
-    Coord shift = Panel::shiftForSpot(this);
+    Coord shift = Panel::translationShiftForSpot(this);
+    Coord swivelShift = Panel::swivelShiftForSpot(this);
     
  //   logged << x << "," << shift.first << "," << y << "," << shift.second << std::endl;
     
@@ -329,7 +330,11 @@ Coord Spot::getXY()
         shift.second = 0;
     }
 
-    return std::make_pair(x - shift.first, y - shift.second);
+    Coord translated = std::make_pair(x - shift.first, y - shift.second);
+    translated.first += swivelShift.first;
+    translated.second += swivelShift.second;
+    
+    return translated;
 }
 
 double Spot::getX(bool update)

@@ -280,6 +280,12 @@ public:
 	{
         setRejected(RejectReasonMerge, rejected);
 	}
+    
+    Coord getLastXY()
+    {
+        Coord lastXY = std::make_pair(lastX, lastY);
+        return lastXY;
+    }
 
 	double getLastX() const
 	{

@@ -114,6 +114,8 @@ class Miller;
 #include <string>
 #include <mutex>
 
+typedef std::pair<double, double> Coord;
+
 using std::vector;
 
 

@@ -21,8 +21,6 @@ typedef enum
     PlotTypeRelative
 } PlotType;
 
-typedef std::pair<double, double> Coord;
-
 class Panel : public LoggableObject
 {
 private:
@@ -47,10 +45,10 @@ private:
     static Coord beamCentre;
     Coord midPoint();
 
-    Coord getSwivelShift(Miller *miller);
-    Coord getSwivelCoords(Miller *miller);
-    Coord getTiltShift(Miller *miller);
-	Coord getTotalShift(Miller *miller);
+    Coord getSwivelShift(Coord millerCoord, bool negative = false);
+    Coord getSwivelCoords(Coord millerCoord);
+    Coord getTiltShift(Coord millerCoord);
+	Coord getTotalShift(Coord millerCoord);
     
     void fractionalCoordinates(Coord coord, Coord *frac);
     void fractionalCoordinates(Miller *miller, Coord *frac);
@@ -78,7 +76,7 @@ private:
     static std::string printAllThreaded();
     double detectorGain(double *error);
 
-    Coord relativeToMidPointForMiller(Miller *miller);
+    Coord relativeToMidPointForMiller(Coord coord);
     double angleForMiller(Miller *miller);
     double distanceFromMidPointForMiller(Miller *miller);
 
@@ -108,7 +106,8 @@ public:
     void finaliseMillerArray();
     static void finaliseMillerArrays();
     static Coord shiftForMiller(Miller *miller);
-    static Coord shiftForSpot(Spot *spot);
+    static Coord translationShiftForSpot(Spot *spot);
+    static Coord swivelShiftForSpot(Spot *spot);
     static double scaleForMiller(Miller *miller);
 	void print(std::ostringstream *stream);
 	static void printToFile(std::string filename);

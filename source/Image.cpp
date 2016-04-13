@@ -1316,6 +1316,10 @@ void Image::processSpotList()
             }
         }
         
+        logged << "SPOT\t" << i << "\t" << newSpot->getRawXY().first << "\t" << newSpot->getRawXY().second
+        << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
+        sendLog(LogLevelDebug);
+        
         if (add) spots.push_back(newSpot);
     }
     
