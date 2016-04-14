@@ -80,7 +80,8 @@ private:
     Coord relativeToMidPointForMiller(Coord coord, bool isSpot = false);
     double angleForMiller(Miller *miller);
     double distanceFromMidPointForMiller(Miller *miller);
-
+    Coord rotateCoordByAngle(Coord newCoord, bool negative);
+    
     double stdevScore(double minRes, double maxRes);
     vector<MillerPtr> millers;
 	int defaultShift;

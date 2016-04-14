@@ -1068,7 +1068,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             
             getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
             
-            shift = std::make_pair(xInt + 0.5 - x_coord, yInt + 0.5 - y_coord);
+            shift = std::make_pair(xInt + 0.5 - shiftedX, yInt + 0.5 - shiftedY);
             
             *x = xInt;
             *y = yInt;

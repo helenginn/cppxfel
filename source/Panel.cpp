@@ -266,7 +266,7 @@ void Panel::printToFile(std::string filename)
 
 std::string Panel::printAllThreaded()
 {
-    int totalThreads = (int)panels.size();
+    int totalThreads = FileParser::getMaxThreads();
     
     boost::thread_group threads;
     
@@ -481,17 +481,23 @@ Coord Panel::getSwivelShift(Coord millerCoord, bool isSpot)
     double oldX = relative.first;
     double oldY = relative.second;
     
-    double newSinSwivel = isSpot ? -sinSwivel : sinSwivel;
+    Coord rotated = rotateCoordByAngle(relative, isSpot);
     
-    double newX = cosSwivel * oldX - newSinSwivel * oldY;
-    double newY = newSinSwivel * oldX + cosSwivel * oldY;
+    rotated.first -= relative.first;
+    rotated.second -= relative.second;
     
-    newX -= relative.first;
-    newY -= relative.second;
-    
-    return std::make_pair(newX, newY);
+    return std::make_pair(rotated.first, rotated.second);
 }
 
+Coord Panel::rotateCoordByAngle(Coord newCoord, bool negative)
+{
+    double newSinSwivel = negative ? -sinSwivel : sinSwivel;
+    
+    double newX = cosSwivel * newCoord.first - newSinSwivel * newCoord.second;
+    double newY = newSinSwivel * newCoord.first + cosSwivel * newCoord.second;
+
+    return std::make_pair(newX, newY);
+}
 
 Coord Panel::getTiltShift(Coord millerCoord)
 {
@@ -667,7 +673,7 @@ void Panel::plotVectors(int i, PlotType plotType)
         
         double minX = FLT_MAX; double minY = FLT_MAX; double maxX = -FLT_MAX; double maxY = -FLT_MAX;
         
-        CSV csv = CSV(7, "shift_x", "shift_y", "intensity", "rel_x", "rel_y", "angle");
+        CSV csv = CSV(6, "shift_x", "shift_y", "intensity", "rel_x", "rel_y", "angle");
         
         for (int k = 0; k < resMillers.size(); k++)
         {
@@ -677,8 +683,8 @@ void Panel::plotVectors(int i, PlotType plotType)
             
             Coord shift = miller->getShift();
             Coord expectedShift = this->getTotalShift((&*miller)->getLastXY());
-            shift.first -= originalShift.first; // plot relative shift away from the last round of refinement
-            shift.second -= originalShift.second;
+         //   shift.first -= originalShift.first; // plot relative shift away from the last round of refinement
+         //   shift.second -= originalShift.second;
             
             if (shift.first < minX)
                 minX = shift.first;
@@ -1049,9 +1055,14 @@ void Panel::findShift(double windowSize, double step, double x, double y)
                     continue;
                 }
                 
-                Coord translationShift = millers[k]->getShift();
-                Coord millerShift = std::make_pair(translationShift.first,
-                                                   translationShift.second);
+                Coord predictedPosition = millers[k]->getLastXY();
+                Coord currentShift = bestShift;
+                Coord newShift = rotateCoordByAngle(millers[k]->getShift(), true);
+                newShift = millers[k]->getShift();
+                
+                
+                Coord millerShift = std::make_pair(newShift.first + currentShift.first,
+                                                   newShift.second + currentShift.second);
                 
                 bool inWindow = isCoordInPanel(millerShift, &windowTopLeft,
                                                &windowBottomRight);
@@ -1060,8 +1071,6 @@ void Panel::findShift(double windowSize, double step, double x, double y)
                 {
                     continue;
                 }
-                
-                
                 
                 bool strong = millers[k]->getRawIntensity() / millers[k]->getCountingSigma() > intensityThreshold;
                 
