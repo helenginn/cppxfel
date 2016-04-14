@@ -27,7 +27,6 @@ Image::Image(std::string filename, double wavelength,
              double distance)
 {
     vector<double> dims = FileParser::getKey("DETECTOR_SIZE", vector<double>());
-    learningToIndex = false;
     
     xDim = 1765;
     yDim = 1765;
@@ -1623,9 +1622,6 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     MtzPtr mtz = refiner->newMtz(lastRefiner, true);
     int spotsRemoved = mtz->removeStrongSpots(&spots, false);
     
-    if (learningToIndex)
-        successfulImage = refiner->isBasicGoodSolution();
-    
     if (spotsRemoved < minimumSpotsExplained)
     {
         logged << "(" << getFilename() << ") However, does not explain enough spots (" << spotsRemoved << " vs  " << minimumSpotsExplained << ")" << std::endl;
@@ -1662,9 +1658,6 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         logged << "Unsuccessful crystal for " << getFilename() << std::endl;
         badSolutions.push_back(solutionPtr);
         removeRefiner(lastRefiner);
-        
-        if (learningToIndex)
-            failedRefiners.push_back(refiner);
         
         Logger::mainLogger->addStream(&logged); logged.str("");
         indexingFailureCount++;
@@ -1963,7 +1956,7 @@ void Image::findIndexingSolutions()
             }
         }
         
-        if (continuing && !learningToIndex)
+        if (continuing)
         {
             if (!biggestFailedSolution)
             {

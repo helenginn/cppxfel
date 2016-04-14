@@ -49,7 +49,6 @@ private:
     bool shouldMaskUnderValue;
     int maskedValue;
     int maskedUnderValue;
-    bool learningToIndex;
     bool fitBackgroundAsPlane;
     std::string spotsFile;
     IndexingSolutionStatus extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures = NULL, int added = 0);
@@ -358,11 +357,6 @@ public:
     {
         if (good) return (int)goodSolutions.size();
         else return (int)badSolutions.size();
-    }
-    
-    void setLearningToIndex(bool learning)
-    {
-        learningToIndex = learning;
     }
     
     int failedRefinerCount()

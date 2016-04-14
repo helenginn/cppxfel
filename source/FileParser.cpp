@@ -328,7 +328,6 @@ void FileParser::generateFunctionList()
     parserMap["ROUGH_CALCULATION"] = simpleBool;
     parserMap["BINS"] = simpleInt;
 
-    parserMap["LEARNING_TO_INDEX"] = simpleBool;
     parserMap["MINIMUM_SPOTS_EXPLAINED"] = simpleInt;
     parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
     parserMap["MINIMUM_TRUST_DISTANCE"] = simpleFloat;

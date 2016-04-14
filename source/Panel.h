@@ -46,7 +46,6 @@ private:
     Coord midPoint();
 
     Coord getSwivelShift(Coord millerCoord, bool isSpot = false);
-    Coord getSwivelCoords(Coord millerCoord);
     Coord getTiltShift(Coord millerCoord);
 	Coord getTotalShift(Coord millerCoord, bool isMiller = false);
     Coord shiftSpot(Coord xy);

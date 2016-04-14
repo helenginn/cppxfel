@@ -446,31 +446,6 @@ double cartesian_to_angle(Coord dV)
     return angle;
 }
 
-Coord Panel::getSwivelCoords(Coord coord)
-{
-    return coord;
-   /*
-    Coord fracCoords;
-    fractionalCoordinates(miller, &fracCoords);
-    
-    Coord midCoords = std::make_pair(0.5, 0.5);
-    // direction vector
-    Coord dV = std::make_pair(fracCoords.first - midCoords.first,
-                              fracCoords.second - midCoords.second);
-    
-    double distance = cartesian_to_distance(dV);
-    double angle = cartesian_to_angle(dV);
-    
-    angle += swivel;
-    double x = distance * cos(angle);
-    double y = distance * sin(angle);
-    
-    double xReal = (x + 0.5) * width() + topLeft.first;
-    double yReal = (y + 0.5) * height() + topLeft.second;
-    
-    return std::make_pair(xReal, yReal);*/
-}
-
 Coord Panel::getSwivelShift(Coord millerCoord, bool isSpot)
 {
     Coord relative = relativeToMidPointForMiller(millerCoord, isSpot);
