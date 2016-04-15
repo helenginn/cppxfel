@@ -456,21 +456,14 @@ Coord Panel::getSwivelShift(Coord millerCoord, bool isSpot)
     double oldX = relative.first;
     double oldY = relative.second;
     
-    Coord rotated = rotateCoordByAngle(relative, isSpot);
+    double newSinSwivel = isSpot ? -sinSwivel : sinSwivel;
     
-    rotated.first -= relative.first;
-    rotated.second -= relative.second;
+    double newX = cosSwivel * oldX - newSinSwivel * oldY;
+    double newY = newSinSwivel * oldX + cosSwivel * oldY;
     
-    return std::make_pair(rotated.first, rotated.second);
-}
-
-Coord Panel::rotateCoordByAngle(Coord newCoord, bool negative)
-{
-    double newSinSwivel = negative ? -sinSwivel : sinSwivel;
+    newX -= relative.first;
+    newY -= relative.second;
     
-    double newX = cosSwivel * newCoord.first - newSinSwivel * newCoord.second;
-    double newY = newSinSwivel * newCoord.first + cosSwivel * newCoord.second;
-
     return std::make_pair(newX, newY);
 }
 
@@ -1032,8 +1025,7 @@ void Panel::findShift(double windowSize, double step, double x, double y)
                 
                 Coord predictedPosition = millers[k]->getLastXY();
                 Coord currentShift = bestShift;
-                Coord newShift = rotateCoordByAngle(millers[k]->getShift(), true);
-                newShift = millers[k]->getShift();
+                Coord newShift = millers[k]->getShift();
                 
                 
                 Coord millerShift = std::make_pair(newShift.first + currentShift.first,
