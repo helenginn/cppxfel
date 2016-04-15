@@ -33,8 +33,13 @@ if env_etc.clang_version:
   wd = ["-Wno-unused-variable"]
   env.Append(CCFLAGS=wd)
 
+base_lib = libtbx.env.under_build(path="../base/lib")
+print base_lib
+if (os.path.isdir(base_lib)):
+  env.Append(LIBPATH=[base_lib])
+
 if 'BOOST_LOCATION' in os.environ:
-	env.Append(LIBPATH = os.environ['BOOST_LOCATION'])
+	env.Append(LIBPATH = [os.environ['BOOST_LOCATION']])
 	print ("Appending directory containing boost libraries: " + os.environ['BOOST_LOCATION'])
 
 source = [
@@ -88,4 +93,4 @@ source = [
 env.SharedLibrary(
     target='#/lib/cppxfel_ext', 
     source=source,
-    LIBS=env["LIBS"])
+    LIBS=env["LIBS"] + ['hdf5'])
