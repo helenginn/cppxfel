@@ -12,6 +12,7 @@
 #include "Logger.h"
 #include <fstream>
 #include <unistd.h>
+#include "Hdf5Manager.h"
 
 void finishJobNotification(int argc, char *argv[], int minutes)
 {
@@ -93,6 +94,13 @@ void new_main(int argc, char *argv[])
         
         exit(1);
 	}
+    
+    if (strcmp(argv[1], "-test") == 0)
+    {
+        std::string testHdf5 = argv[2];
+        
+        Hdf5Manager manager = Hdf5Manager(testHdf5);
+    }
 
 	if (strcmp(argv[1], "-wiki") == 0)
 	{

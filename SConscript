@@ -34,9 +34,10 @@ if env_etc.clang_version:
   env.Append(CCFLAGS=wd)
 
 base_lib = libtbx.env.under_build(path="../base/lib")
-print base_lib
+base_include = libtbx.env.under_build(path="../base/include")
 if (os.path.isdir(base_lib)):
   env.Append(LIBPATH=[base_lib])
+  env.Append(CPPPATH=[base_include])
 
 if 'BOOST_LOCATION' in os.environ:
 	env.Append(LIBPATH = [os.environ['BOOST_LOCATION']])

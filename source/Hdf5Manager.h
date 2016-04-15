@@ -10,5 +10,28 @@
 #define __cppxfel__Hdf5Manager__
 
 #include <stdio.h>
+#include <hdf5.h>
+#include <hdf5_hl.h>
+#include <string>
+
+class Hdf5Manager
+{
+private:
+    std::string filename;
+    hid_t handle;
+    
+public:
+    Hdf5Manager(std::string newName);
+    
+    void setFilename(std::string newName)
+    {
+        filename = newName;
+    }
+    
+    std::string getFilename()
+    {
+        return filename;
+    }
+};
 
 #endif /* defined(__cppxfel__Hdf5Manager__) */
