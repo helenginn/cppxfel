@@ -239,8 +239,7 @@ void Image::loadImage()
                 
                 data[i] = convertedPoint;
             }
-            
-            addMask(968, 950, 1441, 1079);
+
         }
     }
     else
