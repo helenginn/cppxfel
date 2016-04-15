@@ -56,6 +56,7 @@ source = [
 'source/FreeLattice.cpp',
 'source/FreeMillerLibrary.cpp',
 'source/GraphDrawer.cpp',
+'source/Hdf5Manager.cpp',
 'source/Holder.cpp',
 'source/Image.cpp',
 'source/IOMRefiner.cpp',
