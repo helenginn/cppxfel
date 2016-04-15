@@ -17,10 +17,12 @@ class Hdf5ManagerCheetahSacla : public Hdf5Manager
 {
 private:
     std::vector<std::string> imagePaths;
-    static std::vector<Hdf5ManagerCheetahSacla *> cheetahManagers;
+    static std::vector<Hdf5ManagerCheetahSaclaPtr> cheetahManagers;
 
 public:
-    static Hdf5ManagerCheetahSacla *hdf5ManagerForImage(std::string imageName);
+    static void initialiseSaclaManagers();
+    
+    static Hdf5ManagerCheetahSaclaPtr hdf5ManagerForImage(std::string imageName);
     
     std::string addressForImage(std::string imageName);
     bool dataForImage(std::string address, void **buffer);
@@ -32,8 +34,6 @@ public:
     Hdf5ManagerCheetahSacla(std::string newName) : Hdf5Manager(newName)
     {
         groupsWithPrefix(&imagePaths, "tag");
-        
-        cheetahManagers.push_back(this);
         
         /*
         std::string test = imagePaths[0];

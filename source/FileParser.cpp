@@ -108,6 +108,23 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
 	(*map)[command] = theInt;
 }
 
+void FileParser::stringVector(ParametersMap *map, std::string command,
+                              std::string rest)
+{
+    vector<std::string> stringVector = FileReader::split(rest, splitCharMinor);
+    
+    log << "Setting " << command << " to ";
+    
+    for (int i = 0; i < stringVector.size(); i++)
+    {
+        log << stringVector[i] << " ";
+    }
+    
+    log << std::endl;
+    
+    (*map)[command] = stringVector;
+}
+
 void FileParser::doubleVector(ParametersMap *map, std::string command,
                               std::string rest)
 {
@@ -245,7 +262,8 @@ void FileParser::generateFunctionList()
     parserMap["OPTIMISING_UNIT_CELL_B"] = simpleBool;
     parserMap["OPTIMISING_UNIT_CELL_C"] = simpleBool;
 
-	parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
+    parserMap["HDF5_SOURCE_FILES"] = stringVector;
+    parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
     parserMap["SECOND_MATRIX_LIST"] = simpleString;
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;
 	parserMap["INITIAL_MTZ"] = simpleString;

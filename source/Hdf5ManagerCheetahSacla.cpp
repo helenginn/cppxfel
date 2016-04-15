@@ -8,14 +8,44 @@
 
 #include "Hdf5ManagerCheetahSacla.h"
 #include "misc.h"
+#include "FileParser.h"
 
-std::vector<Hdf5ManagerCheetahSacla *> Hdf5ManagerCheetahSacla::cheetahManagers;
+std::vector<Hdf5ManagerCheetahSaclaPtr> Hdf5ManagerCheetahSacla::cheetahManagers;
 
-Hdf5ManagerCheetahSacla *Hdf5ManagerCheetahSacla::hdf5ManagerForImage(std::string imageName)
+void Hdf5ManagerCheetahSacla::initialiseSaclaManagers()
+{
+    std::vector<std::string> hdf5FileGlobs = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
+    std::ostringstream logged;
+    
+    for (int i = 0; i < hdf5FileGlobs.size(); i++)
+    {
+        std::vector<std::string> hdf5Files = glob(hdf5FileGlobs[i]);
+        
+        logged << "HDF5_SOURCE_FILES entry " << i << " matches: " << std::endl;
+        
+        for (int j = 0; j < hdf5Files.size(); j++)
+        {
+            std::string aFilename = hdf5Files[i];
+            
+            Hdf5ManagerCheetahSaclaPtr cheetahPtr = Hdf5ManagerCheetahSaclaPtr(new Hdf5ManagerCheetahSacla(aFilename));
+            cheetahManagers.push_back(cheetahPtr);
+            
+            logged << hdf5Files[j] << ", ";
+        }
+        
+        logged << std::endl;
+    }
+    
+    logged << "... now managing " << cheetahManagers.size() << " hdf5 image source files." << std::endl;
+    
+    Logger::mainLogger->addStream(&logged);
+}
+
+Hdf5ManagerCheetahSaclaPtr Hdf5ManagerCheetahSacla::hdf5ManagerForImage(std::string imageName)
 {
     for (int i = 0; i < cheetahManagers.size(); i++)
     {
-        Hdf5ManagerCheetahSacla *cheetahManager = cheetahManagers[i];
+        Hdf5ManagerCheetahSaclaPtr cheetahManager = cheetahManagers[i];
         
         std::string address = cheetahManager->addressForImage(imageName);
         

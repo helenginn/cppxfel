@@ -5,6 +5,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <math.h>
+#include <glob.h>
+#include <vector>
 
 std::string f_to_str(double val)
 {
@@ -90,4 +92,23 @@ double proportion(int n)
     double prop = n / pow(2, n);
     
     return prop;
+}
+
+std::vector<std::string> glob(std::string globString)
+{
+    std::vector<std::string> globs;
+    
+    glob_t globbuf;
+    int err = glob("*", 0, NULL, &globbuf);
+    if(err == 0)
+    {
+        for (size_t i = 0; i < globbuf.gl_pathc; i++)
+        {
+            globs.push_back(std::string(globbuf.gl_pathv[i]));
+        }
+        
+        globfree(&globbuf);
+    }
+    
+    return globs;
 }

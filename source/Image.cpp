@@ -56,6 +56,7 @@ Image::Image(std::string filename, double wavelength,
     
     maskedValue = 0;
     maskedUnderValue = 0;
+    useShortData = false;
     
     if (shouldMaskValue)
         maskedValue = FileParser::getKey("IMAGE_MASKED_VALUE", 0);

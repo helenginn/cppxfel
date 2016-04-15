@@ -3,6 +3,7 @@
 #include <iostream>
 #include <execinfo.h>
 #include <signal.h>
+#include <vector>
 
 std::string i_to_str(int val);
 std::string f_to_str(double val);
@@ -13,6 +14,9 @@ std::string getBaseFilename(std::string filename);
 std::string getFilename(std::string filename);
 std::string getPath(std::string filename);
 
+std::vector<std::string> glob(std::string globString);
+
 unsigned long factorial(unsigned long n);
 unsigned int choose(unsigned long n, unsigned long choose);
 double proportion(int n);
+

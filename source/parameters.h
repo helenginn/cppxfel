@@ -164,14 +164,12 @@ typedef enum
 class Panel;
 class Logger;
 class Image;
+class Hdf5Image;
 class Shoebox;
 class Matrix;
 class IOMRefiner;
 class MtzManager;
-class CommonLine;
 class Spot;
-class ImageCluster;
-class CommonCircle;
 class SpotVector;
 class IndexingSolution;
 class UnitCellLattice;
@@ -188,15 +186,13 @@ typedef boost::shared_ptr<GaussianBeam> GaussianBeamPtr;
 typedef boost::shared_ptr<Miller> MillerPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
-typedef boost::shared_ptr<CommonLine> CommonLinePtr;
-typedef boost::shared_ptr<CommonCircle> CommonCirclePtr;
 typedef boost::shared_ptr<Panel>PanelPtr;
 typedef boost::shared_ptr<MtzManager>MtzPtr;
 typedef boost::shared_ptr<std::ostringstream> StreamPtr;
 typedef boost::shared_ptr<Logger>LoggerPtr;
 typedef boost::shared_ptr<Image> ImagePtr;
+typedef boost::shared_ptr<Hdf5Image> Hdf5ImagePtr;
 typedef boost::weak_ptr<Image>ImageWeakPtr;
-typedef boost::shared_ptr<ImageCluster>ImageClusterPtr;
 typedef boost::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
 typedef boost::shared_ptr<SpotVector> SpotVectorPtr;
@@ -207,12 +203,10 @@ typedef boost::shared_ptr<Hdf5ManagerCheetahSacla> Hdf5ManagerCheetahSaclaPtr;
 
 
 typedef boost::variant<double, double, std::string, bool, int,
-		vector<double>, vector<int> > ParameterVariant;
+  vector<double>, vector<int>, vector<std::string> > ParameterVariant;
 typedef std::map<std::string, ParameterVariant> ParametersMap;
 typedef void (*ParserFunction)(ParametersMap *, std::string, std::string);
 typedef std::map<std::string, ParserFunction> ParserMap;
-typedef std::pair<CommonLinePtr, CommonLinePtr> CommonLinePair;
-typedef std::pair<CommonCirclePtr, CommonCirclePtr> CommonCirclePair;
 
 typedef double (StatisticsFunction)(MtzManager *, MtzManager *, int, int *,
 		double *, double, double, bool, bool);

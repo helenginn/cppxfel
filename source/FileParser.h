@@ -33,6 +33,8 @@ protected:
 			std::string rest);
 	static void intVector(ParametersMap *map, std::string command,
 			std::string rest);
+    static void stringVector(ParametersMap *map, std::string command,
+                             std::string rest);
 
     std::vector<std::string> extras;
     static char splitCharMajor;

@@ -11,13 +11,21 @@
 
 #include <stdio.h>
 #include "Image.h"
+#include "Hdf5ManagerCheetahSacla.h"
 
 class Hdf5Image : public Image
 {
 private:
     virtual void loadImage();
-public:
     
+public:
+    Hdf5Image(std::string filename = "", double wavelength = 0,
+              double distance = 0) : Image(filename, wavelength, distance)
+    {
+        
+    };
+  
+    virtual ~Hdf5Image() {};
 };
 
 #endif /* defined(__cppxfel__Hdf5Image__) */

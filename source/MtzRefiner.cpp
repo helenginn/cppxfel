@@ -11,6 +11,7 @@
 #include "Vector.h"
 #include <boost/thread/thread.hpp>
 #include "GraphDrawer.h"
+#include "Hdf5Image.h"
 #include "Image.h"
 #include "Miller.h"
 #include <fstream>
@@ -586,6 +587,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
     vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
+    std::vector<std::string> hdf5Sources = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
+    bool readFromHdf5 = hdf5Sources.size() > 0;
+    
     bool checkingUnitCell = false;
     
     if (givenUnitCell.size() > 0 && tolerance > 0.0)
@@ -674,8 +678,20 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         MatrixPtr newMatrix;
         std::string paramsLine = "";
         
-        ImagePtr newImage = ImagePtr(new Image(imgName, wavelength,
-                                    detectorDistance));
+        ImagePtr newImage;
+        
+        if (readFromHdf5)
+        {
+            Hdf5ImagePtr hdf5Image = Hdf5ImagePtr(new Hdf5Image(imgName, wavelength,
+                                                                detectorDistance));
+            newImage = boost::static_pointer_cast<Image>(hdf5Image);
+        }
+        else
+        {
+            newImage = ImagePtr(new Image(imgName, wavelength,
+                                          detectorDistance));
+        }
+        
         bool hasSpots = false;
         
         for (int i = 1; i < lines.size(); i++)

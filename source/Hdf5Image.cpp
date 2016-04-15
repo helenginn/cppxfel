@@ -9,9 +9,10 @@
 #include "Hdf5Image.h"
 #include "Hdf5ManagerCheetahSacla.h"
 
+
 void Hdf5Image::loadImage()
 {
-    Hdf5ManagerCheetahSacla *manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(getFilename());
+    Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(getFilename());
     std::string address = manager->addressForImage(getFilename());
     
     useShortData = (manager->bytesPerTypeForImageAddress(address) == 2);
@@ -29,8 +30,7 @@ void Hdf5Image::loadImage()
     {
         success = manager->dataForImage(address, &buffer);
     }
-    
-    if (!success)
+    else
     {
         Logger::mainLogger->addString("Unable to get data from any HDF5 file");
         sendLog();
