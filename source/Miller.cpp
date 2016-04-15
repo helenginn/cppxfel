@@ -1174,21 +1174,9 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDel
         
         double xDiff = fabs(x2 - x);
         double yDiff = fabs(y2 - y);
-        /*
-        if (x2 > 753 && x2 < 759 && y2 > 958 && y2 < 961)
-        {
-            logged << x2 << ", " << y2 << ", " << xDiff << ", " << yDiff << std::endl;
-            sendLog();
-        }
-        */
+
         if (xDiff < tolerance && yDiff < tolerance)
         {
-       /*     logged << "ERASING SPOT" << std::endl;
-            
-            SpotPtr deleting = spots->at(i);
-            logged << "Deleting " << deleting->getRawXY().first << ", " << deleting->getRawXY().second << std::endl;
-            sendLog();*/
-            
             if (actuallyDelete)
             {
                 spots->erase(spots->begin() + i);
@@ -1197,15 +1185,6 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDel
             count++;
         }
     }
-    /*
-    if (count)
-    {
-        for (int i = 0; i < spots->size(); i++)
-        {
-            logged << "Spot: " << spots->at(i)->getRawXY().first << ", " << spots->at(i)->getRawXY().second << std::endl;
-            sendLog();
-        }
-    }*/
     
     return (count > 0);
 }

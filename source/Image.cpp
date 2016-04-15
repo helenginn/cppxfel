@@ -45,6 +45,7 @@ Image::Image(std::string filename, double wavelength,
     minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
     indexingFailureCount = 0;
     data = vector<int>();
+    shortData = vector<short>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
     vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
     
@@ -181,7 +182,8 @@ void Image::applyMaskToImages(vector<ImagePtr> images, int startX,
 
 bool Image::isLoaded()
 {
-    return (data.size() > 0);
+    
+    return (data.size() > 0 || shortData.size() > 0);
 }
 
 void Image::setImageData(vector<int> newData)
@@ -214,12 +216,12 @@ void Image::loadImage()
         }
         
         int bitsPerPixel = FileParser::getKey("BITS_PER_PIXEL", 32);
-        bool shortInt = (bitsPerPixel == 16);
+        useShortData = (bitsPerPixel == 16);
         
-        if (!shortInt)
+        if (!useShortData)
             data.resize(memblock.size() / sizeof(int));
         else
-            data.resize(memblock.size() / sizeof(short));
+            shortData.resize(memblock.size() / sizeof(short));
         
         overlapMask = vector<unsigned char>(memblock.size(), 0);
         
@@ -227,19 +229,20 @@ void Image::loadImage()
         << filename << std::endl;
         sendLog();
         
-        if (!shortInt)
+        if (!useShortData)
             memcpy(&data[0], &memblock[0], memblock.size());
         
-        if (shortInt)
+        if (useShortData)
         {
-            for (int i = 0; i < data.size(); i++)
+           /* for (int i = 0; i < data.size(); i++)
             {
                 unsigned short point = *((unsigned short *)(&memblock[i * sizeof(short)]));
                 int convertedPoint = point;
                 
                 data[i] = convertedPoint;
-            }
+            }*/
 
+            memcpy(&shortData[0], &memblock[0], memblock.size());
         }
     }
     else
@@ -250,6 +253,9 @@ void Image::dropImage()
 {
     data.clear();
     vector<int>().swap(data);
+    
+    shortData.clear();
+    vector<short>().swap(shortData);
     
     overlapMask.clear();
     vector<unsigned char>().swap(overlapMask);
@@ -300,16 +306,26 @@ int Image::valueAt(int x, int y)
     
     int position = y * xDim + x;
     
-    if (position < 0 || position >= data.size())
-        return 0;
     
-//    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
+    
+    if (!useShortData)
+    {
+        if (position < 0 || position >= data.size())
+            return 0;
+    }
+    else
+    {
+        if (position < 0 || position >= shortData.size())
+            return 0;
+    }
+    
+    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
     double panelGain = detectorGain;
     
-//    if (panel)
-//        panelGain *= panel->getGainScale();
+    if (panel)
+        panelGain *= panel->getGainScale();
     
-    return data[position] * panelGain;
+    return (useShortData ? shortData[position] : data[position]) * panelGain;
 }
 
 void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even)

@@ -33,14 +33,15 @@ typedef enum
     IndexingSolutionBranchFailure,
 } IndexingSolutionStatus;
 
-class Image : LoggableObject, public boost::enable_shared_from_this<Image>
+class Image : protected LoggableObject, public boost::enable_shared_from_this<Image>
 {
 private:
     int pixelCountCutoff;
 	std::string filename;
-	vector<int> data;
+    
+    
     vector<unsigned char> overlapMask;
-	void loadImage();
+	virtual void loadImage();
     void findSpots();
     vector<IOMRefinerPtr> indexers;
     vector<IOMRefinerPtr> failedRefiners;
@@ -97,6 +98,12 @@ protected:
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     virtual bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
     int minimumSolutionNetworkCount;
+    
+    // this really ought to be a template
+    vector<short> shortData;
+    vector<int> data;
+    bool useShortData;
+    // end of should be a template
     
 public:
     void incrementOverlapMask(int x, int y, ShoeboxPtr shoebox);
