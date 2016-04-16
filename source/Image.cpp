@@ -235,14 +235,6 @@ void Image::loadImage()
         
         if (useShortData)
         {
-           /* for (int i = 0; i < data.size(); i++)
-            {
-                unsigned short point = *((unsigned short *)(&memblock[i * sizeof(short)]));
-                int convertedPoint = point;
-                
-                data[i] = convertedPoint;
-            }*/
-
             memcpy(&shortData[0], &memblock[0], memblock.size());
         }
     }

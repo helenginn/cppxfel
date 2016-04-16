@@ -873,6 +873,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 
 void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
 {
+    Hdf5ManagerCheetahSacla::initialiseSaclaManagers();
+    
+    
     if (targetImages == NULL && images.size() > 0)
         return;
     

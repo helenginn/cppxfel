@@ -14,6 +14,9 @@ std::vector<Hdf5ManagerCheetahSaclaPtr> Hdf5ManagerCheetahSacla::cheetahManagers
 
 void Hdf5ManagerCheetahSacla::initialiseSaclaManagers()
 {
+    if (cheetahManagers.size() > 0)
+        return;
+    
     std::vector<std::string> hdf5FileGlobs = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
     std::ostringstream logged;
     
@@ -55,7 +58,7 @@ Hdf5ManagerCheetahSaclaPtr Hdf5ManagerCheetahSacla::hdf5ManagerForImage(std::str
         }
     }
     
-    return NULL;
+    return Hdf5ManagerCheetahSaclaPtr();
 }
 
 std::string Hdf5ManagerCheetahSacla::addressForImage(std::string imageName)
@@ -76,17 +79,7 @@ std::string Hdf5ManagerCheetahSacla::addressForImage(std::string imageName)
     return "";
 }
 
-size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
-{
-    hid_t dataset = H5Dopen1(handle, address.c_str());
-    hid_t type = H5Dget_type(dataset);
-    
-    size_t sizeType = H5Tget_size(type);
-    
-    return sizeType;
-}
-
-bool Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void **buffer)
+int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void **buffer)
 {
     std::string dataAddress = concatenatePaths(address, "data");
     
@@ -108,13 +101,27 @@ bool Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void 
     }
     catch (std::exception e)
     {
-        return false; // failure
+        return 0; // failure
     }
     
     *buffer = malloc(sizeSet * sizeType);
     
-    return true;
+    return (int)(sizeSet * sizeType);
 }
+
+size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
+{
+    std::string dataAddress = concatenatePaths(address, "data");
+    
+    hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
+    hid_t type = H5Dget_type(dataset);
+    
+    size_t sizeType = H5Tget_size(type);
+    
+    return sizeType;
+}
+
+
 
 bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
 {

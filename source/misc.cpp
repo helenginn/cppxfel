@@ -99,7 +99,7 @@ std::vector<std::string> glob(std::string globString)
     std::vector<std::string> globs;
     
     glob_t globbuf;
-    int err = glob("*", 0, NULL, &globbuf);
+    int err = glob(globString.c_str(), 0, NULL, &globbuf);
     if(err == 0)
     {
         for (size_t i = 0; i < globbuf.gl_pathc; i++)
@@ -108,6 +108,25 @@ std::vector<std::string> glob(std::string globString)
         }
         
         globfree(&globbuf);
+    }
+    else
+    {
+        switch (err)
+        {
+            case GLOB_NOMATCH:
+                std::cout << "GlOB_NOMATCH" << std::endl;
+                break;
+            case GLOB_ABORTED:
+                std::cout << "GLOB_ABORTED" << std::endl;
+                break;
+            case GLOB_NOSPACE:
+                std::cout << "GLOB_NOSPACE" << std::endl;
+                break;
+
+            default:
+                break;
+        }
+        
     }
     
     return globs;

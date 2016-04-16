@@ -13,22 +13,33 @@
 void Hdf5Image::loadImage()
 {
     Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(getFilename());
+    
+    if (!manager)
+        return;
+    
     std::string address = manager->addressForImage(getFilename());
     
     useShortData = (manager->bytesPerTypeForImageAddress(address) == 2);
     
-    void *buffer = &data[0];
+    char *buffer;
     
-    if (useShortData)
+    int size = manager->hdf5MallocBytesForImage(address, (void **)&buffer);
+    
+    if (size > 0)
     {
-        buffer = &shortData[0];
-    }
-    
-    bool success = manager->hdf5MallocBytesForImage(address, &buffer);
-    
-    if (success)
-    {
-        success = manager->dataForImage(address, &buffer);
+        bool success = manager->dataForImage(address, (void **)&buffer);
+        
+        if (!useShortData)
+        {
+            data.resize(size / sizeof(int));
+            memcpy(&data[0], &buffer[0], size);
+        }
+        else
+        {
+            shortData.resize(size / sizeof(short));
+            memcpy(&shortData[0], &buffer[0], size);
+        }
+
     }
     else
     {

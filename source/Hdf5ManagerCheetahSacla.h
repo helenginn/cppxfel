@@ -27,31 +27,15 @@ public:
     std::string addressForImage(std::string imageName);
     bool dataForImage(std::string address, void **buffer);
     size_t bytesPerTypeForImageAddress(std::string address);
-    bool hdf5MallocBytesForImage(std::string address, void **buffer);
     
     virtual ~Hdf5ManagerCheetahSacla() {};
     
     Hdf5ManagerCheetahSacla(std::string newName) : Hdf5Manager(newName)
     {
         groupsWithPrefix(&imagePaths, "tag");
-        
-        /*
-        std::string test = imagePaths[0];
-        std::string imageName = lastComponent(test);
-        
-        std::cout << "Examining image name " << imageName << std::endl;
-        
-        short *buffer;
-        hdf5MallocBytesForImage(imageName, (void **)&buffer);
-        dataForImage(imageName, (void **)&buffer);
-        
-        for (int i = 0; i < 10; i++)
-        {
-            std::cout << buffer[i] << " ";
-        }
-        
-        std::cout << std::endl;*/
     }
+    
+    int hdf5MallocBytesForImage(std::string address, void **buffer);
 };
 
 #endif /* defined(__cppxfel__Hdf5ManagerCheetahSacla__) */
