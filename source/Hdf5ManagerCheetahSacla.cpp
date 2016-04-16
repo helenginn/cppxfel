@@ -88,6 +88,8 @@ int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void *
     size_t sizeSet = 0;
     size_t sizeType = 0;
     
+    readingHdf5.lock();
+    
     try
     {
         // h5sget_simple_extent_npoints_f(space_id, npoints, hdferr)
@@ -97,12 +99,15 @@ int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void *
         sizeType = H5Tget_size(type);
         sizeSet = H5Sget_simple_extent_npoints(space);
         
-        std::cout << "Size: " << sizeSet << " of a " << sizeType << " byte type." << std::endl;
+        logged << "Size: " << sizeSet << " of a " << sizeType << " byte type." << std::endl;
+        sendLog();
     }
     catch (std::exception e)
     {
         return 0; // failure
     }
+    
+    readingHdf5.unlock();
     
     *buffer = malloc(sizeSet * sizeType);
     
@@ -113,9 +118,22 @@ size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
 {
     std::string dataAddress = concatenatePaths(address, "data");
     
-    hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
-    hid_t type = H5Dget_type(dataset);
+    hid_t dataset, type;
     
+    readingHdf5.lock();
+    
+    try
+    {
+        dataset = H5Dopen1(handle, dataAddress.c_str());
+        type = H5Dget_type(dataset);
+    }
+    catch (std::exception e)
+    {
+        return 0; // failure
+    }
+    
+    readingHdf5.unlock();
+
     size_t sizeType = H5Tget_size(type);
     
     return sizeType;
@@ -127,16 +145,23 @@ bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
 {
     std::string dataAddress = concatenatePaths(address, "data");
     
+    readingHdf5.lock();
+    
     try
     {
         hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
         hid_t type = H5Dget_type(dataset);
         H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, *buffer);
         
+        readingHdf5.unlock();
+
         return true; // success
     }
     catch (std::exception e)
     {
+        readingHdf5.unlock();
+
         return false; // failure
     }
+    
 }

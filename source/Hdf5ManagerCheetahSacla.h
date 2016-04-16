@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "Hdf5Manager.h"
 #include <iostream>
+#include <mutex>
 
 class Hdf5ManagerCheetahSacla : public Hdf5Manager
 {
@@ -19,6 +20,8 @@ private:
     std::vector<std::string> imagePaths;
     static std::vector<Hdf5ManagerCheetahSaclaPtr> cheetahManagers;
 
+    std::mutex readingHdf5;
+    
 public:
     static void initialiseSaclaManagers();
     
