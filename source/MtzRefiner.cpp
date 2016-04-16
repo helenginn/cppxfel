@@ -611,6 +611,12 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     bool setSigmaToUnity = FileParser::getKey("SET_SIGMA_TO_UNITY", true);
     
     bool ignoreMissing = FileParser::getKey("IGNORE_MISSING_IMAGES", false);
+    
+    if (readFromHdf5)
+    {
+        ignoreMissing = true;
+    }
+    
     const std::string contents = FileReader::get_file_contents(
                                                                filename->c_str());
     
