@@ -16,6 +16,7 @@
 #include "StatisticsManager.h"
 #include "Holder.h"
 #include "Miller.h"
+#include "Panel.h"
 
 #include <cstdlib>
 #include <cmath>
@@ -1593,9 +1594,10 @@ void MtzManager::writeToDat(std::string prefix)
             double shiftY = miller->getShift().second;
             double lastX = miller->getLastX();
             double lastY = miller->getLastY();
+            Coord bestShift = Panel::shiftForMiller(&*miller);
             
-            double combinedX = shiftX + lastX;
-            double combinedY = shiftY + lastY;
+            double combinedX = shiftX + lastX + bestShift.first;
+            double combinedY = shiftY + lastY + bestShift.second;
             
             csv.addEntry(0, (double)miller->getH(), (double)miller->getK(), (double)miller->getL(), miller->getWavelength(), miller->getRawIntensity(),
                          miller->getCountingSigma(), combinedX, combinedY, miller->getPartiality(), miller->getResolution());
