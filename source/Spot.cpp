@@ -131,10 +131,15 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
   //  logged << "Original position (" << trialX << ", " << trialY << ") focusing on " << focusedX << ", " << focusedY << std::endl;
   //  sendLog(LogLevelDetailed);
     
-    if (this->getParentImage()->valueAt(focusedX, focusedY) < minIntensity)
+    double pixelIntensity = this->getParentImage()->valueAt(focusedX, focusedY);
+    
+    if (pixelIntensity < minIntensity)
+    {
         return false;
+    }
     
     double resol = this->resolution();
+    
     
     if (resol > (1. / maxResolution)) return false;
     if (resol < 0) return false;
