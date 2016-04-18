@@ -143,7 +143,7 @@ bool IOMRefiner::millerReachesThreshold(MillerPtr miller)
     
     std::ostringstream logged;
     
-    logged << "Absolute intensity is " << absoluteIntensity << ", iSigI is " << iSigI << ", raw intensity is " << miller->getRawIntensity() << std::endl;
+    logged << "iSigI is " << iSigI << ", raw intensity is " << miller->getRawIntensity() << std::endl;
     
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
     
@@ -478,7 +478,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             miller->makeComplexShoebox(wavelength, initialBandwidth, initialMosaicity, initialRlpSize);
         }
         
-        if (needsReintegrating || !roughCalculation || recalculateMillerPositions)
+        if (needsReintegrating || !roughCalculation || recalculateMillerPositions || complexShoebox)
         {
             miller->integrateIntensity(newMatrix);
         }
