@@ -1194,7 +1194,9 @@ void Image::findSpots()
                 
                 if (success)
                 {
-                    logged << "Found spot (round " << count << ")" << std::endl;
+                    Coord spotCoord = testSpot->getRawXY();
+                    
+                    logged << "Found spot (" << spotCoord.first << ", " << spotCoord.second << ")" << std::endl;
                     sendLog(LogLevelDetailed);
                     spots.push_back(testSpot);
                 }
