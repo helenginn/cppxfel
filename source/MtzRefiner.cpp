@@ -379,9 +379,6 @@ void MtzRefiner::refineCycle(bool once)
             
             double scale = 1000 / mergedMtz->averageIntensity();
             mergedMtz->applyScaleFactor(scale);
-            
-            std::string filename = "anomalous_diff_" + i_to_str(i) + ".mtz";
-            mergedMtz->writeToFile(filename.c_str(), true);
         }
         
         
