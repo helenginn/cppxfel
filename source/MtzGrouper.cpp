@@ -290,14 +290,6 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 		mtzManagers[i]->applyScaleFactor(scale);
 	}
-/*
-#ifdef MAC
-	GraphDrawer drawer = GraphDrawer(MtzManager::getReferenceManager());
-
-	drawer.resolutionStatsPlot(mtzManagers, "resolution");
-	drawer.resolutionStatsPlot(mtzManagers, "intensity_ref", GraphMap(), true, false);
-	drawer.resolutionStatsPlot(mtzManagers, "intensity_img", GraphMap(), true, true);
-#endif*/
 
 	if (scalingType == ScalingTypeMinimizeRMerge)
 	{
@@ -323,11 +315,15 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     std::string invName = std::string("half2Merge.mtz");
     std::string unmergedName = std::string("unmerged.mtz");
     
+    std::string anomString = anom ? "anom_" : "";
+    std::string anomalousName = std::string("anomalous_diff.mtz");
+    
     if (cycle >= 0)
     {
-        unmergedName = std::string("unmerged") + i_to_str(cycle) + std::string(".mtz");
-        idxName = std::string("half1Merge") + i_to_str(cycle) + std::string(".mtz");
-        invName = std::string("half2Merge") + i_to_str(cycle) + std::string(".mtz");
+        anomalousName = std::string("anomalous_diff_") + i_to_str(cycle) + std::string(".mtz");;
+        unmergedName = anomString + std::string("unmerged") + i_to_str(cycle) + std::string(".mtz");
+        idxName = anomString + std::string("half1Merge") + i_to_str(cycle) + std::string(".mtz");
+        invName = anomString + std::string("half2Merge") + i_to_str(cycle) + std::string(".mtz");
     }
     
 	if (anom == false)
@@ -360,7 +356,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	}
 	else
 	{
-		mergeAnomalous(mergeMtz, unmergedMtz, false, true);
+		mergeAnomalous(mergeMtz, unmergedMtz, false, true, anomalousName);
 
 		mergeAnomalous(&idxMerge, unmerged, true, false);
 		mergeAnomalous(&invMerge, unmerged, false, false);
@@ -530,7 +526,7 @@ void MtzGrouper::mergeAnomalous(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 	if (all)
 	{
-		writeAnomalousMtz(&positive, &negative, "anomalous_diff.mtz");
+		writeAnomalousMtz(&positive, &negative, filename);
 	}
 
 	delete negative;

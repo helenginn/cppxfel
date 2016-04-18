@@ -74,7 +74,7 @@ public:
 	static void readMatrix(double (&matrix)[9], std::string line);
 	static void singleThreadRead(vector<std::string> lines,
 			vector<MtzPtr> *mtzManagers, int offset);
-	void merge();
+	void merge(bool mergeOnly = false);
     void correlationAndInverse(bool shouldFlip = false);
     void refreshCurrentPartialities();
     

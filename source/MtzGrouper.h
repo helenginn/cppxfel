@@ -51,7 +51,7 @@ public:
     void merge(MtzManager **mergeMtz, MtzManager **unmergedMtz = NULL, int cycle = -1, bool anom = false);
 
 	void mergeAnomalous(MtzManager **mergeMtz, MtzManager **unmergedMtz,
-			bool firstHalf, bool all, std::string filename = "anomalous");
+			bool firstHalf, bool all, std::string filename = "anomalous_diff");
 	void differenceBetweenMtzs(MtzManager **mergeMtz, MtzManager **positive, MtzManager **negative);
 
 	static void mergeWrapper(void *object, MtzManager **mergeMtz,

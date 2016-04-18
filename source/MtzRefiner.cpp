@@ -315,10 +315,16 @@ void MtzRefiner::refineCycle(bool once)
                                         (int) SCALING_STRATEGY);
     ScalingType scaling = (ScalingType) scalingInt;
     
+    bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
+    
     while (!finished)
     {
         cycleNum = i;
         cycle();
+        
+        // *************************
+        // ***** NORMAL MERGE ******
+        // *************************
         
         std::cout << "Grouping final MTZs" << std::endl;
         MtzGrouper *grouper = new MtzGrouper();
@@ -354,10 +360,30 @@ void MtzRefiner::refineCycle(bool once)
         double scale = 1000 / mergedMtz->averageIntensity();
         mergedMtz->applyScaleFactor(scale);
         
-        std::cout << "Here" << std::endl;
-        
         std::string filename = "allMerge" + i_to_str(i) + ".mtz";
         mergedMtz->writeToFile(filename.c_str(), true);
+        
+        // *************************
+        // ******* ANOMALOUS *******
+        // *************************
+        
+        if (anomalousMerge)
+        {
+            MtzManager *anomMergedMtz = NULL;
+            grouper->merge(&anomMergedMtz, NULL, i, true);
+            
+            MtzManager::currentManager = mergedMtz;
+            MtzManager::setReference(reference);
+            
+            std::cout << "Reflections for anomalous: " << anomMergedMtz->reflectionCount() << std::endl;
+            
+            double scale = 1000 / mergedMtz->averageIntensity();
+            mergedMtz->applyScaleFactor(scale);
+            
+            std::string filename = "anomalous_diff_" + i_to_str(i) + ".mtz";
+            mergedMtz->writeToFile(filename.c_str(), true);
+        }
+        
         
         MtzManager *reloadMerged = new MtzManager();
         
@@ -379,6 +405,8 @@ void MtzRefiner::refineCycle(bool once)
             finished = true;
         
         delete grouper;
+        
+        
         if (replaceReference)
         {
             if (!once)
@@ -663,6 +691,16 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             logged << "Skipping image " << imgName << std::endl;
             Logger::mainLogger->addStream(&logged);
             continue;
+        }
+        
+        if (readFromHdf5)
+        {
+            Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(imgName);
+            
+            if (!manager)
+            {
+                continue;
+            }
         }
         
         logged << "Loading image " << i << " (" << imgName << ")"
@@ -1320,7 +1358,7 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
     }
 }
 
-void MtzRefiner::merge()
+void MtzRefiner::merge(bool mergeOnly)
 {
     setupFreeMillers();
     
@@ -1352,6 +1390,7 @@ void MtzRefiner::merge()
     
     
     bool mergeAnomalous = FileParser::getKey("MERGE_ANOMALOUS", false);
+    
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
                                         (int) SCALING_STRATEGY);
     ScalingType scaling = (ScalingType) scalingInt;

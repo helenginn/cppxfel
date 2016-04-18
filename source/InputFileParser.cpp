@@ -179,7 +179,7 @@ void InputFileParser::parse(bool fromPython)
 			if (line == "MERGE")
 			{
                 understood = true;
-                refiner->merge();
+                refiner->merge(true);
 			}
             
             if (line == "LOAD_X_FILES")

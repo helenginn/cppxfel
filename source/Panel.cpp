@@ -679,8 +679,8 @@ void Panel::plotVectors(int i, PlotType plotType)
             
             Coord panelMidPoint = midPoint();
             
-            double rel_x = pos_x - panelMidPoint.first;
-            double rel_y = pos_y - panelMidPoint.second;
+            double rel_x = pos_x - panelMidPoint.first + expectedShift.first;
+            double rel_y = pos_y - panelMidPoint.second + expectedShift.second;
             
             double angle = angleForMiller(&*miller);
             
