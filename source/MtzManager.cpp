@@ -1594,7 +1594,10 @@ void MtzManager::writeToDat(std::string prefix)
             double shiftY = miller->getShift().second;
             double lastX = miller->getLastX();
             double lastY = miller->getLastY();
-            Coord bestShift = Panel::shiftForMiller(&*miller);
+            Coord bestShift = std::make_pair(0, 0);
+            
+            if (Panel::shouldUsePanelInfo())
+                bestShift = Panel::shiftForMiller(&*miller);
             
             double combinedX = shiftX + lastX + bestShift.first;
             double combinedY = shiftY + lastY + bestShift.second;
