@@ -51,7 +51,6 @@ source = [
 'boost_python/cppxfel_ext.cc',
 'source/AmbiguityBreaker.cpp',
 'source/CSV.cpp',
-'source/DIALSImage.cpp',
 'source/FileParser.cpp',
 'source/FileReader.cpp',
 'source/FreeLattice.cpp',
