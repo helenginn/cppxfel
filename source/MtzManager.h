@@ -115,22 +115,14 @@ protected:
 	double toleranceExponent;
 
 	ScoreType defaultScoreType;
-	bool usePartialityFunction;
 	double maxResolutionAll;
-	double maxResolutionRlpSize;
 
-    vector<double> trialUnitCell;
     static double superGaussianScale;
     double *params;
     double detectorDistance;
     
 	bool finalised;
-	bool inverse;
-	bool flipped;
-    int failedCount;
-	static double lowRes;
-	static double highRes;
-	bool freePass;
+	int failedCount;
 	bool rejected;
 
 	TrustLevel trust;
@@ -195,12 +187,9 @@ public:
 	void findCommonReflections(MtzManager *other,
 			vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
 			int *num = NULL, bool force = false);
-	double meanCorrectedIntensity(Reflection *reflection);
 	double gradientAgainstManager(MtzManager *otherManager, bool withCutoff = true, double lowRes = 0, double highRes = 0);
-	double minimizeGradient(MtzManager *otherManager, bool leastSquares);
-    void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<std::pair<double, double> > *dataPoints = NULL);
-	double minimizeRFactor(MtzManager *otherManager);
-    void applyBFactor(double bFactor);
+	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<std::pair<double, double> > *dataPoints = NULL);
+	void applyBFactor(double bFactor);
 	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0, bool absolute = false);
 	void applyScaleFactorsForBins(int binCount = 20);
 	void clearScaleFactor();
@@ -209,8 +198,6 @@ public:
 	void setSigmaToUnity();
 	void setPartialityToUnity();
 	double partialityRatio(Reflection *imgReflection, Reflection *refReflection);
-	void getRefReflections(vector<Reflection *> *refPointer,
-			vector<Reflection *> *matchPointer);
 	void reallowPartialityOutliers();
     void replaceBeamWithSpectrum();
 
@@ -259,7 +246,6 @@ public:
 
     int refinedParameterCount();
     
-	static int paramMult, spotMult;
 	void getParams(double *parameters[], int paramCount = PARAM_NUM);
     void getParamPointers(double ***parameters, int paramCount = PARAM_NUM);
     void getSteps(double *parameters[], int paramCount = PARAM_NUM);
@@ -267,17 +253,16 @@ public:
 
     double medianWavelength(double lowRes, double highRes);
 	double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
-	double weightedBestWavelength(double lowRes, double highRes);
 	int accepted(void);
 	static double exclusionScoreWrapper(void *object, double lowRes = 0,
 			double highRes = 0);
     static double bFactorScoreWrapper(void *object);
     static double scoreNelderMead(void *object);
 	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
-	double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
+    double leastSquaresPartiality(ScoreType typeOfScore);
+    double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
 	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high, bool withCutoff = false, bool set = false);
-    double belowPartialityPenalty(double low, double high);
 	std::string describeScoreType();
     double refinePartialitiesOrientation(int ambiguity, int cycles = 30);
     
@@ -291,18 +276,14 @@ public:
 	double minimizeParameter(double *meanStep, double **params, int paramNum,
 			double (*score)(void *object, double lowRes, double highRes),
 			void *object, double lowRes, double highRes);
-	double partialHits(vector<double> *partials, vector<double> *percentages);
-	double partialityGradient();
-    double maximisePartialityArea(double low, double high);
-
+	
 // more grid search
 
     void setParamLine(std::string line);
     std::string getParamLine();
     void findSteps(int param1, int param2, std::string csvName);
 	void gridSearch(bool silent = false);
-	double leastSquaresPartiality(ScoreType typeOfScore);
-    double minimize();
+	double minimize();
 	double minimize(double (*score)(void *object, double lowRes, double highRes),
 			void *object);
 	double minimizeTwoParameters(double *meanStep1, double *meanStep2,
@@ -352,11 +333,6 @@ public:
     void setDefaultScoreType(ScoreType scoreType)
     {
         defaultScoreType = scoreType;
-    }
-    
-    vector<double> getTrialUnitCell()
-    {
-        return trialUnitCell;
     }
     
     double getSuperGaussianScale() const
@@ -479,26 +455,6 @@ public:
 		scoreType = newScoreType;
 	}
 
-	static double getHighRes()
-	{
-		return highRes;
-	}
-
-	static void setHighRes(double _highRes)
-	{
-		highRes = _highRes;
-	}
-
-	static double getLowRes()
-	{
-		return lowRes;
-	}
-
-	static void setLowRes(double _lowRes)
-	{
-		lowRes = _lowRes;
-	}
-
 	CCP4SPG*& getLowGroup()
 	{
 		return low_group;
@@ -527,21 +483,6 @@ public:
 	void setFinalised(bool finalised)
 	{
 		this->finalised = finalised;
-	}
-
-	bool isFreePass() const
-	{
-		return freePass;
-	}
-
-	void setFreePass(bool freePass)
-	{
-		this->freePass = freePass;
-	}
-
-	bool isFlipped() const
-	{
-		return flipped;
 	}
 
 	MatrixPtr getMatrix()

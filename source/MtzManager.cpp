@@ -38,8 +38,6 @@ std::mutex MtzManager::tableMutex;
 double MtzManager::superGaussianScale = 0;
 
 MtzManager *MtzManager::referenceManager;
-double MtzManager::highRes = 3.5;
-double MtzManager::lowRes = 0;
 
 #include <cctbx/sgtbx/space_group.h>
 #include <cctbx/sgtbx/symbols.h>
@@ -294,13 +292,8 @@ void MtzManager::loadParametersMap()
                                              (int) DEFAULT_SCORE_TYPE);
     defaultScoreType = (ScoreType) defaultScoreInt;
     
-    usePartialityFunction = FileParser::getKey("USE_PARTIALITY_FUNCTION",
-                                               FURTHER_OPTIMISATION);
-    
     maxResolutionAll = FileParser::getKey("MAX_RESOLUTION_ALL",
                                           MAX_OPTIMISATION_RESOLUTION);
-    maxResolutionRlpSize = FileParser::getKey("MAX_RESOLUTION_RLP_SIZE",
-                                              MAX_SPOT_SIZE_OPT_RESOLUTION);
 }
 
 MtzManager::MtzManager(void)
@@ -319,17 +312,12 @@ MtzManager::MtzManager(void)
     spotSize = INITIAL_SPOT_SIZE;
     wavelength = 0;
     refCorrelation = 0;
-    inverse = false;
-    flipped = false;
     exponent = INITIAL_EXPONENT;
     finalised = false;
     scoreType = ScoreTypeCorrelation;
     trust = TrustLevelBad;
     maxResolutionAll = MAX_OPTIMISATION_RESOLUTION;
-    maxResolutionRlpSize = MAX_SPOT_SIZE_OPT_RESOLUTION;
-    freePass = false;
     defaultScoreType = DEFAULT_SCORE_TYPE;
-    usePartialityFunction = FURTHER_OPTIMISATION;
     rejected = false;
     scale = 1;
     externalScale = -1;
@@ -383,7 +371,6 @@ MtzPtr MtzManager::copy()
     newManager->spotSize = spotSize;
     newManager->wavelength = wavelength;
     newManager->refCorrelation = refCorrelation;
-    newManager->flipped = flipped;
     newManager->exponent = exponent;
     newManager->matrix = matrix;
     
@@ -779,41 +766,6 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     MtzFree(mtz);
 }
 
-void MtzManager::getRefReflections(vector<Reflection *> *refPointer,
-                               vector<Reflection *> *matchPointer)
-{
-    if (lastReference != referenceManager)
-    {
-        refReflections.clear();
-        matchReflections.clear();
-        
-        for (int i = 0; i < reflectionCount(); i++)
-        {
-            int reflId = reflection(i)->getReflId();
-            
-            Reflection *refReflection = NULL;
-            referenceManager->findReflectionWithId(reflId, &refReflection);
-            
-            if (refReflection != NULL)
-            {
-                matchReflections.push_back(reflection(i));
-                refReflections.push_back(refReflection);
-            }
-        }
-        
-        lastReference = referenceManager;
-    }
-    
-    refPointer->reserve(refReflections.size());
-    refPointer->insert(refPointer->begin(), refReflections.begin(),
-                       refReflections.end());
-    
-    matchPointer->reserve(matchReflections.size());
-    matchPointer->insert(matchPointer->begin(), matchReflections.begin(),
-                         matchReflections.end());
-    
-}
-
 void MtzManager::setReference(MtzManager *reference)
 {
     if (reference != NULL)
@@ -1148,82 +1100,6 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
     
     *scale = k;
     *bFactor = b;
-}
-
-double MtzManager::minimizeRFactor(MtzManager *otherManager)
-{
-    return minimizeGradient(otherManager, false);
-}
-
-double MtzManager::minimizeGradient(MtzManager *otherManager, bool leastSquares)
-{
-    double resolution = 0.001;
-    double step = 0.1;
-    double gradient = gradientAgainstManager(otherManager);
-    
-    vector<Reflection *> reflections1;
-    vector<Reflection *> reflections2;
-    vector<double> ints1;
-    vector<double> ints2;
-    vector<double> weights;
-    int num = 0;
-    
-    MtzManager::findCommonReflections(otherManager, reflections1, reflections2, &num);
-    
-    for (int i = 0; i < num; i++)
-    {
-        for (int j = 0; j < reflections1[i]->millerCount(); j++)
-        {
-            if (!reflections1[i]->miller(j)->accepted())
-                continue;
-            
-            double mean1 = reflections1[i]->miller(j)->intensity();
-            double mean2 = reflections2[i]->meanIntensity();
-            double weight = reflections2[i]->meanPartiality();
-            
-            if (mean1 != mean1 || mean2 != mean2 || weight != weight)
-                continue;
-            
-            //		std::cout << mean1 << "\t" << mean2 << std::endl;
-            
-            ints1.push_back(mean1);
-            ints2.push_back(mean2);
-            weights.push_back(weight);
-        }
-    }
-    
-    double best = r_factor_between_vectors(&ints1, &ints2, &weights, gradient);
-    ;
-    
-    while (step > resolution)
-    {
-        double gradUp = gradient + step;
-        double gradDown = gradient - step;
-        
-        double upScore = r_factor_between_vectors(&ints1, &ints2, &weights,
-                                                  gradUp);
-        double downScore = r_factor_between_vectors(&ints1, &ints2, &weights,
-                                                    gradDown);
-        
-        //	std::cout << upScore << "\t" << best << "\t" << downScore << std::endl;
-        
-        if (upScore < best)
-        {
-            gradient = gradUp;
-            best = upScore;
-        }
-        else if (downScore < best)
-        {
-            gradient = gradDown;
-            best = downScore;
-        }
-        else
-        {
-            step /= 2;
-        }
-    }
-    
-    return gradient;
 }
 
 double MtzManager::gradientAgainstManager(MtzManager *otherManager,

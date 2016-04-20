@@ -752,11 +752,6 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
         return;
     }
     
-    if (model == PartialityModelBinary)
-    {
-  //      binary = true;
-    }
-    
     vec hkl = new_vector(h, k, l);
     
     rotatedMatrix->multiplyVector(&hkl);

@@ -283,9 +283,6 @@ void MtzRefiner::refine()
     double correl = originalMerge->correlation(true);
     std::cout << "Merged correlation = " << correl << std::endl;
     
-    MtzManager::setLowRes(0);
-    MtzManager::setHighRes(0);
-    
     refineCycle();
     
     hasRefined = true;

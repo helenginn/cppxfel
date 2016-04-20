@@ -577,7 +577,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 
 double MtzManager::wavelengthStandardDeviation()
 {
-    double minResolution = maxResolutionRlpSize;
+    double minResolution = 0;
     double maxResolution = maxResolutionAll;
     int reflectionCount = 100;
     

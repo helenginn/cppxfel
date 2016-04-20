@@ -90,8 +90,7 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     if (needsRSplit)
         rSplit = mtz->rSplit(0, 0);
     
-    if ((refCorrelation < correlationThreshold && excludeWorst
-         && !mtz->isFreePass()))
+    if (refCorrelation < correlationThreshold && excludeWorst)
     {
         Logger::mainLogger->addString("Rejecting due to poor correlation with reference", LogLevelDetailed);
         

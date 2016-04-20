@@ -263,33 +263,6 @@ void new_main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (strcmp(argv[1], "-gradscaling") == 0)
-	{
-		if (argc <= 3)
-		{
-			std::cout << "arguments: -gradscaling <ref> <file2> ... <filen>."
-					<< std::endl;
-			exit(1);
-		}
-
-		MtzManager *reference = new MtzManager();
-		reference->setFilename(argv[2]);
-		reference->loadReflections(1);
-
-		for (int i = 3; i < argc; i++)
-		{
-			MtzManager *image = new MtzManager();
-			image->setFilename(argv[i]);
-			image->loadReflections(1);
-
-			double gradientOld = image->gradientAgainstManager(reference);
-			double gradientBefore = image->minimizeRFactor(reference);
-
-			std::cout << image->getFilename() << "\t" << gradientOld << "\t"
-					<< gradientBefore << std::endl;
-		}
-	}
-
 	if (strcmp(argv[1], "-inv") == 0)
 	{
 		if (argc <= 2)
