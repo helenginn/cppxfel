@@ -1268,7 +1268,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
         
         bool refinedH = (rotationMode == RotationModeHorizontalVertical) ? false : true;
         bool refinedK = (rotationMode == RotationModeHorizontalVertical) ? false : true;
-        bool refinedL = (rotationMode == RotationModeHorizontalVertical) ? !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", false) : true;
+        bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", true);
         bool refinedA = !refineA;
         bool refinedB = !refineB;
         bool refinedC = !refineC;
