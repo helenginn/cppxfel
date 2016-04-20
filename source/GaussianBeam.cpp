@@ -11,6 +11,66 @@
 #include <math.h>
 #include "GetterSetterMap.h"
 #include "FileParser.h"
+#include <cmath>
+
+bool GaussianBeam::setupSuperGaussian = false;
+vector<double> GaussianBeam::superGaussianTable;
+std::mutex GaussianBeam::tableMutex;
+double GaussianBeam::superGaussianScale = 0;
+
+double GaussianBeam::superGaussianFromTable(double x, double mean, double sigma, double exponent)
+{
+    if (x != x || mean != mean)
+        return 0;
+    
+    double standardisedX = fabs((x - mean) / sigma);
+    
+    if (standardisedX > MAX_SUPER_GAUSSIAN)
+        return 0;
+    
+    if (!std::isfinite(standardisedX) || standardisedX != standardisedX)
+        return 0;
+    
+    const double step = SUPER_GAUSSIAN_STEP;
+    
+    int lookupInt = standardisedX / step;
+    return superGaussianTable[lookupInt];
+}
+
+void GaussianBeam::makeSuperGaussianLookupTable(double exponent)
+{
+    if (setupSuperGaussian)
+        return;
+    
+    tableMutex.lock();
+    
+    if (setupSuperGaussian)
+    {
+        tableMutex.unlock();
+        return;
+    }
+    
+    superGaussianScale = pow((M_PI / 2), (2 / exponent - 1));
+    
+    superGaussianTable.clear();
+    
+    const double min = 0;
+    const double max = MAX_SUPER_GAUSSIAN;
+    const double step = SUPER_GAUSSIAN_STEP;
+    int count = 0;
+    
+    for (double x = min; x < max; x += step)
+    {
+        double value = super_gaussian(x, 0, superGaussianScale, exponent);
+        
+        superGaussianTable.push_back(value);
+        
+        count++;
+    }
+    
+    setupSuperGaussian = true;
+    tableMutex.unlock();
+}
 
 GaussianBeam::GaussianBeam(double aMeanWavelength, double aBandwidth, double anExponent)
 {
@@ -42,22 +102,18 @@ GaussianBeam::GaussianBeam(double aMeanWavelength, double aBandwidth, double anE
     
     toleranceExponent = FileParser::getKey("TOLERANCE_EXPONENT",
                                            EXPO_TOLERANCE);
+    
+    if (!optimisingExponent)
+    {
+        makeSuperGaussianLookupTable(anExponent);
+    }
 }
 
 double GaussianBeam::integralBetweenEwaldWavelengths(double lowWavelength, double highWavelength)
 {
     double pValue = valueAtWavelength(lowWavelength);
     double qValue = valueAtWavelength(highWavelength);
-    
-/*    for (int i = 0; i < meanWavelengths.size(); i++)
-    {
-        pValue += super_gaussian(lowWavelength, meanWavelengths[i], bandwidths[i], exponents[i]);
-        qValue += super_gaussian(highWavelength, meanWavelengths[i], bandwidths[i], exponents[i]);
-    }
-    */
- //   double pX = (lowWavelength - meanWavelength) / bandwidth;
- //   double qX = (highWavelength - meanWavelength) / bandwidth;
-    
+ 
     double width = fabs(highWavelength - lowWavelength);
     
     double area = (pValue + qValue) / 2 * width;
@@ -71,7 +127,18 @@ double GaussianBeam::valueAtWavelength(double aWavelength)
     
     for (int i = 0; i < meanWavelengths.size(); i++)
     {
-        value += super_gaussian(aWavelength, meanWavelengths[i], bandwidths[i], exponents[i]);
+        double addition = 0;
+        
+        if (setupSuperGaussian && exponents.size() == 1)
+        {
+            addition = superGaussianFromTable(aWavelength, meanWavelengths[i], bandwidths[i], exponents[i]);
+        }
+        else
+        {
+            addition = super_gaussian(aWavelength, meanWavelengths[i], bandwidths[i], exponents[i]);
+        }
+        
+        value += addition;
     }
     
     return value;

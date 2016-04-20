@@ -146,7 +146,7 @@ void MtzRefiner::cycleThread(int offset)
             if (partialitySpectrumRefinement)
             {
                 image->refinePartialities();
-                image->replaceBeamWithSpectrum();
+        //        image->replaceBeamWithSpectrum();
             }
             else
             {

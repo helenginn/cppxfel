@@ -14,7 +14,6 @@
 #include "Vector.h"
 #include <cmath>
 #include "parameters.h"
-#include <cmath>
 #include "Shoebox.h"
 #include <memory>
 #include <cctbx/miller/asu.h>
@@ -783,11 +782,6 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     if (partiality > 1.0)
         partiality = 1;
     
-    if (partiality > 1 && std::isfinite(partiality))
-    {
-        std::cout << "Partiality: " << partiality << std::endl;
-    }
-        
     if ((!std::isfinite(partiality)) || (partiality != partiality))
     {
         partiality = 0;
@@ -1293,6 +1287,11 @@ void Miller::recalculateBetterPartiality()
     double normPartiality = sliced_integral(limitLow, limitHigh, rlpSize, 0, 1, 0, 0, 0, false, true);
     
     partiality /= normPartiality;
+    
+    if ((!std::isfinite(partiality)) || (partiality != partiality))
+    {
+        partiality = 0;
+    }
 }
 
 // Vector stuff

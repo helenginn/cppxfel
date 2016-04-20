@@ -184,6 +184,11 @@ void MtzManager::refinePartialities()
     
     setRefCorrelation(correlation());
     
+    double rSplitValue = rSplit(0, 0);
+    
+    logged << getFilename() << "\t" << describeScoreType() << "\t\t" << refCorrelation << "\t" << rSplitValue << "\t" << refPartCorrel << "\t" << accepted() << std::endl;
+    sendLog();
+    
     writeToFile(std::string("ref-") + filename);
 }
 

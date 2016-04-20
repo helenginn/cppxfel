@@ -9,6 +9,7 @@
 #ifndef __cppxfel__GaussianBeam__
 #define __cppxfel__GaussianBeam__
 #include "Beam.h"
+#include <mutex>
 
 #include <stdio.h>
 
@@ -29,7 +30,15 @@ private:
     std::vector<double> bandwidths;
     std::vector<double> exponents;
     std::vector<double> heights;
+    
+    static std::mutex tableMutex;
+    static bool setupSuperGaussian;
+    static double superGaussianScale;
+    static vector<double> superGaussianTable;
 
+    void makeSuperGaussianLookupTable(double exponent);
+    double superGaussianFromTable(double x, double mean, double sigma, double exponent);
+    
 public:
     GaussianBeam(double meanWavelength, double bandwidth, double exponent);
     double integralBetweenEwaldWavelengths(double lowWavelength, double highWavelength);
