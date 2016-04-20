@@ -134,8 +134,15 @@ Hdf5Manager::Hdf5Manager(std::string newName)
     handle = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 }
 
+
+void Hdf5Manager::closeHdf5()
+{
+    logged << "Closing HDF5 file " << getFilename() << std::endl;
+    sendLog();
+    H5Fclose(handle);
+}
+
 Hdf5Manager::~Hdf5Manager()
 {
-    std::cout << "Closing HDF5 file " << getFilename() << std::endl;
-    H5Fclose(handle);
+    
 }

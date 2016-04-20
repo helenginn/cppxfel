@@ -163,5 +163,13 @@ bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
 
         return false; // failure
     }
-    
+}
+
+
+void Hdf5ManagerCheetahSacla::closeHdf5Files()
+{
+    for (int i = 0; i < cheetahManagers.size(); i++)
+    {
+        cheetahManagers[i]->closeHdf5();
+    }
 }

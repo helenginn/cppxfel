@@ -31,6 +31,7 @@ public:
     bool dataForImage(std::string address, void **buffer);
     size_t bytesPerTypeForImageAddress(std::string address);
     
+    static void closeHdf5Files();
     virtual ~Hdf5ManagerCheetahSacla() {};
     
     Hdf5ManagerCheetahSacla(std::string newName) : Hdf5Manager(newName)

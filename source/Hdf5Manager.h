@@ -28,6 +28,7 @@ protected:
     
 public:
     Hdf5Manager(std::string newName);
+    void closeHdf5();
     virtual ~Hdf5Manager();
     
     int getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *type);
