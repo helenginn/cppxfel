@@ -51,64 +51,6 @@ MtzRefiner::MtzRefiner()
     indexManager = NULL;
 }
 
-void print_parameters()
-{
-    std::cout << "N: ===== Default parameters =====" << std::endl;
-    
-    std::cout << "N: Initial parameters for MTZ grid search:" << std::endl;
-    std::cout << "N: Bandwidth: " << INITIAL_BANDWIDTH << std::endl;
-    std::cout << "N: Mosaicity: " << INITIAL_MOSAICITY << std::endl;
-    std::cout << "N: Spot size: " << INITIAL_SPOT_SIZE << std::endl;
-    std::cout << "N: Exponent: " << INITIAL_EXPONENT << std::endl;
-    std::cout << std::endl;
-    
-    std::cout << "N: Parameters refined during grid search: ";
-    std::cout << (OPTIMISED_ROT ? "rotations; " : "");
-    std::cout << (OPTIMISED_BANDWIDTH ? "bandwidth; " : "");
-    std::cout << (OPTIMISED_WAVELENGTH ? "wavelength; " : "");
-    std::cout << (OPTIMISED_EXPONENT ? "exponent; " : "");
-    std::cout << (OPTIMISED_MOSAICITY ? "mosaicity; " : "");
-    std::cout << (OPTIMISED_SPOT_SIZE ? "spot size; " : "");
-    std::cout << std::endl << std::endl;
-    
-    std::cout << "N: Grid search steps: ";
-    std::cout << "N: Bandwidth: " << BANDWIDTH_STEP << std::endl;
-    std::cout << "N: Rotation: " << ROT_STEP << std::endl;
-    std::cout << "N: Spot size: " << SPOT_STEP << std::endl;
-    std::cout << "N: Exponent: " << EXPONENT_STEP << std::endl;
-    std::cout << "N: Wavelength: " << MEAN_STEP << std::endl;
-    std::cout << std::endl;
-    
-    std::cout << "N: Grid search tolerances: ";
-    std::cout << "N: Bandwidth: " << BANDWIDTH_TOLERANCE << std::endl;
-    std::cout << "N: Rotation: " << ROT_TOLERANCE << std::endl;
-    std::cout << "N: Spot size: " << SPOT_STEP << std::endl;
-    std::cout << "N: Exponent: " << SPOT_SIZE_TOLERANCE << std::endl;
-    std::cout << "N: Wavelength: " << MEAN_TOLERANCE << std::endl;
-    std::cout << std::endl;
-    
-    std::cout << "N: Maximum resolution used for most grid searches: "
-    << MAX_OPTIMISATION_RESOLUTION << std::endl;
-    std::cout << "N: Maximum resolution used for spot size: "
-    << MAX_SPOT_SIZE_OPT_RESOLUTION << std::endl;
-    std::cout << "N: Further optimisation is "
-    << (FURTHER_OPTIMISATION ? "" : "not ") << "used." << std::endl;
-    
-    std::cout << "N: Default detector distance: " << DEFAULT_DETECTOR_DISTANCE
-    << std::endl;
-    std::cout << "N: Default wavelength: " << DEFAULT_WAVELENGTH << std::endl;
-    std::cout << "N: Intensity threshold: " << INTENSITY_THRESHOLD << std::endl;
-    
-    std::cout << std::endl << "N: Polarisation correction: "
-    << (POLARISATION_CORRECTION ? "on" : "off") << std::endl;
-    std::cout << "N: Polarisation factor (horizontal): "
-    << HORIZONTAL_POLARISATION_FACTOR << std::endl;
-    std::cout << std::endl << "N: Minimum miller count for rejection: "
-    << MIN_MILLER_COUNT << std::endl;
-    std::cout << "N: Rejecting miller indices: "
-    << (REJECTING_MILLERS ? "on" : "off") << std::endl;
-}
-
 // MARK: Refinement
 
 void MtzRefiner::cycleThreadWrapper(MtzRefiner *object, int offset)
@@ -1612,27 +1554,6 @@ void MtzRefiner::findSteps()
     }
 }
 
-void MtzRefiner::refineDetectorGeometry()
-{
-    if (hasPanelParser)
-    {
-        for (int i = 0; i < 5; i++)
-        {
-            Logger::mainLogger->addString("Refining beam center and detector distance.");
-            Panel::expectedBeamCentre();
-            Panel::refineDetectorDistance();
-            
-            Panel::clearAllMillers();
-            integrate();
-        }
-    }
-    else
-    {
-        Logger::mainLogger->addString("Individual panel information has not been set up.");
-    }
-    
-    Panel::plotAll(PlotTypeAbsolute);
-}
 
 // MARK: Dry integrating
 
@@ -1891,15 +1812,6 @@ void MtzRefiner::refineMetrology()
     Panel::plotAll(PlotTypeAbsolute);
 }
 
-void MtzRefiner::polarisationGraph()
-{
-    GraphDrawer drawer = GraphDrawer(reference);
-    
-#ifdef MAC
-    drawer.plotPolarisation(mtzManagers);
-#endif
-}
-
 MtzRefiner::~MtzRefiner()
 {
 //    std::cout << "Deallocating MtzRefiner." << std::endl;
@@ -1966,30 +1878,6 @@ void MtzRefiner::orientationPlot()
 {
     GraphDrawer drawer = GraphDrawer(reference);
     drawer.plotOrientationStats(mtzManagers);
-}
-
-void MtzRefiner::addMatrixToLastImage(scitbx::mat3<double> unit_cell, scitbx::mat3<double> rotation)
-{
-    ImagePtr lastImage = images.back();
-    MatrixPtr newMat = MatrixPtr(new Matrix(unit_cell, rotation));
-    lastImage->setUpIOMRefiner(newMat);
-    
-    double *lengths = new double[3];
-    newMat->unitCellLengths(&lengths);
-    
-    std::cout << "Added crystal of unit cell dimensions " << lengths[0] << ", " << lengths[1] << ", " << lengths[2] << " Å." << std::endl;
-    
-    delete [] lengths;
-}
-
-void MtzRefiner::loadDxtbxImage(std::string imageName, vector<int> imageData, double distance, double wavelength)
-{
-    ImagePtr newImage = ImagePtr(new Image(imageName, wavelength, distance));
-    newImage->setImageData(imageData);
-    
-    
-    images.push_back(newImage);
-    std::cout << "Loaded image " << imageName << std::endl;
 }
 
 int MtzRefiner::imageSkip(size_t totalCount)

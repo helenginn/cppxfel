@@ -765,17 +765,6 @@ void Panel::plotVectors(int i, PlotType plotType)
 #endif
 }
 
-double Panel::scoreBetweenResolutions(double minRes, double maxRes)
-{
-    double score = 0;
-    
-    for (int i = 0; i < panelCount(); i++)
-    {
-        score += panels[i]->stdevScore(minRes, maxRes);
-    }
-    
-    return score;
-}
 
 double Panel::stdevScore(double minRes, double maxRes)
 {
@@ -817,144 +806,6 @@ double Panel::stdevScore(double minRes, double maxRes)
     return xStdev + yStdev;
 }
 
-double Panel::scoreDetectorDistance(void *object)
-{
-    vector<double> xShifts, yShifts;
-    
-    double squares = 0;
-    
-    vector<double> oldBeamCentre = FileParser::getKey("BEAM_CENTRE", vector<double>());
-    
-    if (oldBeamCentre.size() == 0)
-    {
-        oldBeamCentre.push_back(BEAM_CENTRE_X);
-        oldBeamCentre.push_back(BEAM_CENTRE_Y);
-    }
-    
-//    Coord beamShift = std::make_pair(beamCentre.first - oldBeamCentre[0], beamCentre.second - oldBeamCentre[1]);
-    
-    for (int i = 0; i < panels.size(); i++)
-    {
-        Coord bestShift = panels[i]->getBestShift();
-        bestShift = std::make_pair(-bestShift.first, -bestShift.second);
-        Coord midPoint = panels[i]->midPoint();
-        bestShift.first += midPoint.first;
-        bestShift.second += midPoint.second;
-        
-        bestShift.first -= beamCentre.first;
-        bestShift.second -= beamCentre.second;
-        
-        bestShift.first *= distanceMultiplier;
-        bestShift.second *= distanceMultiplier;
-        
-        bestShift.first -= midPoint.first;
-        bestShift.second -= midPoint.second;
-        
-        bestShift.first += beamCentre.first;
-        bestShift.second += beamCentre.second;
-        
-        xShifts.push_back(bestShift.first);
-        yShifts.push_back(bestShift.second);
-        
-        squares += pow(bestShift.first, 2);
-        squares += pow(bestShift.second, 2);
-    }
-    
-    double stdev = standard_deviation(&xShifts);
-    stdev += standard_deviation(&yShifts);
-    
-    std::cout << "standard_deviation: " << stdev << std::endl;
-    
-    return stdev;
-}
-
-void Panel::refineDetectorDistance()
-{
-    double ddStep = 0.5;
-    int count = 0;
-    
-    while (ddStep > 0.0001 && count < 20)
-    {
-        minimizeParameter(ddStep, &distanceMultiplier, scoreDetectorDistance, NULL);
-        
-        count++;
-    }
-    
-    std::ostringstream logged;
-    logged << "New detector distance multiplier: " << distanceMultiplier << std::endl;
-    
-    double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
-    
-    double newDistance = detectorDistance * distanceMultiplier;
-    
-    logged << "Old detector distance: " << detectorDistance << std::endl;
-    logged << "New detector distance: " << newDistance << std::endl;
-    
-    FileParser::setKey("DETECTOR_DISTANCE", newDistance);
-    
-    Logger::mainLogger->addStream(&logged);
-}
-
-void Panel::expectedBeamCentre()
-{
-    vector<double> newBeamCentre = FileParser::getKey("BEAM_CENTRE", vector<double>());
-    
-    if (newBeamCentre.size() == 0)
-    {
-        newBeamCentre.push_back(BEAM_CENTRE_X);
-        newBeamCentre.push_back(BEAM_CENTRE_Y);
-    }
-    
-    double totalShiftX = 0;
-    double totalShiftY = 0;
-    int num = 0;
-    
-    for (int i = 0; i < panels.size(); i++)
-    {
-        if (panels[i]->millers.size() == 0)
-            continue;
-        
-        std::ostringstream progress;
-        progress << "Calculating position for Panel " << i << std::endl;
-        Logger::mainLogger->addStream(&progress);
-        
-        num++;
-        
-        panels[i]->findShift(2, 0.4);
-        
-        Coord bestShift = panels[i]->getBestShift();
-        totalShiftX += bestShift.first;
-        totalShiftY += bestShift.second;
-    }
-    
-    totalShiftX /= num;
-    totalShiftY /= num;
-    
-    std::ostringstream logged;
-    logged << "Original beam centre: " << newBeamCentre[0] <<
-    "\t" << newBeamCentre[1] << std::endl;
-    
-    newBeamCentre[0] += totalShiftX;
-    newBeamCentre[1] += totalShiftY;
-    
-    logged << "New beam centre: " << newBeamCentre[0] << "\t"
-    << newBeamCentre[1] << std::endl;
-    
-    beamCentre = std::make_pair(newBeamCentre[0], newBeamCentre[1]);
-  
-    vector<double> centreVector = vector<double>();
-    centreVector.push_back(beamCentre.first);
-    centreVector.push_back(beamCentre.second);
-    
-    FileParser::setKey("BEAM_CENTRE", centreVector);
-    
-    logged << "Please change your input script to new beam centre." << std::endl;
-    
-    
-    
-    Logger::mainLogger->addStream(&logged);
-}
-
 void Panel::fractionalCoordinates(Miller *miller, Coord *frac)
 {
     Coord position = std::make_pair(miller->getLastX(),
@@ -983,8 +834,6 @@ void Panel::findAllParameters()
     
     findShift(2, 0.4);
     this->findAxisDependence(3);
-//    refineAllParameters(3);
-//    findShift(2, 0.1);
 }
 
 void Panel::findShift(double windowSize, double step, double x, double y)
@@ -1139,66 +988,6 @@ double Panel::tiltShiftScore(double stdev)
     return stdev ? stdeviation : mean;
 }
 
-void Panel::refineAllParameters(double windowSize)
-{
-    double swivelStep = 0.2;
-    bool minimised = false;
-    int count = 0;
-    std::ostringstream logged;
-    
-    double before = swivelShiftScoreWrapper(this);
-    
-    while (count < 20 && !minimised)
-    {
-        double swivelScore = minimizeParameter(swivelStep, &this->swivel, swivelShiftScoreWrapper, this);
-        
-        logged << swivel << ", " << swivelScore << std::endl;
-        
-        if (swivelStep < 0.001)
-            break;
-        
-        count++;
-    }
-
-    double after = swivelShiftScoreWrapper(this);
-
-    
-    logged << "Swivel angle " << swivel << " - score " << before << ", after refinement " << after << "." << std::endl;
-    Logger::mainLogger->addStream(&logged);
-    
-/*    double xStep = 0.2;
-    double yStep = 0.2;
-    bool minimized = false;
-    int count = 0;
-    
-    tiltWindowSize = windowSize;
-    
-    logged << "Tilt refinement progress: X\tY\tsd(X)\tsd(Y)" << std::endl;
-    
-    averageIntensity = Miller::averageRawIntensity(millers);
-    
-    while (count < 25 && !minimized)
-    {
-        tiltHorizontalAxis = true;
-        double hozScore = minimizeParameter(xStep, &this->tilt.first, tiltShiftScoreWrapper, this);
-        
-        tiltHorizontalAxis = false;
-        double vertScore = minimizeParameter(yStep, &this->tilt.second, tiltShiftScoreWrapper, this);
-        
-        logged << tilt.first << "\t" << tilt.second << "\t" << hozScore << "\t" << vertScore << std::endl;
-        
-        if (xStep < 0.01 && yStep < 0.01)
-            minimized = true;
-        
-        count++;
-    }
-    
-    logged << std::endl;
-    
-    minimized = false;
-    count = 0;*/
-}
-
 double Panel::detectorGain(double *error)
 {
     vector<double> observedPartialities, observedWeights;
@@ -1227,24 +1016,6 @@ double Panel::detectorGain(double *error)
     gainScale = 1 / mean;
     
     return mean;
-}
-
-void Panel::checkDetectorGains()
-{
-    std::ostringstream logged;
-    
-    for (int i = 0; i < panels.size(); i++)
-    {
-        double error;
-        double mean = panels[i]->detectorGain(&error);
-        double millerCount = panels[i]->millers.size();
-        
-        logged << i << "\t" << mean << "\t" << error << "\t" << millerCount << std::endl;
-    }
-    
-    std::cout << logged.str();
-    
-    Logger::mainLogger->addStream(&logged);
 }
 
 bool Panel::hasMillers()

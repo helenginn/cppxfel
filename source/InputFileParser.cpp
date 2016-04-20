@@ -158,12 +158,6 @@ void InputFileParser::parse(bool fromPython)
                 refiner->integrateSpots();
             }
             
-            if (line == "REFINE_DETECTOR_GEOMETRY")
-            {
-                understood = true;
-                refiner->refineDetectorGeometry();
-            }
-
 			if (line == "REFINE_PARTIALITY")
 			{
                 understood = true;
@@ -204,12 +198,6 @@ void InputFileParser::parse(bool fromPython)
             {
                 understood = true;
                 refiner->findSteps();
-            }
-            
-            if (line == "POLARISATION_GRAPH")
-            {
-                understood = true;
-                refiner->polarisationGraph();
             }
             
             if (line == "LOAD_MTZ_FILES")
@@ -315,20 +303,3 @@ void InputFileParser::parse(bool fromPython)
 	}
 }
 
-
-void InputFileParser::loadDxtbxImage(std::string imageName, std::string imageData, double distance, double wavelength)
-{
-    if (refiner == NULL)
-        parseFromPython();
-    
-    int length = (int)imageData.length();
-    vector<int> intData(length / sizeof(int));
-    memcpy(&intData[0], imageData.data(), length);
-        
-    refiner->loadDxtbxImage(imageName, intData, distance, wavelength);
-}
-
-void InputFileParser::addMatrixToLastImage(scitbx::mat3<double> unit_cell, scitbx::mat3<double> rotation)
-{
-    refiner->addMatrixToLastImage(unit_cell, rotation);
-}

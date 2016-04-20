@@ -58,7 +58,6 @@ private:
     static vector<PanelPtr> badPanels;
     bool addMiller(MillerPtr miller);
 
-    void refineAllParameters(double windowSize);
     void centreWindowShift();
     void findAllParameters();
     void findShift(double windowSize, double step, double x = 0, double y = 0);
@@ -68,8 +67,6 @@ private:
     static double tiltShiftScoreWrapper(void *object);
     static double swivelShiftScoreWrapper(void *object);
 
-    static double scoreDetectorDistance(void *object);
-    
     std::map<boost::thread::id, vector<MillerPtr> > tempMillers;
     
     static void calculateMetrologyThread(int offset);
@@ -79,7 +76,6 @@ private:
     Coord relativeToMidPointForMiller(Coord coord, bool isSpot = false);
     double angleForMiller(Miller *miller);
     double distanceFromMidPointForMiller(Miller *miller);
-  //  Coord rotateCoordByAngle(Coord newCoord, bool negative);
     
     double stdevScore(double minRes, double maxRes);
     vector<MillerPtr> millers;
@@ -91,7 +87,6 @@ public:
     void init(vector<double> dimensions, PanelTag newTag);
     virtual ~Panel();
 
-    static double scoreBetweenResolutions(double minRes, double maxRes);
     bool isCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
     bool isMillerInPanel(Miller *miller);
 	static void addMillerToPanelArray(MillerPtr miller);
@@ -102,9 +97,7 @@ public:
     static void removePanel(PanelPtr panel);
 	void plotVectors(int i, PlotType plotType);
 	static void plotAll(PlotType plotType);
-    static void expectedBeamCentre();
-    static void refineDetectorDistance();
-    
+
     void finaliseMillerArray();
     static void finaliseMillerArrays();
     static Coord shiftForMiller(Miller *miller);
@@ -119,8 +112,7 @@ public:
     static int panelCount();
     static void clearAllMillers();
     void clearMillers();
-    static void checkDetectorGains();
-
+    
 	static bool shouldUsePanelInfo()
 	{
 		return usePanelInfo;

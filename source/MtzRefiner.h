@@ -54,7 +54,6 @@ public:
 	void refine();
 	void refineCycle(bool once = false);
 	void readMatricesAndMtzs();
-    void refineDetectorGeometry();
     void refineMetrology();
     void initialMerge();
     void orientationPlot();
@@ -108,9 +107,6 @@ public:
     void removeSigmaValues();
     void radialAverage();
     void integrateSpots();
-    
-    void addMatrixToLastImage(scitbx::mat3<double> unit_cell, scitbx::mat3<double> rotation);
-    void loadDxtbxImage(std::string imageName, vector<int> imageData, double distance, double wavelength);
     
 };
 
