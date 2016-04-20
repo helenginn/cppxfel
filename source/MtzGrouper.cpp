@@ -755,16 +755,28 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 
 		}
 
-        double totalSigma = reflection->meanSigma() / reflection->meanPartiality();
+        double totalSigma = 0;
         
-        if (recalculateSigma)
+        if (!recalculateSigma)
+        {
+            totalSigma = reflection->meanSigma() / reflection->meanPartiality();
+        }
+        else
         {
             totalSigma = reflection->mergeSigma();
             
             if (totalSigma == 0)
             {
-                totalIntensity = std::nan(" ");
-                totalSigma = std::nan(" ");
+                totalSigma = sqrt(fabs(totalIntensity));
+            }
+            else if (std::isnan(totalSigma))
+            {
+                totalSigma = sqrt(fabs(totalIntensity)); // anything reasonable
+            }
+            
+            if (std::isnan(totalIntensity)) // give up
+            {
+                continue;
             }
         }
         
@@ -779,9 +791,9 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 
 		MillerPtr newMiller = MillerPtr(new Miller((*mergeMtz), h, k, l));
 
-        if (totalSigma == 0)
+        if (totalSigma != totalSigma || totalIntensity != totalIntensity)
         {
-            std::cout << "Error!" << std::endl;
+            continue;
         }
         
 		newMiller->setData(totalIntensity, totalSigma, 1, 0);
@@ -878,7 +890,7 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
         double intensity = (intensityPlus + intensityMinus) / 2;
 		double sigma = (sigmaPlus + sigmaMinus) / 2;
         
-        if (intensityPlus != intensityPlus && intensityMinus != intensityMinus)
+        if (intensityPlus != intensityPlus || intensityMinus != intensityMinus)
             continue;
         
         if (sigmaPlus < 0.0001)

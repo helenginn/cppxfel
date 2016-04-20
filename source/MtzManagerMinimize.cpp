@@ -691,8 +691,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
 
 void MtzManager::gridSearch(bool silent)
 {
-    bool partialitySpectrumRefinement = FileParser::getKey("REFINE_ENERGY_SPECTRUM", false);
-    
     scoreType = defaultScoreType;
     chooseAppropriateTarget();
     std::string scoreDescription = this->describeScoreType();
