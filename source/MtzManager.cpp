@@ -299,7 +299,6 @@ void MtzManager::loadParametersMap()
 MtzManager::MtzManager(void)
 {
     lastReference = NULL;
-    failedCount = 0;
     filename = "";
     reflections.resize(0);
     bandwidth = INITIAL_BANDWIDTH;
@@ -1663,16 +1662,6 @@ bool MtzManager::checkUnitCell(double trueA, double trueB, double trueC, double 
         return false;
     
     return true;
-}
-
-void MtzManager::incrementFailedCount()
-{
-    failedCount++;
-}
-
-void MtzManager::resetFailedCount()
-{
-    failedCount = 0;
 }
 
 std::string MtzManager::getParamLine()

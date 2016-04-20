@@ -25,7 +25,6 @@
 #include "PanelParser.h"
 #include "Panel.h"
 #include "Logger.h"
-#include "XManager.h"
 #include "MtzGrouper.h"
 
 bool MtzRefiner::hasPanelParser;
@@ -1890,53 +1889,6 @@ void MtzRefiner::refineMetrology()
 {
     Panel::printToFile("new_panels.txt");
     Panel::plotAll(PlotTypeAbsolute);
-}
-
-void MtzRefiner::xFiles()
-{
-    std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
-                                              std::string(""));
-    
-    if (filename == "")
-    {
-        std::cout << "Orientation matrix list has not been provided.";
-        exit(1);
-    }
-    
-    readXFiles(filename);
-    
-    loadInitialMtz();
-}
-
-void MtzRefiner::readXFiles(std::string filename)
-{
-    if (mtzManagers.size() > 0)
-    {
-        return;
-    }
-    
-    const std::string contents = FileReader::get_file_contents(filename.c_str());
-    
-    vector<std::string> lines = FileReader::split(contents, '\n');
-    
-    for (int i = 0; i < lines.size(); i++)
-    {
-        vector<std::string> filenames = FileReader::split(lines[i], ' ');
-        
-        XManager *xManager = new XManager();
-        xManager->setFilenames(filenames);
-        xManager->loadReflections(PartialityModelFixed);
-        xManager->loadParametersMap();
-        
-        MtzPtr mtz = MtzPtr();
-        mtz.reset(xManager);
-        
-        mtzManagers.push_back(mtz);
-    }
-    
-    std::ostringstream logged;
-    logged << "Mtz count: " << mtzManagers.size() << std::endl;
-    Logger::mainLogger->addStream(&logged);
 }
 
 void MtzRefiner::polarisationGraph()

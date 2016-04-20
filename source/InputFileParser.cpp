@@ -182,12 +182,6 @@ void InputFileParser::parse(bool fromPython)
                 refiner->merge(true);
 			}
             
-            if (line == "LOAD_X_FILES")
-            {
-                understood = true;
-                refiner->xFiles();
-            }
-            
             if (line == "REMOVE_SIGMA_VALUES")
             {
                 understood = true;

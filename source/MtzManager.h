@@ -119,7 +119,6 @@ protected:
     double detectorDistance;
     
 	bool finalised;
-	int failedCount;  // delete
 	bool rejected;
 
 	TrustLevel trust;
@@ -131,7 +130,6 @@ protected:
 	MtzManager *lastReference;
 
     static double unitCellScore(void *object);
-    double wavelengthStandardDeviation();
     std::ostringstream logged;
 public:
     static vector<double> superGaussianTable;
@@ -160,8 +158,6 @@ public:
 	void setFilename(std::string name);  // classify
     std::string getFilename(void);  // classify
 	void description(void);
-    void incrementFailedCount();
-    void resetFailedCount();
     void resetDefaultParameters();
     void chooseAppropriateTarget();
     

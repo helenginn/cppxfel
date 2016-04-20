@@ -2,7 +2,6 @@
 #include <cmath>
 #include "Vector.h"
 #include <algorithm>
-#include "Scaler.h"
 #include <fstream>
 
 #include "MtzRefiner.h"
@@ -79,22 +78,10 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
         
         return  value;
     }
-    else if (scoreType == ScoreTypeStandardDeviation)
-    {
-        return static_cast<MtzManager *>(object)->wavelengthStandardDeviation();
-    }
     else if (scoreType == ScoreTypeMinimizeRMeas)
     {
-        Scaler *scaler = Scaler::getScaler();
         double rSplit = static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
-        if (scaler == NULL)
-        {
-            return rSplit;
-        }
-        else
-        {
-            return scaler->evaluateForImage(static_cast<MtzManager *>(object)) + rSplit / 2;
-        }
+        return rSplit;
     }
     else
         return static_cast<MtzManager *>(object)->exclusionScore(lowRes,
@@ -763,17 +750,11 @@ void MtzManager::gridSearch(bool silent)
     }
     
     this->sendLog(LogLevelDetailed);
-    
-    Scaler *scaler = Scaler::getScaler();
-    
     double rMerge = 0;
-    
-    if (scaler)
-        rMerge = scaler->evaluateForImage(this);
     
     logged << filename << "\t" << scoreDescription << "\t" << "\t"
     << newerCorrel << "\t" << rSplitValue << "\t"
-    << partCorrel << "\t" << rMerge << "\t" << bFactor << "\t" << hits << std::endl;
+    << partCorrel << "\t" << bFactor << "\t" << hits << std::endl;
     
     this->sendLog(silent ? LogLevelDetailed : LogLevelNormal);
     
@@ -1071,35 +1052,6 @@ void MtzManager::findSteps(int param1, int param2, std::string csvName)
     }
     
     csvStream.close();
-    
-    /*
-    if (results.size() == 0)
-        return;
-    
-    std::sort(results.begin(), results.end(), compareResult);
-    
-    double paramA = (boost::get<0>(results[0]));
-    double paramB = (boost::get<1>(results[0]));
-    double paramC = (boost::get<2>(results[0]));
-    
-    if (ranges[0] > 0)
-        params[param1] = paramA;
-    if (ranges[1] > 0)
-        params[param2] = paramB;
-    if (ranges[2] > 0)
-        params[param3] = paramC;
-
-    setParams(params);
-    double rSplit = boost::get<4>(results[0]);
-    
-    this->refreshPartialities(params);
-    
-    this->setRefCorrelation(correlation());
-    this->setFinalised(true);
-    
-    delete [] ranges;
-    
-    this->writeToFile("ref-" + getFilename());*/
 }
 
 void MtzManager::chooseAppropriateTarget()
@@ -1111,19 +1063,6 @@ void MtzManager::chooseAppropriateTarget()
     {
         scoreType = ScoreTypeMinimizeRSplit;
         return;
-    }
-    
-    if (failedCount == 0)
-    {
-        scoreType = ScoreTypeMinimizeRMeas;
-    }
-    
-    if (failedCount > 1)
-    {
-        scoreType = ScoreTypeMinimizeRSplit;
-        resetDefaultParameters();
-        wavelength = bestWavelength();
-        applyUnrefinedPartiality();
     }
 }
 

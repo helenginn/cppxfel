@@ -7,7 +7,6 @@
 
 #include "MtzGrouper.h"
 
-#include "Scaler.h"
 #include <cmath>
 #include "StatisticsManager.h"
 #include "misc.h"
@@ -397,23 +396,6 @@ void MtzGrouper::mergeWrapper(void *object, MtzManager **mergeMtz,
 	}
 }
 
-void MtzGrouper::checkCCHalf(vector<MtzPtr> *managers, int offset, int *total)
-{
-    Scaler *scaler = Scaler::getScaler();
-    int accepted = 0;
-    int maxThreads = FileParser::getMaxThreads();
-    
-    if (scaler != NULL)
-    {
-        for (int i = offset; i < managers->size(); i += maxThreads)
-        {
-            accepted += scaler->mtzIsBeneficial((*managers)[i]);
-        }
-    }
-    
-    *total += accepted;
-}
-
 void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
                        bool firstHalf, bool all, std::string *unmergedName)
 {
@@ -434,33 +416,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	}
 
 	int mtzCount = groupMillers(mergeMtz, unmergedMtz, start, end);
-
-    Scaler *scaler = Scaler::getScaler(mtzManagers, mergeMtz);
-    
-    if (usingNewRefinement)
-    {
-        scaler->minimizeRMerge();
-    }
-    
-    int total = 0;
-    
-    if (exclusionByCCHalf && all)
-    {
-        boost::thread_group threads;
-        
-        int maxThreads = FileParser::getMaxThreads();
-        
-        for (int i = 0; i < maxThreads; i++)
-        {
-            boost::thread *thr = new boost::thread(checkCCHalf, &mtzManagers, i, &total);
-            threads.add_thread(thr);
-                    }
-        
-        threads.join_all();
-    }
-
  //   std::cout << "N: Accepted " << total << " due to increase in CC half" << std::endl;
-
     
 	if (unmergedMtz != NULL)
 	{
@@ -544,15 +500,6 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
 	for (int i = start; i < end; i++)
 	{
-        if (!exclusionByCCHalf && !isMtzAccepted(mtzManagers[i]))
-        {
-            mtzManagers[i]->incrementFailedCount();
-            continue;
-        }
-        
-        if (!exclusionByCCHalf)
-            mtzManagers[i]->resetFailedCount();
-        
         mtzManagers[i]->flipToActiveAmbiguity();
         int ambiguity = mtzManagers[i]->getActiveAmbiguity();
         flipCounts[ambiguity]++;
