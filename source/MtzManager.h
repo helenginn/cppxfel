@@ -75,9 +75,6 @@ protected:
     RotationMode rotationMode;
 	double hRot;
 	double kRot;
-    double aRot;
-    double bRot;
-    double cRot;
 	double mosaicity;
 	double spotSize;
 	double wavelength;
@@ -122,7 +119,7 @@ protected:
     double detectorDistance;
     
 	bool finalised;
-	int failedCount;
+	int failedCount;  // delete
 	bool rejected;
 
 	TrustLevel trust;
@@ -155,13 +152,13 @@ public:
 	void addReflection(Reflection *reflection);
 	void removeReflection(int i);
 	void excludeFromLogCorrelation();
-	void excludePartialityOutliers();
+	void excludePartialityOutliers();  // delete
 
     MatrixPtr matrix;
     bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
-	void setFilename(std::string name);
-    std::string getFilename(void);
+	void setFilename(std::string name);  // classify
+    std::string getFilename(void);  // classify
 	void description(void);
     void incrementFailedCount();
     void resetFailedCount();
@@ -269,7 +266,7 @@ public:
     void refinePartialities();
 
     void refreshCurrentPartialities();
-	void refreshPartialities(double hRot, double kRot, double aRot, double bRot, double cRot, double mosaicity,
+	void refreshPartialities(double hRot, double kRot, double mosaicity,
                              double spotSize, double wavelength, double bandwidth, double exponent,
                              double a, double b, double c);
 	void refreshPartialities(double parameters[]);
@@ -399,21 +396,6 @@ public:
 	{
 		this->kRot = kRot;
 	}
-    
-    double getARot() const
-    {
-        return aRot;
-    }
-    
-    double getBRot() const
-    {
-        return bRot;
-    }
-    
-    double getCRot() const
-    {
-        return cRot;
-    }
 
 	double getRefCorrelation() const
 	{

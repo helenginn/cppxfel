@@ -27,7 +27,7 @@ void MtzManager::applyUnrefinedPartiality()
     double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
     double exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
 
-    refreshPartialities(0, 0, 0, 0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent, cellDim[0], cellDim[1], cellDim[2]);
+    refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent, cellDim[0], cellDim[1], cellDim[2]);
 }
 
 void MtzManager::setParams(double parameters[], int paramCount)
@@ -38,9 +38,6 @@ void MtzManager::setParams(double parameters[], int paramCount)
 	spotSize = parameters[PARAM_SPOT_SIZE];
 	hRot = parameters[PARAM_HROT];
 	kRot = parameters[PARAM_KROT];
-    aRot = parameters[PARAM_AROT];
-    bRot = parameters[PARAM_BROT];
-    cRot = parameters[PARAM_CROT];
     exponent = parameters[PARAM_EXPONENT];
     bFactor = parameters[PARAM_B_FACTOR];
     
@@ -60,9 +57,6 @@ void MtzManager::getParams(double *parameters[], int paramCount)
 	(*parameters)[PARAM_SPOT_SIZE] = spotSize;
 	(*parameters)[PARAM_HROT] = hRot;
 	(*parameters)[PARAM_KROT] = kRot;
-    (*parameters)[PARAM_AROT] = aRot;
-    (*parameters)[PARAM_BROT] = bRot;
-    (*parameters)[PARAM_CROT] = cRot;
     (*parameters)[PARAM_EXPONENT] = exponent;
     (*parameters)[PARAM_B_FACTOR] = bFactor;
     (*parameters)[PARAM_SCALE_FACTOR] = scale;
@@ -79,9 +73,6 @@ void MtzManager::getParamPointers(double ***parameters, int paramCount)
     (*parameters)[PARAM_SPOT_SIZE] = &spotSize;
     (*parameters)[PARAM_HROT] = &hRot;
     (*parameters)[PARAM_KROT] = &kRot;
-    (*parameters)[PARAM_AROT] = &aRot;
-    (*parameters)[PARAM_BROT] = &bRot;
-    (*parameters)[PARAM_CROT] = &cRot;
     (*parameters)[PARAM_EXPONENT] = &exponent;
     (*parameters)[PARAM_B_FACTOR] = &bFactor;
     (*parameters)[PARAM_SCALE_FACTOR] = &externalScale;
@@ -94,9 +85,6 @@ void MtzManager::getSteps(double *ranges[], int paramCount)
 {
     (*ranges)[PARAM_HROT] = stepSizeOrientation;
     (*ranges)[PARAM_KROT] = stepSizeOrientation;
-    (*ranges)[PARAM_AROT] = stepSizeOrientABC;
-    (*ranges)[PARAM_BROT] = stepSizeOrientABC;
-    (*ranges)[PARAM_CROT] = stepSizeOrientABC;
     (*ranges)[PARAM_MOS] = stepSizeMosaicity;
     (*ranges)[PARAM_SPOT_SIZE] = stepSizeRlpSize;
     (*ranges)[PARAM_WAVELENGTH] = stepSizeWavelength / 2;
@@ -196,9 +184,6 @@ void MtzManager::refreshPartialities(double parameters[])
 {
     refreshPartialities(parameters[PARAM_HROT],
                         parameters[PARAM_KROT],
-                        parameters[PARAM_AROT],
-                        parameters[PARAM_BROT],
-                        parameters[PARAM_CROT],
                         parameters[PARAM_MOS],
                         parameters[PARAM_SPOT_SIZE],
                         parameters[PARAM_WAVELENGTH],
@@ -217,9 +202,6 @@ void MtzManager::refreshCurrentPartialities()
     applyBFactor(bFactor);
     refreshPartialities(this->hRot,
                         this->kRot,
-                        this->aRot,
-                        this->bRot,
-                        this->cRot,
                         this->mosaicity,
                         this->spotSize,
                         this->wavelength,
@@ -250,7 +232,7 @@ void MtzManager::replaceBeamWithSpectrum()
     }
 }
 
-void MtzManager::refreshPartialities(double hRot, double kRot, double aRot, double bRot, double cRot, double mosaicity,
+void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
 		double spotSize, double wavelength, double bandwidth, double exponent,
                                      double a, double b, double c)
 {
@@ -275,9 +257,7 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double aRot, doub
         this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
     
     
-    //MatrixPtr firstMatrix = MatrixPtr();
     MatrixPtr newMatrix = MatrixPtr();
-    //Miller::rotateMatrixABC(aRot, bRot, cRot, matrix, &firstMatrix);
     Miller::rotateMatrixHKL(hRot, kRot, 0, matrix, &newMatrix);
     
 	for (int i = 0; i < reflections.size(); i++)

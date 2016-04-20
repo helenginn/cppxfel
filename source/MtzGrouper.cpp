@@ -185,10 +185,6 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		double hRot = mtzManagers[i]->getHRot();
 		double kRot = mtzManagers[i]->getKRot();
         
-        double aRot = mtzManagers[i]->getARot();
-        double bRot = mtzManagers[i]->getBRot();
-        double cRot = mtzManagers[i]->getCRot();
-
 		double correction = sqrt(hRot * hRot + kRot * kRot);
         
 		rotationCorrection += correction;
@@ -218,10 +214,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 				<< mtzManagers[i]->getMosaicity() << "\t"
 				<< mtzManagers[i]->getWavelength() << "\t"
 				<< mtzManagers[i]->getBandwidth() << "\t";
-        if (mode == RotationModeHorizontalVertical)
-            logged << hRot << "\t" << kRot << "\t";
-        else if (mode == RotationModeUnitCellABC)
-            logged << aRot << "\t" << bRot << "\t" << cRot << "\t";
+        logged << hRot << "\t" << kRot << "\t";
         
         logged << mtzManagers[i]->getSpotSize() << "\t"
             << mtzManagers[i]->getExponent() << "\t" << cellDims[0] << "\t" << cellDims[1] << "\t" << cellDims[2] << std::endl;
@@ -274,7 +267,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 					MtzManager::getReferenceManager(), false);
        //     std::cout << mtzManagers[i]->getFilename() << " " << scale << std::endl;
 		}
-		else if (scalingType == ScalingTypeBFactor)
+		else if (scalingType == ScalingTypeBFactor) // delete
 		{
 			double newScale = 1;
 			double bFactor = 0;

@@ -446,9 +446,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         bool optimisedMos = !optimisingMosaicity || (scoreType == ScoreTypeStandardDeviation);
         bool optimisedHRot = (rotationMode != RotationModeUnitCellABC) ? !optimisingOrientation : true;
         bool optimisedKRot = (rotationMode != RotationModeUnitCellABC) ? !optimisingOrientation : true;
-        bool optimisedARot = (rotationMode != RotationModeHorizontalVertical) ? !optimisingOrientation : true;
-        bool optimisedBRot = (rotationMode != RotationModeHorizontalVertical) ? !optimisingOrientation : true;
-        bool optimisedCRot = (rotationMode != RotationModeHorizontalVertical) ? !optimisingOrientation : true;
         bool optimisedUnitCellA = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
         bool optimisedUnitCellB = !FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
         bool optimisedUnitCellC = !FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
@@ -460,9 +457,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         double mosStep = stepSizeMosaicity;
         double hStep = stepSizeOrientation;
         double kStep = stepSizeOrientation;
-        double aRotStep = stepSizeOrientABC;
-        double bRotStep = stepSizeOrientABC;
-        double cRotStep = stepSizeOrientABC;
         double aStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
         double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
         double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
@@ -481,7 +475,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         
         while (!(optimisedMean && optimisedBandwidth && optimisedSpotSize
                  && optimisedMos && optimisedExponent && optimisedHRot
-                 && optimisedKRot && optimisedARot && optimisedBRot && optimisedCRot) && count < 50)
+                 && optimisedKRot) && count < 50)
         {
             count++;
             
@@ -500,19 +494,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             if (!optimisedHRot && !optimisedKRot)
                 minimizeTwoParameters(&hStep, &kStep, &params, PARAM_HROT,
                                       PARAM_KROT, score, object, minResolution, maxResolutionAll, FLT_MAX);
-            
-            if (!optimisedARot)
-                minimizeParameter(&aRotStep, &params, PARAM_AROT, score,
-                                  object, minResolution, maxResolutionAll);
-
-            if (!optimisedBRot)
-                minimizeParameter(&bRotStep, &params, PARAM_BROT, score,
-                                  object, minResolution, maxResolutionAll);
-            
-            if (!optimisedCRot)
-                minimizeParameter(&cRotStep, &params, PARAM_CROT, score,
-                                  object, minResolution, maxResolutionAll);
-
+           
             if (scoreType != ScoreTypeStandardDeviation)
             {
                 if (!optimisedSpotSize)
@@ -533,15 +515,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             
             if (kStep < toleranceOrientation)
                 optimisedKRot = true;
-            
-            if (aRotStep < toleranceOrientation)
-                optimisedARot = true;
-            
-            if (bRotStep < toleranceOrientation)
-                optimisedBRot = true;
-            
-            if (cRotStep < toleranceOrientation)
-                optimisedCRot = true;
             
             if (meanStep < toleranceWavelength)
                 optimisedMean = true;
@@ -644,16 +617,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         
         paramPtrs[PARAM_HROT] = optimisingOrientation && (rotationMode != RotationModeUnitCellABC) ? &this->hRot : NULL;
         paramPtrs[PARAM_KROT] = optimisingOrientation && (rotationMode != RotationModeUnitCellABC) ? &this->kRot : NULL;
-        paramPtrs[PARAM_AROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->aRot : NULL;
-        paramPtrs[PARAM_BROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->bRot : NULL;
-        paramPtrs[PARAM_CROT] = optimisingOrientation && (rotationMode != RotationModeHorizontalVertical) ? &this->cRot : NULL;
-        /*
-        paramPtrs[PARAM_HROT] = optimisingOrientation ? &this->hRot : NULL;
-        paramPtrs[PARAM_KROT] = optimisingOrientation ? &this->kRot : NULL;
-        paramPtrs[PARAM_AROT] = optimisingOrientation ? &this->aRot : NULL;
-        paramPtrs[PARAM_BROT] = optimisingOrientation ? &this->bRot : NULL;
-        paramPtrs[PARAM_CROT] = optimisingOrientation ? &this->cRot : NULL;
-        */
+        
         paramPtrs[PARAM_MOS] = optimisingMosaicity ? &this->mosaicity : NULL;
         paramPtrs[PARAM_SPOT_SIZE] = optimisingRlpSize ? &this->spotSize : NULL;
         paramPtrs[PARAM_WAVELENGTH] = optimisingWavelength ? &this->wavelength : NULL;

@@ -1583,8 +1583,11 @@ void MtzRefiner::loadPanels()
     }
     else if (panelList == "")
     {
-        std::cout << "No panel list provided. Continuing regardless..."
+        logged << "No panel list provided. Exiting as all reflections will be rejected."
         << std::endl;
+        sendLog();
+        
+        // FIXME: you need to exit
     }
     else if (Panel::panelCount() > 0)
     {

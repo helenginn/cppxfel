@@ -305,9 +305,6 @@ MtzManager::MtzManager(void)
     bandwidth = INITIAL_BANDWIDTH;
     hRot = 0;
     kRot = 0;
-    aRot = 0;
-    bRot = 0;
-    cRot = 0;
     mosaicity = INITIAL_MOSAICITY;
     spotSize = INITIAL_SPOT_SIZE;
     wavelength = 0;
