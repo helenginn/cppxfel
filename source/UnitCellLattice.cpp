@@ -81,8 +81,23 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
             for (int k = -maxMillerIndexTrialL; k <= maxMillerIndexTrialL; k++)
             {
                 if (spaceGroupNum != 19 && spaceGroupNum != 178)
+                {
+                    bool sysabs = false;
                     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
+                        sysabs = true;
+                    
+                    if (spaceGroupNum == 20)
+                    {
+                        // exception for this difference vector
+                        if (i == 0 && j == 0 && k == 1)
+                        {
+                            sysabs = false;
+                        }
+                    }
+                    
+                    if (sysabs == true)
                         continue;
+                }
                 
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
