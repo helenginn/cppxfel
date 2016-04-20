@@ -18,7 +18,7 @@
 #include "IndexingSolution.h"
 #include "FreeLattice.h"
 #include "CSV.h"
-#include "Holder.h"
+#include "Reflection.h"
 #include "Miller.h"
 
 IndexManager::IndexManager(std::vector<ImagePtr> newImages)

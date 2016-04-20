@@ -14,7 +14,7 @@
 #include "misc.h"
 #include <iomanip>
 #include "UnitCellLattice.h"
-#include "Holder.h"
+#include "Reflection.h"
 
 using cctbx::sgtbx::space_group;
 using cctbx::sgtbx::rt_mx;

@@ -5,8 +5,8 @@
  *      Author: helenginn
  */
 
-#ifndef HOLDER_H_
-#define HOLDER_H_
+#ifndef REFLECTION_H_
+#define REFLECTION_H_
 
 #include "csymlib.h"
 
@@ -156,4 +156,4 @@ public:
     static MatrixPtr getFlipMatrix(int i);
 };
 
-#endif /* HOLDER_H_ */
+#endif /* REFLECTION_H_ */

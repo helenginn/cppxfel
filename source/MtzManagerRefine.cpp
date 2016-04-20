@@ -14,7 +14,7 @@
 #include "GaussianBeam.h"
 #include "SpectrumBeam.h"
 #include "GetterSetterMap.h"
-#include "Holder.h"
+#include "Reflection.h"
 #include "Miller.h"
 
 MtzManager *MtzManager::currentManager;
