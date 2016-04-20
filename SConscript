@@ -87,7 +87,6 @@ source = [
 'source/UnitCellLattice.cpp',
 'source/Vector.cpp',
 'source/Wiki.cpp',
-'source/gaussianfit.cpp',
 'source/lbfgs_scaling.cpp',
 'source/main.cpp',
 'source/misc.cpp']

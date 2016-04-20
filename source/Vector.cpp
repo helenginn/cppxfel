@@ -9,7 +9,6 @@
 #include <cmath>
 #include <cfloat>
 #include <iostream>
-#include "gaussianfit.h"
 #include <tuple>
 #include "Matrix.h"
 #include "Logger.h"
@@ -761,18 +760,6 @@ void histogram_gaussian(vector<double> *means, vector<int> *freq,
 	}
 
 	stdev = sqrt(squaredSum / weightSqSum);
-}
-
-double least_squares_gaussian_fit(vector<double> *means,
-		vector<int> *freq)
-{
-	double mean = 0;
-	double stdev = 0;
-	double score = 0;
-
-	gaussian_fit(*means, *freq, (int)means->size(), &mean, &stdev, &score, false);
-
-	return score;
 }
 
 double standard_deviation(vector<double> *values, vector<double> *weights)

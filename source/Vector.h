@@ -66,8 +66,6 @@ double minimize_gradient_between_vectors(vector<double> *vec1,
 double weighted_mean(vector<double> *means, vector<double> *weights = NULL);
 double median(vector<double> *means);
 void histogram_gaussian(vector<double> *means, vector<int> *freq, double &mean, double &stdev);
-double least_squares_gaussian_fit(vector<double> *means,
-		vector<int> *freq);
 double standard_deviation(vector<double> *values, vector<double> *weights = NULL);
 double r_factor_between_vectors(vector<double> *vec1,
 		vector<double> *vec2, vector<double> *weights, double scale);

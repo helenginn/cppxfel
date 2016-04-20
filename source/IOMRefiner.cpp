@@ -8,7 +8,6 @@
 #include "IOMRefiner.h"
 #include "Vector.h"
 #include <cmath>
-#include "gaussianfit.h"
 #include "Reflection.h"
 #include "parameters.h"
 #include <map>
@@ -1583,13 +1582,7 @@ void IOMRefiner::showHistogram(bool silent)
     vector<double> wavelengths;
     vector<int> frequencies;
     
-    double mean = 0;
-    double stdev = 0;
-    double theScore = 0;
-    
     getWavelengthHistogram(wavelengths, frequencies, silent ? LogLevelDebug : LogLevelNormal, 0);
-    gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
-                 &theScore, true);
 }
 
 MtzPtr IOMRefiner::newMtz(int index, bool silent)
@@ -1599,27 +1592,16 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     vector<double> wavelengths;
     vector<int> frequencies;
     
-    
-    double mean = 0;
-    double stdev = 0;
-    double theScore = 0;
-    
     getWavelengthHistogram(wavelengths, frequencies, silent ? LogLevelDebug : LogLevelNormal, 0);
-    gaussian_fit(wavelengths, frequencies, (int)wavelengths.size(), &mean, &stdev,
-                 &theScore, true);
     
     bool complexShoebox = FileParser::getKey("COMPLEX_SHOEBOX", false);
     
     checkAllMillers(maxResolution, testBandwidth, complexShoebox);
     
     MatrixPtr newMat = getMatrix()->copy();
-    /*
-    double hRad = hRot * M_PI / 180;
-    double kRad = kRot * M_PI / 180;
-    newMat->rotate(hRad, kRad, 0);*/
     
     MtzPtr mtz = MtzPtr(new MtzManager());
-    mtz->setWavelength(mean);
+    mtz->setWavelength(0);
     mtz->setFilename(getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz");
     mtz->setSpaceGroup(spaceGroup->spg_num);
     mtz->setUnitCell(unitCell);
