@@ -59,9 +59,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     hRot = 0;
     kRot = 0;
     lRot = 0;
-    aRot = 0;
-    bRot = 0;
-    cRot = 0;
     bestHRot = 0;
     bestKRot = 0;
     bestLRot = 0;
@@ -74,9 +71,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
     lowIntensityPenalty = FileParser::getKey("LOW_INTENSITY_PENALTY", false);
     this->matrix = matrix;
-    refineA = FileParser::getKey("REFINE_UNIT_CELL_A", false);
-    refineB = FileParser::getKey("REFINE_UNIT_CELL_B", false);;
-    refineC = FileParser::getKey("REFINE_UNIT_CELL_C", false);;
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
     needsReintegrating = true;
@@ -405,10 +399,6 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         sendLog(LogLevelDetailed);
         
         Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &newMatrix);
-    }
-    else if (rotationMode == RotationModeUnitCellABC)
-    {
-        Miller::rotateMatrixABC(aRot, bRot, cRot, matrix, &newMatrix);
     }
     
     lastRotatedMatrix = newMatrix;
@@ -1195,19 +1185,6 @@ double IOMRefiner::getRot(int rotNum)
                 break;
         }
     }
-    else if (rotationMode == RotationModeUnitCellABC)
-    {
-        switch (rotNum) {
-            case 0:
-                return aRot;
-            case 1:
-                return bRot;
-            case 2:
-                return cRot;
-            default:
-                break;
-        }
-    }
 
     return 0;
 }
@@ -1254,13 +1231,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
         double hRotStep = initialStep;
         double kRotStep = initialStep;
         double lRotStep = initialStep / 4;
-        double aRotStep = initialStep;
-        double bRotStep = initialStep;
-        double cRotStep = initialStep;
-        
-        double aStep = FileParser::getKey("STEP_UNIT_CELL_A", 0.2);
-        double bStep = FileParser::getKey("STEP_UNIT_CELL_B", 0.2);
-        double cStep = FileParser::getKey("STEP_UNIT_CELL_C", 0.2);
         
         double alphaStep = FileParser::getKey("STEP_UNIT_CELL_ALPHA", 0.5);
         double betaStep = FileParser::getKey("STEP_UNIT_CELL_BETA", 0.5);
@@ -1269,20 +1239,13 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
         bool refinedH = (rotationMode == RotationModeHorizontalVertical) ? false : true;
         bool refinedK = (rotationMode == RotationModeHorizontalVertical) ? false : true;
         bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", true);
-        bool refinedA = !refineA;
-        bool refinedB = !refineB;
-        bool refinedC = !refineC;
         bool refinedAlpha = !FileParser::getKey("REFINE_UNIT_CELL_ALPHA", false);
         bool refinedBeta = !FileParser::getKey("REFINE_UNIT_CELL_BETA", false);
         bool refinedGamma = !FileParser::getKey("REFINE_UNIT_CELL_GAMMA", false);
         
-        bool refinedARot = (rotationMode == RotationModeUnitCellABC) ? false : true;
-        bool refinedBRot = (rotationMode == RotationModeUnitCellABC) ? false : true;
-        bool refinedCRot = (rotationMode == RotationModeUnitCellABC) ? false : true;
-        
         int count = 0;
         
-        while (!(refinedH && refinedK && refinedL && (refinedA && refinedB && refinedC)) && count < 20)
+        while (!(refinedH && refinedK && refinedL) && count < 20)
         {
             if (!refinedL)
             {
@@ -1307,25 +1270,8 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
             {
                 this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
             }
-           
-            if (!refinedARot && !refinedBRot && !refinedCRot)
-            {
-                this->minimizeTwoParameters(&aRotStep, &bRotStep, &aRot, &bRot);
-                this->minimizeTwoParameters(&bRotStep, &cRotStep, &bRot, &cRot);
-                this->minimizeTwoParameters(&cRotStep, &aRotStep, &cRot, &aRot);
-                this->minimizeTwoParameters(&aRotStep, &aStep, &aRot, &unitCell[0]);
-                this->minimizeTwoParameters(&bRotStep, &bStep, &bRot, &unitCell[1]);
-                this->minimizeTwoParameters(&cRotStep, &cStep, &cRot, &unitCell[2]);
-            }
             
        //     refinementType = RefinementTypeOrientationMatrixPanelStdev;
-            
-            if (!refinedA)
-                minimizeParameter(&aStep, &unitCell[0]);
-            if (!refinedB)
-                minimizeParameter(&bStep, &unitCell[1]);
-            if (!refinedC)
-                minimizeParameter(&cStep, &unitCell[2]);
             
             if (!refinedAlpha)
             {
@@ -1354,11 +1300,10 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
             double newScore = score();
             lastScore = newScore;
             
-            logged << getRot(0) << "\t" << getRot(1) << "\t" << getRot(2) << "\t" << newScore << "\t" << aRotStep << std::endl;
+            logged << getRot(0) << "\t" << getRot(1) << "\t" << getRot(2) << "\t" << newScore << std::endl;
             sendLog(LogLevelDetailed);
             
-            if ((rotationMode == RotationModeHorizontalVertical && hRotStep < 0.25 && kRotStep < 0.25) ||
-                (rotationMode == RotationModeUnitCellABC && aRotStep < 0.25 && bRotStep < 0.25 && cRotStep < 0.25))
+            if (rotationMode == RotationModeHorizontalVertical && hRotStep < 0.25 && kRotStep < 0.25)
             {
                 if (!recalculated)
                 {
@@ -1376,20 +1321,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
             
             if (lRotStep < orientationTolerance)
                 refinedL = true;
-
-            if (aRotStep < orientationTolerance)
-                refinedARot = true;
-            if (bRotStep < orientationTolerance)
-                refinedBRot = true;
-            if (cRotStep < orientationTolerance)
-                refinedCRot = true;
-            
-            if (aStep < 0.01)
-                refinedA = true;
-            if (bStep < 0.01)
-                refinedB = true;
-            if (cStep < 0.01)
-                refinedC = true;
             
             if (alphaStep < 0.01)
                 refinedAlpha = true;
@@ -1402,13 +1333,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
         }
         
         count = 0;
-        
-        if (aStep < 0.01)
-            refinedA = true;
-        if (bStep < 0.01)
-            refinedB = true;
-        if (cStep < 0.01)
-            refinedC = true;
     }
     
     refinement = RefinementTypeOrientationMatrixEarly;
@@ -1453,9 +1377,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     hRot = 0;
     kRot = 0;
     lRot = 0;
-    aRot = 0;
-    bRot = 0;
-    cRot = 0;
     
     needsReintegrating = true;
     checkAllMillers(maxResolution, testBandwidth);

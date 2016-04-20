@@ -56,15 +56,9 @@ private:
     bool complexUnitCell;
     RotationMode rotationMode;
 	vector<double> unitCell;
-    bool refineA;
-    bool refineB;
-    bool refineC;
 	double hRot;
 	double kRot;
     double lRot;
-    double aRot;
-    double bRot;
-    double cRot;
     double bestHRot;
     double bestKRot;
     double bestLRot;
