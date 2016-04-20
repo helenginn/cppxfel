@@ -46,6 +46,7 @@ int Hdf5Manager::getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *
     {
         hid_t group = H5Gopen1(handle, address.c_str());
         *type = H5Gget_objtype_by_idx(group, objIdx);
+        H5Gclose(group);
         return 1;
     }
     catch (std::exception e)
@@ -69,6 +70,8 @@ std::vector<H5G_obj_t> Hdf5Manager::getSubGroupTypes(std::string address)
             H5G_obj_t obj = H5Gget_objtype_by_idx(groupAll, i);
             types.push_back(obj);
         }
+        
+        H5Gclose(groupAll);
     }
     catch (std::exception e)
     {
@@ -93,6 +96,8 @@ std::vector<std::string> Hdf5Manager::getSubGroupNames(std::string address)
         std::string concatenated = concatenatePaths(address, objectName);
         names.push_back(concatenated);
     }
+    
+    H5Gclose(groupAll);
     
     return names;
 }

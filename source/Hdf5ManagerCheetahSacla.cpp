@@ -99,6 +99,8 @@ int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void *
         sizeType = H5Tget_size(type);
         sizeSet = H5Sget_simple_extent_npoints(space);
         
+        H5Dclose(dataset);
+        
         logged << "Size: " << sizeSet << " of a " << sizeType << " byte type." << std::endl;
         sendLog();
     }
@@ -126,6 +128,7 @@ size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
     {
         dataset = H5Dopen1(handle, dataAddress.c_str());
         type = H5Dget_type(dataset);
+        H5Dclose(dataset);
     }
     catch (std::exception e)
     {
@@ -152,6 +155,7 @@ bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
         hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
         hid_t type = H5Dget_type(dataset);
         H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, *buffer);
+        H5Dclose(dataset);
         
         readingHdf5.unlock();
 
