@@ -59,7 +59,7 @@ source = [
 'source/Hdf5Manager.cpp',
 'source/Hdf5ManagerCheetahSacla.cpp',
 'source/Hdf5Image.cpp',
-'source/Holder.cpp',
+'source/Reflection.cpp',
 'source/Image.cpp',
 'source/IOMRefiner.cpp',
 'source/IndexManager.cpp',
