@@ -337,24 +337,6 @@ bool reflection_comparison(ImageReflection ref1, ImageReflection ref2)
 void ReflectionManager::sortReflections(void)
 {
 	std::sort(reflections.begin(), reflections.end(), reflection_comparison);
-
-	/*	double mean_intensity = 0;
-
-	 for (int i=0; i < reflections.size(); i++)
-	 {
-	 mean_intensity += (*reflections[i].reflection).mean_intensity;
-	 }
-
-	 mean_intensity /= reflections.size();
-
-	 for (int i=0; i < reflections.size(); i++)
-	 {
-	 if ((*reflections[i].reflection).mean_intensity < mean_intensity)
-	 {
-	 reflections.erase(reflections.begin()+i);
-	 i--;
-	 }
-	 }*/
 }
 
 void ReflectionManager::addReflectionForImage(Reflection *reflection, MtzManager *manager,
@@ -611,7 +593,5 @@ ReflectionManager::ReflectionManager(void)
 
 ReflectionManager::~ReflectionManager(void)
 {
-//	std::cout << "deallocating RefManager" << std::endl;
 
-//	print_trace();
 }

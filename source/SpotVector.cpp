@@ -11,14 +11,6 @@
 #include "misc.h"
 #include "FileParser.h"
 
-double SpotVector::distanceDifference(SpotVectorPtr standardVector)
-{
-    double standardDistance = standardVector->distance();
-    double diff = fabs(standardDistance - distance());
-    
-    return diff;
-}
-
 double SpotVector::trustComparedToStandardVector(SpotVectorPtr standardVector)
 {
     double standardDistance = standardVector->distance();
@@ -84,40 +76,6 @@ double SpotVector::angleWithVector(SpotVectorPtr spotVector2)
 double SpotVector::cosineWithVector(SpotVectorPtr spotVector2)
 {
     return cosineBetweenVectors(spotVector2->spotDiff, spotDiff);
-}
-
-double SpotVector::angleWithVector(SpotVectorPtr spotVector2, MatrixPtr mat)
-{
-    vec otherDiff = copy_vector(spotVector2->spotDiff);
-    
-    if (mat)
-    {
-        mat->multiplyVector(&otherDiff);
-    }
-    
-    return angleBetweenVectors(spotDiff, otherDiff);
-}
-
-double SpotVector::angleWithVertical()
-{
-    vec vertical = new_vector(0, 1, 0);
-    
-    double angle = angleBetweenVectors(spotDiff, vertical);
-    
-    if (spotDiff.h < 0)
-        angle = -angle;
-    
-    return angle;
-}
-
-void SpotVector::projectedXYDisplacement(double *x, double *y)
-{
-    double length = distance();
-    
-    double angle = angleWithVertical();
-    
-    *x = length * sin(angle);
-    *y = length * cos(angle);
 }
 
 bool SpotVector::isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistance)
