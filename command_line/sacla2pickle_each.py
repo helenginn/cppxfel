@@ -48,7 +48,7 @@ for tag in tags:
     datablock = DataBlockFactory.from_imageset(imgset)[0]
     observed = flex.reflection_table.from_observations(datablock, params)
 
-    #pickle.dump(data, open(tag + ".pickle", "wb"), protocol=-1)
+    pickle.dump(data, open(tag + ".pickle", "wb"), protocol=-1)
     pickle.dump(observed, open("_" + tag + "_strong.pickle", "wb"), protocol=-1)
     print " found %d spots" % len(observed)
     
