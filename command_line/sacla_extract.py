@@ -38,7 +38,8 @@ height = 2200
 skip = 0
 sacla = False
 max = 0
-wavelength = 1.4
+wavelength = 1.24
+distance = 70
 
 print "CXI to pickle dumper"
 
@@ -66,6 +67,8 @@ for arg in sys.argv[1:]:
 		max = int(key_value[1])
 	elif (key_value[0] == "wavelength"):
 		wavelength = int(key_value[1])
+	elif (key_value[0] == "distance"):
+		distance = int(key_value[1])
 	else:
 		print "Did not understand", arg
 
@@ -170,7 +173,7 @@ class EntryDumper():
 		self.lock = Lock()
 
 	def dumpEntry(self, anEntry):
-		global beamX, beamY, width, height, wavelength
+		global beamX, beamY, width, height, wavelength, distance
 		num_images = 1
 
 		sample_file = open('sample.pickle', 'rb')
@@ -179,7 +182,6 @@ class EntryDumper():
 		realEntryMin = 0
 		realEntryMax = 1
 
-		distance = 50
 		pixelSize = 0.05
 
 		identifier = anEntry.name[1:]
