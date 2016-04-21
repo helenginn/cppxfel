@@ -42,6 +42,7 @@ private:
     LogLevel printedLogLevel;
     bool tryLock(std::mutex &lock, int maxTries = 50);
     static bool isReady();
+    static bool shouldExit;
     
 public:
     Logger();
@@ -53,11 +54,21 @@ public:
     void changePriorityLevel(LogLevel newLevel);
     void awaitPrinting();
     static void awaitPrintingWrapper(LoggerPtr logger);
-    void addStream(std::ostringstream *stream, LogLevel level = LogLevelNormal);
+    void addStream(std::ostringstream *stream, LogLevel level = LogLevelNormal, bool shouldExit = false);
+    
+    static void setShouldExit()
+    {
+        shouldExit = true;
+    }
     
     static LogLevel getPriorityLevel()
     {
         return mainLogger->printedLogLevel;
+    }
+    
+    static void log(std::ostringstream &stream)
+    {
+        mainLogger->addStream(&stream);
     }
 };
 

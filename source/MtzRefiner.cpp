@@ -484,9 +484,11 @@ void MtzRefiner::applyParametersToImages()
     
     if (unitCell.size() == 0)
     {
-        std::cout
+        logged
         << "Please provide unit cell dimensions under keyword UNIT_CELL"
         << std::endl;
+        sendLog(LogLevelNormal, true);
+        
         exit(1);
     }
     
@@ -874,8 +876,8 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
             
             if (filename->length() == 0)
             {
-                std::cout << "No orientation matrix list provided. Exiting now." << std::endl;
-                exit(1);
+                logged << "No orientation matrix list provided. Exiting now." << std::endl;
+                sendLog(LogLevelNormal, true);
             }
         }
     }
@@ -1001,31 +1003,32 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     
     bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
+    std::ostringstream logged;
     
     if (wavelength == 0)
     {
-        std::cout
+        logged
         << "Please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH"
         << std::endl;
-        exit(1);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
     }
     
     if (detectorDistance == 0)
     {
-        std::cout
+        logged
         << "Please provide detector distance for integration under keyword DETECTOR_DISTANCE"
         << std::endl;
-        exit(1);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
     }
     
     vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
     if (unitCell.size() == 0)
     {
-        std::cout
+        logged
         << "Please provide unit cell dimensions under keyword UNIT_CELL"
         << std::endl;
-        exit(1);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
     }
     
     int maxThreads = FileParser::getMaxThreads();
@@ -1475,35 +1478,17 @@ void MtzRefiner::loadImageFiles()
 {
     loadPanels();
     
-    if ((!isFromPython()) || (isFromPython() && images.size() == 0))
+    std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
+                                              std::string(""));
+    if (filename == "")
     {
-        std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
-                                                  std::string(""));
-        if (filename == "")
-        {
-            std::cout
-            << "Filename list has not been provided for integration. Please provide under keyword ORIENTATION_MATRIX_LIST."
-            << std::endl;
-            exit(1);
-        }
-        
-        readMatricesAndImages(&filename);
+        logged
+        << "Filename list has not been provided for integration. Please provide under keyword ORIENTATION_MATRIX_LIST."
+        << std::endl;
+        sendLog(LogLevelNormal);
     }
-    else
-    {
-        int num = (int)images.size();
-        std::cout << "There have been " << num << " images loaded before starting integration command." << std::endl;
-        
-        if (num == 0)
-        {
-            std::cout << "WARNING! You have not loaded any images from Python! Please load at least one image from the python command line. Aborting integration." << std::endl;
-            return;
-        }
-        
-        std::cout << "Applying parameters to images." << std::endl;
-        
-   //     applyParametersToImages();
-    }
+    
+    readMatricesAndImages(&filename);
 }
 
 void MtzRefiner::integrate()
@@ -1519,7 +1504,8 @@ void MtzRefiner::integrate()
         crystals += images[i]->IOMRefinerCount();
     }
     
-    std::cout << images.size() << " images with " << crystals << " crystal orientations." << std::endl;
+    logged << images.size() << " images with " << crystals << " crystal orientations." << std::endl;
+    sendLog();
     
     mtzManagers.clear();
     
@@ -1615,9 +1601,7 @@ void MtzRefiner::loadPanels()
     {
         logged << "No panel list provided. Exiting as all reflections will be rejected."
         << std::endl;
-        sendLog();
-        
-        // FIXME: you need to exit
+        sendLog(LogLevelNormal, true);
     }
     else if (Panel::panelCount() > 0)
     {

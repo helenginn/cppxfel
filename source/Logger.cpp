@@ -10,6 +10,7 @@
 
 LoggerPtr Logger::mainLogger;
 bool Logger::ready;
+bool Logger::shouldExit = false;
 
 Logger::Logger()
 {
@@ -56,7 +57,7 @@ bool Logger::tryLock(std::mutex &lock, int maxTries)
     return locked;
 }
 
-void Logger::addStream(std::ostringstream *stream, LogLevel level)
+void Logger::addStream(std::ostringstream *stream, LogLevel level, bool shouldExitAfter)
 {
     if (level > printedLogLevel)
         return;
@@ -86,6 +87,8 @@ void Logger::addStream(std::ostringstream *stream, LogLevel level)
     printBlock.notify_all();
     
     mtx.unlock();
+    
+    shouldExit = shouldExitAfter;
 }
 
 void Logger::awaitPrinting()
@@ -127,6 +130,11 @@ void Logger::awaitPrinting()
         ready = false;
         
         writing.unlock();
+        
+        if (shouldExit)
+        {
+            exit(1);
+        }
     }
 }
 

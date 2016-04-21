@@ -16,7 +16,7 @@ class LoggableObject
 {
 protected:
     std::ostringstream logged;
-    void sendLog(LogLevel priority = LogLevelNormal);
+    void sendLog(LogLevel priority = LogLevelNormal, bool shouldExit = false);
 };
 
 #endif /* defined(__cppxfel__LoggableObject__) */
