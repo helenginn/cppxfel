@@ -129,7 +129,6 @@ protected:
 	static MtzManager *referenceManager;
 	MtzManager *lastReference;
 
-    static double unitCellScore(void *object);
     std::ostringstream logged;
 public:
     static vector<double> superGaussianTable;

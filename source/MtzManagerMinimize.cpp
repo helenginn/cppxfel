@@ -23,13 +23,6 @@ double MtzManager::scoreNelderMead(void *object)
     return static_cast<MtzManager *>(object)->exclusionScoreWrapper(object, 0, 0);
 }
 
-double MtzManager::unitCellScore(void *object)
-{
-    static_cast<MtzManager *>(object)->refreshPartialities(static_cast<MtzManager *>(object)->params);
-    
-    return exclusionScoreWrapper(object, 0, 0);
-}
-
 double MtzManager::bFactorScoreWrapper(void *object)
 {
     vector<double> bins;
