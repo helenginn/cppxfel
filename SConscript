@@ -58,6 +58,8 @@ source = [
 'source/GraphDrawer.cpp',
 'source/Hdf5Manager.cpp',
 'source/Hdf5ManagerCheetahSacla.cpp',
+'source/Hdf5ManagerImageAddresses.cpp',
+'source/Hdf5ManagerProcessing.cpp',
 'source/Hdf5Image.cpp',
 'source/Reflection.cpp',
 'source/Image.cpp',
