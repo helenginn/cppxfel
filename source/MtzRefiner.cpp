@@ -453,6 +453,12 @@ bool MtzRefiner::loadInitialMtz(bool force)
         reference->setFilename(referenceFile.c_str());
         reference->loadReflections(1);
         reference->setSigmaToUnity();
+        
+        if (reference->reflectionCount() == 0)
+        {
+            logged << "Initial MTZ reference missing or reflection count is 0. Exiting." << std::endl;
+            Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        }
     }
     
     MtzManager::setReference(reference);

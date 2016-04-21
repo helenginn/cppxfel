@@ -86,9 +86,9 @@ void Logger::addStream(std::ostringstream *stream, LogLevel level, bool shouldEx
     
     printBlock.notify_all();
     
-    mtx.unlock();
-    
     shouldExit = shouldExitAfter;
+    
+    mtx.unlock();
 }
 
 void Logger::awaitPrinting()
