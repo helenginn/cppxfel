@@ -22,6 +22,7 @@
 #include "StatisticsManager.h"
 #include "CSV.h"
 #include "polyfit.hpp"
+#include "SolventMask.h"
 
 Image::Image(std::string filename, double wavelength,
              double distance)
@@ -1169,6 +1170,14 @@ void Image::updateAllSpots()
     }
 }
 
+void Image::addSpotIfNotMasked(SpotPtr newSpot)
+{
+    bool masked = SolventMask::isMasked(newSpot);
+    
+    if (!masked)
+        spots.push_back(newSpot);
+}
+
 void Image::findSpots()
 {
     double jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
@@ -1200,7 +1209,7 @@ void Image::findSpots()
                     
                     logged << "Found spot (" << spotCoord.first << ", " << spotCoord.second << ")" << std::endl;
                     sendLog(LogLevelDetailed);
-                    spots.push_back(testSpot);
+                    addSpotIfNotMasked(testSpot);
                 }
                 
                 count++;
@@ -1283,7 +1292,7 @@ void Image::processSpotList()
     SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
     newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
     
-    spots.push_back(newSpot);
+    addSpotIfNotMasked(newSpot);
     double tooCloseDistance = 0;
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
     if (rejectCloseSpots)
@@ -1344,7 +1353,10 @@ void Image::processSpotList()
         << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
         sendLog(LogLevelDebug);
         
-        if (add) spots.push_back(newSpot);
+        if (add)
+        {
+            addSpotIfNotMasked(newSpot);
+        }
     }
     
     logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;

@@ -200,6 +200,8 @@ public:
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     void updateAllSpots();
     
+    void addSpotIfNotMasked(SpotPtr newSpot);
+    
     void removeRefiner(int j)
     {
         indexers.erase(indexers.begin() + j);

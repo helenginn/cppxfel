@@ -159,6 +159,7 @@ typedef enum
 } RejectReason;
 
 class Panel;
+class SolventMask;
 class Logger;
 class Image;
 class Hdf5Image;
@@ -185,6 +186,7 @@ typedef boost::shared_ptr<Miller> MillerPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
 typedef boost::shared_ptr<Panel>PanelPtr;
+typedef boost::shared_ptr<SolventMask> SolventMaskPtr;
 typedef boost::shared_ptr<MtzManager>MtzPtr;
 typedef boost::shared_ptr<std::ostringstream> StreamPtr;
 typedef boost::shared_ptr<Logger>LoggerPtr;

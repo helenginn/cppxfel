@@ -9,8 +9,9 @@
 #define PANELPARSER_H_
 
 #include "FileParser.h"
+#include "LoggableObject.h"
 
-class PanelParser : public FileParser
+class PanelParser : public FileParser, public LoggableObject
 {
 private:
 	vector<PanelPtr> panels;
@@ -18,6 +19,7 @@ private:
 public:
 	virtual void parse(bool fromPython = false);
 
+    void addSolventMask(std::string rest);
 	void addPanel(std::string rest, PanelTag tag = PanelTagNormal);
 	PanelParser(std::string filename);
 	virtual ~PanelParser();

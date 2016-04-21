@@ -6,6 +6,7 @@
  */
 
 #include "PanelParser.h"
+#include "SolventMask.h"
 #include "parameters.h"
 #include "FileReader.h"
 #include <boost/variant.hpp>
@@ -21,6 +22,24 @@ PanelParser::PanelParser(std::string filename) :
 PanelParser::~PanelParser()
 {
     panels.clear();
+}
+
+void PanelParser::addSolventMask(std::string rest)
+{
+    ParametersMap singleParameter;
+    
+    this->doubleVector(&singleParameter, "SOLVENT_MASK", rest);
+    
+    vector<double> resRings = boost::get<vector<double> >(singleParameter["SOLVENT_MASK"]);
+
+    if (resRings.size() < 2)
+    {
+        logged << "One or both resolution rings for SOLVENT_MASK missing." << std::endl;
+        sendLog();
+        return;
+    }
+    
+    SolventMask::addSolventMask(resRings[0], resRings[1]);
 }
 
 void PanelParser::addPanel(std::string rest, PanelTag tag)
@@ -88,6 +107,11 @@ void PanelParser::parse(bool fromPython)
         if (command == "MASK")
         {
             addPanel(rest, PanelTagBad);
+        }
+        
+        if (command == "SOLVENT_MASK")
+        {
+            addSolventMask(rest);
         }
 	}
     

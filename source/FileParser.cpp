@@ -428,7 +428,8 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
 
 	rest = line.substr(space_index + 1, std::string::npos);
 
-    if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL" && upperCommand != "MASK")
+    // make a list of permitted words soon
+    if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL" && upperCommand != "MASK" && upperCommand != "SOLVENT_MASK")
     {
         std::cout << "Error: do not understand command " << upperCommand << std::endl;
         exit(1);
