@@ -85,6 +85,7 @@ source = [
 'source/Shoebox.cpp',
 'source/Spot.cpp',
 'source/SpotVector.cpp',
+'source/SolventMask.cpp',
 'source/StatisticsManager.cpp',
 'source/UnitCellLattice.cpp',
 'source/Vector.cpp',
