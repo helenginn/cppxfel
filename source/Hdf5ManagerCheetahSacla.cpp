@@ -61,24 +61,6 @@ Hdf5ManagerCheetahSaclaPtr Hdf5ManagerCheetahSacla::hdf5ManagerForImage(std::str
     return Hdf5ManagerCheetahSaclaPtr();
 }
 
-std::string Hdf5ManagerCheetahSacla::addressForImage(std::string imageName)
-{
-    // maybe imageName has .img extension, so let's get rid of it
-    std::string baseName = getBaseFilename(imageName);
-    
-    for (int i = 0; i < imagePaths.size(); i++)
-    {
-        std::string lastName = lastComponent(imagePaths[i]);
-        
-        if (lastName == baseName)
-        {
-            return imagePaths[i];
-        }
-    }
-    
-    return "";
-}
-
 int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void **buffer)
 {
     std::string dataAddress = concatenatePaths(address, "data");
@@ -135,8 +117,15 @@ size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
     {
         dataset = H5Dopen1(handle, dataAddress.c_str());
         type = H5Dget_type(dataset);
-        H5Dclose(dataset);
-        H5Tclose(type);
+        
+        if (dataset >= 0)
+        {
+            H5Dclose(dataset);
+        }
+        else
+        {
+            return 0;
+        }
     }
     catch (std::exception e)
     {
@@ -145,7 +134,13 @@ size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
     
     readingHdf5.unlock();
 
-    size_t sizeType = H5Tget_size(type);
+    size_t sizeType = 0;
+    
+    if (type >= 0)
+    {
+        sizeType = H5Tget_size(type);
+        H5Tclose(type);
+    }
     
     return sizeType;
 }

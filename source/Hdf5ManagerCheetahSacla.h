@@ -10,14 +10,13 @@
 #define __cppxfel__Hdf5ManagerCheetahSacla__
 
 #include <stdio.h>
-#include "Hdf5Manager.h"
+#include "Hdf5ManagerImageAddresses.h"
 #include <iostream>
 #include <mutex>
 
-class Hdf5ManagerCheetahSacla : public Hdf5Manager
+class Hdf5ManagerCheetahSacla : public Hdf5ManagerImageAddresses
 {
 private:
-    std::vector<std::string> imagePaths;
     static std::vector<Hdf5ManagerCheetahSaclaPtr> cheetahManagers;
 
     std::mutex readingHdf5;
@@ -27,16 +26,15 @@ public:
     
     static Hdf5ManagerCheetahSaclaPtr hdf5ManagerForImage(std::string imageName);
     
-    std::string addressForImage(std::string imageName);
     bool dataForImage(std::string address, void **buffer);
     size_t bytesPerTypeForImageAddress(std::string address);
     
     static void closeHdf5Files();
     virtual ~Hdf5ManagerCheetahSacla() {};
     
-    Hdf5ManagerCheetahSacla(std::string newName) : Hdf5Manager(newName)
+    Hdf5ManagerCheetahSacla(std::string newName) : Hdf5ManagerImageAddresses(newName)
     {
-        groupsWithPrefix(&imagePaths, "tag");
+
     }
     
     int hdf5MallocBytesForImage(std::string address, void **buffer);
