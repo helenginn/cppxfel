@@ -12,6 +12,23 @@
 
 #define MAX_NAME 100
 
+void Hdf5Manager::turnOffErrors()
+{
+    /* Save old error handler */
+    hid_t error_stack = H5Eget_current_stack();
+    
+    H5Eget_auto2(error_stack, &old_func, &old_client_data);
+    
+    /* Turn off error handling */
+    H5Eset_auto2(error_stack, NULL, NULL);
+}
+
+void Hdf5Manager::turnOnErrors()
+{
+    hid_t error_stack = H5Eget_current_stack();
+    H5Eset_auto2(error_stack, old_func, old_client_data);
+}
+
 void Hdf5Manager::groupsWithPrefix(std::vector<std::string> *list, std::string prefix, std::string startAddress)
 {
     std::vector<std::string> names = getSubGroupNames(startAddress);
@@ -46,7 +63,8 @@ int Hdf5Manager::getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *
     {
         hid_t group = H5Gopen1(handle, address.c_str());
         *type = H5Gget_objtype_by_idx(group, objIdx);
-        H5Gclose(group);
+        if (group >= 0)
+            H5Gclose(group);
         return 1;
     }
     catch (std::exception e)
@@ -71,7 +89,8 @@ std::vector<H5G_obj_t> Hdf5Manager::getSubGroupTypes(std::string address)
             types.push_back(obj);
         }
         
-        H5Gclose(groupAll);
+        if (groupAll >= 0)
+            H5Gclose(groupAll);
     }
     catch (std::exception e)
     {
@@ -79,6 +98,28 @@ std::vector<H5G_obj_t> Hdf5Manager::getSubGroupTypes(std::string address)
     }
     
     return types;
+}
+
+bool Hdf5Manager::createLastComponentAsGroup(std::string address)
+{
+    int components = pathComponentCount(address);
+    std::string parentAddress = truncatePath(address, components - 1);
+    std::string newGroupName = lastComponent(address);
+ 
+    hid_t groupAll = H5Gopen1(handle, address.c_str());
+    
+    if (groupAll >= 0)
+    {
+        H5Gcreate1(groupAll, newGroupName.c_str(), 0);
+        
+        H5Gclose(groupAll);
+        
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 std::vector<std::string> Hdf5Manager::getSubGroupNames(std::string address)
@@ -97,9 +138,29 @@ std::vector<std::string> Hdf5Manager::getSubGroupNames(std::string address)
         names.push_back(concatenated);
     }
     
-    H5Gclose(groupAll);
+    if (groupAll >= 0)
+        H5Gclose(groupAll);
     
     return names;
+}
+
+bool Hdf5Manager::groupExists(std::string address)
+{
+    turnOffErrors();
+    
+    bool success = false;
+    
+    hid_t group = H5Gopen1(handle, address.c_str());
+    
+    if (group >= 0)
+    {
+        H5Gclose(group);
+        success = true;
+    }
+    
+    turnOnErrors();
+    
+    return success;
 }
 
 std::string Hdf5Manager::lastComponent(std::string path)
@@ -112,6 +173,28 @@ std::string Hdf5Manager::lastComponent(std::string path)
     }
     
     return components[components.size() - 1];
+}
+
+int Hdf5Manager::pathComponentCount(std::string path)
+{
+    std::vector<std::string> components = FileReader::split(path, "/");
+    
+    return (int)components.size();
+}
+
+std::string Hdf5Manager::truncatePath(std::string path, int numToTruncate)
+{
+    std::vector<std::string> components = FileReader::split(path, "/");
+    std::string added;
+    
+    for (int i = 0; i < numToTruncate && i < components.size(); i++)
+    {
+        added += components[i] + "/";
+    }
+    
+    added.erase(added.end() - 1);
+    
+    return added;
 }
 
 std::string Hdf5Manager::concatenatePaths(std::string path1, std::string path2)
@@ -129,14 +212,55 @@ std::string Hdf5Manager::concatenatePaths(std::string path1, std::string path2)
     return path1;
 }
 
+bool Hdf5Manager::createGroupsFromAddress(std::string address)
+{
+    int componentCount = pathComponentCount(address);
+    
+    for (int i = 1; i < componentCount; i++)
+    {
+        std::string pathToCheck = truncatePath(address, i);
+        
+        bool exists = groupExists(pathToCheck);
+        
+        if (exists)
+        {
+            logged << "Address " << pathToCheck << " exists." << std::endl;
+        }
+        else
+        {
+            bool success = createLastComponentAsGroup(pathToCheck);
+            
+            if (success)
+            {
+                logged << "Address " << pathToCheck << " successfully created." << std::endl;
+            }
+            else
+            {
+                logged << "Address " << pathToCheck << " creation failed." << std::endl;
+            }
+        }
+    }
+ 
+    sendLog();
 
-Hdf5Manager::Hdf5Manager(std::string newName)
+    return true;
+}
+
+Hdf5Manager::Hdf5Manager(std::string newName, Hdf5AccessType hdf5AccessType)
 {
     filename = newName;
+    accessType = hdf5AccessType;
+    
+    unsigned int accessFlag = H5F_ACC_RDONLY;
+
+    if (hdf5AccessType == Hdf5AccessTypeReadWrite)
+    {
+        accessFlag = H5F_ACC_RDWR;
+    }
     
     // test code - does this work?
     
-    handle = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    handle = H5Fopen(filename.c_str(), accessFlag, H5P_DEFAULT);
 }
 
 

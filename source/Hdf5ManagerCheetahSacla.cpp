@@ -99,9 +99,14 @@ int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void *
         sizeType = H5Tget_size(type);
         sizeSet = H5Sget_simple_extent_npoints(space);
         
-        H5Sclose(space);
-        H5Tclose(type);
-        H5Dclose(dataset);
+        if (space >= 0)
+            H5Sclose(space);
+        
+        if (type >= 0)
+            H5Tclose(type);
+        
+        if (dataset >= 0)
+            H5Dclose(dataset);
         
         logged << "Size: " << sizeSet << " of a " << sizeType << " byte type." << std::endl;
         sendLog();

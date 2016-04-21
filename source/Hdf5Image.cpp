@@ -9,6 +9,11 @@
 #include "Hdf5Image.h"
 #include "Hdf5ManagerCheetahSacla.h"
 
+void Hdf5Image::failureMessage()
+{
+    logged << "(" << getBasename() << ") Unable to open image from HDF5 file." << std::endl;
+    sendLog();
+}
 
 void Hdf5Image::loadImage()
 {
@@ -17,7 +22,17 @@ void Hdf5Image::loadImage()
     if (!manager)
         return;
     
-    std::string address = manager->addressForImage(getFilename());
+    std::string address = imageAddress;
+    
+    if (!address.length())
+    {
+        address = manager->addressForImage(getFilename());
+    }
+    
+    if (!address.length())
+    {
+        failureMessage();
+    }
     
     useShortData = (manager->bytesPerTypeForImageAddress(address) == 2);
     
@@ -28,6 +43,11 @@ void Hdf5Image::loadImage()
     if (size > 0)
     {
         bool success = manager->dataForImage(address, (void **)&buffer);
+        
+        if (!success)
+        {
+            failureMessage();
+        }
         
         if (!useShortData)
         {
@@ -46,4 +66,9 @@ void Hdf5Image::loadImage()
         Logger::mainLogger->addString("Unable to get data from any HDF5 file");
         sendLog();
     }
+}
+
+void Hdf5Image::createProcessingEntry()
+{
+    
 }

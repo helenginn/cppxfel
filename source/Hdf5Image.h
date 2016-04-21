@@ -16,13 +16,16 @@
 class Hdf5Image : public Image
 {
 private:
+    void failureMessage();
     virtual void loadImage();
+    std::string imageAddress;
+    void createProcessingEntry();
     
 public:
     Hdf5Image(std::string filename = "", double wavelength = 0,
               double distance = 0) : Image(filename, wavelength, distance)
     {
-        
+        imageAddress = std::string();
     };
   
     virtual ~Hdf5Image() {};
