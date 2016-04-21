@@ -15,18 +15,20 @@
 void Hdf5Manager::turnOffErrors()
 {
     /* Save old error handler */
-    hid_t error_stack = H5Eget_current_stack();
+//    hid_t error_stack = H5Eget_current_stack();
     
-    H5Eget_auto2(error_stack, &old_func, &old_client_data);
+    H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
     
     /* Turn off error handling */
-    H5Eset_auto2(error_stack, NULL, NULL);
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    
+//    H5Eset_current_stack(error_stack);
 }
 
 void Hdf5Manager::turnOnErrors()
 {
     hid_t error_stack = H5Eget_current_stack();
-    H5Eset_auto2(error_stack, old_func, old_client_data);
+    H5Eset_auto(error_stack, old_func, old_client_data);
 }
 
 void Hdf5Manager::groupsWithPrefix(std::vector<std::string> *list, std::string prefix, std::string startAddress)
@@ -258,9 +260,16 @@ Hdf5Manager::Hdf5Manager(std::string newName, Hdf5AccessType hdf5AccessType)
         accessFlag = H5F_ACC_RDWR;
     }
     
-    // test code - does this work?
+    turnOffErrors();
     
     handle = H5Fopen(filename.c_str(), accessFlag, H5P_DEFAULT);
+    
+    if (handle < 0 && accessFlag != H5F_ACC_RDONLY)
+    {
+        handle = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    }
+    
+    turnOnErrors();
 }
 
 

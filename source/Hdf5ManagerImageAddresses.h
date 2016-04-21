@@ -25,6 +25,17 @@ protected:
 public:
     std::string addressForImage(std::string imageName);
     
+    
+    int imageAddressCount()
+    {
+        return (int)imagePaths.size();
+    }
+    
+    std::string imageAddress(int i)
+    {
+        return imagePaths[i];
+    }
+
 };
 
 #endif /* defined(__cppxfel__Hdf5ManagerImageAddresses__) */

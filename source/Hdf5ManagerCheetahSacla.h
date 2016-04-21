@@ -37,6 +37,16 @@ public:
 
     }
     
+    static int cheetahManagerCount()
+    {
+        return (int)cheetahManagers.size();
+    }
+    
+    static Hdf5ManagerCheetahSaclaPtr cheetahManager(int i)
+    {
+        return cheetahManagers[i];
+    }
+    
     int hdf5MallocBytesForImage(std::string address, void **buffer);
 };
 

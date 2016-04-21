@@ -263,6 +263,9 @@ void FileParser::generateFunctionList()
     parserMap["OPTIMISING_UNIT_CELL_C"] = simpleBool;
 
     parserMap["HDF5_SOURCE_FILES"] = stringVector;
+    parserMap["HDF5_OUTPUT_FILE"] = simpleString;
+    parserMap["DUMP_IMAGES"] = simpleBool;
+    
     parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
     parserMap["SECOND_MATRIX_LIST"] = simpleString;
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;

@@ -26,6 +26,7 @@
 #include "Panel.h"
 #include "Logger.h"
 #include "MtzGrouper.h"
+#include "Hdf5ManagerProcessing.h"
 
 bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
@@ -215,7 +216,8 @@ void MtzRefiner::refine()
     
     originalMerge = reference;
     
-    std::cout << "N: Total images loaded: " << mtzManagers.size() << std::endl;
+    logged << "N: Total images loaded: " << mtzManagers.size() << std::endl;
+    sendLog();
     
     originalMerge->writeToFile("originalMerge.mtz");
     
@@ -854,24 +856,30 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
 {
     Hdf5ManagerCheetahSacla::initialiseSaclaManagers();
     
-    
     if (targetImages == NULL && images.size() > 0)
         return;
     
-    std::string aFilename = "";
+    std::string hdf5OutputFile = FileParser::getKey("HDF5_OUTPUT_FILE", std::string(""));
     
-    if (filename == NULL)
+    bool hdf5 = hdf5OutputFile.length();
+    
+    if (!hdf5)
     {
-        aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
-        filename = &aFilename;
+        std::string aFilename = "";
         
-        if (filename->length() == 0)
+        if (filename == NULL)
         {
-            std::cout << "No orientation matrix list provided. Exiting now." << std::endl;
-            exit(1);
+            aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
+            filename = &aFilename;
+            
+            if (filename->length() == 0)
+            {
+                std::cout << "No orientation matrix list provided. Exiting now." << std::endl;
+                exit(1);
+            }
         }
     }
-    
+        
     double version = FileParser::getKey("MATRIX_LIST_VERSION", 2.0);
     
     // thought: turn the vector concatenation into a templated function
@@ -885,8 +893,19 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     imageSubsets.resize(maxThreads);
     mtzSubsets.resize(maxThreads);
     
+    if (hdf5)
+    {
+        readFromHdf5(&images);
+    }
+    
+    
     for (int i = 0; i < maxThreads; i++)
     {
+        if (hdf5)
+        {
+            continue;
+        }
+        
         if (version == 1.0)
         {
             boost::thread *thr = new boost::thread(singleLoadImages, filename,
@@ -904,7 +923,6 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     }
     
     threads.join_all();
-    
     
     int total = 0;
     
@@ -1074,17 +1092,88 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         newImage->setUnitCell(unitCell);
         newImage->setInitialStep(orientationStep);
         
-        // @TODO: masks should be addable through input file
-        /*
-         newImage->addMask(0, 840, 1765, 920);
-         newImage->addMask(446, 1046, 1324, 1765);
-         newImage->addMask(820, 450, 839, 473);
-         */
-        
         newImage->setTestSpotSize(overPredSpotSize);
         newImage->setTestBandwidth(overPredBandwidth);
         
         newImages->push_back(newImage);
+    }
+}
+
+void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
+{
+    // in the case where HDF5_OUTPUT_FILE is set.
+    double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
+    double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
+    std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(0, 2));
+    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
+    vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+    
+    bool checkingUnitCell = false;
+    int count = 0;
+    
+    if (givenUnitCell.size() > 0 && tolerance > 0.0)
+        checkingUnitCell = true;
+
+    std::string hdf5OutputFile = FileParser::getKey("HDF5_OUTPUT_FILE", std::string(""));
+    
+    if (hdf5OutputFile.length() == 0)
+        return;
+    
+    // get input files ready (assuming SACLA for now)
+    Hdf5ManagerCheetahSacla::initialiseSaclaManagers();
+
+    // processing pointer active
+    hdf5ProcessingPtr = Hdf5ManagerProcessingPtr(new Hdf5ManagerProcessing(hdf5OutputFile));
+
+    int startImage = FileParser::getKey("IMAGE_SKIP", 0);
+    int endImage = startImage + FileParser::getKey("IMAGE_LIMIT", 0);
+    
+    int loadAll = (startImage == 0 && endImage == 0);
+    
+    if (!loadAll)
+    {
+        logged << "Starting from image " << startImage << " and ending on image " << endImage << std::endl;
+        sendLog();
+    }
+    
+    int inputHdf5Count = Hdf5ManagerCheetahSacla::cheetahManagerCount();
+    
+    for (int i = 0; i < inputHdf5Count; i++)
+    {
+        Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::cheetahManager(i);
+        
+        for (int j = 0; j < manager->imageAddressCount(); j++)
+        {
+            if (!loadAll)
+            {
+                if (count < startImage || count >= endImage)
+                {
+                    count++;
+                    continue;
+                }
+            }
+            
+            std::string imageAddress = manager->imageAddress(j);
+            
+            std::string imgName = manager->lastComponent(imageAddress) + ".img";
+            
+            logged << "Loading image " << newImages->size() << " (" << imgName << ")"
+            << std::endl;
+            
+            Hdf5ImagePtr hdf5Image = Hdf5ImagePtr(new Hdf5Image(imgName, wavelength,
+                                                                detectorDistance));
+            ImagePtr newImage = boost::static_pointer_cast<Image>(hdf5Image);
+            
+            if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
+            {
+                newImages->push_back(newImage);
+                
+            }
+            else if (!checkingUnitCell)
+                newImages->push_back(newImage);
+            
+            count++;
+        }
     }
 }
 
@@ -1101,7 +1190,6 @@ void MtzRefiner::readMatricesAndMtzs()
         
         return;
     }
-    
     
     if (filename == "")
     {
@@ -1459,7 +1547,8 @@ void MtzRefiner::integrate()
         total += managerSubsets[i].size();
     }
     
-    std::cout << "N: Total images loaded: " << total << std::endl;
+    logged << "N: Total images loaded: " << total << std::endl;
+    sendLog();
     
     mtzManagers.reserve(total);
     int lastPos = 0;
@@ -1554,32 +1643,6 @@ void MtzRefiner::findSteps()
     }
 }
 
-
-// MARK: Dry integrating
-
-/*
-// ARK: Find spots
-
-void MtzRefiner::findSpotsWrapper(MtzRefiner *object, int offset, bool orientation)
-{
-    object->findSpotsThread(offset);
-}
-
-void MtzRefiner::findSpotsThread(offset)
-{
-    
-}
-
-void MtzRefiner::findSpots()
-{
-    this->readMatricesAndImages();
-    loadPanels();
-    std::cout << "N: Total images loaded: " << images.size() << std::endl;
-    
-    
-}
-*/
-
 // MARK: indexing
 
 void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
@@ -1669,12 +1732,23 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
     integrateMats.close();
 }
 
+void MtzRefiner::findSpotsThread(MtzRefiner *me, int offset)
+{
+    double maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = offset; i < me->images.size(); i += maxThreads)
+    {
+        me->images[i]->processSpotList();
+    }
+}
+
 void MtzRefiner::index()
 {
     loadPanels();
     this->readMatricesAndImages();
-    std::cout << "N: Total images loaded: " << images.size() << std::endl;
-   
+    logged << "N: Total images loaded: " << images.size() << std::endl;
+    sendLog();
+    
     if (!indexManager)
         indexManager = new IndexManager(images);
     
@@ -1729,6 +1803,17 @@ void MtzRefiner::powderPattern()
     
     if (!indexManager)
         indexManager = new IndexManager(images);
+    
+    double maxThreads = FileParser::getMaxThreads();
+    boost::thread_group threads;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(findSpotsThread, this, i);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
     
     indexManager->powderPattern();
 }

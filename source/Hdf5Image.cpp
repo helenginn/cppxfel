@@ -7,7 +7,9 @@
 //
 
 #include "Hdf5Image.h"
+#include "FileParser.h"
 #include "Hdf5ManagerCheetahSacla.h"
+#include <fstream>
 
 void Hdf5Image::failureMessage()
 {
@@ -66,9 +68,20 @@ void Hdf5Image::loadImage()
         Logger::mainLogger->addString("Unable to get data from any HDF5 file");
         sendLog();
     }
-}
-
-void Hdf5Image::createProcessingEntry()
-{
     
+    bool dumpImages = FileParser::getKey("DUMP_IMAGES", false);
+    
+    if (dumpImages)
+    {
+        std::ofstream imgStream;
+        imgStream.open(getFilename().c_str(), std::ios::binary);
+        
+        long int size = useShortData ? shortData.size() : data.size();
+        size *= useShortData ? sizeof(short) : sizeof(int);
+        char *start = useShortData ? (char *)&shortData[0] : (char *)&data[0];
+        
+        imgStream.write(start, size);
+        
+        imgStream.close();
+    }
 }

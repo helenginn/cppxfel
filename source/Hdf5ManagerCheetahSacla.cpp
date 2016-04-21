@@ -24,7 +24,7 @@ void Hdf5ManagerCheetahSacla::initialiseSaclaManagers()
     {
         std::vector<std::string> hdf5Files = glob(hdf5FileGlobs[i]);
         
-        logged << "HDF5_SOURCE_FILES entry " << i << " matches: " << std::endl;
+        logged << "HDF5_SOURCE_FILES entry (no. " << i << ") matches: " << std::endl;
         
         for (int j = 0; j < hdf5Files.size(); j++)
         {
@@ -173,7 +173,6 @@ bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
     }
 }
 
-
 void Hdf5ManagerCheetahSacla::closeHdf5Files()
 {
     for (int i = 0; i < cheetahManagers.size(); i++)
@@ -181,3 +180,4 @@ void Hdf5ManagerCheetahSacla::closeHdf5Files()
         cheetahManagers[i]->closeHdf5();
     }
 }
+

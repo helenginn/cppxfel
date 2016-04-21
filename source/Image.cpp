@@ -96,6 +96,8 @@ Image::Image(std::string filename, double wavelength,
     detectorDistance = distance;
     this->fitBackgroundAsPlane = FileParser::getKey("FIT_BACKGROUND_AS_PLANE", false);
     
+    loadedSpots = false;
+    
     pixelCountCutoff = FileParser::getKey("PIXEL_COUNT_CUTOFF", 0);
 }
 
@@ -1219,11 +1221,24 @@ void Image::findSpots()
     writeSpotsList("_" + basename + "_strong.list");
     
     dropImage();
+    
+    loadedSpots = true;
 }
 
 void Image::processSpotList()
 {
     std::string spotContents;
+    
+    if (FileParser::hasKey("HDF5_OUTPUT_FILE"))
+    {
+        // should be able to reload spot-finding results
+        // from processing HDF5
+        
+        logged << "Finding spots using cppxfel" << std::endl;
+        sendLog();
+        findSpots();
+        return;
+    }
     
     if (spotsFile == "find")
     {
@@ -1334,6 +1349,8 @@ void Image::processSpotList()
     
     logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;
     sendLog(LogLevelNormal);
+    
+    loadedSpots = true;
 }
 
 
@@ -1857,6 +1874,11 @@ IndexingSolutionStatus Image::testSeedSolution(IndexingSolutionPtr newSolution, 
 
 void Image::findIndexingSolutions()
 {
+    if (!loadedSpots)
+    {
+        processSpotList();
+    }
+
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     
     std::vector<IndexingSolutionPtr> solutions;

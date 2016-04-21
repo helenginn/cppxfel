@@ -37,7 +37,6 @@ private:
 protected:
     hid_t handle;
     int pathComponentCount(std::string path);
-    std::string lastComponent(std::string path);
     std::string concatenatePaths(std::string path1, std::string path2);
     std::string truncatePath(std::string path, int numToTruncate);
     
@@ -46,6 +45,7 @@ public:
     void closeHdf5();
     virtual ~Hdf5Manager();
     
+    std::string lastComponent(std::string path);
     int getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *type);
     std::vector<H5G_obj_t> getSubGroupTypes(std::string address);
     std::vector<std::string> getSubGroupNames(std::string address);

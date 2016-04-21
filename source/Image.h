@@ -38,11 +38,10 @@ class Image : protected LoggableObject, public boost::enable_shared_from_this<Im
 private:
     int pixelCountCutoff;
 	std::string filename;
-    
+    bool loadedSpots;
     
     vector<unsigned char> overlapMask;
 	virtual void loadImage();
-    void findSpots();
     vector<IOMRefinerPtr> indexers;
     vector<IOMRefinerPtr> failedRefiners;
     double metrologyMoveThreshold;
@@ -135,7 +134,8 @@ public:
     void refineDistances();
     std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
     void reset();
-    
+    void findSpots();
+
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
     void radialAverage();
     void integrateSpots();

@@ -175,6 +175,7 @@ class GaussianBeam;
 class SpectrumBeam;
 class GetterSetterMap;
 class Hdf5ManagerCheetahSacla;
+class Hdf5ManagerProcessing;
 
 typedef boost::shared_ptr<SpectrumBeam> SpectrumBeamPtr;
 typedef boost::shared_ptr<GetterSetterMap> GetterSetterMapPtr;
@@ -197,6 +198,7 @@ typedef boost::shared_ptr<IndexingSolution> IndexingSolutionPtr;
 typedef boost::shared_ptr<std::mutex> MutexPtr;
 typedef boost::shared_ptr<UnitCellLattice> UnitCellLatticePtr;
 typedef boost::shared_ptr<Hdf5ManagerCheetahSacla> Hdf5ManagerCheetahSaclaPtr;
+typedef boost::shared_ptr<Hdf5ManagerProcessing> Hdf5ManagerProcessingPtr;
 
 
 typedef boost::variant<double, double, std::string, bool, int,

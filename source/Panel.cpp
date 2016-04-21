@@ -387,9 +387,6 @@ PanelPtr Panel::panelForSpot(Spot *spot)
     for (int i = 0; i < panels.size(); i++)
     {
         Coord shifted = panels[i]->shiftSpot(coord);
-      
-  //      panels[i]->logged << "compare\t" << coord.first << "\t" << coord.second << "\t" << shifted.first << "\t" << shifted.second << "\t" << panels[i]->topLeft.first << "\t"  << panels[i]->topLeft.second << "\t"  << panels[i]->bottomRight.first << "\t"  << panels[i]->bottomRight.second << "\t"  << std::endl;
-        panels[i]->sendLog();
         
         
         if (panels[i]->isCoordInPanel(shifted))

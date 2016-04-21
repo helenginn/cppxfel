@@ -19,7 +19,6 @@ private:
     void failureMessage();
     virtual void loadImage();
     std::string imageAddress;
-    void createProcessingEntry();
     
 public:
     Hdf5Image(std::string filename = "", double wavelength = 0,

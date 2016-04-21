@@ -28,7 +28,9 @@ private:
     static int imageMax(size_t lineCount);
     static void singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset);
     static void readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset);
-    IndexManager *indexManager;
+    static void findSpotsThread(MtzRefiner *me, int offset);
+    void readFromHdf5(std::vector<ImagePtr> *newImages);
+IndexManager *indexManager;
     void applyParametersToImages();
     static int cycleNum;
     bool hasRefined;
@@ -36,6 +38,7 @@ private:
     static int imageSkip(size_t totalCount);
     static void radialAverageThread(MtzRefiner *me, int offset);
     static void integrateSpotsThread(MtzRefiner *me, int offset);
+    Hdf5ManagerProcessingPtr hdf5ProcessingPtr;
 public:
 	MtzRefiner();
 	virtual ~MtzRefiner();
