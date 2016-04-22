@@ -1602,6 +1602,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     
     MtzPtr mtz = MtzPtr(new MtzManager());
     mtz->setWavelength(0);
+    mtz->setImage(image);
     mtz->setFilename(getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz");
     mtz->setSpaceGroup(spaceGroup->spg_num);
     mtz->setUnitCell(unitCell);

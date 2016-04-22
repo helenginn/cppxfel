@@ -57,7 +57,8 @@ protected:
 			int *multiplier, int *offset);
 	int index_for_reflection(int h, int k, int l, bool inverted);
 	void findMultiplier(MTZ *mtz, int *multiplier, int *offset);
-
+    ImageWeakPtr image;
+    
     BeamPtr beam;
     
 	// minimisation stuff
@@ -202,6 +203,7 @@ public:
 	void applyPolarisation(void);
 
 	void writeToFile(std::string newFilename, bool announce = false, bool shifts = false, bool includeAmbiguity = false, bool useCountingSigma = false);
+    void writeToHdf5();
     void writeToDat(std::string prefix = "");
     void sendLog(LogLevel priority = LogLevelNormal);
 
@@ -679,6 +681,15 @@ public:
         static_cast<MtzManager *>(object)->updateLatestMatrix();
     }
 
+    ImagePtr getImagePtr()
+    {
+        return image.lock();
+    }
+    
+    void setImage(ImageWeakPtr imagePtr)
+    {
+        image = imagePtr;
+    }
 };
 
 #endif

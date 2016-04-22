@@ -17,6 +17,29 @@ void Hdf5Image::failureMessage()
     sendLog();
 }
 
+std::string Hdf5Image::findAddress(Hdf5ManagerCheetahSaclaPtr manager)
+{
+    std::string address = imageAddress;
+    
+    if (!address.length())
+    {
+        if (!manager)
+        {
+            manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(getFilename());
+        }
+        
+        address = manager->addressForImage(getFilename());
+        imageAddress = address;
+    }
+    
+    if (!address.length())
+    {
+        failureMessage();
+    }
+    
+    return address;
+}
+
 void Hdf5Image::loadImage()
 {
     Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(getFilename());

@@ -32,6 +32,9 @@ vector<std::string> FileReader::split(const std::string s, const std::string &de
     int count = 0;
     bool finished = false;
     
+    if (s.length() == 0)
+        return elems;
+    
     while (!finished)
     {
         count++;

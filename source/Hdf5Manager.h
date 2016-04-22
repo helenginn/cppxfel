@@ -36,11 +36,12 @@ private:
     
 protected:
     hid_t handle;
-    int pathComponentCount(std::string path);
-    std::string concatenatePaths(std::string path1, std::string path2);
-    std::string truncatePath(std::string path, int numToTruncate);
     
 public:
+    static int pathComponentCount(std::string path);
+    static std::string concatenatePaths(std::string path1, std::string path2);
+    static std::string truncatePath(std::string path, int numToTruncate);
+    
     Hdf5Manager(std::string newName, Hdf5AccessType hdf5AccessType = Hdf5AccessTypeReadOnly);
     void closeHdf5();
     virtual ~Hdf5Manager();

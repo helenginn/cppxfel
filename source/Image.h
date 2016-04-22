@@ -19,7 +19,8 @@
 typedef enum
 {
     ImageClassCppxfel,
-    ImageClassDIALS
+    ImageClassDIALS,
+    ImageClassHdf5,
 } ImageClass;
 
 class IOMRefiner;
@@ -39,6 +40,7 @@ private:
     int pixelCountCutoff;
 	std::string filename;
     bool loadedSpots;
+    std::vector<MtzPtr> mtzs;
     
     vector<unsigned char> overlapMask;
 	virtual void loadImage();
@@ -381,6 +383,21 @@ public:
     virtual ImageClass getClass()
     {
         return ImageClassCppxfel;
+    }
+    
+    void addMtz(MtzPtr newMtz)
+    {
+        mtzs.push_back(newMtz);
+    }
+    
+    int mtzCount()
+    {
+        return (int)mtzs.size();
+    }
+    
+    MtzPtr mtz(int i)
+    {
+        return mtzs[i];
     }
 };
 

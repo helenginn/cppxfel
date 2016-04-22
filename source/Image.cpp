@@ -1690,6 +1690,10 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         logged << "Removed spots; from " << spotCountBefore << " to " << spotCountAfter << "." << std::endl;
         
         Logger::mainLogger->addStream(&logged); logged.str("");
+        
+        addMtz(mtz);
+        mtz->writeToHdf5();
+        
         return IndexingSolutionTrialSuccess;
     }
     else

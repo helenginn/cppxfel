@@ -17,6 +17,9 @@
 #include "Reflection.h"
 #include "Miller.h"
 #include "Panel.h"
+#include "Image.h"
+#include "Hdf5Image.h"
+#include "Hdf5ManagerProcessing.h"
 
 #include <cstdlib>
 #include <cmath>
@@ -1247,6 +1250,25 @@ void MtzManager::applyPolarisation(void)
             reflections[i]->miller(j)->applyPolarisation(1.459);
         }
     }
+}
+
+void MtzManager::writeToHdf5()
+{
+    if (getImagePtr()->getClass() != ImageClassHdf5)
+    {
+        return;
+    }
+    
+    ImagePtr superParent = getImagePtr();
+    Hdf5ImagePtr parent = boost::static_pointer_cast<Hdf5Image>(superParent);
+    
+    std::string address = parent->getAddress();
+    
+    std::string extended = Hdf5Manager::concatenatePaths(address, filenameRoot());
+    
+    Hdf5ManagerProcessingPtr manager = Hdf5ManagerProcessing::getProcessingManager();
+    
+    manager->createGroupsFromAddress(extended);
 }
 
 void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity, bool useCountingSigma)

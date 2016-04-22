@@ -108,11 +108,20 @@ bool Hdf5Manager::createLastComponentAsGroup(std::string address)
     std::string parentAddress = truncatePath(address, components - 1);
     std::string newGroupName = lastComponent(address);
  
-    hid_t groupAll = H5Gopen1(handle, address.c_str());
+    hid_t groupAll = H5Gopen1(handle, parentAddress.c_str());
     
     if (groupAll >= 0)
     {
-        H5Gcreate1(groupAll, newGroupName.c_str(), 0);
+        hid_t newGroup = H5Gcreate1(groupAll, newGroupName.c_str(), 0);
+        
+        if (newGroup < 0)
+        {
+            return false;
+        }
+        else
+        {
+            H5Gclose(newGroup);
+        }
         
         H5Gclose(groupAll);
         
@@ -169,9 +178,14 @@ std::string Hdf5Manager::lastComponent(std::string path)
 {
     std::vector<std::string> components = FileReader::split(path, "/");
     
+    if (components.size() == 0)
+    {
+        return std::string("");
+    }
+    
     if (components[components.size() - 1] == "")
     {
-        components.erase(components.end());
+        components.pop_back();
     }
     
     return components[components.size() - 1];
@@ -179,22 +193,28 @@ std::string Hdf5Manager::lastComponent(std::string path)
 
 int Hdf5Manager::pathComponentCount(std::string path)
 {
-    std::vector<std::string> components = FileReader::split(path, "/");
+    std::vector<std::string> components = FileReader::split(path, '/');
     
     return (int)components.size();
 }
 
 std::string Hdf5Manager::truncatePath(std::string path, int numToTruncate)
 {
-    std::vector<std::string> components = FileReader::split(path, "/");
-    std::string added;
+    std::vector<std::string> components = FileReader::split(path, '/');
+    std::string added = "/";
     
     for (int i = 0; i < numToTruncate && i < components.size(); i++)
     {
-        added += components[i] + "/";
+        if (components[i].length() > 0)
+        {
+            added += components[i] + "/";
+        }
     }
     
-    added.erase(added.end() - 1);
+    if (added[added.size() - 1] == '/' && added.length() > 1)
+    {
+        added.pop_back();
+    }
     
     return added;
 }
@@ -218,9 +238,14 @@ bool Hdf5Manager::createGroupsFromAddress(std::string address)
 {
     int componentCount = pathComponentCount(address);
     
-    for (int i = 1; i < componentCount; i++)
+    for (int i = 0; i <= componentCount; i++)
     {
         std::string pathToCheck = truncatePath(address, i);
+        
+        if (pathToCheck.length() == 0)
+        {
+            continue;
+        }
         
         bool exists = groupExists(pathToCheck);
         

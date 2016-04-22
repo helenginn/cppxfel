@@ -8,3 +8,22 @@
 
 #include "Hdf5ManagerProcessing.h"
 
+Hdf5ManagerProcessingPtr Hdf5ManagerProcessing::processingManager = Hdf5ManagerProcessingPtr();
+
+
+void Hdf5ManagerProcessing::setupProcessingManager()
+{
+    std::string filename = FileParser::getKey("HDF5_OUTPUT_FILE", std::string("processing.h5"));
+    
+    processingManager = Hdf5ManagerProcessingPtr(new Hdf5ManagerProcessing(filename));
+}
+
+Hdf5ManagerProcessingPtr Hdf5ManagerProcessing::getProcessingManager()
+{
+    if (!processingManager)
+    {
+        setupProcessingManager();
+    }
+    
+    return processingManager;
+}

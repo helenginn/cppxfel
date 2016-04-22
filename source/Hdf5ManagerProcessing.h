@@ -11,11 +11,12 @@
 
 #include <stdio.h>
 #include "Hdf5ManagerImageAddresses.h"
+#include "FileParser.h"
 
 class Hdf5ManagerProcessing  : public Hdf5ManagerImageAddresses
 {
 private:
-    
+    static Hdf5ManagerProcessingPtr processingManager;
     
 public:
     Hdf5ManagerProcessing(std::string filename) : Hdf5ManagerImageAddresses(filename, Hdf5AccessTypeReadWrite)
@@ -23,6 +24,9 @@ public:
         
     }
     
+    static void setupProcessingManager();
+    
+    static Hdf5ManagerProcessingPtr getProcessingManager();
     
 };
 
