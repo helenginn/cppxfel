@@ -31,6 +31,7 @@ private:
     int compress;
     void *data;
 public:
+    ~Hdf5Table();
     Hdf5Table()
     {
         fill_data = NULL;
@@ -166,6 +167,8 @@ public:
     }
 
     bool writeToManager(Hdf5ManagerProcessingPtr manager, std::string address);
+    int readFromManager(Hdf5ManagerProcessingPtr manager, std::string address, void *data);
+    int readSizeFromManager(Hdf5ManagerProcessingPtr manager, std::string address);
 };
 
 #endif /* defined(__cppxfel__Hdf5Table__) */

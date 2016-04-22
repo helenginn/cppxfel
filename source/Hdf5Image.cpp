@@ -130,9 +130,13 @@ Hdf5ManagerCheetahSaclaPtr Hdf5Image::getManager()
 
 void Hdf5Image::writeSpotsList(std::string spotFile)
 {
-    logged << "Writing spot list to HDF5." << std::endl;
-    
     Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
+
+    if (!processingManager)
+    {
+        Image::writeSpotsList(spotFile);
+        return;
+    }
     
     std::string imageAddress = getAddress();
     std::string spotsName = "spots_v1";
@@ -140,7 +144,6 @@ void Hdf5Image::writeSpotsList(std::string spotFile)
     std::string concat = Hdf5Manager::concatenatePaths(imageAddress, spotsName);
     
     int spotCount = this->spotCount();
-    
     Hdf5Spot *spotData = (Hdf5Spot *)malloc(sizeof(Hdf5Spot) * spotCount);
     
     for (int i = 0; i < spotCount; i++)
@@ -150,14 +153,78 @@ void Hdf5Image::writeSpotsList(std::string spotFile)
         spotData[i].x = spot(i)->getRawXY().first;
         spotData[i].y = spot(i)->getRawXY().second;
     }
+    
+    spotTable.setData(spotData);
+    spotTable.setNumberOfRecords(Image::spotCount());
 
+    bool success = spotTable.writeToManager(processingManager, imageAddress);
+    
+    logged << "Writing spots to HDF5 file was " << (success ? "successful." : "a failure.") << std::endl;
+    
+    free(spotData);
+    
+    sendLog();
+}
+
+void Hdf5Image::processSpotList()
+{
+    Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
+    
+    if (!processingManager)
+    {
+        Image::processSpotList();
+        return;
+    }
+    
+    std::string imageAddress = getAddress();
+    std::string spotsName = getBasename() + "_spots_v1";
+    std::string concat = Hdf5Manager::concatenatePaths(imageAddress, spotsName);
+
+    Hdf5Spot *spotData;
+    
+    if (processingManager->tableExists(concat))
+    {
+        spots.clear();
+        
+        int size = spotTable.readSizeFromManager(processingManager, concat);
+        spotData = (Hdf5Spot *)malloc(size);
+
+        bool success = spotTable.readFromManager(processingManager, concat, (void *)spotData);
+        int count = 0;
+        
+        logged << "Reading spots from HDF5 file was " << (success ? "successful." : "a failure.") << std::endl;
+        sendLog();
+        
+        for (int i = 0; i < size; i += sizeof(Hdf5Spot))
+        {
+            SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
+            newSpot->setXY(spotData[count].x, spotData[count].y);
+            
+            addSpotIfNotMasked(newSpot);
+            
+            count++;
+        }
+        
+        if (size > 0)
+        {
+            free(spotData);
+        }
+        
+        return;
+    }
+    
+    findSpots();
+}
+
+void Hdf5Image::createSpotTable()
+{
     size_t *fieldOffsets = (size_t *)malloc(sizeof(size_t) * HDF5SPOT_FIELD_COUNT);
     fieldOffsets[0] = HOFFSET(Hdf5Spot, x);
     fieldOffsets[1] = HOFFSET(Hdf5Spot, y);
     fieldOffsets[2] = HOFFSET(Hdf5Spot, intensity);
     fieldOffsets[3] = HOFFSET(Hdf5Spot, sigma);
     
-
+    
     hid_t *fieldTypes = (hid_t *)malloc(sizeof(hid_t) * HDF5SPOT_FIELD_COUNT);
     fieldTypes[0] = H5T_NATIVE_DOUBLE;
     fieldTypes[1] = H5T_NATIVE_DOUBLE;
@@ -186,27 +253,14 @@ void Hdf5Image::writeSpotsList(std::string spotFile)
         strcpy(fieldNames[i], toCopy[i]);
     }
     
-    Hdf5Table table;
-    table.setTableTitle(getBasename() + "_spots_v1");
-    table.setTableName(getBasename() + "_spots_v1");
-    table.setHeaders((const char**)fieldNames);
-    table.setRecordSize(sizeof(Hdf5Spot));
-    table.setOffsets(fieldOffsets);
-    table.setNumberOfRecords(Image::spotCount());
-    table.setNumberOfFields(HDF5SPOT_FIELD_COUNT);
-    table.setFieldSizes(fieldSizes);
-    table.setTypes(fieldTypes);
-    table.setData(spotData);
-    table.setCompress(false);
+    spotTable.setTableTitle(getBasename() + "_spots_v1");
+    spotTable.setTableName(getBasename() + "_spots_v1");
+    spotTable.setHeaders((const char**)fieldNames);
+    spotTable.setRecordSize(sizeof(Hdf5Spot));
+    spotTable.setOffsets(fieldOffsets);
+    spotTable.setNumberOfFields(HDF5SPOT_FIELD_COUNT);
+    spotTable.setFieldSizes(fieldSizes);
+    spotTable.setTypes(fieldTypes);
+    spotTable.setCompress(false);
     
-    bool success = table.writeToManager(processingManager, imageAddress);
-    
-    free(fieldOffsets);
-    free(fieldSizes);
-    free(fieldTypes);
-    free(spotData);
-    
-    logged << "Writing spots to HDF5 file was " << (success ? "successful." : "a failure.") << std::endl;
-    
-    sendLog();
 }

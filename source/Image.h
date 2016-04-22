@@ -109,7 +109,7 @@ protected:
 public:
     void incrementOverlapMask(int x, int y, ShoeboxPtr shoebox);
     void incrementOverlapMask(int x, int y);
-    void processSpotList();
+    virtual void processSpotList();
     virtual void writeSpotsList(std::string spotFile = "");
     virtual std::pair<double, double> reciprocalCoordinatesToPixels(vec hkl);
     virtual vec pixelsToReciprocalCoordinates(double xPix, double yPix);

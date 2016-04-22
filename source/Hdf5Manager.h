@@ -35,10 +35,10 @@ private:
     Hdf5AccessType accessType;
     void turnOffErrors();
     void turnOnErrors();
-    
-    
+
 protected:
     hid_t handle;
+    std::mutex readingHdf5;
     
 public:
     static int pathComponentCount(std::string path);
@@ -59,6 +59,9 @@ public:
     bool groupExists(std::string address);
     bool createTableIfAbsent(std::string address);
     bool tableExists(std::string address);
+    
+    int readSizeForTable(Hdf5Table &table, std::string address);
+    bool recordsForTable(Hdf5Table &table, std::string address, void *data);
     bool writeTable(Hdf5Table &table, std::string address);
     
     void groupsWithPrefix(std::vector<std::string> *list, std::string prefix, std::string startAddress = "/");

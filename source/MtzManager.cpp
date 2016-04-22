@@ -1268,6 +1268,11 @@ void MtzManager::writeToHdf5()
     
     Hdf5ManagerProcessingPtr manager = Hdf5ManagerProcessing::getProcessingManager();
     
+    if (!manager)
+    {
+        return;
+    }
+    
     manager->createGroupsFromAddress(extended);
 }
 

@@ -13,3 +13,31 @@ bool Hdf5Table::writeToManager(Hdf5ManagerProcessingPtr manager, std::string add
 {
     return manager->writeTable(*this, address);
 }
+
+int Hdf5Table::readSizeFromManager(Hdf5ManagerProcessingPtr manager, std::string address)
+{
+    return manager->readSizeForTable(*this, address);
+}
+
+int Hdf5Table::readFromManager(Hdf5ManagerProcessingPtr manager, std::string address, void *data)
+{
+    return manager->recordsForTable(*this, address, data);
+}
+
+Hdf5Table::~Hdf5Table()
+{
+    std::cout << "Deleting table!" << std::endl;
+    
+    if (fieldOffsets != NULL)
+        free(fieldOffsets);
+    fieldOffsets = NULL;
+    
+    if (fieldSizes != NULL)
+        free(fieldSizes);
+    fieldSizes = NULL;
+    
+    if (fieldTypes != NULL)
+        free(fieldTypes);
+    fieldTypes = NULL;
+
+}

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "Image.h"
 #include "Hdf5ManagerCheetahSacla.h"
+#include "Hdf5Table.h"
 
 class Hdf5Image : public Image
 {
@@ -21,6 +22,7 @@ private:
     std::string imageAddress;
     std::string findAddress();
     Hdf5ManagerCheetahSaclaPtr chManager;
+    Hdf5Table spotTable;
     
 protected:
     
@@ -29,11 +31,14 @@ public:
               double distance = 0) : Image(filename, wavelength, distance)
     {
         imageAddress = std::string();
+        createSpotTable();
     };
     
     Hdf5ManagerCheetahSaclaPtr getManager();
     
     void writeSpotsList(std::string spotFile);
+    void processSpotList();
+    void createSpotTable();
     
     virtual ImageClass getClass()
     {

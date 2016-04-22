@@ -1222,7 +1222,7 @@ void Image::findSpots()
         Panel::removePanel(panelsToDelete[i]);
     }
     
-    logged << "Found " << spotCount() << " spots." << std::endl;
+    logged << "(" << getBasename() << ") found " << spotCount() << " spots." << std::endl;
     sendLog();
     
     std::string basename = getBasename();
@@ -1238,17 +1238,6 @@ void Image::processSpotList()
 {
     std::string spotContents;
     
-    if (FileParser::hasKey("HDF5_OUTPUT_FILE"))
-    {
-        // should be able to reload spot-finding results
-        // from processing HDF5
-        
-        logged << "Finding spots using cppxfel" << std::endl;
-        sendLog();
-        findSpots();
-        return;
-    }
-    
     if (spotsFile == "find")
     {
         logged << "Finding spots using cppxfel" << std::endl;
@@ -1260,6 +1249,7 @@ void Image::processSpotList()
     if (!FileReader::exists(spotsFile))
     {
         logged << "Cannot find spot file " << spotsFile << std::endl;
+        findSpots();
         sendLog();
         return;
     }

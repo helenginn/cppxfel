@@ -10,6 +10,7 @@
 #include "MtzRefiner.h"
 #include "Miller.h"
 #include <sstream>
+#include "Hdf5ManagerProcessing.h"
 #include "Logger.h"
 //#include <boost/python.hpp>
 
@@ -94,6 +95,8 @@ void InputFileParser::parse(bool fromPython)
     Logger::mainLogger = LoggerPtr(new Logger());
     boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
 
+    Hdf5ManagerProcessing::setupProcessingManager();
+    
 	parameters = ParametersMap();
 
 	std::string fileContents = FileReader::get_file_contents(filename.c_str());

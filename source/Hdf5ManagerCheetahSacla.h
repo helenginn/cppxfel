@@ -18,8 +18,6 @@ class Hdf5ManagerCheetahSacla : public Hdf5ManagerImageAddresses
 {
 private:
     static std::vector<Hdf5ManagerCheetahSaclaPtr> cheetahManagers;
-
-    std::mutex readingHdf5;
     
 public:
     static void initialiseSaclaManagers();
