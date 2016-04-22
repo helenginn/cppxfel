@@ -16,6 +16,8 @@
 #include <vector>
 #include "LoggableObject.h"
 
+class Hdf5Table;
+
 typedef enum
 {
     Hdf5AccessTypeReadOnly,
@@ -34,6 +36,7 @@ private:
     void turnOffErrors();
     void turnOnErrors();
     
+    
 protected:
     hid_t handle;
     
@@ -46,6 +49,7 @@ public:
     void closeHdf5();
     virtual ~Hdf5Manager();
     
+    std::string truncateLastComponent(std::string path);
     std::string lastComponent(std::string path);
     int getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *type);
     std::vector<H5G_obj_t> getSubGroupTypes(std::string address);
@@ -53,6 +57,9 @@ public:
     bool createGroupsFromAddress(std::string address);
     bool createLastComponentAsGroup(std::string address);
     bool groupExists(std::string address);
+    bool createTableIfAbsent(std::string address);
+    bool tableExists(std::string address);
+    bool writeTable(Hdf5Table &table, std::string address);
     
     void groupsWithPrefix(std::vector<std::string> *list, std::string prefix, std::string startAddress = "/");
 

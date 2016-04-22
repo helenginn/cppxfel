@@ -19,7 +19,10 @@ private:
     void failureMessage();
     virtual void loadImage();
     std::string imageAddress;
-    std::string findAddress(Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSaclaPtr());
+    std::string findAddress();
+    Hdf5ManagerCheetahSaclaPtr chManager;
+    
+protected:
     
 public:
     Hdf5Image(std::string filename = "", double wavelength = 0,
@@ -27,6 +30,10 @@ public:
     {
         imageAddress = std::string();
     };
+    
+    Hdf5ManagerCheetahSaclaPtr getManager();
+    
+    void writeSpotsList(std::string spotFile);
     
     virtual ImageClass getClass()
     {
@@ -37,7 +44,7 @@ public:
     {
         return findAddress();
     }
-  
+    
     virtual ~Hdf5Image() {};
 };
 

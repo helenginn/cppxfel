@@ -90,6 +90,7 @@ bool FileReader::exists(const std::string& name)
 std::string FileReader::get_file_contents(const char *filename)
 {
     std::ifstream in(filename, std::ios::in | std::ios::binary);
+    
     if (in)
     {
         std::string contents;

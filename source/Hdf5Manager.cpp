@@ -9,8 +9,115 @@
 #include "Hdf5Manager.h"
 #include "FileReader.h"
 #include "Logger.h"
+#include "Hdf5Table.h"
 
 #define MAX_NAME 100
+
+#include <delete/H5LTprivate.h>
+#include <delete/H5TBprivate.h>
+
+bool Hdf5Manager::tableExists(std::string address)
+{
+    hid_t table;
+    
+    table = H5Topen(handle, address.c_str(), H5P_DEFAULT);
+    
+    if (table < 0)
+    {
+        return false;
+    }
+    
+    H5Tclose(table);
+    return true;
+}
+
+bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
+{
+    std::string groupsOnly = truncateLastComponent(address);
+    
+    createGroupsFromAddress(address);
+    
+    hid_t group = H5Gopen1(handle, address.c_str());
+    
+    if (group < 0)
+    {
+        return false;
+    }
+    
+    if (tableExists(address))
+    {
+        hsize_t nFields = 0;
+        hsize_t nRecords = 0;
+        
+        herr_t error = H5TBget_table_info(group, table.getTableName(), &nFields, &nRecords);
+        
+        error = H5TBwrite_records(group,
+                                      table.getTableName(),
+                                         0,
+                                      table.getNumberOfRecords(),
+                                      table.getRecordSize(),
+                                      table.getOffsets(),
+                                      table.getFieldSizes(),
+                                      table.getData());
+
+        if (error < 0)
+        {
+            return false;
+        }
+        
+        hsize_t records_to_delete = nRecords - table.getNumberOfRecords();
+        
+        if (records_to_delete <= 0)
+        {
+            return true;
+        }
+        
+        error = H5TBdelete_record(handle, table.getTableName(), table.getNumberOfRecords(), records_to_delete);
+        
+        if (error < 0)
+        {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    const char *title = table.getTableTitle();  // ok
+    const char *name = table.getTableName();    // ok
+    int nrecords = table.getNumberOfRecords();  // ok
+    int nfields = table.getNumberOfFields();    // ok
+    int recordSize = table.getRecordSize();     // ok
+    const char **headers = table.getHeaders();  // ok
+    size_t *offsets = table.getOffsets();       // ok
+    hid_t *types = table.getTypes();            // ok
+    int chunksize = table.getChunkSize();
+    void *fill_data = table.getFillData();
+    int compress = table.getCompress();
+    void *data = table.getData();
+    
+    herr_t error = H5TBmake_table(title,
+                                  group,
+                                  name,
+                                  nfields,
+                                  nrecords,
+                                  recordSize,
+                                  headers,
+                                  offsets,
+                                  types,
+                                  chunksize,
+                                  fill_data,
+                                  compress,
+                                  data);
+    
+    if (error >= 0)
+    {
+        return true;
+    }
+    
+    return false;
+}
+
+
 
 void Hdf5Manager::turnOffErrors()
 {
@@ -27,8 +134,7 @@ void Hdf5Manager::turnOffErrors()
 
 void Hdf5Manager::turnOnErrors()
 {
-    hid_t error_stack = H5Eget_current_stack();
-    H5Eset_auto(error_stack, old_func, old_client_data);
+    H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
 }
 
 void Hdf5Manager::groupsWithPrefix(std::vector<std::string> *list, std::string prefix, std::string startAddress)
@@ -196,6 +302,15 @@ int Hdf5Manager::pathComponentCount(std::string path)
     std::vector<std::string> components = FileReader::split(path, '/');
     
     return (int)components.size();
+}
+
+std::string Hdf5Manager::truncateLastComponent(std::string path)
+{
+    int componentCount = pathComponentCount(path);
+    
+    std::string truncated = truncatePath(path, componentCount - 1);
+    
+    return truncated;
 }
 
 std::string Hdf5Manager::truncatePath(std::string path, int numToTruncate)
