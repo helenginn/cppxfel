@@ -171,6 +171,9 @@ for i in range(0, 1):
 		image = cxi[entry + "/data"]
 		identifierList = filename.split(".")[:-1]
 		identifier = "".join(identifierList)
+		
+		if identifier[0] == "/":
+			identifier = identifier[1:]
 	else:
 		image = cxi[anEntry + "/data"]
 		wavelength = cxi[anEntry + "/photon_wavelength_A"].value

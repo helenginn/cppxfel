@@ -56,11 +56,12 @@ source = [
 'source/FreeLattice.cpp',
 'source/FreeMillerLibrary.cpp',
 'source/GraphDrawer.cpp',
+'source/Hdf5Image.cpp',
 'source/Hdf5Manager.cpp',
 'source/Hdf5ManagerCheetahSacla.cpp',
 'source/Hdf5ManagerImageAddresses.cpp',
 'source/Hdf5ManagerProcessing.cpp',
-'source/Hdf5Image.cpp',
+'source/Hdf5Table.cpp',
 'source/Reflection.cpp',
 'source/Image.cpp',
 'source/IOMRefiner.cpp',
@@ -97,4 +98,4 @@ source = [
 env.SharedLibrary(
     target='#/lib/cppxfel_ext', 
     source=source,
-    LIBS=env["LIBS"] + ['hdf5'])
+    LIBS=env["LIBS"] + ['hdf5'] + ['hdf5_hl'])

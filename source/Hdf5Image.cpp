@@ -187,8 +187,8 @@ void Hdf5Image::writeSpotsList(std::string spotFile)
     }
     
     Hdf5Table table;
-    table.setTableTitle(getBasename() + "_spots");
-    table.setTableName(getBasename() + "_spots");
+    table.setTableTitle(getBasename() + "_spots_v1");
+    table.setTableName(getBasename() + "_spots_v1");
     table.setHeaders((const char**)fieldNames);
     table.setRecordSize(sizeof(Hdf5Spot));
     table.setOffsets(fieldOffsets);
@@ -199,7 +199,7 @@ void Hdf5Image::writeSpotsList(std::string spotFile)
     table.setData(spotData);
     table.setCompress(false);
     
-    bool success = table.writeToManager(processingManager, concat);
+    bool success = table.writeToManager(processingManager, imageAddress);
     
     free(fieldOffsets);
     free(fieldSizes);

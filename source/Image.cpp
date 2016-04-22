@@ -2034,7 +2034,6 @@ void Image::findIndexingSolutions()
     logged << "N: Finished image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
     sendLog();
     
-    writeSpotsList();
     dropImage();
 }
 

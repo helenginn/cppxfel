@@ -20,32 +20,45 @@ bool Hdf5Manager::tableExists(std::string address)
 {
     hid_t table;
     
-    table = H5Topen(handle, address.c_str(), H5P_DEFAULT);
+    logged << "Checking if table " << address << " exists." << std::endl;
+    sendLog();
+    
+    turnOffErrors();
+    table = H5Dopen(handle, address.c_str(), H5P_DEFAULT);
+    turnOnErrors();
     
     if (table < 0)
     {
         return false;
     }
     
-    H5Tclose(table);
+    H5Dclose(table);
+    
+    
     return true;
 }
 
 bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
 {
-    std::string groupsOnly = truncateLastComponent(address);
+    std::string groupsOnly = address;
+    std::string tableAddress = concatenatePaths(address, table.getTableName());
     
     createGroupsFromAddress(address);
     
-    hid_t group = H5Gopen1(handle, address.c_str());
+    hid_t group = H5Gopen1(handle, groupsOnly.c_str());
     
     if (group < 0)
     {
         return false;
     }
     
-    if (tableExists(address))
+    bool exists = tableExists(tableAddress);
+    
+    if (exists)
     {
+        logged << "Overwriting existing table." << std::endl;
+        sendLog();
+        
         hsize_t nFields = 0;
         hsize_t nRecords = 0;
         
@@ -81,6 +94,9 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         
         return true;
     }
+    
+    logged << "Making new table " << table.getTableTitle() << " in group " << address << std::endl;
+    sendLog();
     
     const char *title = table.getTableTitle();  // ok
     const char *name = table.getTableName();    // ok
