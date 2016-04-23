@@ -432,7 +432,7 @@ std::string Hdf5Manager::lastComponent(std::string path)
     
     if (components[components.size() - 1] == "")
     {
-        components.erase(components.size() - 1);
+        components.pop_back();
     }
     
     return components[components.size() - 1];
