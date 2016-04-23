@@ -65,8 +65,6 @@ int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void *
 {
     std::string dataAddress = concatenatePaths(address, "data");
     
-    std::cout << dataAddress << std::endl;
-    
     size_t sizeSet = 0;
     size_t sizeType = 0;
     
@@ -90,7 +88,7 @@ int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void *
         if (dataset >= 0)
             H5Dclose(dataset);
         
-        logged << "Size: " << sizeSet << " of a " << sizeType << " byte type." << std::endl;
+        logged << "(" << address << " ) size: " << sizeSet << " of a " << sizeType << " byte type." << std::endl;
         sendLog();
     }
     catch (std::exception e)
@@ -132,8 +130,6 @@ size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
     {
         return 0; // failure
     }
-    
-    readingHdf5.unlock();
 
     size_t sizeType = 0;
     
@@ -142,6 +138,8 @@ size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
         sizeType = H5Tget_size(type);
         H5Tclose(type);
     }
+    
+    readingHdf5.unlock();
     
     return sizeType;
 }

@@ -26,8 +26,6 @@ int Hdf5Table::readFromManager(Hdf5ManagerProcessingPtr manager, std::string add
 
 Hdf5Table::~Hdf5Table()
 {
-    std::cout << "Deleting table!" << std::endl;
-    
     if (fieldOffsets != NULL)
         free(fieldOffsets);
     fieldOffsets = NULL;
