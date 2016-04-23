@@ -14,6 +14,7 @@
 #include <iostream>
 #include <locale>
 #include <stdio.h>
+#include "misc.h"
 
 #define FILE_PARSER_CPP_
 
@@ -92,7 +93,9 @@ void FileParser::simpleBool(ParametersMap *map, std::string command,
 void FileParser::simpleString(ParametersMap *map, std::string command,
 		std::string rest)
 {
-	(*map)[command] = rest;
+    std::string trimmed = trim(rest);
+    
+	(*map)[command] = trimmed;
 
 	log << "Setting string " << command << " to " << rest << std::endl;
 
@@ -111,7 +114,9 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
 void FileParser::stringVector(ParametersMap *map, std::string command,
                               std::string rest)
 {
-    vector<std::string> stringVector = FileReader::split(rest, splitCharMinor);
+    std::string trimmed = trim(rest);
+    
+    vector<std::string> stringVector = FileReader::split(trimmed, splitCharMinor);
     
     log << "Setting " << command << " to ";
     
@@ -135,9 +140,12 @@ void FileParser::doubleVector(ParametersMap *map, std::string command,
 
 	for (int i = 0; i < components.size(); i++)
 	{
-		double theFloat = atof(components[i].c_str());
-		log << theFloat << " ";
-		doubleVector.push_back(theFloat);
+        if (components[i].length())
+        {
+            double theFloat = atof(components[i].c_str());
+            log << theFloat << " ";
+            doubleVector.push_back(theFloat);
+        }
 	}
 
 	log << std::endl;
@@ -154,10 +162,13 @@ void FileParser::intVector(ParametersMap *map, std::string command,
 	log << "Setting " << command << " to ";
 
 	for (int i = 0; i < components.size(); i++)
-	{
-		int theInt = atoi(components[i].c_str());
-		log << theInt << " ";
-		intVector.push_back(theInt);
+    {
+        if (components[i].length())
+        {
+            int theInt = atoi(components[i].c_str());
+            log << theInt << " ";
+            intVector.push_back(theInt);
+        }
 	}
 
 	log << std::endl;
