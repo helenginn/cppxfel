@@ -432,7 +432,7 @@ std::string Hdf5Manager::lastComponent(std::string path)
     
     if (components[components.size() - 1] == "")
     {
-        components.pop_back();
+        components.erase(components.size() - 1);
     }
     
     return components[components.size() - 1];
@@ -467,9 +467,10 @@ std::string Hdf5Manager::truncatePath(std::string path, int numToTruncate)
         }
     }
     
-    if (added[added.size() - 1] == '/' && added.length() > 1)
+    if (added.length() > 1 && added[added.size() - 1] == '/')
     {
-        added.pop_back();
+        added.erase(added.size() - 1);
+
     }
     
     return added;
