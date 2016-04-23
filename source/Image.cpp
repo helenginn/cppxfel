@@ -1378,6 +1378,11 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
 
 void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance, bool filter)
 {
+    if (!loadedSpots)
+    {
+        processSpotList();
+    }
+    
     bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
     double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
     double maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 0.0);

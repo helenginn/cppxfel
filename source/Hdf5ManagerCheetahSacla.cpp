@@ -95,6 +95,7 @@ int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void *
     }
     catch (std::exception e)
     {
+        readingHdf5.unlock();
         return 0; // failure
     }
     

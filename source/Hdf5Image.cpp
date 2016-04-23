@@ -182,7 +182,11 @@ void Hdf5Image::processSpotList()
 
     Hdf5Spot *spotData;
     
-    if (processingManager->tableExists(concat))
+    bool forceSpotFinding = FileParser::getKey("FORCE_SPOT_FINDING", false);
+    
+    loadedSpots = true;
+
+    if (!forceSpotFinding && processingManager->tableExists(concat))
     {
         spots.clear();
         
@@ -212,7 +216,7 @@ void Hdf5Image::processSpotList()
         
         return;
     }
-    
+
     findSpots();
 }
 

@@ -394,6 +394,8 @@ void FileParser::generateFunctionList()
     parserMap["POWDER_PATTERN_STEP_ANGLE"] = simpleFloat;
     parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
     
+    // force spot finding
+    
     parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
     parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;
     parserMap["IMAGE_PIXEL_JUMP"] = simpleInt;
@@ -402,6 +404,7 @@ void FileParser::generateFunctionList()
     parserMap["IMAGE_SPOT_PROBE_PADDING"] = simpleInt;
     parserMap["PROBE_DISTANCES"] = doubleVector;
     parserMap["RECIPROCAL_UNIT_CELL"] = doubleVector;
+    parserMap["FORCE_SPOT_FINDING"] = simpleBool;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     

@@ -362,7 +362,7 @@ Coord Panel::shiftSpot(Coord xy)
     Coord translated = std::make_pair(xy.first - shift.first, xy.second - shift.second);
     
  //   logged << "trans/swivel:\t" << bestShift.first << "\t" << bestShift.second << "\t" << swivelShift.first << "\t" << swivelShift.second << std::endl;
-    sendLog();
+//    sendLog();
     
     translated.first += swivelShift.first;
     translated.second += swivelShift.second;

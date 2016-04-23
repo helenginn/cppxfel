@@ -20,12 +20,15 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
 {
     // herr_t H5TBread_table( hid_t loc_id, const char *table_name, size_t dst_size,  const size_t *dst_offset, const size_t *dst_sizes, void *dst_buf )
     
+    readingHdf5.lock();
+    
     std::string groupOnly = truncateLastComponent(address);
     std::string tableName = lastComponent(address);
     hid_t group = H5Gopen2(handle, groupOnly.c_str(), H5P_DEFAULT);
     
     if (group < 0)
     {
+        readingHdf5.unlock();
         return 0;
     }
     
@@ -39,6 +42,7 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
     if (error < 0)
     {
         H5Gclose(group);
+        readingHdf5.unlock();
         return 0;
     }
     
@@ -48,13 +52,16 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
 
     if (error < 0)
     {
+        readingHdf5.unlock();
         return 0;
     }
     
     int totalToAllocate = (int)(recordSize * nRecords);
     
-    logged << "Allocating " << totalToAllocate << " bytes to read in table." << std::endl;
-    sendLog();
+//    logged << "Allocating " << totalToAllocate << " bytes to read in table." << std::endl;
+//    sendLog();
+    
+    readingHdf5.unlock();
     
     return totalToAllocate;
 }
@@ -62,11 +69,14 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
 
 bool Hdf5Manager::recordsForTable(Hdf5Table &table, std::string address, void *data)
 {
+    readingHdf5.lock();
+    
     std::string groupOnly = truncateLastComponent(address);
     hid_t group = H5Gopen2(handle, groupOnly.c_str(), H5P_DEFAULT);
     
     if (group < 0)
     {
+        readingHdf5.unlock();
         return 0;
     }
     
@@ -76,9 +86,11 @@ bool Hdf5Manager::recordsForTable(Hdf5Table &table, std::string address, void *d
     
     if (error < 0)
     {
+        readingHdf5.unlock();
         return 0;
     }
     
+    readingHdf5.unlock();
     return true;
 }
 
@@ -86,8 +98,10 @@ bool Hdf5Manager::tableExists(std::string address)
 {
     hid_t table;
     
-    logged << "Checking if table " << address << " exists." << std::endl;
-    sendLog();
+    readingHdf5.lock();
+    
+ //   logged << "Checking if table " << address << " exists." << std::endl;
+ //   sendLog();
     
     turnOffErrors();
     table = H5Dopen2(handle, address.c_str(), H5P_DEFAULT);
@@ -95,11 +109,13 @@ bool Hdf5Manager::tableExists(std::string address)
     
     if (table < 0)
     {
+        readingHdf5.unlock();
         return false;
     }
     
     H5Dclose(table);
     
+    readingHdf5.unlock();
     
     return true;
 }
@@ -114,10 +130,11 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
     readingHdf5.lock();
 
     hid_t group = H5Gopen1(handle, groupsOnly.c_str());
-    
+
+    readingHdf5.unlock();
+
     if (group < 0)
     {
-        readingHdf5.unlock();
         return false;
     }
     
@@ -125,9 +142,11 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
     
     if (exists)
     {
-        logged << "Overwriting existing table." << std::endl;
-        sendLog();
+     //   logged << "Overwriting existing table." << std::endl;
+     //   sendLog();
         
+        readingHdf5.lock();
+
         hsize_t nFields = 0;
         hsize_t nRecords = 0;
         
@@ -168,8 +187,8 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         return true;
     }
     
-    logged << "Making new table " << table.getTableTitle() << " in group " << address << std::endl;
-    sendLog();
+//    logged << "Making new table " << table.getTableTitle() << " in group " << address << std::endl;
+//    sendLog();
     
     const char *title = table.getTableTitle();  // ok
     const char *name = table.getTableName();    // ok
@@ -184,6 +203,8 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
     int compress = table.getCompress();
     void *data = table.getData();
     
+    readingHdf5.lock();
+
     herr_t error = H5TBmake_table(title,
                                   group,
                                   name,
@@ -200,8 +221,8 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
     
     if (error >= 0)
     {
-        logged << "Written " << nfields << " fields, " << nrecords << " records of " << recordSize << " bytes." << std::endl;
-        sendLog();
+  //      logged << "Written " << nfields << " fields, " << nrecords << " records of " << recordSize << " bytes." << std::endl;
+  //      sendLog();
         
         readingHdf5.unlock();
         return true;
@@ -215,7 +236,6 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
 
 void Hdf5Manager::turnOffErrors()
 {
-    return;
     /* Save old error handler */
 //    hid_t error_stack = H5Eget_current_stack();
     
@@ -246,14 +266,19 @@ void Hdf5Manager::groupsWithPrefix(std::vector<std::string> *list, std::string p
         }
         else
         {
+            readingHdf5.lock();
+
             H5G_obj_t type;
             getSubTypeForIndex(startAddress, i, &type);
             
+            readingHdf5.unlock();
+
             if (type == H5G_GROUP)
             {
                 std::cout << "Searching " << names[i] << std::endl;
                 groupsWithPrefix(list, prefix, names[i]);
             }
+            
         }
     }
     
@@ -301,15 +326,15 @@ std::vector<H5G_obj_t> Hdf5Manager::getSubGroupTypes(std::string address)
         if (groupAll >= 0)
             H5Gclose(groupAll);
         
-        readingHdf5.unlock();
     }
     catch (std::exception e)
     {
-        readingHdf5.unlock();
 
         // just return something empty
     }
     
+    readingHdf5.unlock();
+
     return types;
 }
 
@@ -319,6 +344,8 @@ bool Hdf5Manager::createLastComponentAsGroup(std::string address)
     std::string parentAddress = truncatePath(address, components - 1);
     std::string newGroupName = lastComponent(address);
  
+    readingHdf5.lock();
+    
     hid_t groupAll = H5Gopen1(handle, parentAddress.c_str());
     
     if (groupAll >= 0)
@@ -327,19 +354,23 @@ bool Hdf5Manager::createLastComponentAsGroup(std::string address)
         
         if (newGroup < 0)
         {
+            readingHdf5.unlock();
             return false;
         }
         else
         {
+            readingHdf5.unlock();
             H5Gclose(newGroup);
         }
         
         H5Gclose(groupAll);
         
+        readingHdf5.unlock();
         return true;
     }
     else
     {
+        readingHdf5.unlock();
         return false;
     }
 }
@@ -479,7 +510,7 @@ bool Hdf5Manager::createGroupsFromAddress(std::string address)
         
         if (exists)
         {
-            logged << "Address " << pathToCheck << " exists." << std::endl;
+   //         logged << "Address " << pathToCheck << " exists." << std::endl;
         }
         else
         {
@@ -487,11 +518,11 @@ bool Hdf5Manager::createGroupsFromAddress(std::string address)
             
             if (success)
             {
-                logged << "Address " << pathToCheck << " successfully created." << std::endl;
+      //          logged << "Address " << pathToCheck << " successfully created." << std::endl;
             }
             else
             {
-                logged << "Address " << pathToCheck << " creation failed." << std::endl;
+      //          logged << "Address " << pathToCheck << " creation failed." << std::endl;
             }
         }
     }

@@ -485,10 +485,10 @@ double Reflection::mergeSigma()
     
     double stdev = sqrt(sumSquares / weights);
     
-    double error = stdev / sqrt(count);
+    double error = stdev / sqrt(count - 1);
     
     if (count == 1)
-        error = sqrt(mean);
+        error = -1;
     
     if (count == 0)
         return nan(" ");

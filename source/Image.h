@@ -39,7 +39,6 @@ class Image : protected LoggableObject, public boost::enable_shared_from_this<Im
 private:
     int pixelCountCutoff;
 	std::string filename;
-    bool loadedSpots;
     std::vector<MtzPtr> mtzs;
     
     vector<unsigned char> overlapMask;
@@ -99,7 +98,8 @@ protected:
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     virtual bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
     int minimumSolutionNetworkCount;
-    
+    bool loadedSpots;
+
     // this really ought to be a template
     vector<short> shortData;
     vector<int> data;

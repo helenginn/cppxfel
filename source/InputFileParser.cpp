@@ -95,9 +95,7 @@ void InputFileParser::parse(bool fromPython)
     Logger::mainLogger = LoggerPtr(new Logger());
     boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
 
-    Hdf5ManagerProcessing::setupProcessingManager();
-    
-	parameters = ParametersMap();
+    parameters = ParametersMap();
 
 	std::string fileContents = FileReader::get_file_contents(filename.c_str());
 	vector<std::string> fileLines = FileReader::split(fileContents, '\n');
@@ -135,6 +133,7 @@ void InputFileParser::parse(bool fromPython)
     
     refiner = boost::shared_ptr<MtzRefiner>(new MtzRefiner());
     Miller::setupStaticVariables();
+    Hdf5ManagerProcessing::setupProcessingManager();
     
     int seed = FileParser::getKey("RANDOM_SEED", 0);
     srand((unsigned int)seed);
