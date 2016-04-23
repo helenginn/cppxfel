@@ -873,10 +873,10 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     
     bool hdf5 = hdf5OutputFile.length();
     
+    std::string aFilename = "";
+
     if (!hdf5)
     {
-        std::string aFilename = "";
-        
         if (filename == NULL)
         {
             aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
