@@ -413,6 +413,10 @@ double Miller::intensity(bool withCutoff)
         {
             modifier /= partiality;
         }
+        else if (model == PartialityModelBinary)
+        {
+            modifier = (partiality < partialCutoff) ? 0 : modifier;
+        }
         
         if (partiality == 0)
             modifier = 0;
@@ -454,11 +458,6 @@ double Miller::getSigma(void)
 
 double Miller::getPartiality()
 {
-    if (model == PartialityModelBinary)
-    {
-        return (partiality > partialCutoff);
-    }
-    
     return partiality;
 }
 
