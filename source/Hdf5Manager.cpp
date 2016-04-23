@@ -13,9 +13,6 @@
 
 #define MAX_NAME 100
 
-#include <delete/H5LTprivate.h>
-#include <delete/H5TBprivate.h>
-
 int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
 {
     // herr_t H5TBread_table( hid_t loc_id, const char *table_name, size_t dst_size,  const size_t *dst_offset, const size_t *dst_sizes, void *dst_buf )
