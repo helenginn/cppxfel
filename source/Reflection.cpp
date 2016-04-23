@@ -137,6 +137,11 @@ int Reflection::ambiguityCount()
 {
  //   std::cout << "spgNum: " << (int)spgNum << std::endl;
     
+    if (spgNum >= 75 && spgNum <= 80)
+    {
+        return 2;
+    }
+    
     if (spgNum >= 195 && spgNum <= 199)
         return 2;
     
