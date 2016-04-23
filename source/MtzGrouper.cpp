@@ -89,7 +89,7 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     if (needsRSplit)
         rSplit = mtz->rSplit(0, 0);
     
-    if (refCorrelation < correlationThreshold && excludeWorst)
+    if (refCorrelation < correlationThreshold)
     {
         Logger::mainLogger->addString("Rejecting due to poor correlation with reference", LogLevelDetailed);
         
@@ -500,6 +500,11 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
 	for (int i = start; i < end; i++)
 	{
+        if (!isMtzAccepted(mtzManagers[i]))
+        {
+            continue;
+        }
+        
         mtzManagers[i]->flipToActiveAmbiguity();
         int ambiguity = mtzManagers[i]->getActiveAmbiguity();
         flipCounts[ambiguity]++;
