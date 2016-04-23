@@ -93,9 +93,9 @@ void FileParser::simpleBool(ParametersMap *map, std::string command,
 void FileParser::simpleString(ParametersMap *map, std::string command,
 		std::string rest)
 {
-    std::string trimmed = trim(rest);
+    trim(rest);
     
-	(*map)[command] = trimmed;
+	(*map)[command] = rest;
 
 	log << "Setting string " << command << " to " << rest << std::endl;
 
@@ -114,9 +114,9 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
 void FileParser::stringVector(ParametersMap *map, std::string command,
                               std::string rest)
 {
-    std::string trimmed = trim(rest);
+    trim(rest);
     
-    vector<std::string> stringVector = FileReader::split(trimmed, splitCharMinor);
+    vector<std::string> stringVector = FileReader::split(rest, splitCharMinor);
     
     log << "Setting " << command << " to ";
     
