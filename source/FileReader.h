@@ -23,6 +23,7 @@ namespace FileReader
     vector<std::string> split(const std::string &s, char delim);
     bool exists(const std::string& name);
     
+    std::string addOutputDirectory(std::string filename);
     int splitAtIndices(const std::string &s, vector<int> &positions, vector<std::string> &elems);
 };
 

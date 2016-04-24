@@ -12,8 +12,10 @@
 #include <sstream>
 #include <cerrno>
 #include <sys/stat.h>
-
+#include "FileParser.h"
 #include "Logger.h"
+#include <sys/types.h>
+#include <dirent.h>
 
 vector<std::string> &FileReader::split(const std::string &s, char delim, vector<std::string> &elems) {
     std::stringstream ss(s);
@@ -109,4 +111,28 @@ std::string FileReader::get_file_contents(const char *filename)
     Logger::mainLogger->addString(strerror(errno));
     
     throw(errno);
+}
+
+
+std::string FileReader::addOutputDirectory(std::string filename)
+{
+    std::string directory = FileParser::getKey("OUTPUT_DIRECTORY", std::string(""));
+    
+    if (!directory.length())
+    {
+        return filename;
+    }
+    
+    DIR *dir = opendir(directory.c_str());
+    
+    if (dir)
+    {
+        closedir(dir);
+    }
+    else if (ENOENT == errno)
+    {
+        mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    }
+    
+    return directory + "/" + filename;
 }

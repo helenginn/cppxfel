@@ -1308,10 +1308,12 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
     cell[5] = cellAngles[2];
     wavelength = this->getWavelength();
     
+    std::string outputFile = FileReader::addOutputDirectory(newFilename);
+    
     mtzout = MtzMalloc(0, 0);
     ccp4_lwtitl(mtzout, "Written from Helen's XFEL tasks ", 0);
     mtzout->refs_in_memory = 0;
-    mtzout->fileout = MtzOpenForWrite(newFilename.c_str());
+    mtzout->fileout = MtzOpenForWrite(outputFile.c_str());
     
     // then add symm headers...
     for (int i = 0; i < mtzspg->nsymop; ++i)

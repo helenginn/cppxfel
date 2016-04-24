@@ -8,6 +8,7 @@
 #include <glob.h>
 #include <vector>
 
+
 std::string f_to_str(double val)
 {
 	std::ostringstream ss;
@@ -93,6 +94,7 @@ double proportion(int n)
     
     return prop;
 }
+
 
 std::vector<std::string> glob(std::string globString)
 {

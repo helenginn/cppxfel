@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string.h>
+#include "FileReader.h"
 
 void CSV::histogram(std::map<double, int> histogram)
 {
@@ -40,7 +41,9 @@ void CSV::addEntry(int dummy, ...)
 void CSV::writeToFile(std::string filename)
 {
     std::ofstream csv;
-    csv.open(filename.c_str());
+    std::string outputFile = FileReader::addOutputDirectory(filename);
+    
+    csv.open(outputFile.c_str());
     
     for (int i = 0; i < headers.size(); i++)
     {

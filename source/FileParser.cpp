@@ -279,6 +279,7 @@ void FileParser::generateFunctionList()
     
     parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
     parserMap["SECOND_MATRIX_LIST"] = simpleString;
+    parserMap["OUTPUT_DIRECTORY"] = simpleString;
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;
 	parserMap["INITIAL_MTZ"] = simpleString;
     parserMap["IMAGE_LIMIT"] = simpleInt;
