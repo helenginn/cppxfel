@@ -63,6 +63,8 @@ protected:
     
 	// minimisation stuff
 
+    int millerCount();
+    
 	vector<Reflection *> reflections;
 	vector<Reflection *> refReflections;
 	vector<Reflection *> matchReflections;
@@ -86,7 +88,7 @@ protected:
 	double scale;
 	double cellDim[3];
 	double cellAngles[3];
-    int activeAmbiguity;
+    uint32 activeAmbiguity;
     
 	bool usingFixedWavelength;
 
@@ -202,7 +204,7 @@ public:
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 
-	void writeToFile(std::string newFilename, bool announce = false, bool shifts = false, bool includeAmbiguity = false, bool useCountingSigma = false);
+	virtual void writeToFile(std::string newFilename, bool announce = false, bool shifts = false, bool includeAmbiguity = false, bool useCountingSigma = false);
     void writeToHdf5();
     void writeToDat(std::string prefix = "");
     void sendLog(LogLevel priority = LogLevelNormal);

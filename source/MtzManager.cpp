@@ -120,6 +120,9 @@ std::string MtzManager::filenameRoot()
     
     std::string root = "";
     
+    if (components.size() == 0)
+        return "";
+    
     for (int i = 0; i < components.size() - 1; i++)
     {
         root += components[i] + ".";
@@ -331,26 +334,7 @@ MtzManager::MtzManager(void)
     int rotMode = FileParser::getKey("ROTATION_MODE", 0);
     rotationMode = (RotationMode)rotMode;
     
-    optimisingWavelength = !OPTIMISED_WAVELENGTH;
-    optimisingBandwidth = !OPTIMISED_BANDWIDTH;
-    optimisingMosaicity = !OPTIMISED_MOSAICITY;
-    optimisingOrientation = !OPTIMISED_ROT;
-    optimisingRlpSize = !OPTIMISED_SPOT_SIZE;
-    optimisingExponent = !OPTIMISED_EXPONENT;
-    
-    stepSizeWavelength = MEAN_STEP;
-    stepSizeBandwidth = BANDWIDTH_STEP;
-    stepSizeMosaicity = MOS_STEP;
-    stepSizeRlpSize = SPOT_STEP;
-    stepSizeOrientation = ROT_STEP;
-    stepSizeExponent = EXPONENT_STEP;
-    
-    toleranceWavelength = MEAN_TOLERANCE;
-    toleranceBandwidth = BANDWIDTH_TOLERANCE;
-    toleranceMosaicity = MOS_TOLERANCE;
-    toleranceRlpSize = SPOT_SIZE_TOLERANCE;
-    toleranceOrientation = ROT_TOLERANCE;
-    toleranceExponent = EXPO_TOLERANCE;
+    loadParametersMap();
     
     usingFixedWavelength = USE_FIXED_WAVELENGTH;
     
@@ -447,6 +431,19 @@ void MtzManager::addReflections(vector<Reflection *>reflections)
         addReflection(reflections[i]);
     }
 }
+
+int MtzManager::millerCount()
+{
+    int sum = 0;
+    
+    for (int i = 0; i < reflectionCount(); i++)
+    {
+        sum += reflection(i)->millerCount();
+    }
+    
+    return sum;
+}
+
 
 
 int MtzManager::symmetryRelatedReflectionCount()
@@ -1252,29 +1249,6 @@ void MtzManager::applyPolarisation(void)
     }
 }
 
-void MtzManager::writeToHdf5()
-{
-    if (getImagePtr()->getClass() != ImageClassHdf5)
-    {
-        return;
-    }
-    
-    ImagePtr superParent = getImagePtr();
-    Hdf5ImagePtr parent = boost::static_pointer_cast<Hdf5Image>(superParent);
-    
-    std::string address = parent->getAddress();
-    
-    std::string extended = Hdf5Manager::concatenatePaths(address, filenameRoot());
-    
-    Hdf5ManagerProcessingPtr manager = Hdf5ManagerProcessing::getProcessingManager();
-    
-    if (!manager)
-    {
-        return;
-    }
-    
-    manager->createGroupsFromAddress(extended);
-}
 
 void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity, bool useCountingSigma)
 {

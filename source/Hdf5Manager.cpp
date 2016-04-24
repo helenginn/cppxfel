@@ -12,6 +12,7 @@
 #include "Hdf5Table.h"
 
 #define MAX_NAME 100
+std::mutex Hdf5Manager::readingHdf5;
 
 int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
 {
@@ -91,7 +92,7 @@ bool Hdf5Manager::recordsForTable(Hdf5Table &table, std::string address, void *d
     return true;
 }
 
-bool Hdf5Manager::tableExists(std::string address)
+bool Hdf5Manager::datasetExists(std::string address)
 {
     hid_t table;
     
@@ -135,7 +136,7 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         return false;
     }
     
-    bool exists = tableExists(tableAddress);
+    bool exists = datasetExists(tableAddress);
     
     if (exists)
     {
@@ -148,18 +149,37 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         hsize_t nRecords = 0;
         
         herr_t error = H5TBget_table_info(group, table.getTableName(), &nFields, &nRecords);
+        hsize_t nRecordsNew = table.getNumberOfRecords();
+        
+        hsize_t maxRecords = std::min(nFields, nRecordsNew);
         
         error = H5TBwrite_records(group,
                                       table.getTableName(),
                                          0,
-                                      table.getNumberOfRecords(),
+                                      maxRecords,
                                       table.getRecordSize(),
                                       table.getOffsets(),
                                       table.getFieldSizes(),
                                       table.getData());
 
+        if (maxRecords < nRecordsNew)
+        {
+            hsize_t extraRecords = nRecordsNew - maxRecords;
+            
+            error = H5TBappend_records(group,
+                                       table.getTableName(),
+                                       extraRecords,
+                                       table.getRecordSize(),
+                                       table.getOffsets(),
+                                       table.getFieldSizes(),
+                                       table.getData());
+            
+            error = H5TBget_table_info(group, table.getTableName(), &nFields, &nRecords);
+        }
+        
         if (error < 0)
         {
+            H5Gclose(group);
             readingHdf5.unlock();
             return false;
         }
@@ -168,18 +188,21 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         
         if (records_to_delete <= 0)
         {
+            H5Gclose(group);
             readingHdf5.unlock();
             return true;
         }
         
-        error = H5TBdelete_record(handle, table.getTableName(), table.getNumberOfRecords(), records_to_delete);
+        error = H5TBdelete_record(group, table.getTableName(), table.getNumberOfRecords(), records_to_delete);
         
         if (error < 0)
         {
+            H5Gclose(group);
             readingHdf5.unlock();
             return false;
         }
         
+        H5Gclose(group);
         readingHdf5.unlock();
         return true;
     }
@@ -221,20 +244,155 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
   //      logged << "Written " << nfields << " fields, " << nrecords << " records of " << recordSize << " bytes." << std::endl;
   //      sendLog();
         
+        H5Gclose(group);
         readingHdf5.unlock();
         return true;
     }
     
+    H5Gclose(group);
     readingHdf5.unlock();
     return false;
 }
 
+bool Hdf5Manager::createDataset(std::string address, int nDimensions, hsize_t *dims, hid_t type)
+{
+    bool existsAlready = datasetExists(address);
+    
+    if (existsAlready)
+        return true;
+    
+    readingHdf5.lock();
+    
+    hid_t dataspace_id = dataspace_id = H5Screate_simple(nDimensions, dims, NULL);
+
+    if (dataspace_id < 0)
+    {
+        readingHdf5.unlock();
+        return false;
+    }
+    
+    hid_t dataset_id = H5Dcreate2(handle, address.c_str(), type, dataspace_id,
+                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    
+    if (dataset_id < 0)
+    {
+        readingHdf5.unlock();
+        return false;
+    }
+    
+    H5Sclose(dataspace_id);
+    H5Dclose(dataset_id);
+    
+    readingHdf5.unlock();
+    
+    return true;
+}
+
+bool Hdf5Manager::writeDataset(std::string address, void **buffer, hid_t type)
+{
+    readingHdf5.lock();
+    
+    hid_t dataset_id = H5Dopen2(handle, address.c_str(), H5P_DEFAULT);
+    
+    if (dataset_id < 0)
+    {
+        readingHdf5.unlock();
+        return false;
+    }
+    
+    /* Write the dataset. */
+    herr_t status = H5Dwrite(dataset_id, type, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                      buffer);
+
+    readingHdf5.unlock();
+
+    return (status >= 0);
+}
+
+int Hdf5Manager::hdf5MallocBytesForDataset(std::string dataAddress, void **buffer)
+{
+    size_t sizeSet = 0;
+    size_t sizeType = 0;
+    
+    readingHdf5.lock();
+    
+    try
+    {
+        // h5sget_simple_extent_npoints_f(space_id, npoints, hdferr)
+        hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
+        hid_t type = H5Dget_type(dataset);
+        hid_t space = H5Dget_space(dataset);
+        sizeType = H5Tget_size(type);
+        sizeSet = H5Sget_simple_extent_npoints(space);
+        
+        if (space >= 0)
+            H5Sclose(space);
+        
+        if (type >= 0)
+            H5Tclose(type);
+        
+        if (dataset >= 0)
+            H5Dclose(dataset);
+        
+    }
+    catch (std::exception e)
+    {
+        readingHdf5.unlock();
+        return 0; // failure
+    }
+    
+    readingHdf5.unlock();
+    
+    *buffer = malloc(sizeSet * sizeType);
+    
+    return (int)(sizeSet * sizeType);
+}
+
+size_t Hdf5Manager::bytesPerTypeForDatasetAddress(std::string dataAddress)
+{
+    hid_t dataset, type;
+    
+    readingHdf5.lock();
+    
+    try
+    {
+        dataset = H5Dopen1(handle, dataAddress.c_str());
+        type = H5Dget_type(dataset);
+        
+        if (dataset >= 0)
+        {
+            H5Dclose(dataset);
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    catch (std::exception e)
+    {
+        return 0; // failure
+    }
+    
+    size_t sizeType = 0;
+    
+    if (type >= 0)
+    {
+        sizeType = H5Tget_size(type);
+        H5Tclose(type);
+    }
+    
+    readingHdf5.unlock();
+    
+    return sizeType;
+}
 
 
 void Hdf5Manager::turnOffErrors()
 {
+    return;
+    
     /* Save old error handler */
-//    hid_t error_stack = H5Eget_current_stack();
+//   hid_t error_stack = H5Eget_current_stack();
     
     H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
     
@@ -246,6 +404,8 @@ void Hdf5Manager::turnOffErrors()
 
 void Hdf5Manager::turnOnErrors()
 {
+    return;
+    
     H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
 }
 
@@ -508,7 +668,7 @@ bool Hdf5Manager::createGroupsFromAddress(std::string address)
         
         if (exists)
         {
-   //         logged << "Address " << pathToCheck << " exists." << std::endl;
+       //     logged << "Address " << pathToCheck << " exists." << std::endl;
         }
         else
         {
@@ -516,16 +676,16 @@ bool Hdf5Manager::createGroupsFromAddress(std::string address)
             
             if (success)
             {
-      //          logged << "Address " << pathToCheck << " successfully created." << std::endl;
+          //      logged << "Address " << pathToCheck << " successfully created." << std::endl;
             }
             else
             {
-      //          logged << "Address " << pathToCheck << " creation failed." << std::endl;
+          //      logged << "Address " << pathToCheck << " creation failed." << std::endl;
             }
         }
     }
  
-    sendLog();
+  //  sendLog();
 
     return true;
 }

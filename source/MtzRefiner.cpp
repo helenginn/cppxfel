@@ -839,7 +839,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             
             if (setSigmaToUnity)
                 newManager->setSigmaToUnity();
-            newManager->loadParametersMap();
             newManager->setParamLine(paramsLine);
             
             if (newManager->reflectionCount() > 0)
@@ -1318,7 +1317,6 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
         newManager->setMatrix(matrix);
         newManager->loadReflections(1);
         newManager->setSigmaToUnity();
-        newManager->loadParametersMap();
         
         if (newManager->reflectionCount() > 0)
         {

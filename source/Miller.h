@@ -52,21 +52,21 @@ private:
     short int l;
     bool free;
     float phase;
-    char fakeFriedel;
+    char fakeFriedel; // delete?
 	RlpModel rlpModel;
     double polarisationCorrection;
     double getPolarisationCorrection();
 	std::map<RejectReason, bool> rejectedReasons;
-	double partialCutoff;
+	double partialCutoff; // could/should be a float
 	float bFactor;
-	float scale;
+	float scale; // should be extracted from Mtz.
 	float lastX;
 	float lastY;
     
     double latestHRot;
     double latestKRot;
-    float bFactorScale;
-    bool excluded;
+    float bFactorScale; // should be extracted from Mtz.
+    bool excluded; // don't think this is used anymore
     bool rejected;
     bool calculatedRejected;
     
@@ -176,8 +176,9 @@ public:
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
     
     static double averageRawIntensity(vector<MillerPtr> millers);
+    RejectReason getRejectedReason();
 
-	virtual ~Miller();
+    virtual ~Miller();
     
     void setBeam(BeamPtr newBeam)
     {
@@ -245,6 +246,11 @@ public:
 	{
 		return countingSigma * scale;
 	}
+    
+    double getRawCountingSigma() const
+    {
+        return countingSigma;
+    }
 
 	void setCountingSigma(double countingSigma)
 	{

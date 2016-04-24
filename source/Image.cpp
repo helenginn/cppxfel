@@ -1687,7 +1687,6 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         Logger::mainLogger->addStream(&logged); logged.str("");
         
         addMtz(mtz);
-        mtz->writeToHdf5();
         
         return IndexingSolutionTrialSuccess;
     }

@@ -26,6 +26,7 @@
 #include "Logger.h"
 //#include <boost/python.hpp>
 #include "FileParser.h"
+#include "Hdf5ManagerProcessing.h"
 
 using cctbx::sgtbx::rt_mx;
 using cctbx::sgtbx::rot_mx;
@@ -1025,4 +1026,20 @@ cctbx::miller::index<double> Matrix::multiplyIndex(cctbx::miller::index<> *index
     cctbx::miller::index<double> newIndex = cctbx::miller::index<double>(hkl.h, hkl.k, hkl.l);
     
     return newIndex;
+}
+
+bool Matrix::writeToHdf5(std::string address)
+{
+    Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
+    
+    hsize_t dim = 16;
+    
+    bool success = processingManager->createDataset(address, 1, &dim, H5T_NATIVE_DOUBLE);
+    
+    if (!success)
+    {
+        return success;
+    }
+    
+    return processingManager->writeDataset(address, (void **)&components, H5T_NATIVE_DOUBLE);    
 }

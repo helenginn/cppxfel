@@ -1293,5 +1293,16 @@ void Miller::recalculateBetterPartiality()
     }
 }
 
-// Vector stuff
+RejectReason Miller::getRejectedReason()
+{
+    RejectReason reasons[] = {RejectReasonMerge, RejectReasonCorrelation, RejectReasonPartiality};
+    
+    for (int i = 0; i < 3; i++)
+    {
+        if (rejectedReasons.count(reasons[i]) && rejectedReasons[reasons[i]])
+            return reasons[i];
+    }
+    
+    return RejectReasonNone;
+}
 

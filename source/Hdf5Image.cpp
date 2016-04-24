@@ -186,7 +186,7 @@ void Hdf5Image::processSpotList()
     
     loadedSpots = true;
 
-    if (!forceSpotFinding && processingManager->tableExists(concat))
+    if (!forceSpotFinding && processingManager->datasetExists(concat))
     {
         spots.clear();
         

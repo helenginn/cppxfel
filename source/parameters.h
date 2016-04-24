@@ -154,9 +154,10 @@ typedef enum
 
 typedef enum
 {
-    RejectReasonMerge,
-    RejectReasonPartiality,
-    RejectReasonCorrelation,
+    RejectReasonNone = 0, // not rejected
+    RejectReasonMerge = 1,
+    RejectReasonPartiality = 2,
+    RejectReasonCorrelation = 3,
 } RejectReason;
 
 class Panel;
@@ -178,6 +179,7 @@ class SpectrumBeam;
 class GetterSetterMap;
 class Hdf5ManagerCheetahSacla;
 class Hdf5ManagerProcessing;
+class Hdf5Crystal;
 
 typedef boost::shared_ptr<SpectrumBeam> SpectrumBeamPtr;
 typedef boost::shared_ptr<GetterSetterMap> GetterSetterMapPtr;
@@ -188,7 +190,8 @@ typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
 typedef boost::shared_ptr<Panel>PanelPtr;
 typedef boost::shared_ptr<SolventMask> SolventMaskPtr;
-typedef boost::shared_ptr<MtzManager>MtzPtr;
+typedef boost::shared_ptr<MtzManager> MtzPtr;
+typedef boost::shared_ptr<Hdf5Crystal> Hdf5CrystalPtr;
 typedef boost::shared_ptr<std::ostringstream> StreamPtr;
 typedef boost::shared_ptr<Logger>LoggerPtr;
 typedef boost::shared_ptr<Image> ImagePtr;

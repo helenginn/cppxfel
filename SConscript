@@ -56,6 +56,7 @@ source = [
 'source/FreeLattice.cpp',
 'source/FreeMillerLibrary.cpp',
 'source/GraphDrawer.cpp',
+'source/Hdf5Crystal.cpp',
 'source/Hdf5Image.cpp',
 'source/Hdf5Manager.cpp',
 'source/Hdf5ManagerCheetahSacla.cpp',

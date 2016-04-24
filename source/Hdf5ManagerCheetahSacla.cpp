@@ -64,84 +64,13 @@ Hdf5ManagerCheetahSaclaPtr Hdf5ManagerCheetahSacla::hdf5ManagerForImage(std::str
 int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void **buffer)
 {
     std::string dataAddress = concatenatePaths(address, "data");
-    
-    size_t sizeSet = 0;
-    size_t sizeType = 0;
-    
-    readingHdf5.lock();
-    
-    try
-    {
-        // h5sget_simple_extent_npoints_f(space_id, npoints, hdferr)
-        hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
-        hid_t type = H5Dget_type(dataset);
-        hid_t space = H5Dget_space(dataset);
-        sizeType = H5Tget_size(type);
-        sizeSet = H5Sget_simple_extent_npoints(space);
-        
-        if (space >= 0)
-            H5Sclose(space);
-        
-        if (type >= 0)
-            H5Tclose(type);
-        
-        if (dataset >= 0)
-            H5Dclose(dataset);
-        
-        logged << "(" << address << " ) size: " << sizeSet << " of a " << sizeType << " byte type." << std::endl;
-        sendLog();
-    }
-    catch (std::exception e)
-    {
-        readingHdf5.unlock();
-        return 0; // failure
-    }
-    
-    readingHdf5.unlock();
-    
-    *buffer = malloc(sizeSet * sizeType);
-    
-    return (int)(sizeSet * sizeType);
+    return Hdf5Manager::hdf5MallocBytesForDataset(dataAddress, buffer);
 }
 
 size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
 {
     std::string dataAddress = concatenatePaths(address, "data");
-    
-    hid_t dataset, type;
-    
-    readingHdf5.lock();
-    
-    try
-    {
-        dataset = H5Dopen1(handle, dataAddress.c_str());
-        type = H5Dget_type(dataset);
-        
-        if (dataset >= 0)
-        {
-            H5Dclose(dataset);
-        }
-        else
-        {
-            return 0;
-        }
-    }
-    catch (std::exception e)
-    {
-        return 0; // failure
-    }
-
-    size_t sizeType = 0;
-    
-    if (type >= 0)
-    {
-        sizeType = H5Tget_size(type);
-        H5Tclose(type);
-    }
-    
-    readingHdf5.unlock();
-    
-    return sizeType;
+    return Hdf5Manager::bytesPerTypeForDatasetAddress(dataAddress);
 }
 
 

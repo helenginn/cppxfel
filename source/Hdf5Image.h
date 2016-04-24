@@ -23,7 +23,8 @@ private:
     std::string findAddress();
     Hdf5ManagerCheetahSaclaPtr chManager;
     Hdf5Table spotTable;
-    
+    void createSpotTable();
+
 protected:
     
 public:
@@ -38,7 +39,6 @@ public:
     
     void writeSpotsList(std::string spotFile);
     void processSpotList();
-    void createSpotTable();
     
     virtual ImageClass getClass()
     {

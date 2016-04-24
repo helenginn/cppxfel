@@ -112,6 +112,7 @@ public:
     std::string summary();
     void setIdentity();
     void sensibleComponents(double *returnedComponents[9]);
+    bool writeToHdf5(std::string address);
 
     bool isComplex()
     {

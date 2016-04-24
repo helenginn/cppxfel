@@ -17,7 +17,7 @@
 #include "Panel.h"
 #include "FileParser.h"
 #include "Miller.h"
-
+#include "Hdf5Crystal.h"
 
 #define BIG_BANDWIDTH 0.015
 #define DISTANCE_TOLERANCE 0.01
@@ -1600,10 +1600,23 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     
     MatrixPtr newMat = getMatrix()->copy();
     
-    MtzPtr mtz = MtzPtr(new MtzManager());
+    MtzPtr mtz;
+    
+    std::string crystalFileName = getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz";
+    
+    if (getImage()->getClass() == ImageClassHdf5)
+    {
+        Hdf5CrystalPtr crystal = Hdf5CrystalPtr(new Hdf5Crystal(crystalFileName));
+        
+        mtz = boost::static_pointer_cast<MtzManager>(crystal);
+    }
+    else
+    {
+        mtz = MtzPtr(new MtzManager());
+        mtz->setFilename(crystalFileName);
+    }
     mtz->setWavelength(0);
     mtz->setImage(image);
-    mtz->setFilename(getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz");
     mtz->setSpaceGroup(spaceGroup->spg_num);
     mtz->setUnitCell(unitCell);
     

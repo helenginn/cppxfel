@@ -38,7 +38,7 @@ private:
 
 protected:
     hid_t handle;
-    std::mutex readingHdf5;
+    static std::mutex readingHdf5;
     
 public:
     static int pathComponentCount(std::string path);
@@ -57,12 +57,33 @@ public:
     bool createGroupsFromAddress(std::string address);
     bool createLastComponentAsGroup(std::string address);
     bool groupExists(std::string address);
-    bool createTableIfAbsent(std::string address);
-    bool tableExists(std::string address);
-    
+
+    bool datasetExists(std::string address);
     int readSizeForTable(Hdf5Table &table, std::string address);
     bool recordsForTable(Hdf5Table &table, std::string address, void *data);
     bool writeTable(Hdf5Table &table, std::string address);
+    
+    size_t bytesPerTypeForDatasetAddress(std::string dataAddress);
+    int hdf5MallocBytesForDataset(std::string dataAddress, void **buffer);
+    bool createDataset(std::string address, int nDimensions, hsize_t *dims, hid_t type);
+    bool writeDataset(std::string address, void **buffer, hid_t type);
+    
+    template <class Value>
+    bool writeSingleValueDataset(std::string address, Value value, hid_t type)
+    {
+        hsize_t dim = 1;
+        
+        Value *valuePtr = &value;
+        
+        bool success = createDataset(address, 1, &dim, type);
+        
+        if (success)
+        {
+            success = writeDataset(address, (void **)valuePtr, type);
+        }
+        
+        return success;
+    }
     
     void groupsWithPrefix(std::vector<std::string> *list, std::string prefix, std::string startAddress = "/");
 
