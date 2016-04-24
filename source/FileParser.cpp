@@ -286,6 +286,7 @@ void FileParser::generateFunctionList()
     parserMap["IMAGE_SKIP"] = simpleInt;
     parserMap["NEW_MATRIX_LIST"] = simpleString;
     
+    parserMap["RECALCULATE_WAVELENGTHS"] = simpleBool;
     parserMap["RECALCULATE_SIGMA"] = simpleBool;
     parserMap["MERGE_ANOMALOUS"] = simpleBool;
     parserMap["FAKE_ANOMALOUS"] = simpleBool;

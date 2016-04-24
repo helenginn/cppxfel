@@ -1700,3 +1700,14 @@ void MtzManager::setParamLine(std::string line)
     finalised = true;
     setInitialValues = true;
 }
+
+void MtzManager::recalculateWavelengths()
+{
+    for (int i = 0; i < reflectionCount(); i++)
+    {
+        for (int j = 0; j < reflection(i)->millerCount(); j++)
+        {
+            reflection(i)->miller(j)->getWavelength(0, 0);
+        }
+    }
+}

@@ -175,7 +175,7 @@ public:
 
     std::string filenameRoot();
 	void setSpaceGroup(int spgnum);
-	virtual void loadReflections(PartialityModel model, bool special = false);
+	virtual void loadReflections(PartialityModel model, bool special = false); // FIXME: remove unnecessary parameters
 	void loadReflections(int partiality);
 	static void setReference(MtzManager *reference);
 	int findReflectionWithId(long unsigned int refl_id, Reflection **reflection, bool insertionPoint = false);
@@ -242,6 +242,7 @@ public:
 
     int refinedParameterCount();
     
+    void recalculateWavelengths();
 	void getParams(double *parameters[], int paramCount = PARAM_NUM);
     void getParamPointers(double ***parameters, int paramCount = PARAM_NUM);
     void getSteps(double *parameters[], int paramCount = PARAM_NUM);
