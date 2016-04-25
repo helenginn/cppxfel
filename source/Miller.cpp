@@ -601,6 +601,14 @@ void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize
     vec centred_spot_position = vector_between_vectors(
                                                        mean_wavelength_ewald_centre, hkl);
     
+    double length = length_of_vector(centred_spot_position);
+    
+    double radiusOverLength = radius / length;
+    double inwardsScalar = 1 - radiusOverLength;
+    double outwardsScalar = 1 + radiusOverLength;
+    double newL = hkl.l + 1 / wavelength;
+    /*
+    
     vec move_inwards_position = copy_vector(centred_spot_position);
     scale_vector_to_distance(&move_inwards_position,
                              length_of_vector(move_inwards_position) - radius);
@@ -609,24 +617,12 @@ void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize
     scale_vector_to_distance(&move_outwards_position,
                              length_of_vector(move_outwards_position) + radius);
     
-    vec central_wavelength_outwards_position = copy_vector(
-                                                           centred_spot_position);
-    scale_vector_to_distance(&central_wavelength_outwards_position,
-                             1 / wavelength + radius);
-    
-    vec central_wavelength_inwards_position = copy_vector(
-                                                          centred_spot_position);
-    
-    scale_vector_to_distance(&central_wavelength_inwards_position,
-                             1 / wavelength - radius);
-    
     add_vector_to_vector(&move_inwards_position, mean_wavelength_ewald_centre);
     add_vector_to_vector(&move_outwards_position, mean_wavelength_ewald_centre);
+    */
     
-    add_vector_to_vector(&central_wavelength_inwards_position,
-                         mean_wavelength_ewald_centre);
-    add_vector_to_vector(&central_wavelength_outwards_position,
-                         mean_wavelength_ewald_centre);
+    vec move_inwards_position = new_vector(inwardsScalar * hkl.h, inwardsScalar * hkl.k, hkl.l - radiusOverLength * newL);
+    vec move_outwards_position = new_vector(outwardsScalar * hkl.h, outwardsScalar * hkl.k, hkl.l + radiusOverLength * newL);
     
     double inwards_bandwidth = getEwaldSphereNoMatrix(move_inwards_position);
     double outwards_bandwidth = getEwaldSphereNoMatrix(move_outwards_position);
