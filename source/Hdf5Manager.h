@@ -49,8 +49,8 @@ public:
     void closeHdf5();
     virtual ~Hdf5Manager();
     
-    std::string truncateLastComponent(std::string path);
-    std::string lastComponent(std::string path);
+    static std::string truncateLastComponent(std::string path);
+    static std::string lastComponent(std::string path);
     int getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *type);
     std::vector<H5G_obj_t> getSubGroupTypes(std::string address);
     std::vector<std::string> getSubGroupNames(std::string address);
@@ -67,6 +67,7 @@ public:
     int hdf5MallocBytesForDataset(std::string dataAddress, void **buffer);
     bool createDataset(std::string address, int nDimensions, hsize_t *dims, hid_t type);
     bool writeDataset(std::string address, void **buffer, hid_t type);
+    bool dataForAddress(std::string address, void **buffer);
     
     template <class Value>
     bool writeSingleValueDataset(std::string address, Value value, hid_t type)
@@ -84,6 +85,15 @@ public:
         
         return success;
     }
+    
+    template <class Value>
+    bool readDatasetValue(std::string address, Value *value)
+    {
+        bool success = dataForAddress(address, (void **)&value);
+        
+        return success;
+    }
+
     
     void groupsWithPrefix(std::vector<std::string> *list, std::string prefix, std::string startAddress = "/");
 

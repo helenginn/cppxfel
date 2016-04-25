@@ -12,6 +12,7 @@
 #include "Hdf5ManagerCheetahSacla.h"
 #include "Hdf5ManagerProcessing.h"
 #include <fstream>
+#include "Hdf5Crystal.h"
 
 typedef struct
 {
@@ -47,6 +48,28 @@ std::string Hdf5Image::findAddress()
     }
     
     return address;
+}
+
+void Hdf5Image::loadCrystals()
+{
+    Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
+    
+    std::vector<std::string> addresses = processingManager->getSubGroupNames(imageAddress);
+    
+    for (int i = 0; i < addresses.size(); i++)
+    {
+        std::string lastComponent = Hdf5Manager::lastComponent(addresses[i]);
+        
+        if (lastComponent.substr(0, 3) == "img")
+        {
+            Hdf5CrystalPtr crystal = Hdf5CrystalPtr(new Hdf5Crystal(lastComponent));
+            crystal->setAddress(addresses[i]);
+            
+            MtzPtr mtz = boost::static_pointer_cast<MtzManager>(crystal);
+            addMtz(mtz);
+            mtz->loadReflections(PartialityModelScaled);
+        }
+    }
 }
 
 void Hdf5Image::loadImage()
@@ -101,6 +124,8 @@ void Hdf5Image::loadImage()
         sendLog();
     }
     
+    free(buffer);
+    
     bool dumpImages = FileParser::getKey("DUMP_IMAGES", false);
     
     if (dumpImages)
@@ -116,6 +141,8 @@ void Hdf5Image::loadImage()
         
         imgStream.close();
     }
+    
+    loadCrystals();
 }
 
 Hdf5ManagerCheetahSaclaPtr Hdf5Image::getManager()

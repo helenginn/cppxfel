@@ -132,6 +132,10 @@ public:
         return unitCell;
     }
     
+    void setComponents(double *newComponents)
+    {
+        memcpy(components, newComponents, sizeof(double) * 16);
+    }
     
     double determinant();
     Matrix operator*=(Matrix &b);

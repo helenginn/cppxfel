@@ -17,6 +17,7 @@ class Hdf5Crystal : public MtzManager
 {
 private:
     Hdf5Table millerTable;
+    std::string address;
     
     void createMillerTable();
     void writeCrystalData(std::string address);
@@ -28,7 +29,14 @@ public:
         createMillerTable();
     };
     
+    void setAddress(std::string newAddress)
+    {
+        address = newAddress;
+    }
+    
     void writeToFile(std::string newFilename = "", bool announce = false, bool shifts = false, bool includeAmbiguity = false, bool useCountingSigma = false);
+    
+    void loadReflections(PartialityModel model, bool special = false);
 };
 
 #endif /* defined(__cppxfel__Hdf5Crystal__) */

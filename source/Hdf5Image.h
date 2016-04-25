@@ -24,6 +24,7 @@ private:
     Hdf5ManagerCheetahSaclaPtr chManager;
     Hdf5Table spotTable;
     void createSpotTable();
+    void loadCrystals();
 
 protected:
     

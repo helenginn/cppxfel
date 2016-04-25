@@ -73,32 +73,10 @@ size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
     return Hdf5Manager::bytesPerTypeForDatasetAddress(dataAddress);
 }
 
-
-
 bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
 {
     std::string dataAddress = concatenatePaths(address, "data");
-    
-    readingHdf5.lock();
-    
-    try
-    {
-        hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
-        hid_t type = H5Dget_type(dataset);
-        H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, *buffer);
-        H5Dclose(dataset);
-        H5Tclose(type);
-
-        readingHdf5.unlock();
-
-        return true; // success
-    }
-    catch (std::exception e)
-    {
-        readingHdf5.unlock();
-
-        return false; // failure
-    }
+    return Hdf5Manager::dataForAddress(dataAddress, buffer);
 }
 
 void Hdf5ManagerCheetahSacla::closeHdf5Files()
