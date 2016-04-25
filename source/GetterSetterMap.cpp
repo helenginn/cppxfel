@@ -38,19 +38,25 @@ double GetterSetterMap::minimizeParameter(int whichParam)
     
     double bestParam = (*getter)(object);
     
+ //   logged << bestParam << "\t:\t";
+    
     for (double i = bestParam - step; j < 3; i += step)
     {
-        //*param = i;
         (*setter)(object, i);
         
         double aScore = (*evaluationFunction)(evaluateObject);
         
         if (aScore != aScore) aScore = FLT_MAX;
         
+      //  logged << aScore << " (" << i << ")\t";
+        
         param_scores[j] = aScore;
         param_trials[j] = i;
         j++;
     }
+    
+//    logged << std::endl;
+//    sendLog();
     
     double param_min_score = param_scores[1];
     
@@ -76,11 +82,18 @@ void GetterSetterMap::refine(GetterSetterRefinementType type)
 {
     for (int i = 0; i < maxCycles; i++)
     {
-        for (int i = 0; i < objects.size(); i++)
+        std::ostringstream logged;
+
+        for (int j = 0; j < objects.size(); j++)
         {
-            minimizeParameter(i);
+            minimizeParameter(j);
+            
+       //     logged << (*getters[j])(objects[j]) << "\t";
         }
+        
+        double score = (*evaluationFunction)(evaluateObject);
+        
+   //     logged << score << std::endl;
+   //     Logger::log(logged);
     }
-    
-    double score = (*evaluationFunction)(evaluateObject);
 }

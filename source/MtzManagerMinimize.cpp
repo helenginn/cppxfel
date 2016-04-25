@@ -50,7 +50,7 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
         || scoreType == ScoreTypeCorrelationLog)
     {
         return static_cast<MtzManager *>(object)->exclusionScore(lowRes,
-                                                                 highRes, scoreType);
+                                                                 highRes,  scoreType);
     }
     else if (scoreType == ScoreTypeMinimizeRSplit)
     {
@@ -338,6 +338,7 @@ double MtzManager::minimizeParameter(double *meanStep, double **params,
         this->refreshPartialities((*params));
         param_scores[j] = (*score)(object, lowRes, highRes);
         param_trials[j] = i;
+        
         j++;
     }
     
@@ -362,6 +363,12 @@ double MtzManager::refineParameterScore(void *object)
 {
     MtzManager *me = static_cast<MtzManager *>(object);
     
+    me->refreshCurrentPartialities();
+    return exclusionScoreWrapper(me);
+
+    
+    me->updateLatestMatrix();
+    
     for (int i = 0; i < me->reflectionCount(); i++)
     {
         for (int j = 0; j < me->reflection(i)->millerCount(); j++)
@@ -371,7 +378,9 @@ double MtzManager::refineParameterScore(void *object)
         }
     }
     
-    return me->exclusionScore(0, 0, me->defaultScoreType);
+    me->setScoreType(me->defaultScoreType);
+    
+    return exclusionScoreWrapper(me);
 }
 
 double MtzManager::minimize()
@@ -416,7 +425,10 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     
     int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 1);
     MinimizationMethod method = (MinimizationMethod)miniMethod;
-    
+   /*
+    logged << "*** NEW REFINEMENT ***" << std::endl;
+    sendLog();
+    */
     if (method == MinimizationMethodStepSearch)
     {
         bool optimisedMean = !optimisingWavelength || (scoreType == ScoreTypeStandardDeviation);
@@ -511,10 +523,12 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             if (expoStep < toleranceExponent)
                 optimisedExponent = true;
             
-            if (scoreType == ScoreTypeStandardDeviation)
-            {
-                std::cout << "stdev" << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << (*score)(object, 0, 0) << std::endl;
-            }
+          //  if (scoreType == ScoreTypeStandardDeviation)
+      /*      {
+                double aScore = (*score)(object, minResolution, maxResolutionAll);
+                logged << params[PARAM_WAVELENGTH] << "\t" << params[PARAM_SPOT_SIZE] << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << aScore << std::endl;
+                sendLog();
+            }*/
         }
         
         bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);

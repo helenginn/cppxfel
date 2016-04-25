@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "parameters.h"
+#include "LoggableObject.h"
 
 typedef enum
 {
@@ -18,7 +19,7 @@ typedef enum
     GetterSetterNelderMead
 } GetterSetterRefinementType;
 
-class GetterSetterMap
+class GetterSetterMap : public LoggableObject
 {
 private:
     Getter evaluationFunction;

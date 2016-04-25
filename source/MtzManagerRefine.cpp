@@ -100,30 +100,38 @@ void MtzManager::getSteps(double *ranges[], int paramCount)
 
 void MtzManager::addParameters(GetterSetterMapPtr map)
 {
+    if (optimisingOrientation)
+    {
+        map->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, toleranceOrientation);
+        map->addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, toleranceOrientation);
+    }
+    
     if (optimisingRlpSize)
         map->addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, toleranceRlpSize);
     
     if (optimisingMosaicity)
         map->addParameter(this, getMosaicityStatic, setMosaicityStatic, stepSizeMosaicity, toleranceMosaicity);
     
-    if (optimisingOrientation)
-    {
-        map->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, toleranceOrientation);
-        map->addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, toleranceOrientation);
-    }
+    // delete me later
+ 
+    map->addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, toleranceWavelength);
+    
 }
 
 double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
 {
+  //  logged << "New refinement, ambiguity " << ambiguity << std::endl;
+ //  sendLog();
+    
     this->setActiveAmbiguity(ambiguity);
     
     GetterSetterMapPtr refinementMap = GetterSetterMapPtr(new GetterSetterMap());
     
-    addParameters(refinementMap);
+    wavelength = bestWavelength();
     
     if (!beam)
     {
-        double wavelength = bestWavelength();
+    //    double wavelength = bestWavelength();
         
         beam = GaussianBeamPtr(new GaussianBeam(wavelength, bandwidth, exponent));
         
@@ -136,7 +144,10 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
         }
     }
     
+    
     beam->addParameters(refinementMap);
+    addParameters(refinementMap);
+    
     
     refinementMap->setEvaluationFunction(refineParameterScore, this);
     refinementMap->setCycles(cycles);

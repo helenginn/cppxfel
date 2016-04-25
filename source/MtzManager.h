@@ -670,7 +670,7 @@ public:
     static void setHRotStatic(void *object, double newHRot)
     {
         static_cast<MtzManager *>(object)->setHRot(newHRot);
-        static_cast<MtzManager *>(object)->updateLatestMatrix();
+ //       static_cast<MtzManager *>(object)->updateLatestMatrix();
     }
     
     static double getKRotStatic(void *object)
@@ -681,7 +681,17 @@ public:
     static void setKRotStatic(void *object, double newKRot)
     {
         static_cast<MtzManager *>(object)->setKRot(newKRot);
-        static_cast<MtzManager *>(object)->updateLatestMatrix();
+  //      static_cast<MtzManager *>(object)->updateLatestMatrix();
+    }
+
+    static double getWavelengthStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getWavelength();
+    }
+
+    static void setWavelengthStatic(void *object, double newWavelength)
+    {
+        static_cast<MtzManager *>(object)->setWavelength(newWavelength);
     }
 
     ImagePtr getImagePtr()
