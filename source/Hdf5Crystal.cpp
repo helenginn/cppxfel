@@ -177,7 +177,7 @@ void Hdf5Crystal::writeToFile(std::string newFilename, bool announce, bool shift
     {
         Hdf5ImagePtr parent = boost::static_pointer_cast<Hdf5Image>(superParent);
         std::string address = parent->getAddress();
-        std::string crystalAddress = Hdf5Manager::concatenatePaths(address, newFilename);
+        std::string crystalAddress = Hdf5Manager::concatenatePaths(address, filename);
         
         manager->createGroupsFromAddress(crystalAddress);
         
@@ -357,7 +357,7 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     setMatrix(newMat);
     
     std::string ambiguityAddress = Hdf5Manager::concatenatePaths(address, "ambiguity");
-    manager->readDatasetValue(scaleAddress, &activeAmbiguity);
+    manager->readDatasetValue(ambiguityAddress, &activeAmbiguity);
     
     std::string hRotAddress = Hdf5Manager::concatenatePaths(address, "hRot");
     manager->readDatasetValue(hRotAddress, &hRot);

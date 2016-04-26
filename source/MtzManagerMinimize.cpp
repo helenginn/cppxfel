@@ -461,8 +461,7 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
         double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
         
-        double paramVals[PARAM_NUM];
-        double *params = &paramVals[0];
+        double *params = new double[PARAM_NUM];
         
         getParams(&params);
         params[PARAM_WAVELENGTH] = wavelength;
@@ -602,6 +601,8 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         this->refreshPartialities(params);
         
         setParams(params);
+        
+        delete [] params;
     }
     else if (method == MinimizationMethodNelderMead)
     {
