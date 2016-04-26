@@ -324,7 +324,9 @@ void MtzRefiner::refineCycle(bool once)
         
         MtzManager *reloadMerged = new MtzManager();
         
-        reloadMerged->setFilename(filename.c_str());
+        std::string reloadFullPath = FileReader::addOutputDirectory(filename);
+        
+        reloadMerged->setFilename(reloadFullPath.c_str());
         reloadMerged->loadReflections(1);
         reloadMerged->description();
         

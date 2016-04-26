@@ -19,10 +19,11 @@
 #include "ccp4_parser.h"
 #include <fstream>
 
+#include "FileReader.h"
 #include "FileParser.h"
 #include "GraphDrawer.h"
 #include "FreeMillerLibrary.h"
-
+#include "CSV.h"
 
 MtzGrouper::MtzGrouper()
 {
@@ -159,6 +160,8 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		logged << "Unsupported option" << std::endl;
 		break;
 	}
+    
+    sendLog();
 
 	double averageCorrelation = 0;
 	double averageAboveCutoff = 0;
@@ -166,23 +169,23 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	double rotationCorrection = 0;
     
     int rotMode = FileParser::getKey("ROTATION_MODE", 0);
-    RotationMode mode = (RotationMode)rotMode;
 
-    
     logged << "Filename\tCorrel\tRsplit\tPartcorrel\tRefcount\tMosaicity\tWavelength\tBandwidth\t";
     
-    logged << (mode == RotationModeHorizontalVertical ? "hRot\tkRot\t" : "aRot\tbRot\tcRot\t");
+    logged << "hRot\tkRot\t";
     
     logged << "rlpSize\texp\tcellA\tcellB\tcellC" << std::endl;
 
 	for (int i = 0; i < mtzManagers.size(); i++)
-	{
-		double correl = mtzManagers[i]->getRefCorrelation();
+    {
+        MtzPtr mtz = mtzManagers[i];
+
+		double correl = mtz->getRefCorrelation();
         if (correl != -1)
             averageCorrelation += correl;
 
-		double hRot = mtzManagers[i]->getHRot();
-		double kRot = mtzManagers[i]->getKRot();
+		double hRot = mtz->getHRot();
+		double kRot = mtz->getKRot();
         
 		double correction = sqrt(hRot * hRot + kRot * kRot);
         
@@ -195,20 +198,18 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		}
 
         double a, b, c;
-        mtzManagers[i]->getMatrix()->orientationMatrixUnitCell(&a, &b, &c);
+        mtz->getMatrix()->orientationMatrixUnitCell(&a, &b, &c);
         
         double rSplit = 0;
         if (MtzManager::getReferenceManager() != NULL)
-            rSplit = mtzManagers[i]->rSplit(0, expectedResolution, true, true);
+            rSplit = mtz->rSplit(0, expectedResolution, true, true);
         
-        double partCorrel = mtzManagers[i]->getRefPartCorrel();
+        double partCorrel = mtz->getRefPartCorrel();
         
         double *cellDims = new double[3];
-        mtzManagers[i]->getMatrix()->unitCellLengths(&cellDims);
+        mtz->getMatrix()->unitCellLengths(&cellDims);
         
-        
-        
-		logged << mtzManagers[i]->getFilename() << "\t" << correl << "\t" << rSplit << "\t" << partCorrel << "\t"
+        logged << mtzManagers[i]->getFilename() << "\t" << correl << "\t" << rSplit << "\t" << partCorrel << "\t"
 				<< mtzManagers[i]->accepted() << "\t"
 				<< mtzManagers[i]->getMosaicity() << "\t"
 				<< mtzManagers[i]->getWavelength() << "\t"
@@ -226,7 +227,10 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
     std::ofstream paramLog;
     std::string paramLogName = "params_cycle_" + i_to_str(cycle) + ".csv";
-    paramLog.open(paramLogName);
+    
+    std::string fullPath = FileReader::addOutputDirectory(paramLogName);
+    
+    paramLog.open(fullPath);
     paramLog << tabbedParams << std::endl;
     paramLog.close();
     
@@ -790,11 +794,13 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
     }
 
 	wavelength = (*positive)->getWavelength();
+    
+    std::string fullPath = FileReader::addOutputDirectory(filename);
 
 	mtzout = MtzMalloc(0, 0);
 	ccp4_lwtitl(mtzout, "Anomalous dataset ", 0);
 	mtzout->refs_in_memory = 0;
-	mtzout->fileout = MtzOpenForWrite(filename.c_str());
+	mtzout->fileout = MtzOpenForWrite(fullPath.c_str());
 
 // then add symm headers...
 	for (int i = 0; i < mtzspg->nsymop; ++i)
