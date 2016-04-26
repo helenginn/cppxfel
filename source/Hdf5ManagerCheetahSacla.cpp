@@ -28,7 +28,7 @@ void Hdf5ManagerCheetahSacla::initialiseSaclaManagers()
         
         for (int j = 0; j < hdf5Files.size(); j++)
         {
-            std::string aFilename = hdf5Files[i];
+            std::string aFilename = hdf5Files[j];
             
             Hdf5ManagerCheetahSaclaPtr cheetahPtr = Hdf5ManagerCheetahSaclaPtr(new Hdf5ManagerCheetahSacla(aFilename));
             cheetahManagers.push_back(cheetahPtr);
