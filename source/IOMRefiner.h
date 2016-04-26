@@ -257,8 +257,8 @@ public:
 
 	void setSpaceGroup(CCP4SPG*& spaceGroup)
 	{
-        if (this->spaceGroup != NULL)
-            ccp4spg_free(&this->spaceGroup);
+     //   if (this->spaceGroup != NULL)
+     //       ccp4spg_free(&this->spaceGroup);
         
 		this->spaceGroup = spaceGroup;
 	}
