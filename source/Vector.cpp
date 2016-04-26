@@ -942,3 +942,10 @@ void histogramCSV(std::string filename, std::map<double, int> map1, std::map<dou
     
     stream.close();
 }
+
+void desc(vec hkl)
+{
+    std::ostringstream logged;
+    logged << hkl.h << "\t" << hkl.k << "\t" << hkl.l << std::endl;
+    Logger::log(logged);
+}

@@ -24,6 +24,7 @@
 #include "Image.h"
 #include "Spot.h"
 #include "FreeMillerLibrary.h"
+#include "polyfit.hpp"
 
 bool Miller::normalised = true;
 bool Miller::correctingPolarisation = false;
@@ -34,6 +35,7 @@ float Miller::trickyRes = 8.0;
 bool Miller::setupStatic = false;
 PartialityModel Miller::model = PartialityModelScaled;
 int Miller::peakSize = 0;
+bool Miller::correctedPartiality = false;
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
@@ -55,6 +57,7 @@ void Miller::setupStaticVariables()
     trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
     maxSlices = FileParser::getKey("MAX_SLICES", 100);
     peakSize = FileParser::getKey("FOCUS_ON_PEAK_SIZE", 0);
+    correctedPartiality = FileParser::getKey("CORRECTED_PARTIALITY_MODEL", false);
     
     setupStatic = true;
 }
@@ -86,7 +89,7 @@ double Miller::integrate_sphere_uniform(double p, double q)
     return proportion;
 }
 
-double Miller::integrate_sphere(double p, double q, double radius, double sphere_volume, double circle_surface_area)
+double Miller::integrate_sphere(double p, double q)
 {
     if (rlpModel == RlpModelGaussian)
         return integrate_sphere_gaussian(p, q);
@@ -165,6 +168,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
     {
         mySlices = maxSlices;
     }
+    
     double bandwidth_span = high_wavelength - low_wavelength;
     
     double fraction_total = 1;
@@ -175,9 +179,6 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
     
     double total_normal = 0;
     double total_sphere = 0;
-    
-    double sphere_volume = (4 * M_PI / 3) * pow(spot_size_radius, 3);
-    double circle_surface_area = pow(spot_size_radius, 2) * M_PI;
     
     for (int i = 0; i < slices; i++)
     {
@@ -200,8 +201,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         
         if (normalSlice > 0 && !binary)
         {
-            sphereSlice = integrate_sphere(currentP, currentQ,
-                                              spot_size_radius, sphere_volume, circle_surface_area);
+            sphereSlice = integrate_sphere(currentP, currentQ);
         }
         
         double totalSlice = normalSlice * sphereSlice;
@@ -215,6 +215,65 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         
         currentP = currentQ;
         currentQ += fraction_total / mySlices;
+    }
+    
+    return total_integral;
+}
+
+vec incrementedPosition(vec low_wl_pos, vec high_wl_pos, double proportion)
+{
+    vec diff = copy_vector(high_wl_pos);
+    take_vector_away_from_vector(low_wl_pos, &diff);
+    
+    double currLength = length_of_vector(diff);
+    currLength *= proportion;
+    
+    scale_vector_to_distance(&diff, currLength);
+    add_vector_to_vector(&diff, low_wl_pos);
+    
+    return diff;
+}
+
+double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double rlpSize, double mean, double sigma, double exponent)
+{
+    double p = 0;
+    double q = 1;
+    
+    double mySlices = slices;
+    
+    if (resolution() < 1 / trickyRes)
+    {
+        mySlices = maxSlices;
+    }
+    
+    double interval = 1 / mySlices;
+    
+    double total_integral = 0;
+    double total_normal = 0;
+    double total_sphere = 0;
+    
+    vec oldIncrement = low_wl_pos;
+    
+    for (double slice = p + interval; slice < q; slice += interval)
+    {
+        vec newIncrement = incrementedPosition(low_wl_pos, high_wl_pos, slice);
+        
+        double pBandwidth = getEwaldSphereNoMatrix(oldIncrement);
+        double qBandwidth = getEwaldSphereNoMatrix(newIncrement);
+        
+        double normalSlice = integrate_beam_slice(qBandwidth, pBandwidth, mean, sigma, exponent);
+        double sphereSlice = 0;
+        
+        if (normalSlice > 0)
+        {
+            sphereSlice = integrate_sphere(slice - interval, slice);
+        }
+        
+        double totalSlice = normalSlice * sphereSlice;
+        
+        total_integral += totalSlice;
+        total_normal += normalSlice;
+        total_sphere += sphereSlice;
     }
     
     return total_integral;
@@ -592,7 +651,7 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
     return radius;
 }
 
-void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh)
+void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh, vec *inwards, vec *outwards)
 {
     double radius = expectedRadius(spotSize, mosaicity, &hkl);
     
@@ -607,22 +666,19 @@ void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize
     double inwardsScalar = 1 - radiusOverLength;
     double outwardsScalar = 1 + radiusOverLength;
     double newL = hkl.l + 1 / wavelength;
-    /*
-    
-    vec move_inwards_position = copy_vector(centred_spot_position);
-    scale_vector_to_distance(&move_inwards_position,
-                             length_of_vector(move_inwards_position) - radius);
-    
-    vec move_outwards_position = copy_vector(centred_spot_position);
-    scale_vector_to_distance(&move_outwards_position,
-                             length_of_vector(move_outwards_position) + radius);
-    
-    add_vector_to_vector(&move_inwards_position, mean_wavelength_ewald_centre);
-    add_vector_to_vector(&move_outwards_position, mean_wavelength_ewald_centre);
-    */
     
     vec move_inwards_position = new_vector(inwardsScalar * hkl.h, inwardsScalar * hkl.k, hkl.l - radiusOverLength * newL);
     vec move_outwards_position = new_vector(outwardsScalar * hkl.h, outwardsScalar * hkl.k, hkl.l + radiusOverLength * newL);
+    
+    if (inwards != NULL)
+    {
+        *inwards = move_inwards_position;
+    }
+    
+    if (outwards != NULL)
+    {
+        *outwards = move_outwards_position;
+    }
     
     double inwards_bandwidth = getEwaldSphereNoMatrix(move_inwards_position);
     double outwards_bandwidth = getEwaldSphereNoMatrix(move_outwards_position);
@@ -639,8 +695,9 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
     bandwidth = fabs(bandwidth);
     
     double inwards_bandwidth = 0; double outwards_bandwidth = 0;
+    vec inwards_vec, outwards_vec;
     
-    limitingEwaldWavelengths(hkl, mosaicity, spotSize, wavelength, &outwards_bandwidth, &inwards_bandwidth);
+    limitingEwaldWavelengths(hkl, mosaicity, spotSize, wavelength, &outwards_bandwidth, &inwards_bandwidth, &inwards_vec, &outwards_vec);
     
     double stdev = wavelength * bandwidth / 2;
     
@@ -653,8 +710,16 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
         return 0;
     }
     
-    double thisPartiality = sliced_integral(outwards_bandwidth,
-                                                        inwards_bandwidth, radius, 0, 1, wavelength, stdev, exponent);
+    double thisPartiality = 0;
+    
+    if (correctedPartiality)
+    {
+        thisPartiality = slicedIntegralWithVectors(inwards_vec, outwards_vec, radius, wavelength, stdev, exponent);
+    }
+    else
+    {
+        thisPartiality = sliced_integral(outwards_bandwidth, inwards_bandwidth, radius, 0, 1, wavelength, stdev, exponent);
+    }
     
     return thisPartiality;
     
@@ -695,7 +760,7 @@ double Miller::calculateNormPartiality(MatrixPtr rotatedMatrix, double mosaicity
     vec newHKL = new_vector(newH, newK, newL);
     
     double normPartiality = partialityForHKL(newHKL, mosaicity,
-                                            spotSize, wavelength, bandwidth, exponent);
+                                            spotSize, wavelength, bandwidth, exponent, false);
     
     return normPartiality;
 }
@@ -753,7 +818,7 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     this->wavelength = getEwaldSphereNoMatrix(hkl);
     
     double tempPartiality = partialityForHKL(hkl, mosaicity,
-                                            spotSize, wavelength, bandwidth, exponent, binary);
+                                            spotSize, wavelength, bandwidth, exponent, true);
     
     if (binary && tempPartiality == 1.0)
         return;
@@ -772,10 +837,10 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     
     partiality = tempPartiality / normPartiality;
     
-    if (partiality > 1.2)
+    if (partiality > 2.0)
         partiality = 0;
-    if (partiality > 1.0)
-        partiality = 1;
+    if (partiality > 2.0)
+        partiality = 2;
     
     if ((!std::isfinite(partiality)) || (partiality != partiality))
     {

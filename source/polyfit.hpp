@@ -13,6 +13,23 @@
 #include <vector>
 #include <stdexcept>
 
+/* solving quadratic equations */
+
+static inline void getSolutions(long double a, long double b, long double c, double *ans1, double *ans2)
+{
+    long double squareRoot = b * b - 4 * a * c;
+    
+    *ans1 = (-b + squareRoot) / (2 * a);
+    *ans2 = (-b - squareRoot) / (2 * a);
+}
+
+static inline bool hasValidSolutions(double a, double b, double c)
+{
+    double squareRoot = b * b - 4 * a * c;
+    
+    return (squareRoot > 0);
+}
+
 /*
 	Finds the coefficients of a polynomial p(x) of degree n that fits the data, 
 	p(x(i)) to y(i), in a least squares sense. The result p is a row vector of 

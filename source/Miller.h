@@ -40,6 +40,7 @@ private:
     static bool initialised_p1;
     static bool normalised;
     static bool correctingPolarisation;
+    static bool correctedPartiality;
     static double polarisationFactor;
     static int maxSlices;
     static short int slices;
@@ -84,7 +85,7 @@ private:
     
     double integrate_sphere_uniform(double p, double q);
     double integrate_sphere_gaussian(double p, double q);
-    double integrate_sphere(double p, double q, double radius, double sphere_volume, double circle_surface_area);
+    double integrate_sphere(double p, double q);
     
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
     
@@ -114,7 +115,8 @@ public:
 	MillerPtr copy(void);
 	void printHkl(void);
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
-    void limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh);
+    void limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh, vec *inwards = NULL, vec *outwards = NULL);
+    double slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double rlpSize, double mean, double sigma, double exponent);
     
     bool isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDelete = true);
     double calculateDefaultNorm();
