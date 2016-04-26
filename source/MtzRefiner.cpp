@@ -216,7 +216,7 @@ void MtzRefiner::refine()
     
     originalMerge = reference;
     
-    logged << "N: Total images loaded: " << mtzManagers.size() << std::endl;
+    logged << "N: Total crystals loaded: " << mtzManagers.size() << std::endl;
     sendLog();
     
     originalMerge->writeToFile("originalMerge.mtz");
@@ -912,16 +912,13 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     if (hdf5)
     {
         readFromHdf5(&images);
+        
+        return;
     }
     
     
     for (int i = 0; i < maxThreads; i++)
     {
-        if (hdf5)
-        {
-            continue;
-        }
-        
         if (version == 1.0)
         {
             boost::thread *thr = new boost::thread(singleLoadImages, filename,
@@ -1180,6 +1177,7 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
             Hdf5ImagePtr hdf5Image = Hdf5ImagePtr(new Hdf5Image(imgName, wavelength,
                                                                 detectorDistance));
             ImagePtr newImage = boost::static_pointer_cast<Image>(hdf5Image);
+            hdf5Image->loadCrystals();
             
             if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
             {
@@ -1192,6 +1190,21 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
             count++;
         }
     }
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        for (int j = 0; j < images[i]->mtzCount(); j++)
+        {
+            MtzPtr mtz = images[i]->mtz(j);
+            
+            mtzManagers.push_back(mtz);
+        }
+    }
+    
+    logged << "N: Images loaded from HDF5: " << newImages->size() << std::endl;;
+    logged << "N: Crystals loaded from images: " << mtzManagers.size() << std::endl;;
+    
+    sendLog();
 }
 
 void MtzRefiner::readMatricesAndMtzs()

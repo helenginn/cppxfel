@@ -969,6 +969,10 @@ vector<MtzPtr> Image::currentMtzs()
     for (int i = 0; i < IOMRefinerCount(); i++)
     {
         MtzPtr newMtz = indexers[i]->newMtz(i);
+
+        std::string imgFilename = "img-" + filenameRoot() + "_" + i_to_str(i) + ".mtz";
+        newMtz->writeToFile(imgFilename, true, true, false, true);
+        newMtz->writeToDat();
         
         if (rejecting)
             count += newMtz->rejectOverlaps();
@@ -1393,6 +1397,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     }
     
     int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
+    int minSpots = FileParser::getKey("REJECT_UNDER_SPOT_COUNT", 0);
     
     if (maxSpots > 0)
     {
@@ -1405,6 +1410,16 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
             return;
         }
     }
+    
+    if (spotCount() < minSpots)
+    {
+        logged << "N: Aborting image " << getFilename() << " due to too few spots." << std::endl;
+        sendLog();
+        spotVectors.clear();
+        std::vector<SpotVectorPtr>().swap(spotVectors);
+        return;
+    }
+    
     
     if (maxReciprocalDistance == 0)
     {
@@ -1687,6 +1702,9 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         Logger::mainLogger->addStream(&logged); logged.str("");
         
         addMtz(mtz);
+        std::string imgFilename = "img-" + mtz->getFilename();
+        mtz->writeToFile(imgFilename, true, true, false, true);
+        mtz->writeToDat();
         
         return IndexingSolutionTrialSuccess;
     }

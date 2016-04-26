@@ -57,7 +57,14 @@ void Hdf5Image::loadCrystals()
     if (!processingManager)
         return;
     
-    std::vector<std::string> addresses = processingManager->getSubGroupNames(imageAddress);
+    std::string address = findAddress();
+    
+    if (!processingManager->groupExists(address))
+    {
+        return;
+    }
+    
+    std::vector<std::string> addresses = processingManager->getSubGroupNames(address);
     
     for (int i = 0; i < addresses.size(); i++)
     {
@@ -66,11 +73,20 @@ void Hdf5Image::loadCrystals()
         if (lastComponent.substr(0, 3) == "img")
         {
             Hdf5CrystalPtr crystal = Hdf5CrystalPtr(new Hdf5Crystal(lastComponent));
+            crystal->setImage(shared_from_this());
             crystal->setAddress(addresses[i]);
             
             MtzPtr mtz = boost::static_pointer_cast<MtzManager>(crystal);
+            mtz->loadReflections(PartialityModelScaled, false);
             addMtz(mtz);
-            mtz->loadReflections(PartialityModelScaled);
+
+            IOMRefinerPtr refiner = IOMRefinerPtr(new IOMRefiner(shared_from_this(), mtz->getMatrix()));
+            std::vector<double> cell = mtz->getUnitCell();
+            refiner->setSpaceGroup(mtz->getLowGroup());
+            refiner->setUnitCell(cell);
+            refiner->setComplexMatrix();
+            
+            addIOMRefiner(refiner);
         }
     }
 }
@@ -144,8 +160,6 @@ void Hdf5Image::loadImage()
         
         imgStream.close();
     }
-    
-    loadCrystals();
 }
 
 Hdf5ManagerCheetahSaclaPtr Hdf5Image::getManager()

@@ -89,7 +89,7 @@ void Hdf5Crystal::writeReflectionData(std::string address)
     
     free(millerData);
     
-    sendLog();
+    sendLog(LogLevelDebug);
 }
 
 void Hdf5Crystal::writeCrystalData(std::string address)
@@ -111,7 +111,7 @@ void Hdf5Crystal::writeCrystalData(std::string address)
     
     // unit cell data
     
-    double *unitCell = new double[6];
+    double unitCell[6];
     memcpy(&unitCell[0], &cellDim[0], sizeof(double) * 3);
     memcpy(&unitCell[3], &cellAngles[0], sizeof(double) * 3);
     
@@ -119,9 +119,7 @@ void Hdf5Crystal::writeCrystalData(std::string address)
     
     hsize_t dim = 6;
     manager->createDataset(unitCellParamsAddress, 1, &dim, H5T_NATIVE_DOUBLE);
-    manager->writeDataset(unitCellParamsAddress, (void **)&unitCell, H5T_NATIVE_DOUBLE);
-    
-    delete [] unitCell;
+    manager->writeDataset(unitCellParamsAddress, (void **)unitCell, H5T_NATIVE_DOUBLE);
     
     // general scaling/indexing ambiguity
     
@@ -152,12 +150,20 @@ void Hdf5Crystal::writeCrystalData(std::string address)
     manager->writeSingleValueDataset(wavelengthAddress, wavelength, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(bandwidthAddress, bandwidth, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(exponentAddress, exponent, H5T_NATIVE_DOUBLE);
+    
+    std::string refinedAddress = Hdf5Manager::concatenatePaths(address, "refined");
+    manager->writeSingleValueDataset(refinedAddress, finalised, H5T_NATIVE_CHAR);
 }
 
 // This has a lot of extra commands for back-compatibility to storing MTZs
 // but no attention will be paid to the values of these commands
 void Hdf5Crystal::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity, bool useCountingSigma)
 {
+    if (!getImagePtr())
+    {
+        return;
+    }
+    
     if (getImagePtr()->getClass() != ImageClassHdf5)
     {
         return;
@@ -165,17 +171,21 @@ void Hdf5Crystal::writeToFile(std::string newFilename, bool announce, bool shift
     
     ImagePtr superParent = getImagePtr();
     
-    Hdf5ImagePtr parent = boost::static_pointer_cast<Hdf5Image>(superParent);
-    std::string address = parent->getAddress();
-    std::string crystalAddress = Hdf5Manager::concatenatePaths(address, newFilename);
-    
     Hdf5ManagerProcessingPtr manager = Hdf5ManagerProcessing::getProcessingManager();
-    manager->createGroupsFromAddress(crystalAddress);
     
-    writeReflectionData(crystalAddress);
-    writeCrystalData(crystalAddress);
+    if (manager)
+    {
+        Hdf5ImagePtr parent = boost::static_pointer_cast<Hdf5Image>(superParent);
+        std::string address = parent->getAddress();
+        std::string crystalAddress = Hdf5Manager::concatenatePaths(address, newFilename);
+        
+        manager->createGroupsFromAddress(crystalAddress);
+        
+        writeReflectionData(crystalAddress);
+        writeCrystalData(crystalAddress);
+    }
     
-    MtzManager::writeToFile(filename, announce, shifts, includeAmbiguity, useCountingSigma);
+    MtzManager::writeToFile(newFilename, announce, shifts, includeAmbiguity, useCountingSigma);
 }
 
 void Hdf5Crystal::createMillerTable()
@@ -284,7 +294,7 @@ void Hdf5Crystal::createMillerTable()
 
 void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
 {
-    MtzManager::loadReflections(model, special);
+//    MtzManager::loadReflections(model, special);
     
     if (address.length() == 0)
     {
@@ -297,6 +307,7 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     // get space group
     
     std::string scaleAddress = Hdf5Manager::concatenatePaths(address, "scale");
+    std::string spaceGroupAddress = Hdf5Manager::concatenatePaths(address, "spaceGroup");
     
     Hdf5ManagerProcessingPtr manager = Hdf5ManagerProcessing::getProcessingManager();
     
@@ -306,7 +317,7 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     applyScaleFactor(newScale);
 
     int spgnum = 0;
-    manager->readDatasetValue(scaleAddress, &spgnum);
+    manager->readDatasetValue(spaceGroupAddress, &spgnum);
     setSpaceGroup(spgnum);
     
     if (low_group == NULL)
@@ -315,31 +326,31 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         return;
     }
     
-    double *unitCell = new double[6];
+    Reflection::setSpaceGroup(spgnum);
+    
+    double unitCell[6];
     std::string unitCellParamsAddress = Hdf5Manager::concatenatePaths(address, "unitcell_params");
     
-    manager->readDatasetValue(unitCellParamsAddress, &unitCell);
+    bool success = manager->readDatasetValue(unitCellParamsAddress, &unitCell);
     
     memcpy(&cellDim[0], &unitCell[0], sizeof(double) * 3);
     memcpy(&cellAngles[0], &unitCell[3], sizeof(double) * 3);
     
-    delete [] unitCell;
+    double unitCellMatrix[16];
+    double rotationMatrix[16];
     
-    double *unitCellMatrix = new double[16];
-    double *rotationMatrix = new double[16];
+    std::string unitCellMatrixAddress = Hdf5Manager::concatenatePaths(address, "unitcell_matrix");
+    std::string unitCellRotationAddress = Hdf5Manager::concatenatePaths(address, "rotation_matrix");
     
-    manager->readDatasetValue(unitCellParamsAddress, &unitCellMatrix);
-    manager->readDatasetValue(unitCellParamsAddress, &rotationMatrix);
+    manager->readDatasetValue(unitCellMatrixAddress, &unitCellMatrix);
+    manager->readDatasetValue(unitCellRotationAddress, &rotationMatrix);
     
     MatrixPtr unitMat = MatrixPtr(new Matrix());
     unitMat->setComponents(unitCellMatrix);
 
     MatrixPtr rotMat = MatrixPtr(new Matrix());
-    rotMat->setComponents(unitCellMatrix);
+    rotMat->setComponents(rotationMatrix);
     
-    delete [] unitCellMatrix;
-    delete [] rotationMatrix;
-
     MatrixPtr newMat = MatrixPtr(new Matrix());
     newMat->setComplexMatrix(unitMat, rotMat);
     
@@ -369,200 +380,65 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     std::string exponentAddress = Hdf5Manager::concatenatePaths(address, "exponent");
     manager->readDatasetValue(exponentAddress, &exponent);
     
+    Hdf5Miller *millers;
+    std::string reflAddress = Hdf5Manager::concatenatePaths(address, "refls");
     
-    /*
-     if (mtz == NULL)
-        return;
+    int size = millerTable.readSizeFromManager(manager, reflAddress);
+    Hdf5Miller *millerData = (Hdf5Miller *)malloc(size);
     
-    float *refldata = (float *) CCP4::ccp4_utils_malloc(
-                                                        (mtz->ncol_read + 1) * mtz->nref_filein * sizeof(float));
-    memset(refldata, '\0',
-           (mtz->ncol_read + 1) * mtz->nref_filein * sizeof(float));
+    success = millerTable.readFromManager(manager, reflAddress, (void *)millerData);
+    int count = 0;
     
-    float *adata = (float *) CCP4::ccp4_utils_malloc(
-                                                     (mtz->ncol_read) * sizeof(float));
-    
-    MtzRrefl(mtz->filein, mtz->ncol_read * mtz->nref_filein, refldata);
-    
-    MTZCOL *col_f = MtzColLookup(mtz, "I");
-    
-    if (col_f == NULL)
+    bool forceRestartPostRefinement = FileParser::getKey("FORCE_RESTART_POST_REFINEMENT", false);
+    bool refined = false;
+    std::string refinedAddress = Hdf5Manager::concatenatePaths(address, "refined");
+    if (manager->datasetExists(refinedAddress))
     {
-        col_f = MtzColLookup(mtz, "IMEAN");
+        manager->readDatasetValue(refinedAddress, &refined);
     }
     
-    if (col_f == NULL)
+    if (!refined || forceRestartPostRefinement)
     {
-        col_f = MtzColLookup(mtz, "FC");
-        
-        if (col_f == NULL)
-        {
-            col_f = MtzColLookup(mtz, "FP");
-            
-            if (col_f == NULL)
-                col_f = MtzColLookup(mtz, "F");
-            
-            if (col_f != NULL)
-            {
-                std::cout << "Warning: using observed amplitude instead of intensity" << std::endl;
-            }
-            else
-            {
-                std::cout << "Warning: could not find any amplitude columns" << std::endl;
-            }
-        }
-        else
-        {
-            std::cout << "Warning: using calculated amplitude instead of intensity" << std::endl;
-        }
+        loadParametersMap();
     }
     
-    if (col_f == NULL)
+    logged << "Reading reflections from HDF5 file was " << (success ? "successful." : "a failure.") << std::endl;
+    sendLog();
+    
+    for (int i = 0; i < size; i += sizeof(Hdf5Miller))
     {
-        std::cout << "Warning: intensity column not labelled I or IMEAN or amplitude" << std::endl;
-        exit(1);
+        Hdf5Miller *data = &millerData[count];
+        
+        MillerPtr miller = MillerPtr(new Miller(this, data->h, data->k, data->l));
+        miller->setFree(data->free);
+        miller->setRawIntensity(data->rawIntensity);
+        miller->setSigma(data->sigma);
+        miller->setCountingSigma(data->countingSigma);
+        miller->setPartiality(data->partiality);
+        miller->setWavelength(data->wavelength);
+        miller->setResolution(data->resolution);
+        miller->setPhase(data->phase);
+        miller->setScale(this->scale);
+        miller->setBFactor(data->bFactor);
+        miller->setLastX(data->lastX);
+        miller->setLastY(data->lastY);
+        miller->setShift(std::make_pair(data->shiftX, data->shiftY));
+        if (data->rejectReason != RejectReasonNone)
+        {
+            miller->setRejected(data->rejectReason, true);
+        }
+        miller->setMatrix(this->matrix);
+        
+        count++;
+        addMiller(miller);
+    }
+
+    
+    if (size > 0)
+    {
+        free(millerData);
     }
     
-    MTZCOL *col_sigf = MtzColLookup(mtz, "SIGI");
-    
-    if (col_sigf == NULL)
-    {
-        col_sigf = MtzColLookup(mtz, "SIGIMEAN");
-    }
-    
-    if (col_sigf == NULL)
-    {
-        col_sigf = MtzColLookup(mtz, "SIGF");
-        
-        if (col_sigf != NULL)
-        {
-            std::cout << "Warning: using SIGF column" << std::endl;
-        }
-    }
-    
-    if (col_sigf == NULL)
-    {
-        std::cout << "Warning: sigma column not labelled SIGI or SIGIMEAN" << std::endl;
-    }
-    
-    MTZCOL *col_wave = MtzColLookup(mtz, "WAVE");
-    MTZCOL *col_partials = MtzColLookup(mtz, "PART");
-    MTZCOL *col_phase = MtzColLookup(mtz, "PHIC");
-    MTZCOL *col_shiftx = MtzColLookup(mtz, "SHIFTX");
-    MTZCOL *col_shifty = MtzColLookup(mtz, "SHIFTY");
-    
-    int multiplier = MULTIPLIER;
-    
-    MTZXTAL **xtals = MtzXtals(mtz);
-    float cell[6];
-    double coefhkl[6];
-    ccp4_lrcell(xtals[0], cell);
-    MtzHklcoeffs(cell, coefhkl);
-    
-    setUnitCell(cell[0], cell[1], cell[2], cell[3], cell[4], cell[5]);
-    
-    
-    int num = 0;
-    
-    for (int i = 0; i < mtz->nref_filein * mtz->ncol_read; i += mtz->ncol_read)
-    {
-        memcpy(adata, &refldata[i], mtz->ncol_read * sizeof(float));
-        
-        int h;
-        int k;
-        int l;
-        int offset;
-        
-        hkls_for_reflection(mtz, adata, &h, &k, &l, &multiplier, &offset);
-        
-        int reflection_reflection_index = index_for_reflection(h, k, l, false);
-        
-        float intensity = adata[col_f->source - 1];
-        
-        float sigma = 1;
-        if (col_sigf != NULL)
-            sigma = adata[col_sigf->source - 1];
-        float wavelength = 1;
-        float partiality = 1;
-        float phase = 0;
-        float shiftX = 0;
-        float shiftY = 0;
-        
-        if (col_wave != NULL && col_partials != NULL)
-        {
-            wavelength = adata[col_wave->source - 1];
-            partiality = adata[col_partials->source - 1];
-        }
-        
-        if (col_shiftx != NULL && col_shifty != NULL)
-        {
-            shiftX = adata[col_shiftx->source - 1];
-            shiftY = adata[col_shifty->source - 1];
-        }
-        
-        if (col_phase != NULL)
-        {
-            phase = adata[col_phase->source - 1];
-        }
-        
-        if (col_partials == NULL && intensity != intensity)
-            continue;
-        
-        MillerPtr miller = MillerPtr(new Miller(this, h, k, l));
-        miller->setData(intensity, sigma, partiality, wavelength);
-        miller->setCountingSigma(sigma);
-        miller->setFilename(filename);
-        //    miller->setPartialityModel(model);
-        miller->setPhase(phase);
-        miller->setLastX(shiftX);
-        miller->setLastY(shiftY);
-        //        miller->setShift(std::make_pair(shiftX, shiftY));
-        miller->matrix = this->matrix;
-        
-        Reflection *prevReflection;
-        
-        this->findReflectionWithId(reflection_reflection_index, &prevReflection);
-        
-        if (prevReflection != NULL)
-        {
-            // Exclude unobserved reflections by checking for nan
-            if (adata[col_f->source - 1] == adata[col_f->source - 1])
-            {
-                prevReflection->addMiller(miller); // TODO
-                miller->setParent(prevReflection);
-            }
-            
-            // reflection is a repeat so set flag.
-        }
-        
-        if (prevReflection == NULL)
-        {
-            Reflection *newReflection = new Reflection();
-            reflections.push_back(newReflection);
-            newReflection->setUnitCell(cell);
-            newReflection->setSpaceGroup(low_group->spg_num);
-            
-            reflections[num]->addMiller(miller);
-            miller->setParent(reflections[num]);
-            reflections[num]->calculateResolution(this);
-            
-            this->sortLastReflection();
-            
-            num++;
-        }
-    }
-    
-    free(refldata);
-    free(adata);
-    
-    //	insertionSortReflections();
-    
-    std::ostringstream log;
-    
-    log << "Loaded " << mtz->nref_filein << " reflections (" << accepted()
-    << " accepted)." << std::endl;
-    
-    Logger::mainLogger->addStream(&log);
-    
-    MtzFree(mtz);*/
+    logged << "Loaded " << reflectionCount() << " reflections (" << millerCount() << " unique)." << std::endl;
+    sendLog();
 }

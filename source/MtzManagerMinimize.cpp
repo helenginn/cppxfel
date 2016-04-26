@@ -45,40 +45,48 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
                                          double highRes)
 {
     ScoreType scoreType = static_cast<MtzManager *>(object)->scoreType;
+    MtzManager *mtz = static_cast<MtzManager *>(object);
     
     if (scoreType == ScoreTypeCorrelation
         || scoreType == ScoreTypeCorrelationLog)
     {
-        return static_cast<MtzManager *>(object)->exclusionScore(lowRes,
-                                                                 highRes,  scoreType);
+        return mtz->exclusionScore(lowRes, highRes,  scoreType);
     }
     else if (scoreType == ScoreTypeMinimizeRSplit)
     {
-        return static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
+        return mtz->rSplit(lowRes, highRes);
+    }
+    else if (scoreType == ScoreTypeRSplitIntensity)
+    {
+        double rSplit = mtz->rSplit(lowRes, highRes);
+        double logIntensity = log(mtz->averageIntensity());
+        
+        return rSplit / logIntensity;
     }
     else if (scoreType == ScoreTypeMinimizeRSplitLog)
     {
-        return static_cast<MtzManager *>(object)->rSplit(lowRes, highRes, true);
+        return mtz->rSplit(lowRes, highRes, true);
     }
     else if (scoreType == ScoreTypeSymmetry)
     {
-        return static_cast<MtzManager *>(object)->rFactorWithManager(RFactorTypeMeas);
+        return mtz->rFactorWithManager(RFactorTypeMeas);
     }
     else if (scoreType == ScoreTypePartialityCorrelation
              || scoreType == ScoreTypePartialityLeastSquares)
     {
-        double value = 1 - static_cast<MtzManager *>(object)->leastSquaresPartiality(scoreType);
+        double value = 1 - mtz->leastSquaresPartiality(scoreType);
         
         return  value;
     }
     else if (scoreType == ScoreTypeMinimizeRMeas)
     {
-        double rSplit = static_cast<MtzManager *>(object)->rSplit(lowRes, highRes);
+        double rSplit = mtz->rSplit(lowRes, highRes);
         return rSplit;
     }
     else
-        return static_cast<MtzManager *>(object)->exclusionScore(lowRes,
-                                                                 highRes, ScoreTypeCorrelation);
+    {
+        return mtz->exclusionScore(lowRes, highRes, ScoreTypeCorrelation);
+    }
 }
 
 bool partialGreaterThanPartial(Partial a, Partial b)
@@ -453,7 +461,8 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         double bStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
         double cStep = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
         
-        params = new double[PARAM_NUM];
+        double paramVals[PARAM_NUM];
+        double *params = &paramVals[0];
         
         getParams(&params);
         params[PARAM_WAVELENGTH] = wavelength;
@@ -593,8 +602,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         this->refreshPartialities(params);
         
         setParams(params);
-       
-        delete[] params;
     }
     else if (method == MinimizationMethodNelderMead)
     {

@@ -72,6 +72,8 @@ std::string MtzManager::describeScoreType()
             return std::string("stdev");
         case ScoreTypeMinimizeRMeas:
             return std::string("rmeas");
+        case ScoreTypeRSplitIntensity:
+            return std::string("r+int");
         default:
             return std::string("unknown");
     }
@@ -294,6 +296,11 @@ void MtzManager::loadParametersMap()
     toleranceExponent = FileParser::getKey("TOLERANCE_EXPONENT",
                                            EXPO_TOLERANCE);
     
+    bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
+    mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
+    spotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
+    exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
+
     int defaultScoreInt = FileParser::getKey("DEFAULT_TARGET_FUNCTION",
                                              (int) DEFAULT_SCORE_TYPE);
     defaultScoreType = (ScoreType) defaultScoreInt;
@@ -429,6 +436,34 @@ void MtzManager::addReflections(vector<Reflection *>reflections)
     for (int i = 0; i < reflections.size(); i++)
     {
         addReflection(reflections[i]);
+    }
+}
+
+void MtzManager::addMiller(MillerPtr miller)
+{
+    int reflection_reflection_index = index_for_reflection(miller->getH(), miller->getK(), miller->getL(), false);
+    Reflection *prevReflection;
+    this->findReflectionWithId(reflection_reflection_index, &prevReflection);
+    
+    double unitCell[6] = {cellDim[0], cellDim[1], cellDim[2], cellAngles[0], cellAngles[1], cellAngles[2]};
+    
+    if (prevReflection != NULL)
+    {
+        prevReflection->addMiller(miller); // TODO
+        miller->setParent(prevReflection);
+    }
+    else
+    {
+        Reflection *newReflection = new Reflection();
+        newReflection->setUnitCellDouble(unitCell);
+        newReflection->setSpaceGroup(low_group->spg_num);
+        newReflection->addMiller(miller);
+        miller->setParent(newReflection);
+        newReflection->calculateResolution(this);
+        
+        reflections.push_back(newReflection);
+        
+        this->sortLastReflection();
     }
 }
 
@@ -707,11 +742,9 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         miller->setData(intensity, sigma, partiality, wavelength);
         miller->setCountingSigma(sigma);
         miller->setFilename(filename);
-    //    miller->setPartialityModel(model);
         miller->setPhase(phase);
         miller->setLastX(shiftX);
         miller->setLastY(shiftY);
-//        miller->setShift(std::make_pair(shiftX, shiftY));
         miller->matrix = this->matrix;
         
         Reflection *prevReflection;

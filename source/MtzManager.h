@@ -33,7 +33,7 @@ typedef enum
     ScoreTypeSymmetry = 8,
     ScoreTypeStandardDeviation = 9,
     ScoreTypeMinimizeRMeas = 10,
-    ScoreTypeMaximiseArea = 11,
+    ScoreTypeRSplitIntensity = 11,
 } ScoreType;
 
 typedef enum
@@ -147,6 +147,7 @@ public:
 	MtzPtr copy();
 	void loadParametersMap();
 
+    void addMiller(MillerPtr miller);
     void addReflections(vector<Reflection *>reflections);
 	void clearReflections();
 	void addReflection(Reflection *reflection);
@@ -201,6 +202,19 @@ public:
 	void setUnitCell(vector<double> unitCell);
 	void getUnitCell(double *a, double *b, double *c, double *alpha, double *beta,
 			double *gamma);
+    std::vector<double> getUnitCell()
+    {
+        std::vector<double> cell;
+        cell.push_back(cellDim[0]);
+        cell.push_back(cellDim[1]);
+        cell.push_back(cellDim[2]);
+        cell.push_back(cellAngles[0]);
+        cell.push_back(cellAngles[1]);
+        cell.push_back(cellAngles[2]);
+
+        return cell;
+    }
+    
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 

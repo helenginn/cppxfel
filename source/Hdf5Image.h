@@ -24,7 +24,6 @@ private:
     Hdf5ManagerCheetahSaclaPtr chManager;
     Hdf5Table spotTable;
     void createSpotTable();
-    void loadCrystals();
 
 protected:
     
@@ -40,7 +39,8 @@ public:
     
     void writeSpotsList(std::string spotFile);
     void processSpotList();
-    
+    void loadCrystals();
+
     virtual ImageClass getClass()
     {
         return ImageClassHdf5;

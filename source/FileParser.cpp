@@ -392,6 +392,7 @@ void FileParser::generateFunctionList()
     parserMap["INDEXING_TIME_LIMIT"] = simpleInt;
     parserMap["MAX_LATTICES_PER_IMAGE"] = simpleInt;
     parserMap["CHECKING_COMMON_SPOTS"] = simpleBool;
+    parserMap["REJECT_UNDER_SPOT_COUNT"] = simpleInt;
     parserMap["REJECT_IF_SPOT_COUNT"] = simpleInt;
     parserMap["POWDER_PATTERN_STEP"] = simpleFloat;
     parserMap["POWDER_PATTERN_STEP_ANGLE"] = simpleFloat;
@@ -408,6 +409,7 @@ void FileParser::generateFunctionList()
     parserMap["PROBE_DISTANCES"] = doubleVector;
     parserMap["RECIPROCAL_UNIT_CELL"] = doubleVector;
     parserMap["FORCE_SPOT_FINDING"] = simpleBool;
+    parserMap["FORCE_RESTART_POST_REFINEMENT"] = simpleBool;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     

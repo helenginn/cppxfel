@@ -18,7 +18,7 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
 {
     // herr_t H5TBread_table( hid_t loc_id, const char *table_name, size_t dst_size,  const size_t *dst_offset, const size_t *dst_sizes, void *dst_buf )
     
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
     std::string groupOnly = truncateLastComponent(address);
     std::string tableName = lastComponent(address);
@@ -26,7 +26,6 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
     
     if (group < 0)
     {
-        readingHdf5.unlock();
         return 0;
     }
     
@@ -40,7 +39,6 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
     if (error < 0)
     {
         H5Gclose(group);
-        readingHdf5.unlock();
         return 0;
     }
     
@@ -50,7 +48,6 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
 
     if (error < 0)
     {
-        readingHdf5.unlock();
         return 0;
     }
     
@@ -59,22 +56,19 @@ int Hdf5Manager::readSizeForTable(Hdf5Table &table, std::string address)
 //    logged << "Allocating " << totalToAllocate << " bytes to read in table." << std::endl;
 //    sendLog();
     
-    readingHdf5.unlock();
-    
     return totalToAllocate;
 }
 
 
 bool Hdf5Manager::recordsForTable(Hdf5Table &table, std::string address, void *data)
 {
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
     std::string groupOnly = truncateLastComponent(address);
     hid_t group = H5Gopen2(handle, groupOnly.c_str(), H5P_DEFAULT);
     
     if (group < 0)
     {
-        readingHdf5.unlock();
         return 0;
     }
     
@@ -84,11 +78,9 @@ bool Hdf5Manager::recordsForTable(Hdf5Table &table, std::string address, void *d
     
     if (error < 0)
     {
-        readingHdf5.unlock();
         return 0;
     }
     
-    readingHdf5.unlock();
     return true;
 }
 
@@ -96,7 +88,7 @@ bool Hdf5Manager::datasetExists(std::string address)
 {
     hid_t table;
     
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
  //   logged << "Checking if table " << address << " exists." << std::endl;
  //   sendLog();
@@ -107,13 +99,10 @@ bool Hdf5Manager::datasetExists(std::string address)
     
     if (table < 0)
     {
-        readingHdf5.unlock();
         return false;
     }
     
     H5Dclose(table);
-    
-    readingHdf5.unlock();
     
     return true;
 }
@@ -143,8 +132,8 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
      //   logged << "Overwriting existing table." << std::endl;
      //   sendLog();
         
-        readingHdf5.lock();
-
+        std::lock_guard<std::mutex> lg(readingHdf5);
+        
         hsize_t nFields = 0;
         hsize_t nRecords = 0;
         
@@ -180,7 +169,6 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         if (error < 0)
         {
             H5Gclose(group);
-            readingHdf5.unlock();
             return false;
         }
         
@@ -189,7 +177,6 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         if (records_to_delete <= 0)
         {
             H5Gclose(group);
-            readingHdf5.unlock();
             return true;
         }
         
@@ -198,12 +185,10 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         if (error < 0)
         {
             H5Gclose(group);
-            readingHdf5.unlock();
             return false;
         }
         
         H5Gclose(group);
-        readingHdf5.unlock();
         return true;
     }
     
@@ -223,8 +208,8 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
     int compress = table.getCompress();
     void *data = table.getData();
     
-    readingHdf5.lock();
-
+    std::lock_guard<std::mutex> lg(readingHdf5);
+    
     herr_t error = H5TBmake_table(title,
                                   group,
                                   name,
@@ -245,12 +230,10 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
   //      sendLog();
         
         H5Gclose(group);
-        readingHdf5.unlock();
         return true;
     }
     
     H5Gclose(group);
-    readingHdf5.unlock();
     return false;
 }
 
@@ -261,13 +244,12 @@ bool Hdf5Manager::createDataset(std::string address, int nDimensions, hsize_t *d
     if (existsAlready)
         return true;
     
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
     hid_t dataspace_id = dataspace_id = H5Screate_simple(nDimensions, dims, NULL);
 
     if (dataspace_id < 0)
     {
-        readingHdf5.unlock();
         return false;
     }
     
@@ -276,35 +258,29 @@ bool Hdf5Manager::createDataset(std::string address, int nDimensions, hsize_t *d
     
     if (dataset_id < 0)
     {
-        readingHdf5.unlock();
         return false;
     }
     
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
     
-    readingHdf5.unlock();
-    
     return true;
 }
 
 bool Hdf5Manager::writeDataset(std::string address, void **buffer, hid_t type)
 {
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
     hid_t dataset_id = H5Dopen2(handle, address.c_str(), H5P_DEFAULT);
     
     if (dataset_id < 0)
     {
-        readingHdf5.unlock();
         return false;
     }
     
     /* Write the dataset. */
     herr_t status = H5Dwrite(dataset_id, type, H5S_ALL, H5S_ALL, H5P_DEFAULT,
                       buffer);
-
-    readingHdf5.unlock();
 
     return (status >= 0);
 }
@@ -314,7 +290,7 @@ int Hdf5Manager::hdf5MallocBytesForDataset(std::string dataAddress, void **buffe
     size_t sizeSet = 0;
     size_t sizeType = 0;
     
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
     try
     {
@@ -337,11 +313,8 @@ int Hdf5Manager::hdf5MallocBytesForDataset(std::string dataAddress, void **buffe
     }
     catch (std::exception e)
     {
-        readingHdf5.unlock();
         return 0; // failure
     }
-    
-    readingHdf5.unlock();
     
     *buffer = malloc(sizeSet * sizeType);
     
@@ -352,7 +325,7 @@ size_t Hdf5Manager::bytesPerTypeForDatasetAddress(std::string dataAddress)
 {
     hid_t dataset, type;
     
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
     try
     {
@@ -381,14 +354,12 @@ size_t Hdf5Manager::bytesPerTypeForDatasetAddress(std::string dataAddress)
         H5Tclose(type);
     }
     
-    readingHdf5.unlock();
-    
     return sizeType;
 }
 
 bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer)
 {
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
     try
     {
@@ -398,21 +369,17 @@ bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer)
         H5Dclose(dataset);
         H5Tclose(type);
         
-        readingHdf5.unlock();
-        
         return true; // success
     }
     catch (std::exception e)
     {
-        readingHdf5.unlock();
-        
         return false; // failure
     }
 }
 
 void Hdf5Manager::turnOffErrors()
 {
-    return;
+ //   return;
     
     /* Save old error handler */
 //   hid_t error_stack = H5Eget_current_stack();
@@ -427,7 +394,7 @@ void Hdf5Manager::turnOffErrors()
 
 void Hdf5Manager::turnOnErrors()
 {
-    return;
+ //   return;
     
     H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
 }
@@ -467,20 +434,18 @@ void Hdf5Manager::groupsWithPrefix(std::vector<std::string> *list, std::string p
                 
 int Hdf5Manager::getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *type)
 {
-    readingHdf5.lock();
-
+    std::lock_guard<std::mutex> lg(readingHdf5);
+    
     try
     {
         hid_t group = H5Gopen1(handle, address.c_str());
         *type = H5Gget_objtype_by_idx(group, objIdx);
         if (group >= 0)
             H5Gclose(group);
-        readingHdf5.unlock();
         return 1;
     }
     catch (std::exception e)
     {
-        readingHdf5.unlock();
         return 0;
     }
     
@@ -492,10 +457,15 @@ std::vector<H5G_obj_t> Hdf5Manager::getSubGroupTypes(std::string address)
     
     try
     {
-        readingHdf5.lock();
+        std::lock_guard<std::mutex> lg(readingHdf5);
         hid_t groupAll = H5Gopen1(handle, address.c_str());
         hsize_t objectNum = 0;
-        H5Gget_num_objs(groupAll, &objectNum);
+        herr_t error = H5Gget_num_objs(groupAll, &objectNum);
+        
+        if (error < 0)
+        {
+            return types;
+        }
         
         for (int i = 0; i < objectNum; i++)
         {
@@ -512,8 +482,6 @@ std::vector<H5G_obj_t> Hdf5Manager::getSubGroupTypes(std::string address)
 
         // just return something empty
     }
-    
-    readingHdf5.unlock();
 
     return types;
 }
@@ -524,7 +492,7 @@ bool Hdf5Manager::createLastComponentAsGroup(std::string address)
     std::string parentAddress = truncatePath(address, components - 1);
     std::string newGroupName = lastComponent(address);
  
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
     
     hid_t groupAll = H5Gopen1(handle, parentAddress.c_str());
     
@@ -534,36 +502,37 @@ bool Hdf5Manager::createLastComponentAsGroup(std::string address)
         
         if (newGroup < 0)
         {
-            readingHdf5.unlock();
             return false;
         }
         else
         {
-            readingHdf5.unlock();
             H5Gclose(newGroup);
         }
         
         H5Gclose(groupAll);
         
-        readingHdf5.unlock();
         return true;
     }
     else
     {
-        readingHdf5.unlock();
         return false;
     }
 }
 
 std::vector<std::string> Hdf5Manager::getSubGroupNames(std::string address)
 {
-    readingHdf5.lock();
+    std::lock_guard<std::mutex> lg(readingHdf5);
+    
+    std::vector<std::string> names;
     
     hid_t groupAll = H5Gopen(handle, address.c_str(), H5P_DEFAULT);
     hsize_t objectNum = 0;
-    H5Gget_num_objs(groupAll, &objectNum);
+    herr_t error = H5Gget_num_objs(groupAll, &objectNum);
     
-    std::vector<std::string> names;
+    if (error < 0)
+    {
+        return names;
+    }
     
     for (int i = 0; i < objectNum; i++)
     {
@@ -576,15 +545,13 @@ std::vector<std::string> Hdf5Manager::getSubGroupNames(std::string address)
     if (groupAll >= 0)
         H5Gclose(groupAll);
     
-    readingHdf5.unlock();
-
     return names;
 }
 
 bool Hdf5Manager::groupExists(std::string address)
 {
-    readingHdf5.lock();
-
+    std::lock_guard<std::mutex> lg(readingHdf5);
+    
     turnOffErrors();
     
     bool success = false;
@@ -599,8 +566,6 @@ bool Hdf5Manager::groupExists(std::string address)
     
     turnOnErrors();
     
-    readingHdf5.unlock();
-
     return success;
 }
 

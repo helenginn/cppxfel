@@ -165,7 +165,7 @@ void ScalingManager::processReflections(void)
             if (!mtzs[i]->reflection(j)->anyAccepted())
                 continue;
             
-            int refl_id = mtzs[i]->reflection(j)->getReflId();
+            int refl_id = (int)mtzs[i]->reflection(j)->getReflId();
             
             if (mtzs[i]->reflection(j)->getResolution() > 1 / 2.0)
             		continue;

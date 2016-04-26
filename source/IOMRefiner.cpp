@@ -34,9 +34,12 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
 {
     int spgNum = FileParser::getKey("SPACE_GROUP", -1);
     
-    Reflection::setSpaceGroup(spgNum);
+    if (spgNum > 0)
+    {
+        Reflection::setSpaceGroup(spgNum);
+        spaceGroup = ccp4spg_load_by_standard_num(spgNum);
+    }
     
-    spaceGroup = ccp4spg_load_by_standard_num(spgNum);
     initialStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
     
     testWavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
@@ -94,21 +97,18 @@ double IOMRefiner::getWavelength()
 void IOMRefiner::setComplexMatrix()
 {
     complexUnitCell = true;
-    
-    double *unitCellDouble = new double[3];
-    matrix->unitCellLengths(&unitCellDouble);
-    this->unitCell[0] = unitCellDouble[0];
-    this->unitCell[1] = unitCellDouble[1];
-    this->unitCell[2] = unitCellDouble[2];
-    
-    vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-    
+
     if (unitCell.size() == 0)
     {
-        std::cout
-        << "Please provide unit cell dimensions under keyword UNIT_CELL"
-        << std::endl;
-        exit(1);
+        vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+        
+        if (unitCell.size() == 0)
+        {
+            std::cout
+            << "Please provide unit cell dimensions under keyword UNIT_CELL"
+            << std::endl;
+            exit(1);
+        }
     }
     
     bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
@@ -120,8 +120,6 @@ void IOMRefiner::setComplexMatrix()
    
         matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
     }
-    
-    delete [] unitCellDouble;
 }
 
 void IOMRefiner::dropMillers()
@@ -1672,10 +1670,6 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     if (cutoff != 0)
         mtz->cutToResolutionWithSigma(cutoff);
     
-    std::string imgFilename = "img-" + getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz";
-    mtz->writeToFile(imgFilename, true, true, false, true);
-    mtz->writeToDat();
-
     nearbyMillers.clear();
     lastMtz = mtz;
     
@@ -1694,8 +1688,9 @@ IOMRefiner::~IOMRefiner()
     millers.clear();
     vector<MillerPtr>().swap(millers);
     
-    if (spaceGroup != NULL)
-        ccp4spg_free(&spaceGroup);
+    // FIXME: work out when this should and should not be freed
+ //   if (spaceGroup != NULL)
+ //       ccp4spg_free(&spaceGroup);
 }
 
 void IOMRefiner::sendLog(LogLevel priority)

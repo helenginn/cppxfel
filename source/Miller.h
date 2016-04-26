@@ -124,7 +124,6 @@ public:
 	void setData(double _intensity, double _sigma, double _partiality,
 			double _wavelength);
 	void setParent(Reflection *reflection);
-	void setFree(bool newFree);
 	bool positiveFriedel(bool *positive, int *isym = NULL);
 	void setRejected(RejectReason reason, bool rejection);
 	bool isRejected(RejectReason reason);
@@ -137,6 +136,11 @@ public:
 	bool isFree()
     {
         return free;
+    }
+    
+    void setFree(bool newFree)
+    {
+        free = newFree;
     }
     
 	void flip(void);
@@ -404,22 +408,11 @@ public:
     {
         return phase;
     }
-    /*
-    int Miller::noFlipH()
+    
+    void setWavelength(double wave)
     {
-        return h;
+        wavelength = wave;
     }
-
-    int Miller::noFlipK()
-    {
-        return k;
-    }
-
-    int Miller::noFlipL()
-    {
-        return l;
-    }*/
-
 
     static void rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
     static void rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);

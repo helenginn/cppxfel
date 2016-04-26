@@ -20,6 +20,7 @@
 #include "CSV.h"
 #include "Reflection.h"
 #include "Miller.h"
+#include "misc.h"
 
 IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
@@ -560,7 +561,13 @@ int IndexManager::indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset)
         if (successfulImage || alwaysAccept)
         {
             logged << "Successful crystal " << j + 1 << "/" << chosenSolutions.size() << " for " << image->getFilename() << std::endl;
-            mtzSubset->push_back(refiner->newMtz(lastRefiner));
+            MtzPtr newMtz = refiner->newMtz(lastRefiner);
+            mtzSubset->push_back(newMtz);
+            
+            std::string imgFilename = "img-" + image->filenameRoot() + "_" + i_to_str(lastRefiner) + ".mtz";
+            newMtz->writeToFile(imgFilename, true, true, false, true);
+            newMtz->writeToDat();
+
             Logger::mainLogger->addStream(&logged); logged.str("");
             successes++;
         }
