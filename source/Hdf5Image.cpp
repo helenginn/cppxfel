@@ -54,6 +54,9 @@ void Hdf5Image::loadCrystals()
 {
     Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
     
+    if (!processingManager)
+        return;
+    
     std::vector<std::string> addresses = processingManager->getSubGroupNames(imageAddress);
     
     for (int i = 0; i < addresses.size(); i++)
