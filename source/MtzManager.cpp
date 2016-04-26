@@ -301,9 +301,15 @@ void MtzManager::loadParametersMap()
     spotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
     exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
 
+    hRot = 0;
+    kRot = 0;
+    
     int defaultScoreInt = FileParser::getKey("DEFAULT_TARGET_FUNCTION",
                                              (int) DEFAULT_SCORE_TYPE);
     defaultScoreType = (ScoreType) defaultScoreInt;
+    
+    setScale(1);
+    setActiveAmbiguity(0);
     
     maxResolutionAll = FileParser::getKey("MAX_RESOLUTION_ALL",
                                           MAX_OPTIMISATION_RESOLUTION);

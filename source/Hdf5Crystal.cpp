@@ -389,7 +389,6 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     success = millerTable.readFromManager(manager, reflAddress, (void *)millerData);
     int count = 0;
     
-    bool forceRestartPostRefinement = FileParser::getKey("FORCE_RESTART_POST_REFINEMENT", false);
     bool refined = false;
     std::string refinedAddress = Hdf5Manager::concatenatePaths(address, "refined");
     if (manager->datasetExists(refinedAddress))
@@ -397,7 +396,7 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         manager->readDatasetValue(refinedAddress, &refined);
     }
     
-    if (!refined || forceRestartPostRefinement)
+    if (!refined)
     {
         loadParametersMap();
     }

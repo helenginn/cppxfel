@@ -214,6 +214,11 @@ void MtzRefiner::refine()
         }
     }
     
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        mtzManagers[i]->loadParametersMap();
+    }
+    
     originalMerge = reference;
     
     logged << "N: Total crystals loaded: " << mtzManagers.size() << std::endl;
