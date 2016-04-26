@@ -23,6 +23,7 @@
 #include <cctbx/sgtbx/space_group.h>
 #include "Reflection.h"
 #include "Miller.h"
+#include "UnitCellLattice.h"
 
 GraphDrawer::GraphDrawer(MtzManager *mtz)
 {
@@ -675,8 +676,9 @@ void GraphDrawer::plotPartialityStats(int h, int k, int l)
 
 void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 {
-    cctbx::miller::index<> genericIndex = cctbx::miller::index<>(0, 0, 1);
-    cctbx::sgtbx::space_group *spaceGroup = mtzs[0]->reflection(0)->getSpaceGroup();
+    CCP4SPG *spaceGroup = mtzs[0]->getLowGroup();
+    UnitCellLattice lattice = UnitCellLattice(100, 100, 100, 90, 90, 90, spaceGroup->spg_num);
+    
     
     vector<double> xs, ys, zs;
     
@@ -684,43 +686,14 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
     {
         MatrixPtr matrix = mtzs[i]->getMatrix();
         
-        cctbx::miller::sym_equiv_indices indices = cctbx::miller::sym_equiv_indices(*spaceGroup, genericIndex);
-        
-        cctbx::miller::index<double> position = matrix->multiplyIndex(&genericIndex);
-        
-        vec pos = new_vector(position[0], position[1], position[2]);
-        scale_vector_to_distance(&pos, 1);
-        
-        std::cout << mtzs[i]->getFilename() << "\t" << pos.h << "\t" << pos.k << "\t" << pos.l << std::endl;
-    }
-
-    for (int i = 0; i < mtzs.size(); i++)
-    {
-        MatrixPtr matrix = mtzs[i]->getMatrix();
-        
-        cctbx::miller::sym_equiv_indices indices = cctbx::miller::sym_equiv_indices(*spaceGroup, genericIndex);
-        
-   //     unsigned long size = indices.indices().size();
-        
-   //     cctbx::miller::index<double> position = matrix->multiplyIndex(&genericIndex);
-        
-     //   double h = position[0];
-     //   double k = position[1];
-     //   double l = position[2];
-        
-        /*
-        for (int i = 0; i < size; i++)
+        for (int j = 0; j < lattice.symOperatorCount(); j++)
         {
-            cctbx::miller::index<> asymIndex = indices.indices()[i].h();
-            cctbx::miller::index<double> position = matrix->multiplyIndex(&asymIndex);
+            MatrixPtr op = lattice.symOperator(j);
             
-            xs.push_back(position[0]);
-            ys.push_back(position[1]);
-            zs.push_back(position[2]);
-            
-            std::cout << position[0] << "\t" << position[1] << "\t" << position[2] << std::endl;
-            std::cout << -position[0] << "\t" << -position[1] << "\t" << -position[2] << std::endl;
-        }*/
+            MatrixPtr mat2 = matrix->copy();
+            matrix->preMultiply(*op);
+            std::cout << mtzs[i]->getFilename() << "\t" << mat2->summary() << std::endl;
+        }
     }
 }
 
