@@ -55,28 +55,28 @@ void Hdf5Crystal::writeReflectionData(std::string address)
         for (int j = 0; j < reflection(i)->millerCount(); j++)
         {
             MillerPtr miller = reflection(i)->miller(j);
+            Hdf5Miller *oneMiller = &millerData[count];
             
-            millerData[i].h = miller->getH();
-            millerData[i].k = miller->getK();
-            millerData[i].l = miller->getL();
-            millerData[i].free = miller->isFree();
-            millerData[i].rawIntensity = miller->getRawestIntensity();
-            millerData[i].sigma = miller->getSigma();
-            millerData[i].countingSigma = miller->getRawCountingSigma();
-            millerData[i].partiality = miller->getPartiality();
-            millerData[i].wavelength = miller->getWavelength();
-            millerData[i].resolution = miller->resolution();
-            millerData[i].phase = miller->getPhase();
-            millerData[i].bFactor = miller->getBFactor();
-            millerData[i].partialCutoff = miller->getPartialCutoff();
-            millerData[i].lastX = miller->getLastX();
-            millerData[i].lastY = miller->getLastY();
-            millerData[i].shiftX = miller->getShift().first;
-            millerData[i].shiftY = miller->getShift().second;
-            millerData[i].rejectReason = miller->getRejectedReason();
+            oneMiller->h = miller->getH();
+            oneMiller->k = miller->getK();
+            oneMiller->l = miller->getL();
+            oneMiller->free = miller->isFree();
+            oneMiller->rawIntensity = miller->getRawestIntensity();
+            oneMiller->sigma = miller->getSigma();
+            oneMiller->countingSigma = miller->getRawCountingSigma();
+            oneMiller->partiality = miller->getPartiality();
+            oneMiller->wavelength = miller->getWavelength();
+            oneMiller->resolution = miller->resolution();
+            oneMiller->phase = miller->getPhase();
+            oneMiller->bFactor = miller->getBFactor();
+            oneMiller->partialCutoff = miller->getPartialCutoff();
+            oneMiller->lastX = miller->getLastX();
+            oneMiller->lastY = miller->getLastY();
+            oneMiller->shiftX = miller->getShift().first;
+            oneMiller->shiftY = miller->getShift().second;
+            oneMiller->rejectReason = miller->getRejectedReason();
+            count++;
         }
-        
-        count++;
     }
     
     millerTable.setData(millerData);
