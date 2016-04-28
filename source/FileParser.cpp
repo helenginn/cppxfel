@@ -420,7 +420,7 @@ void FileParser::generateFunctionList()
     parserMap["COMMON_CIRCLE_ANGLE_RANGE"] = doubleVector;
     parserMap["RANDOM_SEED"] = simpleInt;
     
-    parserMap["PNG_TOTAL"] = simpleFloat;
+    parserMap["PNG_TOTAL"] = simpleInt;
     parserMap["PNG_THRESHOLD"] = simpleFloat;
     
 	parserMap["PANEL_LIST"] = simpleString;
