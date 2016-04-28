@@ -2324,7 +2324,7 @@ void Image::writePNG(PNGFilePtr file)
             
             PanelPtr panel = lastPanel;
             
-            if (panel)
+        //    if (panel)
             {
                 Coord shifted = lastPanel->shiftSpot(coord);
                 
@@ -2333,7 +2333,7 @@ void Image::writePNG(PNGFilePtr file)
                     panel = Panel::panelForSpotCoord(coord);
                 }
             }
-            else
+         //   else
             {
                 panel = Panel::panelForSpotCoord(coord);
             }

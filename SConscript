@@ -27,7 +27,7 @@ if (not env_etc.no_boost_python and hasattr(env_etc, "boost_adaptbx_include")):
 		"boost_python",
 		"cctbx",
 		"ccp4io"])
-    env.Replace(SHCCFLAGS=['-std=c++0x', '-fPIC', '-O3'])
+    env.Replace(SHCCFLAGS=['-std=c++0x', '-fPIC', '-O3', '-g'])
     
 if env_etc.clang_version:
   wd = ["-Wno-unused-variable"]
