@@ -20,66 +20,41 @@ typedef enum
     FlagNone, FlagThreshold
 } Flag;
 
-typedef png_byte DataPoint;
-
-typedef std::pair<int, int> Coord;
-typedef std::vector<Coord> CoordList;
-typedef std::vector<CoordList> CoordLists;
-
-typedef std::map<int, DataPoint> DataRow;
-typedef std::map<int, DataRow> DataBlock;
-typedef std::map<int, std::map<int, Flag> > FlagBlock;
-
 class PNGFile
 {
 private:
-    DataBlock data;
-    FlagBlock flags;
-    int channel;
+    png_bytep data;
     int height;
-    int rejectCount;
+    int centreX;
+    int centreY;
     std::string filename;
     std::string rootName;
-    bool brightness;
     int bytesPerPixel;
     int pixelsPerRow;
-    int columnCount;
     int writeImage(std::string filename, int width, int height, std::string title);
     void read_png_file(const char *file_name);
     void pixelAt(int x, int y, png_byte **bytes);
     png_byte valueAt(int x, int y);
-    Flag flagAt(int x, int y);
-    void setFlag(int x, int y, Flag flag);
     bool pixelReachesThreshold(int x, int y);
     void setPixelColour(int x, int y, png_byte red, png_byte green, png_byte blue);
-    void setPixelsForChannel(std::vector<Coord> coords, int channel, png_byte value);
     void setPixelForChannel(int x, int y, int channel, png_byte value);
-    int totalPixelCount(std::vector<CoordList> &coordLists);
-    void setPixelsColour(CoordList coords, png_byte red, png_byte green, png_byte blue);
-    void setFlags(int x, int y, int add, Flag flag);
-    void getImage();
+    void readImage();
+    void moveCoordRelative(int *x, int *y);
 public:
-    
-    void setChannel(int newChannel)
-    {
-        channel = newChannel;
-    }
-    
-    void setRejectCount(int count)
-    {
-        rejectCount = count;
-    }
-    
-    void setBrightness(bool bright)
-    {
-        brightness = bright;
-    }
-    
     void dropImage();
     void preProcess();
     void writeImageOutput();
     void process();
-    PNGFile(std::string filename);
+    void setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue);
+    void drawCircleAroundPixel(int x, int y, float radius, png_byte red, png_byte green, png_byte blue);
+    
+    PNGFile(std::string filename, int width = 2400, int height = 2400);
+    
+    void setCentre(int newX, int newY)
+    {
+        centreX = newX;
+        centreY = newY;
+    }
 };
 
 

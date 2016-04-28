@@ -331,6 +331,8 @@ Coord Spot::getXY()
     {
         shift.first = 0;
         shift.second = 0;
+        swivelShift.first = 0;
+        swivelShift.second = 0;
     }
 
     Coord translated = std::make_pair(x - shift.first, y - shift.second);

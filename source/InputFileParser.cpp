@@ -205,6 +205,7 @@ void InputFileParser::parse(bool fromPython)
             if (line == "LOAD_MTZ_FILES")
             {
                 understood = true;
+                refiner->loadPanels();
                 refiner->readMatricesAndMtzs();
             }
             
@@ -279,6 +280,12 @@ void InputFileParser::parse(bool fromPython)
             {
                 understood = true;
                 refiner->radialAverage();
+            }
+            
+            if (line == "WRITE_PNGS")
+            {
+                understood = true;
+                refiner->writePNGs();
             }
             
             if (!understood)

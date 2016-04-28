@@ -23,6 +23,8 @@
 #include "CSV.h"
 #include "polyfit.hpp"
 #include "SolventMask.h"
+#include "PNGFile.h"
+#include "Miller.h"
 
 Image::Image(std::string filename, double wavelength,
              double distance)
@@ -301,8 +303,6 @@ int Image::valueAt(int x, int y)
     }
     
     int position = y * xDim + x;
-    
-    
     
     if (!useShortData)
     {
@@ -2231,4 +2231,122 @@ void Image::radialAverage()
     sendLog();
     
     dropImage();
+}
+
+double Image::standardDeviationOfPixels()
+{
+    std::vector<double> values;
+    
+    for (int i = 0; i < xDim; i++)
+    {
+        for (int j = 0; j < yDim; j++)
+        {
+            int value = valueAt(i, j);
+            values.push_back(value);
+        }
+    }
+    
+    return standard_deviation(&values);
+}
+
+void Image::drawSpotsOnPNG()
+{
+    if (!loadedSpots)
+    {
+        processSpotList();
+    }
+    
+    std::string filename = getBasename() + ".png";
+    PNGFilePtr file = PNGFilePtr(new PNGFile(filename));
+    writePNG(file);
+    
+    for (int i = 0; i < spotCount(); i++)
+    {
+        Coord coord = spot(i)->getXY();
+        
+        file->drawCircleAroundPixel(coord.first, coord.second, 14, 0, 0, 0);
+    }
+    
+    file->writeImageOutput();
+}
+
+void Image::drawMillersOnPNG(int crystalNum)
+{
+    std::string filename = getBasename() + "_" + i_to_str(crystalNum) + ".png";
+    PNGFilePtr file = PNGFilePtr(new PNGFile(filename));
+    writePNG(file);
+    
+    MtzPtr myMtz = mtz(crystalNum);
+    
+    for (int i = 0; i < myMtz->reflectionCount(); i++)
+    {
+        for (int j = 0; j < myMtz->reflection(i)->millerCount(); j++)
+        {
+            MillerPtr myMiller = myMtz->reflection(i)->miller(j);
+            
+            Coord predicted = myMiller->getLastXY();
+            Coord shift = myMiller->getShift();
+            
+            predicted.first += shift.first;
+            predicted.second += shift.second;
+            
+            file->drawCircleAroundPixel(predicted.first, predicted.second, 14, 0, 0, 0);
+        }
+    }
+    
+    file->writeImageOutput();
+}
+
+void Image::writePNG(PNGFilePtr file)
+{
+    file->setCentre(beamX, beamY);
+    
+    double defaultThreshold = standardDeviationOfPixels() * 5; // calculate
+    
+    double threshold = FileParser::getKey("PNG_THRESHOLD", defaultThreshold);
+    
+    PanelPtr lastPanel = PanelPtr();
+    
+    for (int i = 0; i < xDim; i++)
+    {
+        for (int j = 0; j < yDim; j++)
+        {
+            double value = valueAt(i, j);
+            unsigned char pixelValue = std::min(value, threshold) * 255 / threshold;
+            pixelValue = 255 - pixelValue;
+            
+          //  std::cout << (int)pixelValue << ", ";
+            
+            Coord coord = std::make_pair(i, j);
+            
+            //Panel::translationShiftForSpot(this);
+            //panel->getSwivelShift(spot->getRawXY(), true);
+            
+            PanelPtr panel = lastPanel;
+            
+            if (panel)
+            {
+                Coord shifted = lastPanel->shiftSpot(coord);
+                
+                if (!panel->isCoordInPanel(shifted))
+                {
+                    panel = Panel::panelForSpotCoord(coord);
+                }
+            }
+            else
+            {
+                panel = Panel::panelForSpotCoord(coord);
+            }
+            
+            if (panel)
+            {
+                lastPanel = panel;
+                
+                Coord realPosition = panel->realCoordsForImageCoord(coord);
+                file->setPixelColourRelative(realPosition.first, realPosition.second, pixelValue, pixelValue, pixelValue);
+            }
+        }
+        
+    //    std::cout << std::endl;
+    }
 }

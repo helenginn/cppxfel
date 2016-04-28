@@ -12,6 +12,8 @@
 #include <iostream>
 #include "misc.h"
 #include <iomanip>
+#include "FileReader.h"
+#include <cmath>
 
 int PNGFile::writeImage(std::string filename, int width, int height, std::string title)
 {
@@ -71,14 +73,13 @@ int PNGFile::writeImage(std::string filename, int width, int height, std::string
     png_write_info(png_ptr, info_ptr);
     
     // Allocate memory for one row (3 bytes per pixel - RGB)
-    row = (png_bytep) malloc(3 * width * sizeof(png_byte));
+    row = (png_bytep) malloc(bytesPerPixel * width * sizeof(png_byte));
     
     // Write image data
-    int x, y;
-    for (y=0 ; y<height ; y++) {
-        for (x=0 ; x<width * bytesPerPixel; x++) {
-            row[x] = data[y][x];
-        }
+
+    for (int y = 0 ; y < height ; y++)
+    {
+        png_bytep row = &data[y * pixelsPerRow * bytesPerPixel];
         png_write_row(png_ptr, row);
     }
     
@@ -93,12 +94,12 @@ finalise:
     
     return code;
 }
-
+/*
 void PNGFile::read_png_file(const char *file_name)
 {
     png_byte header[8];
     
-    /* open file and test it for begina  png */
+    // open file and test it for begina  png
     FILE *fp = fopen(file_name, "rb");
     if (!fp)
     {
@@ -114,8 +115,8 @@ void PNGFile::read_png_file(const char *file_name)
         return;
     }
     
-    /* initialize stuff */
-    
+    // initialize stuff
+
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     
     if (!png_ptr)
@@ -147,12 +148,12 @@ void PNGFile::read_png_file(const char *file_name)
     png_uint_32 width = png_get_image_width(png_ptr, info_ptr);
     png_uint_32 height = png_get_image_height(png_ptr, info_ptr);
     png_byte color_type = png_get_color_type(png_ptr, info_ptr);
-    png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
+//    png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
     
 //    int number_of_passes = png_set_interlace_handling(png_ptr);
     png_read_update_info(png_ptr, info_ptr);
     
-    /* read file */
+    // read file
     
     if (setjmp(png_jmpbuf(png_ptr)))
     {
@@ -183,8 +184,6 @@ void PNGFile::read_png_file(const char *file_name)
         offset += height;
     }
     
-    columnCount = height;
-    
     bytesPerPixel = (double)rowBytes / (double)width;
     
     if (color_type == 3)
@@ -197,26 +196,22 @@ void PNGFile::read_png_file(const char *file_name)
         bytesPerPixel = 3;
     if (color_type == 6)
         bytesPerPixel = 4;
-    
-    pixelsPerRow = width;
-}
+}*/
 
-PNGFile::PNGFile(std::string filename)
+PNGFile::PNGFile(std::string filename, int width, int height)
 {
     // set data using libpng...
     // data =
     
-    height = 0;
-    rejectCount = 40;
-    bytesPerPixel = 4; // change
-    pixelsPerRow = 500; // change
-    columnCount = 500; // change
-    brightness = false;
-    channel = 2;
+    this->height = height;
+    bytesPerPixel = 3; // change
+    pixelsPerRow = width; // change
     this->filename = filename;
     
-    std::cout << "Loading " << filename << std::endl;
-    getImage();
+    size_t arraySize = sizeof(png_byte) * bytesPerPixel * height * pixelsPerRow;
+    
+    data = (png_bytep)malloc(arraySize);
+    memset(data, 255, arraySize);
     
     rootName = getBaseFilename(filename);
 }
@@ -224,112 +219,86 @@ PNGFile::PNGFile(std::string filename)
 void PNGFile::writeImageOutput()
 {
     std::string title = rootName;
-    std::string file = getPath(filename) + "counted_" + rootName + ".png";
+    std::string file = FileReader::addOutputDirectory(filename);
     
     writeImage(file, pixelsPerRow, height, title);
 }
 
 png_byte PNGFile::valueAt(int x, int y)
 {
-    getImage();
-    
     png_byte *bytes = new png_byte[bytesPerPixel];
     pixelAt(x, y, &bytes);
     int value = 0;
     
-    if (!brightness)
+    for (int i = 0; i < bytesPerPixel; i++)
     {
-        value = bytes[channel];
+        value += bytes[i];
     }
-    else
-    {
-        for (int i = 0; i < bytesPerPixel; i++)
-        {
-            value += bytes[i];
-        }
-        
-        value /= bytesPerPixel;
-    }
+    
+    value /= bytesPerPixel;
     
     return value;
 }
 
 void PNGFile::pixelAt(int x, int y, png_byte **bytes)
 {
-    int realX = x * bytesPerPixel;
+    int offset = y * bytesPerPixel * pixelsPerRow +  x * bytesPerPixel;
     
-    png_byte *pngBytes = new png_byte[bytesPerPixel];
+    *bytes = &data[offset];
     
-    for (int i = 0; i < bytesPerPixel; i++)
-    {
-        pngBytes[i] = data[y][realX + i];
-    }
-    
-    memcpy(*bytes, pngBytes, bytesPerPixel);
-    
-  //  std::cout << int((*bytes)[0]) << " " << int((*bytes)[1]) << " " << int((*bytes)[2]) << std::endl;
-
-    delete [] pngBytes;
 }
 
-void PNGFile::setPixelsColour(CoordList coords, png_byte red, png_byte green, png_byte blue)
+void PNGFile::moveCoordRelative(int *x, int *y)
 {
-    for (int i = 0; i < coords.size(); i++)
-    {
-        setPixelColour(coords[i].first, coords[i].second, red, green, blue);
-    }
+    *x += pixelsPerRow / 2 - centreX;
+    *y += height / 2 - centreY;
 }
 
-void PNGFile::setPixelsForChannel(std::vector<Coord> coords, int channel, png_byte value)
+void PNGFile::setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue)
 {
-    for (int i = 0; i < coords.size(); i++)
-    {
-        setPixelForChannel(coords[i].first, coords[i].second, channel, value);
-    }
+    moveCoordRelative(&x, &y);
+    
+    setPixelColour(x, y, red, green, blue);
 }
 
 void PNGFile::setPixelColour(int x, int y, png_byte red, png_byte green, png_byte blue)
 {
-    int realX = x * bytesPerPixel;
+    int offset = y * bytesPerPixel * pixelsPerRow +  x * bytesPerPixel;
     
-    data[y][realX] = red;
-    data[y][realX + 1] = green;
-    data[y][realX + 2] = blue;
+    data[offset] = red;
+    data[offset + 1] = green;
+    data[offset + 2] = blue;
 }
 
 void PNGFile::setPixelForChannel(int x, int y, int channel, png_byte value)
 {
-    int realX = x * bytesPerPixel + channel;
+    int offset = y * bytesPerPixel * pixelsPerRow +  x * bytesPerPixel + channel;
     
-    data[y][realX] = value;
+    data[offset] = value;
 }
 
-Flag PNGFile::flagAt(int x, int y)
+void PNGFile::drawCircleAroundPixel(int x, int y, float radius, png_byte red, png_byte green, png_byte blue)
 {
-    if (flags.count(x) == 0 || flags[x].count(y) == 0)
-        return FlagNone;
-    else return flags[x][y];
-}
-
-void PNGFile::setFlag(int x, int y, Flag flag)
-{
-    flags[x][y] = flag;
-}
-
-void PNGFile::getImage()
-{
-    if (data.size() == 0)
-        read_png_file(filename.c_str());
+    moveCoordRelative(&x, &y);
+    double radiusSqr = radius * radius;
+    double minDiff = radiusSqr - pow(radius - 1.5, 2);
+    
+    for (int i = x - radius; i <= x + radius; i++)
+    {
+        for (int j = y - radius; j <= y + radius; j++)
+        {
+            double distSqr = pow(i - x, 2) + pow(j - y, 2);
+            double diff = fabs(distSqr - radiusSqr);
+            
+            if (diff < minDiff)
+            {
+                setPixelColour(i, j, red, green, blue);
+            }
+        }
+    }
 }
 
 void PNGFile::dropImage()
 {
-    for (DataBlock::iterator it = data.begin(); it != data.end(); it++)
-    {
-        data[it->first].clear();
-        DataRow().swap(data[it->first]);
-    }
-    
-    data.clear();
-    DataBlock().swap(data);
+    free(data);
 }

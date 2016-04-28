@@ -94,6 +94,7 @@ private:
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
     double resolutionAtPixel(double x, double y);
 protected:
+    double standardDeviationOfPixels();
     std::vector<SpotPtr> spots;
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     virtual bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
@@ -105,7 +106,8 @@ protected:
     vector<int> data;
     bool useShortData;
     // end of should be a template
-    
+    void writePNG(PNGFilePtr file);
+
 public:
     void incrementOverlapMask(int x, int y, ShoeboxPtr shoebox);
     void incrementOverlapMask(int x, int y);
@@ -141,6 +143,8 @@ public:
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
     void radialAverage();
     void integrateSpots();
+    void drawMillersOnPNG(int crystalNum);
+    void drawSpotsOnPNG();
     
 	const std::string& getFilename() const
 	{
@@ -389,6 +393,7 @@ public:
     {
         mtzs.push_back(newMtz);
     }
+    
     
     int mtzCount()
     {

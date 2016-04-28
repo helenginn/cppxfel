@@ -1992,3 +1992,34 @@ int MtzRefiner::imageSkip(size_t totalCount)
     
     return skip;
 }
+
+void MtzRefiner::writePNGs(int total)
+{
+    if (!images.size())
+    {
+        loadPanels();
+        readMatricesAndImages();
+    }
+    
+    if (total == 0)
+    {
+        total = FileParser::getKey("PNG_TOTAL", 10);
+    }
+    
+    int totalImages = (int)images.size();
+    int skip = totalImages / total;
+    
+    if (skip == 0)
+        skip = 1;
+    
+    for (int i = 0; i < totalImages; i += skip)
+    {
+        images[i]->drawSpotsOnPNG();
+    
+        for (int j = 0; j < images[i]->mtzCount(); j++)
+        {
+            images[i]->drawMillersOnPNG(j);
+        }
+    }
+    
+}

@@ -111,6 +111,7 @@ public:
     void radialAverage();
     void integrateSpots();
     
+    void writePNGs(int total = 0);
 };
 
 #endif /* MTZREFINER_H_ */

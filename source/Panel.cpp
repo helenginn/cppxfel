@@ -370,10 +370,8 @@ Coord Panel::shiftSpot(Coord xy)
     return translated;
 }
 
-PanelPtr Panel::panelForSpot(Spot *spot)
+PanelPtr Panel::panelForSpotCoord(Coord coord)
 {
-    Coord coord = spot->getRawXY();
-    
     for (int i = 0; i < badPanels.size(); i++)
     {
         Coord shifted = badPanels[i]->shiftSpot(coord);
@@ -388,7 +386,6 @@ PanelPtr Panel::panelForSpot(Spot *spot)
     {
         Coord shifted = panels[i]->shiftSpot(coord);
         
-        
         if (panels[i]->isCoordInPanel(shifted))
         {
             return panels[i];
@@ -396,8 +393,13 @@ PanelPtr Panel::panelForSpot(Spot *spot)
     }
     
     return PanelPtr();
+}
+
+PanelPtr Panel::panelForSpot(Spot *spot)
+{
+    Coord coord = spot->getRawXY();
     
-    return panelForCoord(coord);
+    return panelForSpotCoord(coord);
 }
 
 PanelPtr Panel::panelForCoord(Coord coord)
@@ -496,6 +498,18 @@ Coord Panel::shiftForMiller(Miller *miller)
         return std::make_pair(FLT_MAX, FLT_MAX);
     
     return panel->getTotalShift(miller->getLastXY());
+}
+
+Coord Panel::realCoordsForImageCoord(Coord xy)
+{
+    Coord shift = bestShift;
+    Coord swivelShift = getSwivelShift(xy, true);
+    
+    Coord translated = std::make_pair(xy.first - shift.first, xy.second - shift.second);
+    translated.first += swivelShift.first;
+    translated.second += swivelShift.second;
+    
+    return translated;
 }
 
 Coord Panel::translationShiftForSpot(Spot *spot)

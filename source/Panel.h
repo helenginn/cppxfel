@@ -48,8 +48,7 @@ private:
     Coord getSwivelShift(Coord millerCoord, bool isSpot = false);
     Coord getTiltShift(Coord millerCoord);
 	Coord getTotalShift(Coord millerCoord, bool isMiller = false);
-    Coord shiftSpot(Coord xy);
-
+    
     void fractionalCoordinates(Coord coord, Coord *frac);
     void fractionalCoordinates(Miller *miller, Coord *frac);
 
@@ -92,8 +91,10 @@ public:
 	static void addMillerToPanelArray(MillerPtr miller);
 	static PanelPtr panelForMiller(Miller *miller);
     static PanelPtr panelForSpot(Spot *spot);
+    static PanelPtr panelForSpotCoord(Coord coord);
     static PanelPtr panelForCoord(Coord coord);
-	static void setupPanel(PanelPtr panel);
+    Coord shiftSpot(Coord xy);
+    static void setupPanel(PanelPtr panel);
     static void removePanel(PanelPtr panel);
 	void plotVectors(int i, PlotType plotType);
 	static void plotAll(PlotType plotType);
@@ -101,6 +102,7 @@ public:
     void finaliseMillerArray();
     static void finaliseMillerArrays();
     static Coord shiftForMiller(Miller *miller);
+    Coord realCoordsForImageCoord(Coord xy);
     static Coord translationShiftForSpot(Spot *spot);
     static Coord swivelShiftForSpot(Spot *spot);
     static double scaleForMiller(Miller *miller);
