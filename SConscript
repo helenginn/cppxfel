@@ -81,6 +81,7 @@ source = [
 'source/NelderMead.cpp',
 'source/Panel.cpp',
 'source/PanelParser.cpp',
+'source/PNGFile.cpp',
 'source/PythonExt.cpp',
 'source/ReflectionManager.cpp',
 'source/ScalingManager.cpp',
@@ -99,4 +100,4 @@ source = [
 env.SharedLibrary(
     target='#/lib/cppxfel_ext', 
     source=source,
-    LIBS=env["LIBS"] + ['hdf5'] + ['hdf5_hl'])
+    LIBS=env["LIBS"] + ['hdf5'] + ['hdf5_hl'] + ['png'])

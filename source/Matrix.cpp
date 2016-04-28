@@ -226,12 +226,14 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
     
     std::ostringstream logged;
     
+    logged << "Number of symmetry operators for spg " << spaceGroup->spg_num << ": " << allOps.size() << std::endl;
+    
     for (int j = 0; j < allOps.size(); j++)
     {
         rot_mx rotation = allOps[j].r();
         cctbx::uc_mat3 orthogonal_rotation = uc.matrix_cart(rotation);
         
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i < 1; i++)
         {
             MatrixPtr newMat = MatrixPtr(new Matrix());
             
@@ -246,13 +248,27 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
             newMat->components[2] = orthogonal_rotation[6];
             newMat->components[6] = orthogonal_rotation[7];
             newMat->components[10] = orthogonal_rotation[8];
-
+            
+            for (int i = 0; i < 9; i+= 3)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    logged << orthogonal_rotation[i + j] << " ";
+                }
+                
+                logged << std::endl;
+            }
+            
+            logged << std::endl;
+            
             MatrixPtr transposeMat = newMat->copy();
             matrices->push_back(transposeMat->transpose());
             MatrixPtr transNegMat = transposeMat->getNegativeCopy();
             matrices->push_back(transNegMat);
         }
     }
+    
+    Logger::log(logged);
 }
 
 void Matrix::printDescription(bool detailed)
