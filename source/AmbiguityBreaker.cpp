@@ -202,6 +202,17 @@ void AmbiguityBreaker::printResults()
 
 void AmbiguityBreaker::breakAmbiguity()
 {
+    bool trustAnyway = FileParser::getKey("TRUST_INDEXING_SOLUTION", false);
+    
+    if (trustAnyway)
+    {
+        std::ostringstream logged;
+        logged << "TRUST_INDEXING_SOLUTION is set to ON so ambiguity breaking is skipped." << std::endl;
+        Logger::log(logged);
+        
+        return;
+    }
+    
     int n = ambiguityCount * (int)mtzs.size();
 
     std::ostringstream logged;
