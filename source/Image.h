@@ -404,6 +404,26 @@ public:
     {
         return mtzs[i];
     }
+    
+    short int *getShortDataPtr()
+    {
+        if (!shortData.size())
+        {
+            return NULL;
+        }
+        
+        return &shortData[0];
+    }
+    
+    int *getDataPtr()
+    {
+        if (!data.size())
+        {
+            return NULL;
+        }
+        
+        return &data[0];
+    }
 };
 
 #endif /* IMAGE_H_ */

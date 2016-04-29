@@ -21,7 +21,6 @@ int PNGFile::writeImage(std::string filename, int width, int height, std::string
     FILE *fp = NULL;
     png_structp png_ptr = NULL;
     png_infop info_ptr = NULL;
-    png_bytep row = NULL;
     
     // Open file for writing (binary mode)
     fp = fopen(filename.c_str(), "wb");
@@ -72,9 +71,6 @@ int PNGFile::writeImage(std::string filename, int width, int height, std::string
     
     png_write_info(png_ptr, info_ptr);
     
-    // Allocate memory for one row (3 bytes per pixel - RGB)
-    row = (png_bytep) malloc(bytesPerPixel * width * sizeof(png_byte));
-    
     // Write image data
 
     for (int y = 0 ; y < height ; y++)
@@ -87,10 +83,21 @@ int PNGFile::writeImage(std::string filename, int width, int height, std::string
     png_write_end(png_ptr, NULL);
     
 finalise:
-    if (fp != NULL) fclose(fp);
-    if (info_ptr != NULL) png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
-    if (png_ptr != NULL) png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-    if (row != NULL) free(row);
+    if (fp != NULL)
+    {
+        fclose(fp);
+    }
+        
+    if (info_ptr != NULL)
+    {
+        png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
+    }
+    
+    if (png_ptr != NULL)
+    {
+        png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
+
+    }
     
     return code;
 }
@@ -261,9 +268,25 @@ void PNGFile::setPixelColourRelative(int x, int y, png_byte red, png_byte green,
     setPixelColour(x, y, red, green, blue);
 }
 
-void PNGFile::setPixelColour(int x, int y, png_byte red, png_byte green, png_byte blue)
+void PNGFile::setPixelColour(int x, int y, png_byte red, png_byte green, png_byte blue, float transparency)
 {
     int offset = y * bytesPerPixel * pixelsPerRow +  x * bytesPerPixel;
+    
+    if (offset < 0 || offset >= bytesPerPixel * pixelsPerRow * height)
+    {
+        return;
+    }
+    
+    if (transparency < 1)
+    {
+        png_byte currentRed = data[offset];
+        png_byte currentGreen = data[offset + 1];
+        png_byte currentBlue = data[offset + 2];
+        
+        red = currentRed + (red - currentRed) * transparency;
+        green = currentGreen + (green - currentGreen) * transparency;
+        blue = currentBlue + (blue - currentBlue) * transparency;
+    }
     
     data[offset] = red;
     data[offset + 1] = green;
@@ -277,7 +300,7 @@ void PNGFile::setPixelForChannel(int x, int y, int channel, png_byte value)
     data[offset] = value;
 }
 
-void PNGFile::drawCircleAroundPixel(int x, int y, float radius, png_byte red, png_byte green, png_byte blue)
+void PNGFile::drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue)
 {
     moveCoordRelative(&x, &y);
     double radiusSqr = radius * radius;
@@ -292,7 +315,7 @@ void PNGFile::drawCircleAroundPixel(int x, int y, float radius, png_byte red, pn
             
             if (diff < minDiff)
             {
-                setPixelColour(i, j, red, green, blue);
+                setPixelColour(i, j, red, green, blue, transparency);
             }
         }
     }

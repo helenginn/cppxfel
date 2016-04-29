@@ -405,6 +405,10 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
     }
     
     csv.writeToFile(filename);
+    std::ostringstream logged;
+    logged << "Written " << spots.size() << " spots to " << filename << std::endl;
+    Logger::log(logged);
+    
     //csv.plotColumns(6, 7);
     
 //    dat.close();

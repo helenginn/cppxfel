@@ -436,6 +436,8 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         }
         miller->setMatrix(this->matrix);
         
+   //     std::cout << data->h << ", " << data->k << ", " << data->l << "\t" << data->partiality << std::endl;
+        
         count++;
         addMiller(miller);
     }

@@ -1591,6 +1591,9 @@ void MtzRefiner::integrate()
 void MtzRefiner::integrationSummary()
 {
     std::ostringstream refineSummary;
+
+    int imageCount = images.size();
+    int iomRefinerCount = 0;
     
     refineSummary << IOMRefiner::refinementSummaryHeader() << std::endl;
 
@@ -1599,6 +1602,8 @@ void MtzRefiner::integrationSummary()
         for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
         {
             refineSummary << images[i]->getIOMRefiner(j)->refinementSummary() << std::endl;
+            
+            iomRefinerCount++;
         }
     }
     
@@ -1611,6 +1616,9 @@ void MtzRefiner::integrationSummary()
     summaryCSV.open("integration.csv");
     summaryCSV << summaryString;
     summaryCSV.close();
+    
+    float percentage = iomRefinerCount / imageCount;
+    logged << "Indexed " << iomRefinerCount << " images out of " << imageCount << " (" << std::setprecision(1) << percentage << "%)." << std::endl;
     
     Logger::mainLogger->addString("Written integration summary to integration.csv");
     
@@ -1995,9 +2003,10 @@ int MtzRefiner::imageSkip(size_t totalCount)
 
 void MtzRefiner::writePNGs(int total)
 {
+    loadPanels();
+
     if (!images.size())
     {
-        loadPanels();
         readMatricesAndImages();
     }
     

@@ -36,7 +36,7 @@ private:
     void pixelAt(int x, int y, png_byte **bytes);
     png_byte valueAt(int x, int y);
     bool pixelReachesThreshold(int x, int y);
-    void setPixelColour(int x, int y, png_byte red, png_byte green, png_byte blue);
+    void setPixelColour(int x, int y, png_byte red, png_byte green, png_byte blue, float transparency = 1);
     void setPixelForChannel(int x, int y, int channel, png_byte value);
     void readImage();
     void moveCoordRelative(int *x, int *y);
@@ -46,7 +46,7 @@ public:
     void writeImageOutput();
     void process();
     void setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue);
-    void drawCircleAroundPixel(int x, int y, float radius, png_byte red, png_byte green, png_byte blue);
+    void drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue);
     
     PNGFile(std::string filename, int width = 2400, int height = 2400);
     

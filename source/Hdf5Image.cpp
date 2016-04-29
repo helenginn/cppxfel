@@ -212,6 +212,11 @@ void Hdf5Image::writeSpotsList(std::string spotFile)
 
 void Hdf5Image::processSpotList()
 {
+    if (loadedSpots)
+    {
+        return;
+    }
+    
     Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
     
     if (!processingManager)

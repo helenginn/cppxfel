@@ -25,6 +25,7 @@
 #include "SolventMask.h"
 #include "PNGFile.h"
 #include "Miller.h"
+#include "SpotFinderQuick.h"
 
 Image::Image(std::string filename, double wavelength,
              double distance)
@@ -1184,6 +1185,30 @@ void Image::addSpotIfNotMasked(SpotPtr newSpot)
 
 void Image::findSpots()
 {
+    SpotFinderQuickPtr spotFinder = SpotFinderQuickPtr(new SpotFinderQuick(shared_from_this()));
+    loadImage();
+    std::vector<SpotPtr> tempSpots = spotFinder->findSpots();
+    
+    for (int i = 0; i < tempSpots.size(); i++)
+    {
+        addSpotIfNotMasked(tempSpots[i]);
+    }
+    
+    loadedSpots = true;
+    dropImage();
+
+    logged << "(" << getBasename() << ") found " << spotCount() << " spots." << std::endl;
+    sendLog();
+    
+    std::string basename = getBasename();
+    Spot::writeDatFromSpots(basename + "_spots.csv", spots);
+    writeSpotsList("_" + basename + "_strong.list");
+    
+
+    return;
+    
+    // below is old code
+    /*
     double jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
     std::vector<PanelPtr> panelsToDelete;
     
@@ -1227,15 +1252,7 @@ void Image::findSpots()
     }
     
     logged << "(" << getBasename() << ") found " << spotCount() << " spots." << std::endl;
-    sendLog();
-    
-    std::string basename = getBasename();
-    Spot::writeDatFromSpots(basename + "_spots.csv", spots);
-    writeSpotsList("_" + basename + "_strong.list");
-    
-    dropImage();
-    
-    loadedSpots = true;
+    sendLog();*/
 }
 
 void Image::processSpotList()
@@ -2264,8 +2281,11 @@ void Image::drawSpotsOnPNG()
     {
         Coord coord = spot(i)->getXY();
         
-        file->drawCircleAroundPixel(coord.first, coord.second, 14, 0, 0, 0);
+        file->drawCircleAroundPixel(coord.first, coord.second, 14, 1, 0, 0, 0);
     }
+    
+    logged << "Written file " << filename << std::endl;
+    sendLog();
     
     file->writeImageOutput();
 }
@@ -2290,9 +2310,14 @@ void Image::drawMillersOnPNG(int crystalNum)
             predicted.first += shift.first;
             predicted.second += shift.second;
             
-            file->drawCircleAroundPixel(predicted.first, predicted.second, 14, 0, 0, 0);
+            double partiality = myMiller->getPartiality();
+            
+            file->drawCircleAroundPixel(predicted.first, predicted.second, 14, partiality, 0, 0, 0);
         }
     }
+    
+    logged << "Written file " << filename << std::endl;
+    sendLog();
     
     file->writeImageOutput();
 }

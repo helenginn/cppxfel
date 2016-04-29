@@ -400,6 +400,9 @@ void FileParser::generateFunctionList()
     
     // force spot finding
     
+    // SPOT_FINDING_MIN_PIXELS
+    // SPOT_FINDING_SIGNAL_TO_NOISE
+    
     parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
     parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;
     parserMap["IMAGE_PIXEL_JUMP"] = simpleInt;
@@ -410,6 +413,9 @@ void FileParser::generateFunctionList()
     parserMap["RECIPROCAL_UNIT_CELL"] = doubleVector;
     parserMap["FORCE_SPOT_FINDING"] = simpleBool;
     parserMap["FORCE_RESTART_POST_REFINEMENT"] = simpleBool;
+    parserMap["SPOT_FINDING_MIN_PIXELS"] = simpleInt;
+    parserMap["SPOT_FINDING_SIGNAL_TO_NOISE"] = simpleFloat;
+    parserMap["SPOT_FINDING_MAX_PIXELS"] = simpleInt;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     
