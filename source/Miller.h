@@ -216,10 +216,8 @@ public:
 		this->partiality = partiality;
 	}
     
-    double getRawestIntensity() const
-    {
-        return rawIntensity;
-    }
+    double getRawestIntensity();
+    
 
 	double getRawIntensity() const
 	{
@@ -356,11 +354,6 @@ public:
 	{
 		if (scale == scale)
 			this->scale = scale;
-        
-    /*    if ((h == 3 && k == -4 && l == 12) || (h == -4 && k == 3 && l == -12))
-        {
-            std::cout << "Changing (" << h << ", " << k << ", " << l << ") to " << scale << std::endl;
-        }*/
 	}
 
 	double getResolution()

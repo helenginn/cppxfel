@@ -251,8 +251,8 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
     if (MtzManager::getReferenceManager() != NULL)
     {
-        double refScale = 1000 / MtzManager::getReferenceManager()->averageIntensity();
-        MtzManager::getReferenceManager()->applyScaleFactor(refScale);
+  //      double refScale = 1000 / MtzManager::getReferenceManager()->averageIntensity();
+  //      MtzManager::getReferenceManager()->applyScaleFactor(refScale);
     }
     
 	for (int i = 0; i < mtzManagers.size(); i++)
@@ -266,8 +266,10 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		else if (scalingType == ScalingTypeReference
                  || scalingType == ScalingTypeMinimizeRMerge)
 		{
+            MtzManager *reference = MtzManager::getReferenceManager();
+            
 			scale = mtzManagers[i]->gradientAgainstManager(
-					MtzManager::getReferenceManager(), false);
+					reference, false);
        //     std::cout << mtzManagers[i]->getFilename() << " " << scale << std::endl;
 		}
 		else if (scalingType == ScalingTypeBFactor) // delete

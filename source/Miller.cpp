@@ -954,6 +954,21 @@ void Miller::flip(void)
 void Miller::applyScaleFactor(double scaleFactor)
 {
     setScale(scale * scaleFactor);
+/*
+    if ((abs(h) == 9 && abs(k) == 9 && abs(l) == 16) ||
+        (abs(h) == 16 && abs(k) == 9 && abs(l) == 9))
+    {
+        logged << mtzParent->getFilename() << std::endl;
+        logged << h << "\t" << k << "\t" << l << std::endl;
+        logged << "Intensity: " << getRawestIntensity() << std::endl;
+        logged << "Scale: " << getScale() << std::endl;
+        logged << "Partiality: " << getPartiality() << std::endl;
+        logged << "getSigma: " << getSigma() << std::endl;
+        logged << "Sigma itself: " << sigma << std::endl;
+        
+        sendLog();
+    }*/
+    
 }
 
 void Miller::applyPolarisation(double wavelength)
@@ -1365,5 +1380,10 @@ RejectReason Miller::getRejectedReason()
     }
     
     return RejectReasonNone;
+}
+
+double Miller::getRawestIntensity()
+{
+    return rawIntensity;
 }
 

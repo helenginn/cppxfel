@@ -1165,7 +1165,7 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
         if (!reflections1[i]->betweenResolutions(lowRes, highRes))
             continue;
         
-        double int1 = reflections1[i]->meanIntensity(withCutoff);
+        double int1 = reflections1[i]->meanIntensity();
         double int2 = reflections2[i]->meanIntensity();
         double weight = reflections1[i]->meanPartiality();
         
@@ -1234,7 +1234,7 @@ void MtzManager::applyScaleFactor(double scaleFactor,
             scale *= scaleFactor;
     }
     
-    logged << "Applying scale factor " << scaleFactor << " now ";
+    logged << "Applying scale factor to " << getFilename() << " - " << scaleFactor << " (now " << this->scale << ")" << std::endl;
     
     for (int i = 0; i < reflections.size(); i++)
     {
@@ -1246,9 +1246,6 @@ void MtzManager::applyScaleFactor(double scaleFactor,
                     reflection(i)->miller(j)->setScale(scale);
                 else
                     reflection(i)->miller(j)->applyScaleFactor(scaleFactor);
-                
-                if (i == 0 && j == 0)
-                    logged << reflection(i)->miller(j)->getScale() << std::endl;
             }
         }
     }
@@ -1364,11 +1361,21 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
             if (reflections[i]->miller(j)->isRejected())
                 continue;
             
-            double intensity = reflections[i]->miller(j)->getRawIntensity();
+            MillerPtr miller = reflections[i]->miller(j);
+            
+            double intensity = reflections[i]->miller(j)->getRawestIntensity();
             double sigma = reflections[i]->miller(j)->getSigma();
             double partiality = reflections[i]->miller(j)->getPartiality();
             double bFactor = reflections[i]->miller(j)->getBFactorScale();
             double countingSigma = reflections[i]->miller(j)->getCountingSigma();
+            /*
+            if ((abs(miller->getH()) == 9 && abs(miller->getK()) == 9 && abs(miller->getL()) == 16)
+                || (abs(miller->getH()) == 16 && abs(miller->getK()) == 9 && abs(miller->getL()) == 9))
+            {
+                logged << "Miller " << miller->getH() << " " << miller->getK() << " " << miller->getL() << " writing to " << newFilename << std::endl;
+                logged << "Sigma = " << sigma << std::endl;
+                sendLog();
+            }*/
             
             if (intensity != intensity)
             {
