@@ -739,13 +739,12 @@ void MtzManager::gridSearch(bool silent)
         setFinalised(false);
     
     bool partialityRejection = FileParser::getKey("PARTIALITY_REJECTION", false);
-    bool correlationRejection = FileParser::getKey("CORRELATION_REJECTION", true);
     
     if (partialityRejection && scoreType != ScoreTypeSymmetry)
         this->excludePartialityOutliers();
     
-    if (correlationRejection && scoreType != ScoreTypeSymmetry)
-        this->excludeFromLogCorrelation();
+    this->excludeFromLogCorrelation();
+    
     double hits = accepted();
     
     double newerCorrel = (scoreType == ScoreTypeSymmetry) ? rFactorWithManager(RFactorTypeMeas) : correlation(true);
@@ -781,6 +780,13 @@ void MtzManager::gridSearch(bool silent)
 
 void MtzManager::excludeFromLogCorrelation()
 {
+    bool correlationRejection = FileParser::getKey("CORRELATION_REJECTION", true);
+    
+    if (!correlationRejection)
+    {
+        return;
+    }
+    
     MtzManager &image1 = *this;
     MtzManager &image2 = *(MtzManager::referenceManager);
     

@@ -827,32 +827,37 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
         return;
     }
     
-    double rejectSigma = FileParser::getKey("OUTLIER_REJECTION_SIGMA",
-                                           OUTLIER_REJECTION_SIGMA);
+    double shouldReject = FileParser::getKey("OUTLIER_REJECTION", true);
     
-    double error = stdev * rejectSigma;
-    
-    logged << "Std error: " << error << std::endl;
-    
-    int rejectedCount = 0;
-    
-    double minIntensity = mean_intensity - error;
-    double maxIntensity = mean_intensity + error;
-    
-    for (int i = 0; i < millerCount(); i++)
+    if (shouldReject)
     {
-        if (!miller(i)->accepted())
-            continue;
+        double rejectSigma = FileParser::getKey("OUTLIER_REJECTION_SIGMA",
+                                                OUTLIER_REJECTION_SIGMA);
         
-        if (miller(i)->intensity() > minIntensity
-            && miller(i)->intensity() < maxIntensity)
-            continue;
+        double error = stdev * rejectSigma;
         
-        miller(i)->setRejected(true);
-        rejectedCount++;
+        logged << "Std error: " << error << std::endl;
+        
+        int rejectedCount = 0;
+        
+        double minIntensity = mean_intensity - error;
+        double maxIntensity = mean_intensity + error;
+        
+        for (int i = 0; i < millerCount(); i++)
+        {
+            if (!miller(i)->accepted())
+                continue;
+            
+            if (miller(i)->intensity() > minIntensity
+                && miller(i)->intensity() < maxIntensity)
+                continue;
+            
+            miller(i)->setRejected(true);
+            rejectedCount++;
+        }
+        
+        logged << "Rejected " << rejectedCount << " reflections between " << minIntensity << " and " << maxIntensity << std::endl;
     }
-    
-    logged << "Rejected " << rejectedCount << " reflections between " << minIntensity << " and " << maxIntensity << std::endl;
     
     mean_intensity = meanIntensity();
     double newSigma = stdev;
