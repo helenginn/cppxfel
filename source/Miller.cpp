@@ -290,12 +290,11 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     sigma = 1;
     wavelength = 0;
     partiality = -1;
-    filename = "";
     countingSigma = 0;
     latestHRot = 0;
     latestKRot = 0;
     polarisationCorrection = 0;
-    rejectedReasons[RejectReasonMerge] = false;
+    rejectedReasons = 0;
     scale = 1;
     bFactor = 0;
     bFactorScale = 0;
@@ -304,7 +303,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     shoebox = ShoeboxPtr();
     fakeFriedel = -1;
     rejected = false;
-    calculatedRejected = true;
     excluded = false;
     flipMatrix = 0;
     
@@ -411,21 +409,7 @@ bool Miller::accepted(void)
 
 bool Miller::isRejected()
 {
-    if (calculatedRejected)
-        return rejected;
-    
-    rejected = false;
-    
-    for (std::map<RejectReason, bool>::iterator it = rejectedReasons.begin();
-         it != rejectedReasons.end(); ++it)
-    {
-        if (rejectedReasons[it->first])
-            rejected = true;
-    }
-    
-    calculatedRejected = true;
-    
-    return rejected;
+    return (rejectedReasons > 0);
 }
 
 double Miller::getBFactorScale()
@@ -935,7 +919,7 @@ MillerPtr Miller::copy(void)
     newMiller->partiality = partiality;
     newMiller->wavelength = wavelength;
     newMiller->matrix = matrix;
-    newMiller->filename = std::string(filename);
+    newMiller->mtzParent = mtzParent;
     newMiller->countingSigma = countingSigma;
     newMiller->lastX = lastX;
     newMiller->lastY = lastY;
@@ -1265,22 +1249,22 @@ bool Miller::isOverlapped()
 
 void Miller::setRejected(RejectReason reason, bool rejection)
 {
-    rejectedReasons[reason] = rejection;
-    
-    if (!rejection)
+    if (rejection)
     {
-        rejectedReasons.erase(reason);
+        rejectedReasons = rejectedReasons | reason;
     }
-    
-    calculatedRejected = false;
+    else
+    {
+        // removing a flag. Flip the bits so 00001000 becomes 11110111.
+        // Then & the current information with the new information
+        int flipped = ~reason;
+        rejectedReasons = rejectedReasons & flipped;
+    }
 }
 
 bool Miller::isRejected(RejectReason reason)
 {
-    if (rejectedReasons.count(reason) == 0)
-        return false;
-    
-    return rejectedReasons[reason];
+    return (rejectedReasons > 0);
 }
 
 double Miller::averageRawIntensity(vector<MillerPtr> millers)
@@ -1371,15 +1355,22 @@ void Miller::recalculateBetterPartiality()
 
 RejectReason Miller::getRejectedReason()
 {
-    RejectReason reasons[] = {RejectReasonMerge, RejectReasonCorrelation, RejectReasonPartiality};
-    
-    for (int i = 0; i < 3; i++)
+    if (RejectReasonMerge & rejectedReasons)
     {
-        if (rejectedReasons.count(reasons[i]) && rejectedReasons[reasons[i]])
-            return reasons[i];
+        return RejectReasonMerge;
     }
-    
-    return RejectReasonNone;
+    else if (RejectReasonCorrelation & rejectedReasons)
+    {
+        return RejectReasonCorrelation;
+    }
+    else if (RejectReasonPartiality & rejectedReasons)
+    {
+        return RejectReasonPartiality;
+    }
+    else
+    {
+        return RejectReasonNone;
+    }
 }
 
 double Miller::getRawestIntensity()

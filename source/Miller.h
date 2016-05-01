@@ -57,7 +57,7 @@ private:
 	RlpModel rlpModel;
     double polarisationCorrection;
     double getPolarisationCorrection();
-	std::map<RejectReason, bool> rejectedReasons;
+    int rejectedReasons;
 	double partialCutoff; // could/should be a float
 	float bFactor;
 	float scale; // should be extracted from Mtz.
@@ -69,7 +69,6 @@ private:
     float bFactorScale; // should be extracted from Mtz.
     bool excluded; // don't think this is used anymore
     bool rejected;
-    bool calculatedRejected;
     
 	std::pair<double, double> shift;
     float resol;
@@ -232,16 +231,6 @@ public:
 	void setSigma(double sigma)
 	{
 		this->sigma = sigma;
-	}
-    
-	const std::string& getFilename() const
-	{
-		return filename;
-	}
-
-	void setFilename(const std::string& filename)
-	{
-		this->filename = filename;
 	}
 
 	void applyPolarisation(double wavelength);
@@ -417,7 +406,6 @@ protected:
 	double countingSigma;
 	double partiality;
 	double wavelength;
-	std::string filename;
 
 };
 

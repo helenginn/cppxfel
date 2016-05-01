@@ -107,13 +107,12 @@ double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
     double sum_numerator = 0;
     double sum_denominator = 0;
     int count = 0;
-    int count1 = 0;
     double weights = 0;
     
     vector<Reflection *> reflections1;
     vector<Reflection *> reflections2;
     
-    this->findCommonReflections(referenceManager, reflections1, reflections2, NULL);
+    this->findCommonReflections(referenceManager, reflections1, reflections2, NULL, true);
     
     for (int i = 0; i < reflections1.size(); i++)
     {

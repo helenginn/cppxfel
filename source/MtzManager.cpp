@@ -747,7 +747,6 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         MillerPtr miller = MillerPtr(new Miller(this, h, k, l));
         miller->setData(intensity, sigma, partiality, wavelength);
         miller->setCountingSigma(sigma);
-        miller->setFilename(filename);
         miller->setPhase(phase);
         miller->setLastX(shiftX);
         miller->setLastY(shiftY);
@@ -921,22 +920,8 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, Reflection **ref
 
 void MtzManager::findCommonReflections(MtzManager *other,
                                        vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
-                                       int *num, bool force)
+                                       int *num, bool acceptableOnly)
 {
-    if (other == previousReference && previousAmbiguity == activeAmbiguity && !force && false)
-    {
-        reflectionVector1.reserve(matchReflections.size());
-        reflectionVector2.reserve(refReflections.size());
-        
-        reflectionVector1.insert(reflectionVector1.begin(), matchReflections.begin(), matchReflections.end());
-        reflectionVector2.insert(reflectionVector2.begin(), refReflections.begin(), refReflections.end());
-        
-        if (num != NULL)
-            *num = (int)reflectionVector1.size();
-        
-        return;
-    }
-
     matchReflections.clear();
     refReflections.clear();
     
@@ -944,8 +929,13 @@ void MtzManager::findCommonReflections(MtzManager *other,
     previousAmbiguity = activeAmbiguity;
     
     for (int i = 0; i < reflectionCount(); i++)
-    {        
-        int refl_id = reflection(i)->getReflId();
+    {
+        if (!reflection(i)->acceptedCount())
+        {
+            continue;
+        }
+        
+        long int refl_id = reflection(i)->getReflId();
         
         Reflection *otherReflection = NULL;
         
@@ -1288,6 +1278,15 @@ void MtzManager::applyPolarisation(void)
 
 void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity, bool useCountingSigma)
 {
+    bool hitImage = false;
+    
+    if (getFilename() == "img-idx-s00-20130316215656252.mtz")
+    {
+        logged << "Hit img-idx-s00-20130316215656252.mtz with ambiguity " << getActiveAmbiguity() << "!" << std::endl;
+        sendLog();
+        hitImage = true;
+    }
+    
     int columns = 7;
     if (includeAmbiguity)
         flipToActiveAmbiguity();
@@ -1351,16 +1350,21 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
     
     int num = 0;
     
+    int reflid = Reflection::reflectionIdForCoordinates(5, 10, 17);
+    
     for (int i = 0; i < reflectionCount(); i++)
     {
+        bool shouldLog = false;
+        
+        if (reflections[i]->getReflId() == reflid)
+        {
+    //        logged << "Hit target on " << getFilename() << std::endl;
+    //        logged << "Miller count: " << reflections[i]->millerCount() << std::endl;
+    //        shouldLog = true;
+        }
+
         for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
-            if (!reflection(i)->miller(j))
-                std::cout << "!miller(j) in mtz manager" << std::endl;
-            
-            if (reflections[i]->miller(j)->isRejected())
-                continue;
-            
             MillerPtr miller = reflections[i]->miller(j);
             
             double intensity = reflections[i]->miller(j)->getRawestIntensity();
@@ -1368,14 +1372,24 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
             double partiality = reflections[i]->miller(j)->getPartiality();
             double bFactor = reflections[i]->miller(j)->getBFactorScale();
             double countingSigma = reflections[i]->miller(j)->getCountingSigma();
-            /*
-            if ((abs(miller->getH()) == 9 && abs(miller->getK()) == 9 && abs(miller->getL()) == 16)
-                || (abs(miller->getH()) == 16 && abs(miller->getK()) == 9 && abs(miller->getL()) == 9))
+            
+            if (shouldLog)
             {
-                logged << "Miller " << miller->getH() << " " << miller->getK() << " " << miller->getL() << " writing to " << newFilename << std::endl;
-                logged << "Sigma = " << sigma << std::endl;
+                logged << "Miller " << miller->getH() << " " << miller->getK() << " " << miller->getL() << " from " << miller->getMtzParent()->getFilename() << std::endl;
+                logged << "Intensity: " << intensity << std::endl;
+                logged << "Partiality: " << partiality << std::endl;
+                logged << "Sigma: " << sigma << std::endl;
+                logged << "Ambiguity: " << miller->getMtzParent()->getActiveAmbiguity() << std::endl;
                 sendLog();
-            }*/
+            }
+            
+            if (!reflection(i)->miller(j))
+                std::cout << "!miller(j) in mtz manager" << std::endl;
+            
+            if (reflections[i]->miller(j)->isRejected())
+                continue;
+            
+            
             
             if (intensity != intensity)
             {

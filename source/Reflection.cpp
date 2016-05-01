@@ -451,9 +451,6 @@ double Reflection::meanIntensityWithExclusion(std::string *filename, int start, 
     {
         MillerPtr miller = this->acceptedMiller(i);
         
-        if (accepted > 2 && miller->getFilename() == *filename)
-            continue;
-            
         total_intensity += miller->intensity() * miller->getPartiality();
         weight += miller->getPartiality();
     }
@@ -655,7 +652,7 @@ void Reflection::reflectionDescription()
         MillerPtr miller = this->miller(i);
         logged << miller->getH() << "\t" << miller->getK() << "\t" << miller->getL() << "\t"
         << miller->getRawIntensity() << "\t" << miller->getPartiality()
-        << "\t" << miller->getSigma() << "\t" << miller->getFilename()
+        << "\t" << miller->getSigma() << "\t" << miller->getMtzParent()->getFilename()
         << std::endl;
         if (miller->accepted())
             acceptedCount++;

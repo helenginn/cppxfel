@@ -155,9 +155,9 @@ typedef enum
 typedef enum
 {
     RejectReasonNone = 0, // not rejected
-    RejectReasonMerge = 1,
-    RejectReasonPartiality = 2,
-    RejectReasonCorrelation = 3,
+    RejectReasonMerge = 1 << 0,
+    RejectReasonPartiality = 1 << 1,
+    RejectReasonCorrelation = 1 << 2,
 } RejectReason;
 
 class Panel;

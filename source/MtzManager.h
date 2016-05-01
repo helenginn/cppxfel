@@ -182,7 +182,7 @@ public:
 	int findReflectionWithId(long unsigned int refl_id, Reflection **reflection, bool insertionPoint = false);
 	void findCommonReflections(MtzManager *other,
 			vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
-			int *num = NULL, bool force = false);
+			int *num = NULL, bool acceptableOnly = false);
 	double gradientAgainstManager(MtzManager *otherManager, bool withCutoff = true, double lowRes = 0, double highRes = 0);
 	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<std::pair<double, double> > *dataPoints = NULL);
 	void applyBFactor(double bFactor);
