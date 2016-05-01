@@ -558,7 +558,7 @@ void Image::printBox(int x, int y, int tolerance)
     
 }
 
-double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, double *error)
+double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, float *error)
 {
     int centreX = 0;
     int centreY = 0;
@@ -757,7 +757,7 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, doub
     return signalOnly;
 }
 
-double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double *error)
+double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *error)
 {
     int centreX = 0;
     int centreY = 0;
@@ -837,7 +837,7 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double 
     return intensity;
 }
 
-double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *error)
+double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, float *error)
 {
     if (!fitBackgroundAsPlane)
     {
@@ -851,7 +851,7 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *err
     }
 }
 
-double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int tolerance)
+double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int tolerance)
 {
     int x1 = x;
     int y1 = y;

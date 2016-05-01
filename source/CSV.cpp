@@ -254,3 +254,12 @@ std::string CSV::plotColumns(int col1, int col2)
     
     return ascii.str();
 }
+
+CSV::~CSV()
+{
+    headers.clear();
+    entries.clear();
+    
+    std::vector<std::string>().swap(headers);
+    std::vector<Entry>().swap(entries);
+}

@@ -53,6 +53,8 @@ public:
         va_end(arguments);
     }
     
+    ~CSV();
+    
     void addEntry(int dummy, ...);
     void writeToFile(std::string filename);
     double valueForEntry(std::string header, int entry);

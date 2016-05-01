@@ -32,6 +32,7 @@ cctbx::uctbx::unit_cell Reflection::unitCell;
 unsigned char Reflection::spgNum = 0;
 std::mutex Reflection::setupMutex;
 std::vector<MatrixPtr> Reflection::flipMatrices;
+MutexPtr Reflection::millerMutex;
 
 MatrixPtr Reflection::matrixForAmbiguity(int i)
 {
@@ -722,9 +723,6 @@ double Reflection::mergedIntensity(WeightType weighting)
         if (!miller(i)->accepted())
             continue;
         
-        if (miller(i)->isExcluded())
-            continue;
-        
         double weight = miller(i)->getWeight(weighting);
         
         sum_intensities += millers[i]->intensity() * weight;
@@ -747,9 +745,6 @@ double Reflection::standardDeviation(WeightType weighting)
     for (int i = 0; i < millerCount(); i++)
     {
         if (!miller(i)->accepted())
-            continue;
-        
-        if (miller(i)->isExcluded())
             continue;
         
         squares += pow(miller(i)->intensity() - mean_intensity, 2);

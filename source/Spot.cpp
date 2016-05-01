@@ -434,7 +434,7 @@ double Spot::integrate()
     ShoeboxPtr shoebox = ShoeboxPtr(new Shoebox(MillerPtr()));
     shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
     
-    double counting = 0;
+    float counting = 0;
     double intensity = getParentImage()->intensityAt(getX(), getY(), shoebox, &counting);
     
     return intensity;

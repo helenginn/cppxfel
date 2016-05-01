@@ -41,9 +41,9 @@ private:
     static bool setupUnitCell;
     static std::vector<MatrixPtr> flipMatrices;
     unsigned char activeAmbiguity;
-    vector<long unsigned int> reflectionIds;
+    vector<unsigned int> reflectionIds;
     static cctbx::uctbx::unit_cell unitCell;
-    MutexPtr millerMutex;
+    static MutexPtr millerMutex;
 public:
     Reflection(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
     void setUnitCell(float *unitCell);

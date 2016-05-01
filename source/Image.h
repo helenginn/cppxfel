@@ -84,9 +84,9 @@ private:
 
 	int shoeboxLength();
 	Mask flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
-    double integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, double *error);
-    double integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, double *error);
-	double integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, double *error);
+    double integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, float *error);
+    double integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *error);
+	double integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, float *error);
 	bool checkShoebox(ShoeboxPtr shoebox, int x, int y);
     double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
     IndexingSolutionStatus testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
@@ -179,7 +179,7 @@ public:
 
 	int valueAt(int x, int y);
 	bool accepted(int x, int y);
-	double intensityAt(int x, int y, ShoeboxPtr shoebox, double *error, int tolerance = 0);
+	double intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int tolerance = 0);
 
 	void index();
 	void refineIndexing(MtzManager *reference);

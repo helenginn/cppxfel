@@ -53,24 +53,20 @@ private:
     short int l;
     bool free;
     float phase;
-    char fakeFriedel; // delete?
 	RlpModel rlpModel;
     double polarisationCorrection;
     double getPolarisationCorrection();
     int rejectedReasons;
-	double partialCutoff; // could/should be a float
+	float partialCutoff; // could/should be a float
 	float bFactor;
-	float scale; // should be extracted from Mtz.
+	float scale; // should be extracted from Mtz. Maybe?
 	float lastX;
 	float lastY;
     
-    double latestHRot;
-    double latestKRot;
     float bFactorScale; // should be extracted from Mtz.
-    bool excluded; // don't think this is used anymore
     bool rejected;
     
-	std::pair<double, double> shift;
+	std::pair<float, float> shift;
     float resol;
  
     double superGaussian(double bandwidth, double mean,
@@ -188,16 +184,6 @@ public:
     void setBeam(BeamPtr newBeam)
     {
         beam = newBeam;
-    }
-    
-    void setExcluded(bool exc = true)
-    {
-        excluded = exc;
-    }
-    
-    bool isExcluded()
-    {
-        return excluded;
     }
     
     MtzManager *&getMtzParent()
@@ -355,7 +341,7 @@ public:
 		this->resol = resol;
 	}
 
-	std::pair<double, double>& getShift()
+	std::pair<float, float>& getShift()
 	{
 		return shift;
 	}
@@ -401,11 +387,11 @@ public:
 
 protected:
 	static PartialityModel model;
-	double rawIntensity;
-	double sigma;
-	double countingSigma;
+	float rawIntensity;
+	float sigma;
+	float countingSigma;
 	double partiality;
-	double wavelength;
+	float wavelength;
 
 };
 

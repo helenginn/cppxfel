@@ -291,8 +291,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     wavelength = 0;
     partiality = -1;
     countingSigma = 0;
-    latestHRot = 0;
-    latestKRot = 0;
     polarisationCorrection = 0;
     rejectedReasons = 0;
     scale = 1;
@@ -301,9 +299,7 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     resol = 0;
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
-    fakeFriedel = -1;
     rejected = false;
-    excluded = false;
     flipMatrix = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
@@ -614,7 +610,7 @@ double Miller::expectedRadius(double spotSize, double mosaicity, vec *hkl)
     if (hkl == NULL)
     {
         MatrixPtr newMatrix = MatrixPtr();
-        rotateMatrixHKL(latestHRot, latestKRot, 0, matrix, &newMatrix);
+        rotateMatrixHKL(0, 0, 0, matrix, &newMatrix);
         
         usedHKL = new_vector(h, k, l);
         hkl = &usedHKL;
@@ -996,29 +992,6 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
     *positive = ((isym > 0) == 1);
     
     return isym != 0;
-    /*
-    bool fake = FileParser::getKey("FAKE_ANOMALOUS", false);
-    
-    if (fake && fakeFriedel == -1)
-    {
-        fakeFriedel = rand() % 2;
-    }
-    
-    if (fake)
-    {
-        return fakeFriedel;
-    }
-    
-    int positives = 0;
-    
-    if (h > 0)
-        positives++;
-    if (k > 0)
-        positives++;
-    if (l > 0)
-        positives++;
-    
-    return (positives == 1 || positives == 3);*/
 }
 
 double Miller::scatteringAngle(ImagePtr image)
