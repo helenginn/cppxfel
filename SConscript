@@ -89,7 +89,7 @@ source = [
 'source/Spot.cpp',
 'source/SpotVector.cpp',
 'source/SpotFinder.cpp',
-'source/QuickSpotFinder.cpp',
+'source/SpotFinderQuick.cpp',
 'source/SolventMask.cpp',
 'source/StatisticsManager.cpp',
 'source/UnitCellLattice.cpp',
