@@ -560,24 +560,6 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		}
 	}
 
-	long unsigned int last_refl_id = 0;
-
-	for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
-	{
-		Reflection *reflection = (*mergeMtz)->reflection(i);
-
-		if (reflection->getReflId() == last_refl_id)
-		{
-			std::cout << "Same" << std::endl;
-		}
-		if (reflection->getReflId() < last_refl_id)
-		{
-			std::cout << "Less" << std::endl;
-		}
-
-		last_refl_id = reflection->getReflId();
-	}
-
 	std::cout << "N: MTZs used in merge: " << mtzCount << std::endl;
 	std::cout << "N: Flip ratios: ";
     
