@@ -261,9 +261,15 @@ void MtzRefiner::refineCycle(bool once)
     ScalingType scaling = (ScalingType) scalingInt;
     
     bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
+    bool outputIndividualCycles = FileParser::getKey("OUTPUT_INDIVIDUAL_CYCLES", false);
     
     while (!finished)
     {
+        if (outputIndividualCycles)
+        {
+            FileParser::setKey("CYCLE_NUMBER", i);
+        }
+
         cycleNum = i;
         cycle();
         
@@ -358,6 +364,7 @@ void MtzRefiner::refineCycle(bool once)
             reference = exclusion ? unmergedMtz : mergedMtz;
             MtzManager::setReference(reference);
         }
+        
         i++;
     }
 }

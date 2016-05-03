@@ -8,6 +8,7 @@
 
 #include "FileReader.h"
 
+#include "misc.h"
 #include <fstream>
 #include <sstream>
 #include <cerrno>
@@ -117,22 +118,55 @@ std::string FileReader::get_file_contents(const char *filename)
 std::string FileReader::addOutputDirectory(std::string filename)
 {
     std::string directory = FileParser::getKey("OUTPUT_DIRECTORY", std::string(""));
-    
-    if (!directory.length())
+    bool outputIndividualCycles = FileParser::getKey("OUTPUT_INDIVIDUAL_CYCLES", false);
+
+    if (!directory.length() && !outputIndividualCycles)
     {
         return filename;
     }
-    
+    else
+    {
     DIR *dir = opendir(directory.c_str());
-    
-    if (dir)
-    {
-        closedir(dir);
+        
+        if (dir)
+        {
+            closedir(dir);
+        }
+        else if (ENOENT == errno)
+        {
+            mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        }
     }
-    else if (ENOENT == errno)
-    {
-        mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    }
     
-    return directory + "/" + filename;
+    if (outputIndividualCycles)
+    {
+        int cycleNum = FileParser::getKey("CYCLE_NUMBER", 0);
+        std::string combinedDir;
+        
+        if (directory.length())
+        {
+            combinedDir = directory + "/cycle_" + i_to_str(cycleNum);
+        }
+        else
+        {
+            combinedDir = "cycle_" + i_to_str(cycleNum);
+        }
+        
+        DIR *dir2 = opendir(combinedDir.c_str());
+        
+        if (dir2)
+        {
+            closedir(dir2);
+        }
+        else if (ENOENT == errno)
+        {
+            mkdir(combinedDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        }
+        
+        return combinedDir + "/" + filename;
+    }
+    else
+    {
+        return directory + "/" + filename;
+    }
 }
