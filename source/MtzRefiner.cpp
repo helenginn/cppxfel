@@ -1434,9 +1434,9 @@ void MtzRefiner::merge(bool mergeOnly)
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
-        mtzManagers[i]->excludeFromLogCorrelation();
+    /*    mtzManagers[i]->excludeFromLogCorrelation();
         if (partialityRejection)
-            mtzManagers[i]->excludePartialityOutliers();
+            mtzManagers[i]->excludePartialityOutliers(); */
     }
     
     correlationAndInverse(true);

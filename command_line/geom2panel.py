@@ -8,7 +8,7 @@ import math
 geometry = sys.argv[1]
 
 rigidGroupString = "rigid_group_collection_connected"
-print "Examining geometry file: finding", rigidGroupString
+#print "Examining geometry file: finding", rigidGroupString
 
 panels = []
 geomfile = open(geometry, 'r')
@@ -27,10 +27,10 @@ for line in geomfile:
 
 if len(panels) == 0:
 	panelString = "q1,q2,q3,q4,q5,q6,q7,q8"
-	print "Could not find panels. Will default to", panelString
+#	print "Could not find panels. Will default to", panelString
 	panels = panelString.strip().split(",")
 
-print "This group has", len(panels), "panels."
+#print "This group has", len(panels), "panels."
 
 panelInfo = {}
 
@@ -56,7 +56,7 @@ for panel in panels:
 			else:
 				value = float(value)
 	
-			print "Found value", value, "for panel", panel, ", property", property
+#			print "Found value", value, "for panel", panel, ", property", property
 			panelInfo[panel][property] = value
 
 geomfile.close()
@@ -77,13 +77,17 @@ for panel in panelInfo:
 
         imageWidth = origBottomRightX - origTopLeftX 
         imageHeight = origBottomRightY - origTopLeftY
-        physicalMiddleX = relativeNewX + imageWidth / 2.0 * axisXX + imageHeight / 2.0 * axisYX
-        physicalMiddleY = relativeNewY + imageWidth / 2.0 * axisXY + imageHeight / 2.0 * axisYY
+        relativeNewOtherCornerX = relativeNewX + imageWidth * axisXX + imageHeight * axisYX
+        relativeNewOtherCornerY = relativeNewY + imageWidth * axisXY + imageHeight * axisYY
+        physicalMiddleX = (relativeNewX + relativeNewOtherCornerX) / 2.0
+        physicalMiddleY = (relativeNewY + relativeNewOtherCornerY) / 2.0
         imageMiddleX = origTopLeftX + imageWidth / 2.0
         imageMiddleY = origTopLeftY + imageHeight / 2.0
         offsetX = imageMiddleX - physicalMiddleX
         offsetY = imageMiddleY - physicalMiddleY
         rotation = - math.atan2(axisXY, axisXX) / math.pi * 180.0
-        print "PANEL %d %d %d %d %f %f 0 0 %f 1" % (origTopLeftX, origTopLeftY, origBottomRightX, origBottomRightY,
+
+        print "PANEL %f %f %f %f %f %f 0 0 %f 1" % (min(relativeNewX, relativeNewOtherCornerX), min(relativeNewY, relativeNewOtherCornerY),
+                                                    max(relativeNewX, relativeNewOtherCornerX), max(relativeNewY, relativeNewOtherCornerY),    
                                                     offsetX, offsetY, rotation)
 

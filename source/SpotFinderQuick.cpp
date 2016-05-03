@@ -192,7 +192,7 @@ void SpotFinderQuick::findSpecificSpots()
             }
             while (lastCheckedIndex != totalPixelsToCheck);
             
-            std::cout << totalPixelsToCheck << std::endl;
+        //    std::cout << totalPixelsToCheck << std::endl;
             
             if (totalPixelsToCheck >= maxPixels || totalPixelsToCheck < minPixels)
             {

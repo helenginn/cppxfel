@@ -686,6 +686,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     MTZCOL *col_phase = MtzColLookup(mtz, "PHIC");
     MTZCOL *col_shiftx = MtzColLookup(mtz, "SHIFTX");
     MTZCOL *col_shifty = MtzColLookup(mtz, "SHIFTY");
+    MTZCOL *col_reject = MtzColLookup(mtz, "REJECT");
     
     int multiplier = MULTIPLIER;
     
@@ -738,6 +739,11 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         float shiftX = 0;
         float shiftY = 0;
         int rejectFlags = 0;
+        
+        if (col_reject != NULL)
+        {
+            rejectFlags = adata[col_reject->source - 1];
+        }
         
         if (col_wave != NULL && col_partials != NULL)
         {
