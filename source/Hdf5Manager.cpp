@@ -140,7 +140,7 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         herr_t error = H5TBget_table_info(group, table.getTableName(), &nFields, &nRecords);
         hsize_t nRecordsNew = table.getNumberOfRecords();
         
-        hsize_t maxRecords = std::min(nFields, nRecordsNew);
+        hsize_t maxRecords = std::min(nRecords, nRecordsNew);
         
         error = H5TBwrite_records(group,
                                       table.getTableName(),
@@ -150,6 +150,12 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
                                       table.getOffsets(),
                                       table.getFieldSizes(),
                                       table.getData());
+
+        if (error < 0)
+        {
+            logged << "Writing error (maxRecords = " << maxRecords << ") " << nRecords << ", " << nRecordsNew << std::endl;
+            sendLog();
+        }
 
         if (maxRecords < nRecordsNew)
         {
@@ -164,6 +170,12 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
                                        table.getData());
             
             error = H5TBget_table_info(group, table.getTableName(), &nFields, &nRecords);
+            
+            if (error < 0)
+            {
+                logged << "Appending error" << std::endl;
+                sendLog();
+            }
         }
         
         if (error < 0)
@@ -182,6 +194,12 @@ bool Hdf5Manager::writeTable(Hdf5Table &table, std::string address)
         
         error = H5TBdelete_record(group, table.getTableName(), table.getNumberOfRecords(), records_to_delete);
         
+        if (error < 0)
+        {
+            logged << "Deleting error" << std::endl;
+            sendLog();
+        }
+
         if (error < 0)
         {
             H5Gclose(group);
