@@ -972,7 +972,7 @@ vector<MtzPtr> Image::currentMtzs()
         MtzPtr newMtz = indexers[i]->newMtz(i);
 
         std::string imgFilename = "img-" + filenameRoot() + "_" + i_to_str(i) + ".mtz";
-        newMtz->writeToFile(imgFilename, true, true, false, true);
+        newMtz->writeToFile(imgFilename, true);
         newMtz->writeToDat();
         
         if (rejecting)
@@ -1720,7 +1720,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         
         addMtz(mtz);
         std::string imgFilename = "img-" + mtz->getFilename();
-        mtz->writeToFile(imgFilename, true, true, false, true);
+        mtz->writeToFile(imgFilename, true);
         mtz->writeToDat();
         
         return IndexingSolutionTrialSuccess;

@@ -565,7 +565,7 @@ int IndexManager::indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset)
             mtzSubset->push_back(newMtz);
             
             std::string imgFilename = "img-" + image->filenameRoot() + "_" + i_to_str(lastRefiner) + ".mtz";
-            newMtz->writeToFile(imgFilename, true, true, false, true);
+            newMtz->writeToFile(imgFilename, true);
             newMtz->writeToDat();
 
             Logger::mainLogger->addStream(&logged); logged.str("");

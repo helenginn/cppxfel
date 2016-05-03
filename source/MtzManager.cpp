@@ -658,6 +658,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         exit(1);
     }
     
+    MTZCOL *col_csigf = MtzColLookup(mtz, "CSIGI");
     MTZCOL *col_sigf = MtzColLookup(mtz, "SIGI");
     
     if (col_sigf == NULL)
@@ -715,14 +716,28 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         float intensity = adata[col_f->source - 1];
         
+        float countingSigma = 1;
         float sigma = 1;
         if (col_sigf != NULL)
+        {
             sigma = adata[col_sigf->source - 1];
+        }
+        
+        if (col_csigf != NULL)
+        {
+            countingSigma = adata[col_csigf->source - 1];
+        }
+        else if (col_csigf == NULL && col_sigf != NULL)
+        {
+            countingSigma = adata[col_sigf->source - 1];
+        }
+        
         float wavelength = 1;
         float partiality = 1;
         float phase = 0;
         float shiftX = 0;
         float shiftY = 0;
+        int rejectFlags = 0;
         
         if (col_wave != NULL && col_partials != NULL)
         {
@@ -746,10 +761,11 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         MillerPtr miller = MillerPtr(new Miller(this, h, k, l));
         miller->setData(intensity, sigma, partiality, wavelength);
-        miller->setCountingSigma(sigma);
+        miller->setCountingSigma(countingSigma);
         miller->setPhase(phase);
         miller->setLastX(shiftX);
         miller->setLastY(shiftY);
+        miller->setRejected(rejectFlags);
         miller->matrix = this->matrix;
         
         Reflection *prevReflection;
@@ -1276,22 +1292,9 @@ void MtzManager::applyPolarisation(void)
 }
 
 
-void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity, bool useCountingSigma)
+void MtzManager::writeToFile(std::string newFilename, bool announce)
 {
-    bool hitImage = false;
-    
-    if (getFilename() == "img-idx-s00-20130316215656252.mtz")
-    {
-        logged << "Hit img-idx-s00-20130316215656252.mtz with ambiguity " << getActiveAmbiguity() << "!" << std::endl;
-        sendLog();
-        hitImage = true;
-    }
-    
-    int columns = 7;
-    if (includeAmbiguity)
-        flipToActiveAmbiguity();
-    
-    if (shifts) columns += 2;
+    int columns = 11;
     
     float cell[6], wavelength;
     float *fdata = new float[columns];
@@ -1305,7 +1308,7 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
     MTZ *mtzout;
     MTZXTAL *xtal;
     MTZSET *set;
-    MTZCOL *colout[9];
+    MTZCOL *colout[11];
     
     /*  Removed: General CCP4 initializations e.g. HKLOUT on command line */
     
@@ -1341,28 +1344,15 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
     colout[4] = MtzAddColumn(mtzout, set, "SIGI", "Q");
     colout[5] = MtzAddColumn(mtzout, set, "PART", "R");
     colout[6] = MtzAddColumn(mtzout, set, "WAVE", "R");
-    
-    if (shifts)
-    {
-        colout[7] = MtzAddColumn(mtzout, set, "SHIFTX", "R");
-        colout[8] = MtzAddColumn(mtzout, set, "SHIFTY", "R");
-    }
+    colout[7] = MtzAddColumn(mtzout, set, "SHIFTX", "R");
+    colout[8] = MtzAddColumn(mtzout, set, "SHIFTY", "R");
+    colout[9] = MtzAddColumn(mtzout, set, "CSIGI", "R");
+    colout[10] = MtzAddColumn(mtzout, set, "REJECT", "R");
     
     int num = 0;
     
-    int reflid = Reflection::reflectionIdForCoordinates(5, 10, 17);
-    
     for (int i = 0; i < reflectionCount(); i++)
     {
-        bool shouldLog = false;
-        
-        if (reflections[i]->getReflId() == reflid)
-        {
-    //        logged << "Hit target on " << getFilename() << std::endl;
-    //        logged << "Miller count: " << reflections[i]->millerCount() << std::endl;
-    //        shouldLog = true;
-        }
-
         for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
             MillerPtr miller = reflections[i]->miller(j);
@@ -1371,25 +1361,11 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
             double sigma = reflections[i]->miller(j)->getSigma();
             double partiality = reflections[i]->miller(j)->getPartiality();
             double bFactor = reflections[i]->miller(j)->getBFactorScale();
-            double countingSigma = reflections[i]->miller(j)->getCountingSigma();
-            
-            if (shouldLog)
-            {
-                logged << "Miller " << miller->getH() << " " << miller->getK() << " " << miller->getL() << " from " << miller->getMtzParent()->getFilename() << std::endl;
-                logged << "Intensity: " << intensity << std::endl;
-                logged << "Partiality: " << partiality << std::endl;
-                logged << "Sigma: " << sigma << std::endl;
-                logged << "Ambiguity: " << miller->getMtzParent()->getActiveAmbiguity() << std::endl;
-                sendLog();
-            }
+            double countingSigma = reflections[i]->miller(j)->getRawCountingSigma();
+            double rejectFlags = reflections[i]->miller(j)->getRejectionFlags();
             
             if (!reflection(i)->miller(j))
                 std::cout << "!miller(j) in mtz manager" << std::endl;
-            
-            if (reflections[i]->miller(j)->isRejected())
-                continue;
-            
-            
             
             if (intensity != intensity)
             {
@@ -1409,16 +1385,14 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
             fdata[1] = k;
             fdata[2] = l;
             fdata[3] = intensity / bFactor;
-            fdata[4] = useCountingSigma ? countingSigma : sigma;
+            fdata[4] = sigma;
             fdata[5] = partiality;
             fdata[6] = reflections[i]->miller(j)->getWavelength();
-            
-            if (shifts)
-            {
-                fdata[7] = reflections[i]->miller(j)->getShift().first + reflections[i]->miller(j)->getLastX();
-                fdata[8] = reflections[i]->miller(j)->getShift().second + reflections[i]->miller(j)->getLastY();
-            }
-            
+            fdata[7] = reflections[i]->miller(j)->getShift().first + reflections[i]->miller(j)->getLastX();
+            fdata[8] = reflections[i]->miller(j)->getShift().second + reflections[i]->miller(j)->getLastY();
+            fdata[9] = countingSigma;
+            fdata[10] = rejectFlags;
+
             ccp4_lwrefl(mtzout, fdata, colout, columns, num);
         }
     }
@@ -1431,9 +1405,6 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool shifts
     std::ostringstream logged;
     logged << "Written to file " << newFilename << std::endl;
     Logger::mainLogger->addStream(&logged, shouldAnnounce);
-    
-    if (includeAmbiguity)
-        resetFlip();
     
     delete [] fdata;
 }
@@ -1517,7 +1488,7 @@ void MtzManager::writeToDat(std::string prefix)
     
     datOutput << this->matrix->description() << std::endl;*/
     
-    CSV csv = CSV(10, "h", "k", "l", "wavelength", "intensity", "countingSigma", "xCoord", "yCoord", "partiality", "resolution");
+    CSV csv = CSV(11, "h", "k", "l", "wavelength", "intensity", "countingSigma", "xCoord", "yCoord", "partiality", "resolution", "rejectFlags");
     
     for (int i = 0; i < reflectionCount(); i++)
     {
@@ -1537,8 +1508,10 @@ void MtzManager::writeToDat(std::string prefix)
             double combinedX = shiftX + lastX + bestShift.first;
             double combinedY = shiftY + lastY + bestShift.second;
             
+            double rejectionFlags = miller->getRejectionFlags();
+            
             csv.addEntry(0, (double)miller->getH(), (double)miller->getK(), (double)miller->getL(), miller->getWavelength(), miller->getRawIntensity(),
-                         miller->getCountingSigma(), combinedX, combinedY, miller->getPartiality(), miller->getResolution());
+                         miller->getRawCountingSigma(), combinedX, combinedY, miller->getPartiality(), miller->getResolution(), rejectionFlags);
         }
     }
     

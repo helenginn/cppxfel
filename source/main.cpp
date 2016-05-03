@@ -295,7 +295,7 @@ void new_main(int argc, char *argv[])
 		mtz->loadReflections(1);
         mtz->setActiveAmbiguity(1);
 
-		mtz->writeToFile(std::string("inv-") + argv[2], false, false, true);
+		mtz->writeToFile(std::string("inv-") + argv[2]);
 	}
 
 	if (strcmp(argv[1], "-stats") == 0)

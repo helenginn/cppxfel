@@ -193,7 +193,7 @@ void Hdf5Crystal::writeToFile(std::string newFilename, bool announce, bool shift
         writeCrystalData(crystalAddress);
     }
     
-    MtzManager::writeToFile(newFilename, announce, shifts, includeAmbiguity, useCountingSigma);
+    MtzManager::writeToFile(newFilename, announce);
 }
 
 void Hdf5Crystal::createMillerTable()

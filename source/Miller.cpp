@@ -299,7 +299,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     resol = 0;
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
-    rejected = false;
     flipMatrix = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
@@ -917,6 +916,7 @@ MillerPtr Miller::copy(void)
     newMiller->matrix = matrix;
     newMiller->mtzParent = mtzParent;
     newMiller->countingSigma = countingSigma;
+    newMiller->rejectedReasons = rejectedReasons;
     newMiller->lastX = lastX;
     newMiller->lastY = lastY;
     newMiller->shift = shift;

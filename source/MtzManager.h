@@ -218,7 +218,7 @@ public:
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 
-	virtual void writeToFile(std::string newFilename, bool announce = false, bool shifts = false, bool includeAmbiguity = false, bool useCountingSigma = false);
+	virtual void writeToFile(std::string newFilename, bool announce = false);
     void writeToHdf5();
     void writeToDat(std::string prefix = "");
     void sendLog(LogLevel priority = LogLevelNormal);

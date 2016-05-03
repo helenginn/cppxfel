@@ -64,7 +64,6 @@ private:
 	float lastY;
     
     float bFactorScale; // should be extracted from Mtz.
-    bool rejected;
     
 	std::pair<float, float> shift;
     float resol;
@@ -261,9 +260,9 @@ public:
 		this->polarisationCorrection = polarisationCorrection;
 	}
 
-	void setRejected(bool rejected)
+	void setRejected(int rejected)
 	{
-        setRejected(RejectReasonMerge, rejected);
+        rejectedReasons = rejected;
 	}
     
     Coord getLastXY()
@@ -380,6 +379,11 @@ public:
     void setWavelength(double wave)
     {
         wavelength = wave;
+    }
+    
+    int getRejectionFlags()
+    {
+        return rejectedReasons;
     }
 
     static void rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
