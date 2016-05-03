@@ -946,7 +946,7 @@ void MtzManager::findCommonReflections(MtzManager *other,
     
     for (int i = 0; i < reflectionCount(); i++)
     {
-        if (!reflection(i)->acceptedCount())
+        if (!reflection(i)->acceptedCount() && acceptableOnly)
         {
             continue;
         }
