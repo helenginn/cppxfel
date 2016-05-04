@@ -180,7 +180,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
     double total_normal = 0;
     double total_sphere = 0;
     
-    for (int i = 0; i < slices; i++)
+    for (int i = 0; i < mySlices; i++)
     {
         double pBandwidth = high_wavelength - bandwidth_span * currentP;
         double qBandwidth = high_wavelength - bandwidth_span * currentQ;
