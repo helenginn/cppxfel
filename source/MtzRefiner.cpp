@@ -1518,7 +1518,10 @@ void MtzRefiner::loadImageFiles()
     
     std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
                                               std::string(""));
-    if (filename == "")
+    std::string hdf5 = FileParser::getKey("HDF5_OUTPUT_FILE",
+                                              std::string(""));
+    
+    if (filename == "" && hdf5 == "")
     {
         logged
         << "Filename list has not been provided for integration. Please provide under keyword ORIENTATION_MATRIX_LIST."
