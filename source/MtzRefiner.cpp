@@ -1923,6 +1923,20 @@ void MtzRefiner::integrateSpots()
 
 void MtzRefiner::refineMetrology()
 {
+    int count = 0;
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        if (images[i]->IOMRefinerCount())
+        {
+            images[i]->valueAt(100, 100);
+            count++;
+        }
+    }
+    
+    logged << "Loaded " << count << " panels into memory! Now refining..." << std::endl;
+    sendLog();
+    
     Panel::printToFile("new_panels.txt");
     Panel::plotAll(PlotTypeAbsolute);
 }

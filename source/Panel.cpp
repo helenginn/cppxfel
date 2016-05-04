@@ -17,6 +17,7 @@
 #include "Spot.h"
 #include "CSV.h"
 #include <complex>
+#include "GetterSetterMap.h"
 
 vector<PanelPtr> Panel::panels;
 vector<PanelPtr> Panel::badPanels;
@@ -95,6 +96,7 @@ void Panel::setupPanel(PanelPtr panel)
         return;
     }
     
+    panel->setPanelNum((int)panels.size());
     panels.push_back(panel);
 }
 
@@ -842,9 +844,11 @@ void Panel::findAllParameters()
     {
         return;
     }
-    
+    /*
     findShift(2, 0.4);
-    this->findAxisDependence(3);
+    this->findAxisDependence(3);*/
+    
+    this->stepSearch();
 }
 
 void Panel::findShift(double windowSize, double step, double x, double y)
@@ -1038,6 +1042,65 @@ bool Panel::hasMillers()
     }
     
     return false;
+}
+
+double Panel::scoreWrapper(void *object)
+{
+    return static_cast<Panel *>(object)->stepScore();
+}
+
+double Panel::stepScore()
+{
+    double intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", 12.0);
+    std::vector<double> shiftXs;
+    std::vector<double> shiftYs;
+    int count = 0;
+    
+    for (int i = 0; i < millers.size(); i++)
+    {
+        MillerPtr miller = millers[i];
+
+        if (miller->getRawIntensity() / miller->getRawCountingSigma() < intensityThreshold)
+            continue;
+        
+        int x, y;
+        
+        count++;
+        
+        miller->positionOnDetector(miller->getMatrix(), &x, &y);
+        
+        double shiftX = miller->getShift().first;
+        double shiftY = miller->getShift().second;
+        
+        shiftXs.push_back(shiftX);
+        shiftYs.push_back(shiftY);
+    }
+    
+    double stdevX = standard_deviation(&shiftXs, NULL, 0);
+    double stdevY = standard_deviation(&shiftYs, NULL, 0);
+    double aScore = stdevX + stdevY;
+    
+    logged << "Panel " << panelNum << " on st dev " << aScore << std::endl;
+    sendLog();
+    
+    return aScore;
+}
+
+void Panel::stepSearch()
+{
+    usePanelInfo = true;
+    
+    GetterSetterMapPtr refinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    
+    refinementMap->addParameter(this, getBestShiftX, setBestShiftX, 2.0, 0.2);
+    refinementMap->addParameter(this, getBestShiftY, setBestShiftY, 2.0, 0.2);
+
+    refinementMap->addParameter(this, getSwivel, setSwivel, 0.4, 0.01);
+    
+    refinementMap->setEvaluationFunction(scoreWrapper, this);
+    refinementMap->setCycles(30);
+    
+    refinementMap->refine(GetterSetterStepSearch);
 }
 
 void Panel::findAxisDependence(double windowSize)

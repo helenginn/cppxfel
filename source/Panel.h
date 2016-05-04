@@ -35,6 +35,7 @@ private:
 	bool beingWrittenTo;
 	int allowedSearchSpace;
     PanelTag tag;
+    int panelNum;
     double swivel;
     double sinSwivel;
     double cosSwivel;
@@ -76,9 +77,15 @@ private:
     double angleForMiller(Miller *miller);
     double distanceFromMidPointForMiller(Miller *miller);
     
+    void score();
     double stdevScore(double minRes, double maxRes);
     vector<MillerPtr> millers;
 	int defaultShift;
+    
+    void setPanelNum(int new_value)
+    {
+        panelNum = new_value;
+    }
 
 public:
 	Panel(vector<double> dimensions, PanelTag tag = PanelTagNormal);
@@ -98,6 +105,9 @@ public:
     static void removePanel(PanelPtr panel);
 	void plotVectors(int i, PlotType plotType);
 	static void plotAll(PlotType plotType);
+    void stepSearch();
+    double stepScore();
+    static double scoreWrapper(void *object);
 
     void finaliseMillerArray();
     static void finaliseMillerArrays();
@@ -114,6 +124,44 @@ public:
     static int panelCount();
     static void clearAllMillers();
     void clearMillers();
+    
+    
+    static void setBestShiftX(void *object, double newValue)
+    {
+        static_cast<Panel *>(object)->bestShift.first = newValue;
+    }
+    
+    static void setBestShiftY(void *object, double newValue)
+    {
+        static_cast<Panel *>(object)->bestShift.second = newValue;
+    }
+    
+    static double getBestShiftX(void *object)
+    {
+        return static_cast<Panel *>(object)->bestShift.first;
+    }
+    
+    static double getBestShiftY(void *object)
+    {
+        return static_cast<Panel *>(object)->bestShift.second;
+    }
+    
+    static double getSwivel(void *object)
+    {
+        return static_cast<Panel *>(object)->swivel;
+    }
+    
+    static void setSwivel(void *object, double newValue)
+    {
+        Panel *panel = static_cast<Panel *>(object);
+        
+        panel->swivel = newValue;
+        
+        panel->sinSwivel = sin(panel->swivel * M_PI / 180);
+        panel->cosSwivel = cos(panel->swivel * M_PI / 180);
+        
+    }
+    
     
 	static bool shouldUsePanelInfo()
 	{
