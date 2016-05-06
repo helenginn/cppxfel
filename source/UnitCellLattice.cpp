@@ -80,7 +80,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
         {
             for (int k = -maxMillerIndexTrialL; k <= maxMillerIndexTrialL; k++)
             {
-                if (spaceGroupNum != 19 && spaceGroupNum != 178)
+                if (spaceGroupNum != 19 && spaceGroupNum != 178 && spaceGroupNum != 4)
                 {
                     bool sysabs = false;
                     if (ccp4spg_is_sysabs(spaceGroup, i, j, k))

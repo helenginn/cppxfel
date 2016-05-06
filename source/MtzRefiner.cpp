@@ -1686,9 +1686,9 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
     
     std::string filename = FileParser::getKey("NEW_MATRIX_LIST", std::string("new_orientations.dat"));
     
-    mergeMats.open("merge-" + filename);
-    refineMats.open("refine-" + filename);
-    integrateMats.open("integrate-" + filename);
+    mergeMats.open(FileReader::addOutputDirectory("merge-" + filename));
+    refineMats.open(FileReader::addOutputDirectory("refine-" + filename));
+    integrateMats.open(FileReader::addOutputDirectory("integrate-" + filename));
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
