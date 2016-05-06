@@ -1185,6 +1185,10 @@ void Image::addSpotIfNotMasked(SpotPtr newSpot)
 
 void Image::findSpots()
 {
+    int algorithm = FileParser::getKey("SPOT_FINDING_ALGORITHM", 1);
+    
+    if (algorithm == 1)
+    {
     SpotFinderQuickPtr spotFinder = SpotFinderQuickPtr(new SpotFinderQuick(shared_from_this()));
     loadImage();
     std::vector<SpotPtr> tempSpots = spotFinder->findSpots();
@@ -1192,6 +1196,45 @@ void Image::findSpots()
     for (int i = 0; i < tempSpots.size(); i++)
     {
         addSpotIfNotMasked(tempSpots[i]);
+    }
+    }
+    else if (algorithm == 0)
+    {
+        double jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
+        
+        for (int i = jump; i < xDim - jump; i += jump * 2)
+        {
+            for (int j = jump; j < yDim - jump; j += jump * 2)
+            {
+                SpotPtr testSpot = SpotPtr(new Spot(shared_from_this()));
+                int count = 1;
+                int consecutiveFailures = 0;
+                
+                if (!accepted(i, j))
+                    continue;
+                
+                while (consecutiveFailures <= 0 && count == 1)
+                {
+                    bool success = testSpot->focusOnNearbySpot(jump, i, j, count);
+                    
+                    if (success)
+                        consecutiveFailures = 0;
+                    else
+                        consecutiveFailures++;
+                    
+                    if (success)
+                    {
+                        Coord spotCoord = testSpot->getRawXY();
+                        
+                        logged << "Found spot (" << spotCoord.first << ", " << spotCoord.second << ")" << std::endl;
+                        sendLog(LogLevelDetailed);
+                        addSpotIfNotMasked(testSpot);
+                    }
+                    
+                    count++;
+                }
+            }
+        }
     }
     
     loadedSpots = true;
@@ -1204,55 +1247,8 @@ void Image::findSpots()
     Spot::writeDatFromSpots(basename + "_spots.csv", spots);
     writeSpotsList("_" + basename + "_strong.list");
     
-
     return;
     
-    // below is old code
-    /*
-    double jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
-    std::vector<PanelPtr> panelsToDelete;
-    
-    for (int i = jump; i < xDim - jump; i += jump * 2)
-    {
-        for (int j = jump; j < yDim - jump; j += jump * 2)
-        {
-            SpotPtr testSpot = SpotPtr(new Spot(shared_from_this()));
-            int count = 1;
-            int consecutiveFailures = 0;
-            
-            if (!accepted(i, j))
-                continue;
-            
-            while (consecutiveFailures <= 0 && count == 1)
-            {
-                bool success = testSpot->focusOnNearbySpot(jump, i, j, count);
-                
-                if (success)
-                    consecutiveFailures = 0;
-                else
-                    consecutiveFailures++;
-                
-                if (success)
-                {
-                    Coord spotCoord = testSpot->getRawXY();
-                    
-                    logged << "Found spot (" << spotCoord.first << ", " << spotCoord.second << ")" << std::endl;
-                    sendLog(LogLevelDetailed);
-                    addSpotIfNotMasked(testSpot);
-                }
-                
-                count++;
-            }
-        }
-    }
-    
-    for (int i = 0; i < panelsToDelete.size(); i++)
-    {
-        Panel::removePanel(panelsToDelete[i]);
-    }
-    
-    logged << "(" << getBasename() << ") found " << spotCount() << " spots." << std::endl;
-    sendLog();*/
 }
 
 void Image::processSpotList()
@@ -1270,6 +1266,7 @@ void Image::processSpotList()
     if (!FileReader::exists(spotsFile))
     {
         logged << "Cannot find spot file " << spotsFile << std::endl;
+        loadImage();
         findSpots();
         sendLog();
         return;

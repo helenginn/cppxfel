@@ -417,6 +417,7 @@ void FileParser::generateFunctionList()
     parserMap["SPOT_FINDING_MIN_PIXELS"] = simpleInt;
     parserMap["SPOT_FINDING_SIGNAL_TO_NOISE"] = simpleFloat;
     parserMap["SPOT_FINDING_MAX_PIXELS"] = simpleInt;
+    parserMap["SPOT_FINDING_ALGORITHM"] = simpleInt;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     

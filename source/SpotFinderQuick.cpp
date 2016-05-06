@@ -55,6 +55,11 @@ void SpotFinderQuick::findSpecificSpots()
     // calloc sets mem to 0... 1 will be used as masked
     int *trackerMask = (int *)calloc(xDim * yDim, sizeof(int));
     
+    int reachedSNRThreshold = 0;
+    int reachedThreshold = 0;
+    int tooBig = 0;
+    int tooSmall = 0;
+    
     if (shortData == NULL)
     {
         useShort = false;
@@ -83,6 +88,8 @@ void SpotFinderQuick::findSpecificSpots()
             {
                 continue;
             }
+            
+            reachedThreshold++;
             
             for (int k = 0; k < 8; k++)
             {
@@ -118,10 +125,14 @@ void SpotFinderQuick::findSpecificSpots()
                 findSignalToNoise(data, position, xDim, yDim, &signalToNoiseRatio, &background, &backgroundVariance);
             }
             
+      //      std::cout << signalToNoiseRatio << std::endl;
+            
             if (signalToNoiseRatio < signalToNoiseThreshold)
             {
                 continue;
             }
+            
+            reachedSNRThreshold++;
             
             float backgroundSigma = sqrt(backgroundVariance);
             
@@ -194,8 +205,16 @@ void SpotFinderQuick::findSpecificSpots()
             
         //    std::cout << totalPixelsToCheck << std::endl;
             
-            if (totalPixelsToCheck >= maxPixels || totalPixelsToCheck < minPixels)
+            if (totalPixelsToCheck >= maxPixels)
             {
+                tooBig++;
+                continue;
+            }
+                
+                
+            if (totalPixelsToCheck < minPixels)
+            {
+                tooSmall++;
                 continue;
             }
             
@@ -224,6 +243,14 @@ void SpotFinderQuick::findSpecificSpots()
             peakToEnter++;
         }
     }
+    
+    std::ostringstream logged;
+    logged << "Pixels reaching intensity threshold: " << reachedThreshold << std::endl;
+    logged << "Pixels reaching SNR threshold: " << reachedSNRThreshold << std::endl;
+    logged << "Spot had too many pixels: " << tooBig << std::endl;
+    logged << "Spot had too few pixels: " << tooSmall << std::endl;
+    
+    Logger::log(logged);
     
     totalPeaks = peakToEnter + 1;
     

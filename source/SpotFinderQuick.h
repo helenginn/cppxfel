@@ -37,8 +37,8 @@ public:
 
         // this has not been calibrated
         
-        minRadius = 5;
-        maxRadius = 7;
+        minRadius = 6;
+        maxRadius = 8;
         minPixels = FileParser::getKey("SPOT_FINDING_MIN_PIXELS", 2);
         minSeparation = 3;
         maxPixels = FileParser::getKey("SPOT_FINDING_MAX_PIXELS", 40);
