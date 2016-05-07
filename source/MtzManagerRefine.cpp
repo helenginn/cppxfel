@@ -264,8 +264,8 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
         c = a;
     }
 
-    if (matrix->isComplex())
-        this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
+ //   if (matrix->isComplex())
+    this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
     
     
     MatrixPtr newMatrix = MatrixPtr();

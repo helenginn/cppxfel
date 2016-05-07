@@ -443,17 +443,13 @@ void Matrix::unitCellLengths(double **lengths)
 {
     Matrix *mat = unitCell != NULL ? &*unitCell : this;
     
+    double aLengthSqr = pow(mat->components[0], 2) + pow(mat->components[1], 2) + pow(mat->components[2], 2);
+    double bLengthSqr = pow(mat->components[4], 2) + pow(mat->components[5], 2) + pow(mat->components[6], 2);
+    double cLengthSqr = pow(mat->components[8], 2) + pow(mat->components[9], 2) + pow(mat->components[10], 2);
     
-    scitbx::mat3<double> inverseMat = mat->inverse3DMatrix()->cctbxMatrix();
-    
-    for (int i = 0; i < 3; i++)
-    {
-        scitbx::vec3<double> axis = scitbx::vec3<double>(i == 0, i == 1, i == 2);
-        scitbx::vec3<double> bigAxis = inverseMat * axis;
-        (*lengths)[i] = bigAxis.length();
-    }
-    
-    
+    (*lengths)[0] = 1 / sqrt(aLengthSqr);
+    (*lengths)[1] = 1 / sqrt(bLengthSqr);
+    (*lengths)[2] = 1 / sqrt(cLengthSqr);
 }
 
 /** Warning: only use for unit cells with 90 degree angles! */
@@ -529,15 +525,32 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
 {
     std::ostringstream logged;
     
-    if (!unitCell || !rotation)
-    {
-        logged << "Not changing unit cell dimensions due to lack of unitcell/rotation distinction" << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelDetailed);
-        return;
-    }
-    
     double *lengths = new double[3];
     unitCellLengths(&lengths);
+    
+    if (!unitCell || !rotation)
+    {
+        logged << "Just changing unit cell lengths due to unitcell/rotation distinction" << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelDetailed);
+        
+        double aScale = lengths[0] / newA;
+        double bScale = lengths[1] / newB;
+        double cScale = lengths[2] / newC;
+        
+        components[0] *= aScale;
+        components[1] *= aScale;
+        components[2] *= aScale;
+
+        components[4] *= bScale;
+        components[5] *= bScale;
+        components[6] *= bScale;
+
+        components[8] *= cScale;
+        components[9] *= cScale;
+        components[10] *= cScale;
+
+        return;
+    }
     
     logged << "Original cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2];
     

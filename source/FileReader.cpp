@@ -105,8 +105,6 @@ std::string FileReader::get_file_contents(const char *filename)
         return(contents);
     }
     
-    sleep(1);
-    
     std::string errString = "Could not get file contents for file " + std::string(filename);
     Logger::mainLogger->addString(errString);
     Logger::mainLogger->addString(strerror(errno));
