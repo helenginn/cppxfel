@@ -468,32 +468,22 @@ Coord Panel::getSwivelShift(Coord millerCoord, bool isSpot)
     return std::make_pair(newX, newY);
 }
 
-Coord Panel::getTiltShift(Coord swivelShift)
+Coord Panel::getTiltShift(Coord millerCoord)
 {
-    if (swivel == 0)
-        return swivelShift;
+    Coord swivelCoords = millerCoord;
+    Coord fracCoords;
+    fractionalCoordinates(swivelCoords, &fracCoords);
     
-    Coord difference = relativeToMidPointForMiller(swivelShift);
-    double distance = cartesian_to_distance(difference);
+    double xShift = tilt.first * (fracCoords.first - 0.5);
+    double yShift = tilt.second * (fracCoords.second - 0.5);
     
-    double tanSwivel = sinSwivel / cosSwivel;
-    
-    double rhs = pow(distance, 2) / (1 + pow(tanSwivel, 2));
-    
-    double x = sqrt(rhs);
-    double y = tanSwivel * x;
-    
-    return swivelShift;
-    
-    // finish me
-    
- //   return std::make_pair(x, y);
+    return std::make_pair(xShift, yShift);
 }
 
 Coord Panel::getTotalShift(Coord millerCoord, bool isMiller)
 {
     Coord swivelShift = getSwivelShift(millerCoord);
-    Coord tiltShift = getTiltShift(swivelShift);
+    Coord tiltShift = getTiltShift(millerCoord);
     
     double x = bestShift.first + tiltShift.first + swivelShift.first;
     double y = bestShift.second + tiltShift.second + swivelShift.second;
