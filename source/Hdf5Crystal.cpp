@@ -89,7 +89,7 @@ void Hdf5Crystal::writeReflectionData(std::string address)
     
     free(millerData);
     
-    sendLog(LogLevelDebug);
+    sendLog(LogLevelDetailed);
 }
 
 void Hdf5Crystal::writeCrystalData(std::string address)
@@ -157,7 +157,7 @@ void Hdf5Crystal::writeCrystalData(std::string address)
 
 // This has a lot of extra commands for back-compatibility to storing MTZs
 // but no attention will be paid to the values of these commands
-void Hdf5Crystal::writeToFile(std::string newFilename, bool announce, bool shifts, bool includeAmbiguity, bool useCountingSigma)
+void Hdf5Crystal::writeToFile(std::string newFilename, bool announce)
 {
     if (!getImagePtr())
     {

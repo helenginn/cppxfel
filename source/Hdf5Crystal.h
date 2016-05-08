@@ -34,7 +34,7 @@ public:
         address = newAddress;
     }
     
-    void writeToFile(std::string newFilename = "", bool announce = false, bool shifts = false, bool includeAmbiguity = false, bool useCountingSigma = false);
+    void writeToFile(std::string newFilename = "", bool announce = false);
     
     void loadReflections(PartialityModel model, bool special = false);
 };
