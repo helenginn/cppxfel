@@ -74,6 +74,7 @@ source = [
 'source/Matrix.cpp',
 'source/Miller.cpp',
 'source/MtzGrouper.cpp',
+'source/MtzMerger.cpp',
 'source/MtzManager.cpp',
 'source/MtzManagerMinimize.cpp',
 'source/MtzManagerRefine.cpp',

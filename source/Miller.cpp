@@ -279,7 +279,7 @@ double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double
     return total_integral;
 }
 
-Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
+Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
 {
     h = _h;
     k = _k;
@@ -306,8 +306,11 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l)
     
     int rlpInt = FileParser::getKey("RLP_MODEL", 0);
     rlpModel = (RlpModel)rlpInt;
-    
-    free = FreeMillerLibrary::isMillerFree(this);
+  
+    if (calcFree)
+    {
+        free = FreeMillerLibrary::isMillerFree(this);
+    }
     
     mtzParent = parent;
     parentReflection = NULL;

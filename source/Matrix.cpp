@@ -363,8 +363,8 @@ MatrixPtr Matrix::matrixFromUnitCell(double a, double b, double c, double alpha,
     aMatrix->assignFromCctbxMatrix(mat);
     
     std::ostringstream logged;
-    logged << "Reciprocal lattice " << aMatrix->description() << std::endl;
-    Logger::mainLogger->addStream(&logged);
+//    logged << "Reciprocal lattice " << aMatrix->description() << std::endl;
+//    Logger::mainLogger->addStream(&logged);
     
     return aMatrix;
 }

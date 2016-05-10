@@ -26,6 +26,7 @@
 #include "Panel.h"
 #include "Logger.h"
 #include "MtzGrouper.h"
+#include "MtzMerger.h"
 #include "Hdf5ManagerProcessing.h"
 
 bool MtzRefiner::hasPanelParser;
@@ -67,6 +68,7 @@ void MtzRefiner::cycleThread(int offset)
     bool partialitySpectrumRefinement = FileParser::getKey("REFINE_ENERGY_SPECTRUM", false);
     
     std::vector<int> targets = FileParser::getKey("TARGET_FUNCTIONS", std::vector<int>());
+    bool lowMemoryMode = FileParser::getKey("LOW_MEMORY_MODE", false);
     
     int maxThreads = FileParser::getMaxThreads();
     
@@ -92,7 +94,13 @@ void MtzRefiner::cycleThread(int offset)
             }
             else
             {
+                image->loadReflections(true);
                 image->gridSearch(silent);
+                
+                if (lowMemoryMode)
+                {
+                    image->dropReflections();
+                }
             }
             
             if (targets.size() > 0)
@@ -170,7 +178,8 @@ void MtzRefiner::initialMerge()
         
     AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
     breaker.run();
-    originalMerge = breaker.getMergedMtz();
+    referencePtr = breaker.getMergedMtz();
+    originalMerge = &*referencePtr;
     reference = originalMerge;
     
     reference->writeToFile("initialMerge.mtz");
@@ -277,6 +286,25 @@ void MtzRefiner::refineCycle(bool once)
         // ***** NORMAL MERGE ******
         // *************************
         
+        MtzMerger merger;
+        merger.setAllMtzs(mtzManagers);
+        merger.setCycle(cycleNum);
+        merger.setScalingType(scaling);
+        merger.mergeFull();
+        
+        if (anomalousMerge)
+        {
+            merger.mergeFull(true);
+        }
+        
+        merger.setFreeOnly(true);
+        merger.mergeFull();
+        
+        MtzPtr mergedMtz = merger.getMergedMtz();
+        referencePtr = mergedMtz;
+        std::string filename = merger.getFilename();
+        
+    /*
         std::cout << "Grouping final MTZs" << std::endl;
         MtzGrouper *grouper = new MtzGrouper();
         MtzManager::setReference(reference);
@@ -296,8 +324,9 @@ void MtzRefiner::refineCycle(bool once)
         MtzManager *mergedMtz = NULL;
         MtzManager *unmergedMtz = NULL;
         grouper->merge(&mergedMtz, &unmergedMtz, i);
+        */
         
-        MtzManager::currentManager = mergedMtz;
+        MtzManager::currentManager = &*mergedMtz;
         MtzManager::setReference(reference);
         
         std::cout << "Reflections: " << mergedMtz->reflectionCount() << std::endl;
@@ -310,10 +339,8 @@ void MtzRefiner::refineCycle(bool once)
         
         double scale = 1000 / mergedMtz->averageIntensity();
         mergedMtz->applyScaleFactor(scale);
-        
-        std::string filename = "allMerge" + i_to_str(i) + ".mtz";
-        mergedMtz->writeToFile(filename.c_str(), true);
-        
+
+        /*
         // *************************
         // ******* ANOMALOUS *******
         // *************************
@@ -332,6 +359,7 @@ void MtzRefiner::refineCycle(bool once)
             mergedMtz->applyScaleFactor(scale);
         }
         
+        */
         
         MtzManager *reloadMerged = new MtzManager();
         
@@ -354,14 +382,12 @@ void MtzRefiner::refineCycle(bool once)
         if (i == maximumCycles - 1 && stop)
             finished = true;
         
-        delete grouper;
+   //     delete grouper;
         
         
         if (replaceReference)
         {
-            if (!once)
-                delete reference;
-            reference = exclusion ? unmergedMtz : mergedMtz;
+            reference = &*mergedMtz;
             MtzManager::setReference(reference);
         }
         
@@ -601,6 +627,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     bool recalculateWavelengths = FileParser::getKey("RECALCULATE_WAVELENGTHS", false);
     
     bool ignoreMissing = FileParser::getKey("IGNORE_MISSING_IMAGES", false);
+    bool lowMemoryMode = FileParser::getKey("LOW_MEMORY_MODE", false);
     
     if (readFromHdf5)
     {
@@ -850,7 +877,11 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             
             newManager->setFilename(imgName.c_str());
             newManager->setMatrix(newMatrix);
-            newManager->loadReflections(PartialityModelScaled, true);
+            
+            if (!lowMemoryMode)
+            {
+                newManager->loadReflections(PartialityModelScaled, true);
+            }
             
             if (setSigmaToUnity)
                 newManager->setSigmaToUnity();
@@ -1452,13 +1483,29 @@ void MtzRefiner::merge(bool mergeOnly)
             idxOnly.push_back(mtzManagers[i]);
     }
     
-    
     bool mergeAnomalous = FileParser::getKey("MERGE_ANOMALOUS", false);
     
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
                                         (int) SCALING_STRATEGY);
     ScalingType scaling = (ScalingType) scalingInt;
     
+    MtzMerger merger;
+    merger.setAllMtzs(mtzManagers);
+    merger.setCycle(-1);
+    merger.setScalingType(scaling);
+    merger.setFilename("remerged.mtz");
+    merger.mergeFull();
+
+    if (mergeAnomalous)
+    {
+        merger.mergeFull(true);
+    }
+    
+    merger.setFreeOnly(true);
+    merger.mergeFull();
+    
+    /*
+    merged = merger.getMergedMtz();
     
     MtzGrouper *grouper = new MtzGrouper();
     grouper->setScalingType(scaling);
@@ -1476,7 +1523,7 @@ void MtzRefiner::merge(bool mergeOnly)
     
     delete unmergedMtz;
     delete mergedMtz;
-    delete grouper;
+    delete grouper;*/
 }
 
 // MARK: Integrating images

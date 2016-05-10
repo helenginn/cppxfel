@@ -7,6 +7,7 @@
 //
 
 #include "MtzGrouper.h"
+#include "MtzMerger.h"
 #include "AmbiguityBreaker.h"
 #include "StatisticsManager.h"
 #include "FileParser.h"
@@ -178,17 +179,27 @@ void AmbiguityBreaker::split()
 
 void AmbiguityBreaker::merge()
 {
-    for (int i = 0; i < mtzs.size(); i++)
-    {
-    //    mtzs[i]->applyUnrefinedPartiality();
-    }
-    
+/*
     MtzGrouper *idxGrouper = new MtzGrouper();
     idxGrouper->setWeighting(WeightTypeAverage);
     idxGrouper->setExcludeWorst(false);
     idxGrouper->setMtzManagers(mtzs);
     idxGrouper->merge(&merged);
     delete idxGrouper;
+ */
+    
+    MtzMerger merger;
+    merger.setAllMtzs(mtzs);
+    merger.setExcludeWorst(false);
+    merger.setCycle(-1);
+    merger.setFilename("originalMerge.mtz");
+    merger.mergeFull();
+    merger.mergeFull(true);
+    
+    merger.setFreeOnly(true);
+    merger.mergeFull();
+    
+    merged = merger.getMergedMtz();
 }
 
 void AmbiguityBreaker::printResults()

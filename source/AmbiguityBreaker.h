@@ -42,7 +42,7 @@ private:
     void printResults();
     void split();
     void merge();
-    MtzManager *merged;
+    MtzPtr merged;
     
 public:
     void setMtzs(vector<MtzPtr> newMtzs);
@@ -51,7 +51,7 @@ public:
     void run();
     void overrideAmbiguity(int newAmbiguity);
     
-    MtzManager *getMergedMtz()
+    MtzPtr getMergedMtz()
     {
         return merged;
     }

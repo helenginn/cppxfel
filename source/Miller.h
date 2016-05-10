@@ -105,7 +105,7 @@ public:
     bool crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
                             double spotSize, double wavelength, double bandwidth);
 
-	Miller(MtzManager *parent, int _h = 0, int _k = 0, int _l = 0);
+	Miller(MtzManager *parent, int _h = 0, int _k = 0, int _l = 0, bool calcFree = true);
 	MillerPtr copy(void);
 	void printHkl(void);
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);

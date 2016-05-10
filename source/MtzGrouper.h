@@ -14,16 +14,6 @@
 #include "parameters.h"
 #include "Logger.h"
 
-typedef enum
-{
-	ScalingTypeAverage = 0,
-	ScalingTypeReference = 1,
-	ScalingTypeReferenceLeastSquares = 2,
-	ScalingTypeMinimizeRMerge = 3,
-	ScalingTypeBFactor = 4,
-	ScalingTypeResolutionShells = 5
-} ScalingType;
-
 class MtzGrouper
 {
 private:

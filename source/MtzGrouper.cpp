@@ -167,8 +167,6 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	double averageAboveCutoff = 0;
 	int aboveCutoffNum = 0;
 	double rotationCorrection = 0;
-    
-    int rotMode = FileParser::getKey("ROTATION_MODE", 0);
 
     logged << "Filename\tCorrel\tRsplit\tPartcorrel\tRefcount\tMosaicity\tWavelength\tBandwidth\t";
     

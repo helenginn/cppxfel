@@ -177,6 +177,7 @@ public:
     std::string filenameRoot();
 	void setSpaceGroup(int spgnum);
 	virtual void loadReflections(PartialityModel model, bool special = false); // FIXME: remove unnecessary parameters
+    void dropReflections();
 	void loadReflections(int partiality);
 	static void setReference(MtzManager *reference);
 	int findReflectionWithId(long unsigned int refl_id, Reflection **reflection, bool insertionPoint = false);
@@ -303,6 +304,9 @@ public:
 			void *object, double lowRes, double highRes, double low);
 
     static void makeSuperGaussianLookupTable(double exponent);
+    
+    static std::string parameterHeaders();
+    std::string writeParameterSummary();
     
     int ambiguityCount();
     

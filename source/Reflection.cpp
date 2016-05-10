@@ -32,7 +32,8 @@ cctbx::uctbx::unit_cell Reflection::unitCell;
 unsigned char Reflection::spgNum = 0;
 std::mutex Reflection::setupMutex;
 std::vector<MatrixPtr> Reflection::flipMatrices;
-MutexPtr Reflection::millerMutex;
+double Reflection::rejectSigma = 0;
+bool Reflection::shouldReject = 0;
 
 MatrixPtr Reflection::matrixForAmbiguity(int i)
 {
@@ -289,6 +290,10 @@ Reflection::Reflection(float *unitCell, CSym::CCP4SPG *spg)
     
     resolution = 0;
     activeAmbiguity = 0;
+    
+    millerMutex = MutexPtr(new std::mutex());
+    rejectSigma = FileParser::getKey("OUTLIER_REJECTION_SIGMA", OUTLIER_REJECTION_SIGMA);
+    shouldReject = FileParser::getKey("OUTLIER_REJECTION", true);
 }
 
 MillerPtr Reflection::acceptedMiller(int num)
@@ -326,11 +331,6 @@ void Reflection::addMiller(MillerPtr miller)
 
 void Reflection::addMillerCarefully(MillerPtr miller)
 {
-    if (!millerMutex)
-    {
-        millerMutex = MutexPtr(new std::mutex());
-    }
-    
     millerMutex->lock();
     
     addMiller(miller);
@@ -792,6 +792,76 @@ double Reflection::rMergeContribution(double *numerator, double *denominator)
     return littleNum / littleDenom;
 }
 
+void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, signed char friedel)
+{
+    std::vector<double> intensities, weights;
+    
+    for (int i = 0; i < liteMillers.size(); i++)
+    {
+        if (friedel != -1)
+        {
+            if (liteMillers[i].friedel != friedel)
+            {
+                continue;
+            }
+        }
+        
+        intensities.push_back(liteMillers[i].intensity);
+        weights.push_back(liteMillers[i].weight);
+    }
+    
+    double mean = weighted_mean(&intensities, &weights);
+    double stdev = standard_deviation(&intensities, &weights);
+    
+    if (shouldReject && liteMillers.size() > MIN_MILLER_COUNT)
+    {
+        intensities.clear();
+        weights.clear();
+        
+        int minIntensity = mean - stdev * rejectSigma;
+        int maxIntensity = mean + stdev * rejectSigma;
+        
+        for (int i = 0; i < liteMillers.size(); i++)
+        {
+            if (friedel != -1)
+            {
+                if (liteMillers[i].friedel != friedel)
+                {
+                    continue;
+                }
+            }
+
+            double testIntensity = liteMillers[i].intensity;
+            
+            if (testIntensity > maxIntensity || testIntensity < minIntensity)
+            {
+                (*rejected)++;
+                continue;
+            }
+            
+            intensities.push_back(testIntensity);
+            weights.push_back(liteMillers[i].weight);
+        }
+    }
+    
+    mean = weighted_mean(&intensities, &weights);
+    stdev = standard_deviation(&intensities, &weights);
+    
+    if (intensities.size() == 1)
+    {
+        stdev = -1;
+    }
+    
+    *intensity = mean;
+    *sigma = stdev;
+}
+
+void Reflection::clearLiteMillers()
+{
+    liteMillers.clear();
+    std::vector<LiteMiller>().swap(liteMillers);
+}
+
 void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
                    bool calculateRejections)
 {
@@ -819,13 +889,10 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
         return;
     }
     
-    double shouldReject = FileParser::getKey("OUTLIER_REJECTION", true);
+    shouldReject = FileParser::getKey("OUTLIER_REJECTION", true);
     
     if (shouldReject)
     {
-        double rejectSigma = FileParser::getKey("OUTLIER_REJECTION_SIGMA",
-                                                OUTLIER_REJECTION_SIGMA);
-        
         double error = stdev * rejectSigma;
         
         logged << "Std error: " << error << std::endl;
@@ -977,4 +1044,20 @@ int Reflection::checkOverlaps()
     return count;
 }
 
+void Reflection::addLiteMiller(MillerPtr miller)
+{
+    double intensity = miller->intensity();
+    double weight = miller->getWeight();
+    
+    LiteMiller liteMiller;
+    liteMiller.intensity = intensity;
+    miller->positiveFriedel(&(liteMiller.friedel));
+    liteMiller.weight = weight;
+    
+    millerMutex->lock();
+    
+    liteMillers.push_back(liteMiller);
+    
+    millerMutex->unlock();
+}
 

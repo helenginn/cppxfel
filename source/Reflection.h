@@ -30,8 +30,18 @@ using cctbx::sgtbx::reciprocal_space::asu;
 class Reflection
 {
 private:
+    struct LiteMiller
+    {
+        double intensity;
+        double weight;
+        bool friedel;
+    } ;
+    
+    std::vector<LiteMiller> liteMillers;
 	vector<MillerPtr> millers;
 	double resolution;
+    float negativeFriedelIntensity;
+    float positiveFriedelIntensity;
     static space_group spaceGroup;
     static unsigned char spgNum;
     static space_group_type spgType;
@@ -40,10 +50,12 @@ private:
     static std::mutex setupMutex;
     static bool setupUnitCell;
     static std::vector<MatrixPtr> flipMatrices;
+    static double rejectSigma;
+    static bool shouldReject;
     unsigned char activeAmbiguity;
     vector<unsigned int> reflectionIds;
     static cctbx::uctbx::unit_cell unitCell;
-    static MutexPtr millerMutex;
+    MutexPtr millerMutex;
 public:
     Reflection(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
     void setUnitCell(float *unitCell);
@@ -54,6 +66,8 @@ public:
     void printDescription();
 	void addMiller(MillerPtr miller);
     void addMillerCarefully(MillerPtr miller);
+    void addLiteMiller(MillerPtr miller);
+    
 	int millerCount();
 	Reflection *copy(bool copyMillers = false);
     
@@ -82,6 +96,8 @@ public:
 	int rejectCount();
 
 	void merge(WeightType weighting, double *intensity, double *sigma, bool calculateRejections);
+    void liteMerge(double *intensity, double *sigma, int *rejected, signed char friedel = -1);
+    void clearLiteMillers();
 	double standardDeviation(WeightType weighting);
     
     void detailedDescription();
@@ -152,6 +168,11 @@ public:
 	{
 		this->resolution = resolution;
 	}
+    
+    int liteMillerCount()
+    {
+        return (int)liteMillers.size();
+    }
     
     static MatrixPtr getFlipMatrix(int i);
 };

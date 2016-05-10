@@ -576,8 +576,19 @@ void MtzManager::loadReflections(int partials)
     loadReflections(model);
 }
 
+void MtzManager::dropReflections()
+{
+    reflections.clear();
+    std::vector<Reflection *>().swap(reflections);
+}
+
 void MtzManager::loadReflections(PartialityModel model, bool special)
 {
+    if (reflectionCount())
+    {
+        return;
+    }
+    
     if (filename.length() == 0)
     {
         std::cerr
@@ -697,8 +708,6 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     MtzHklcoeffs(cell, coefhkl);
     
     setUnitCell(cell[0], cell[1], cell[2], cell[3], cell[4], cell[5]);
-    
-    
     
     int num = 0;
     
@@ -1618,7 +1627,10 @@ double MtzManager::maxResolution()
     {
         if (reflection(i)->getResolution() > maxResolution)
         {
-            maxResolution = reflection(i)->getResolution();
+            if (std::isfinite(maxResolution))
+            {
+                maxResolution = reflection(i)->getResolution();
+            }
         }
     }
     
@@ -1749,4 +1761,34 @@ void MtzManager::recalculateWavelengths()
             reflection(i)->miller(j)->getWavelength(0, 0);
         }
     }
+}
+
+std::string MtzManager::parameterHeaders()
+{
+    std::ostringstream summary;
+    
+    summary << "Filename,Correl,Rsplit,Partcorrel,Refcount,Mosaicity,Wavelength,Bandwidth,";
+    
+    summary << "hRot,kRot,";
+    
+    summary << "rlpSize,exp,cellA,cellB,cellC";
+
+    return summary.str();
+}
+
+std::string MtzManager::writeParameterSummary()
+{
+    std::ostringstream summary;
+    summary << getFilename() << "\t" << getRefCorrelation() << "\t" << rSplit(0, maxResolutionAll) << "\t" << getRefPartCorrel() << "\t"
+				<< accepted() << "\t"
+				<< getMosaicity() << "\t"
+				<< getWavelength() << "\t"
+				<< getBandwidth() << "\t";
+    summary << hRot << "\t" << kRot << "\t";
+    
+    summary << getSpotSize() << "\t"
+    << getExponent() << "\t" << cellDim[0] << "\t" << cellDim[1] << "\t" << cellDim[2];
+    
+    
+    return summary.str();
 }
