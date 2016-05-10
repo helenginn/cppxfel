@@ -46,6 +46,7 @@ private:
     bool silent;
     int friedel;
     bool freeOnly;
+    bool needToScale;
     
     void splitAllMtzs(std::vector<MtzPtr> &firstHalfMtzs, std::vector<MtzPtr> &secondHalfMtzs);
     MtzRejectionReason isMtzAccepted(MtzPtr mtz);
@@ -127,6 +128,11 @@ public:
     void setFreeOnly(bool free)
     {
         freeOnly = free;
+    }
+    
+    void setNeedToScale(bool need)
+    {
+        needToScale = need;
     }
 };
 

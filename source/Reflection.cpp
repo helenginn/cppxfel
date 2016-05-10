@@ -806,6 +806,13 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
             }
         }
         
+        if (liteMillers.size() > 1)
+        {
+      //      std::ostringstream aLog;
+      //      aLog << miller(0)->getH() << " " << miller(0)->getK() << " " << miller(0)->getL() << " " << liteMillers[i].intensity << std::endl;
+      //      Logger::log(aLog);
+        }
+        
         intensities.push_back(liteMillers[i].intensity);
         weights.push_back(liteMillers[i].weight);
     }
@@ -813,7 +820,7 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
     double mean = weighted_mean(&intensities, &weights);
     double stdev = standard_deviation(&intensities, &weights);
     
-    if (shouldReject && liteMillers.size() > MIN_MILLER_COUNT)
+    if (shouldReject && liteMillers.size() >= MIN_MILLER_COUNT)
     {
         intensities.clear();
         weights.clear();
@@ -874,6 +881,15 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
         for (int i = 0; i < millerCount(); i++)
         {
             miller(i)->setRejected(false);
+            
+     /*       if (acceptedCount() > 1 && miller(i)->accepted())
+            {
+                std::ostringstream aLog;
+                aLog << miller(i)->getH() << " " << miller(i)->getK() << " " << miller(i)->getL() << " " << miller(i)->intensity() << " " << miller(i)->getWeight() << " " << miller(i)->getScale() << std::endl;
+                Logger::log(aLog);
+            }*/
+            
+            
             //	miller(i)->setRejected(RejectReasonPartiality, false);
         }
     }
@@ -1048,6 +1064,15 @@ void Reflection::addLiteMiller(MillerPtr miller)
 {
     double intensity = miller->intensity();
     double weight = miller->getWeight();
+    
+    double reflId = reflectionIdForCoordinates(7, 14, 25);
+    
+    if (reflId == getReflId())
+    {
+        std::ostringstream logged;
+        logged << "7 14 25: " << intensity << ", " << weight << ", " << miller->getScale() << std::endl;
+        Logger::log(logged);
+    }
     
     LiteMiller liteMiller;
     liteMiller.intensity = intensity;

@@ -81,6 +81,8 @@ void MtzMerger::createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive)
         
         if (posRefl == NULL || negRefl == NULL)
         {
+            mergedMtz->removeReflection(i);
+            i--;
             continue;
         }
         
@@ -304,6 +306,11 @@ void MtzMerger::pruneMtzs()
 
 void MtzMerger::scale()
 {
+    if (!needToScale)
+    {
+        return;
+    }
+    
     for (int i = 0; i < someMtzs.size(); i++)
     {
         double scale = 1;
@@ -416,6 +423,7 @@ void MtzMerger::groupMillerThread(int offset)
     for (int i = offset; i < someMtzs.size(); i += maxThreads)
     {
         MtzPtr mtz = someMtzs[i];
+        mtz->flipToActiveAmbiguity();
         
         if (lowMemoryMode)
         {
@@ -465,6 +473,8 @@ void MtzMerger::groupMillerThread(int offset)
         {
             mtz->dropReflections();
         }
+        
+        mtz->resetFlip();
     }
     
     if (wentMissing)
@@ -642,6 +652,7 @@ MtzMerger::MtzMerger()
     silent = false;
     friedel = -1;
     freeOnly = false;
+    needToScale = true;
     
     if (cycle < thresholdSwap)
     {
@@ -709,7 +720,7 @@ void MtzMerger::mergeFull(bool anomalous)
 {
     time_t startcputime;
     time(&startcputime);
-    
+
     if (freeOnly)
     {
         if (!FreeMillerLibrary::active())
@@ -718,6 +729,8 @@ void MtzMerger::mergeFull(bool anomalous)
         }
     }
     
+    scale();
+
     std::vector<MtzPtr> firstHalfMtzs, secondHalfMtzs;
     splitAllMtzs(firstHalfMtzs, secondHalfMtzs);
     
@@ -726,6 +739,7 @@ void MtzMerger::mergeFull(bool anomalous)
     firstMerge.setFilename(makeFilename("half1Merge"));
     firstMerge.setCycle(cycle);
     firstMerge.setFreeOnly(freeOnly);
+    firstMerge.setNeedToScale(false);
     firstMerge.setSilent(true);
     firstMerge.setExcludeWorst(excludeWorst);
     anomalous ? firstMerge.mergeAnomalous() : firstMerge.merge();
@@ -736,6 +750,7 @@ void MtzMerger::mergeFull(bool anomalous)
     secondMerge.setFilename(makeFilename("half2Merge"));
     secondMerge.setExcludeWorst(excludeWorst);
     secondMerge.setFreeOnly(freeOnly);
+    secondMerge.setNeedToScale(false);
     secondMerge.setSilent(true);
     secondMerge.setCycle(cycle);
     anomalous ? secondMerge.mergeAnomalous() : secondMerge.merge();
@@ -792,6 +807,7 @@ void MtzMerger::mergeAnomalous()
     firstMerge.setFriedel(0);
     firstMerge.setFilename(makeFilename("tmp1Merge"));
     firstMerge.setCycle(cycle);
+    firstMerge.setNeedToScale(false);
     firstMerge.setSilent(true);
     firstMerge.setExcludeWorst(excludeWorst);
     firstMerge.merge();
@@ -802,6 +818,7 @@ void MtzMerger::mergeAnomalous()
     secondMerge.setFriedel(1);
     secondMerge.setFilename(makeFilename("tmp2Merge"));
     secondMerge.setExcludeWorst(excludeWorst);
+    secondMerge.setNeedToScale(false);
     secondMerge.setSilent(true);
     secondMerge.setCycle(cycle);
     secondMerge.merge();
