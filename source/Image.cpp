@@ -825,14 +825,18 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *
     logged2 << std::endl;
     Logger::mainLogger->addStream(&logged2, LogLevelDebug);
   */
+    
+    double totalSigmaForBackground = sqrt(background);
+    double averageSigmaForBackground = totalSigmaForBackground / (double)backNum;
+    
     double aveBackground = (double) background / (double) backNum;
     double backgroundInForeground = aveBackground * (double) foreNum;
     
-    double totalPhotons = foreground;
-    *error = sqrt(totalPhotons);
+    double totalSigmaForForeground = sqrt(foreground);
+    double backgroundSigmaInForeground = averageSigmaForBackground * (double)foreNum;
+    *error = backgroundSigmaInForeground + totalSigmaForForeground;
     
     double intensity = (foreground - backgroundInForeground);
-    
     
     return intensity;
 }
