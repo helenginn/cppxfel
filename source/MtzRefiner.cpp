@@ -1497,43 +1497,47 @@ void MtzRefiner::merge(bool mergeOnly)
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
                                         (int) SCALING_STRATEGY);
     ScalingType scaling = (ScalingType) scalingInt;
+    bool old = FileParser::getKey("OLD_MERGE", true);
     
-    MtzMerger merger;
-    merger.setAllMtzs(mtzManagers);
-    merger.setCycle(-1);
-    merger.setScalingType(scaling);
-    merger.setFilename("remerged.mtz");
-    merger.mergeFull();
-    
-    if (mergeAnomalous)
+    if (!old)
     {
-        merger.mergeFull(true);
+        MtzMerger merger;
+        merger.setAllMtzs(mtzManagers);
+        merger.setCycle(-1);
+        merger.setScalingType(scaling);
+        merger.setFilename("remerged.mtz");
+        merger.mergeFull();
+        
+        if (mergeAnomalous)
+        {
+            merger.mergeFull(true);
+        }
+        
+        merger.setFreeOnly(true);
+        merger.mergeFull();
+        
+        referencePtr = merger.getMergedMtz();
     }
-    
-    merger.setFreeOnly(true);
-    merger.mergeFull();
-    
-    referencePtr = merger.getMergedMtz();
-    
-    /*
-     
-     MtzGrouper *grouper = new MtzGrouper();
-     grouper->setScalingType(scaling);
-     grouper->setWeighting(WeightTypePartialitySigma);
-     grouper->setMtzManagers(mtzManagers);
-     
-     grouper->setCutResolution(false);
-     
-     grouper->setCorrelationThreshold(correlationThreshold);
-     
-     MtzManager *mergedMtz = NULL;
-     MtzManager *unmergedMtz = NULL;
-     grouper->merge(&mergedMtz, NULL, -1, mergeAnomalous);
-     mergedMtz->writeToFile("remerged.mtz");
-     
-     delete unmergedMtz;
-     delete mergedMtz;
-     delete grouper;*/
+    else
+    {
+        MtzGrouper *grouper = new MtzGrouper();
+        grouper->setScalingType(scaling);
+        grouper->setWeighting(WeightTypePartialitySigma);
+        grouper->setMtzManagers(mtzManagers);
+        
+        grouper->setCutResolution(false);
+        
+        grouper->setCorrelationThreshold(correlationThreshold);
+        
+        MtzManager *mergedMtz = NULL;
+        MtzManager *unmergedMtz = NULL;
+        grouper->merge(&mergedMtz, NULL, -1, mergeAnomalous);
+        mergedMtz->writeToFile("remerged.mtz");
+        
+        delete unmergedMtz;
+        delete mergedMtz;
+        delete grouper;
+    }
 }
 
 // MARK: Integrating images
