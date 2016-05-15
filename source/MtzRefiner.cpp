@@ -271,7 +271,7 @@ void MtzRefiner::refineCycle(bool once)
     
     bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
     bool outputIndividualCycles = FileParser::getKey("OUTPUT_INDIVIDUAL_CYCLES", false);
-    bool old = false;
+    bool old = FileParser::getKey("OLD_MERGE", true);
     
     while (!finished)
     {
@@ -298,6 +298,7 @@ void MtzRefiner::refineCycle(bool once)
             merger.setCycle(cycleNum);
             merger.setScalingType(scaling);
             merger.mergeFull();
+            mergedMtz = merger.getMergedMtz();
             
             if (anomalousMerge)
             {
@@ -307,7 +308,6 @@ void MtzRefiner::refineCycle(bool once)
             merger.setFreeOnly(true);
             merger.mergeFull();
             
-            mergedMtz = merger.getMergedMtz();
             referencePtr = mergedMtz;
             std::string filename = merger.getFilename();
         }

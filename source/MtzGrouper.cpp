@@ -62,14 +62,14 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     {
         if (mtz->getRefPartCorrel() < refPartCorrelThreshold)
         {
-            Logger::mainLogger->addString("Rejecting due to low partiality correlation", LogLevelDetailed);
+            Logger::mainLogger->addString("Rejecting " + mtz->getFilename() + " due to low partiality correlation", LogLevelDetailed);
             return false;
         }
     }
     
     if (mtz->accepted() < minimumReflectionCutoff)
     {
-        Logger::mainLogger->addString("Rejecting due to not reaching minimum number of reflections", LogLevelDetailed);
+        Logger::mainLogger->addString("Rejecting " + mtz->getFilename() + " due to not reaching minimum number of reflections", LogLevelDetailed);
         return false;
     }
     
@@ -77,7 +77,7 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     
     if (refCorrelation < 0 || refCorrelation == 1)
     {
-        Logger::mainLogger->addString("Rejecting due to suspicious correlation with reference", LogLevelDetailed);
+        Logger::mainLogger->addString("Rejecting " + mtz->getFilename() + " due to suspicious correlation with reference", LogLevelDetailed);
         
         return false;
     }
@@ -92,21 +92,21 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     
     if (refCorrelation < correlationThreshold)
     {
-        Logger::mainLogger->addString("Rejecting due to poor correlation with reference", LogLevelDetailed);
+        Logger::mainLogger->addString("Rejecting " + mtz->getFilename() + " due to poor correlation with reference", LogLevelDetailed);
         
         return false;
     }
     
     if (mtz->isRejected())
     {
-        Logger::mainLogger->addString("Rejecting due to true rejection flag", LogLevelDetailed);
+        Logger::mainLogger->addString("Rejecting " + mtz->getFilename() + " due to true rejection flag", LogLevelDetailed);
         
         return false;
     }
     
     if (needsRSplit && minimumRSplit > 0 && rSplit > minimumRSplit)
     {
-        Logger::mainLogger->addString("Rejecting due to R split being too high", LogLevelDetailed);
+        Logger::mainLogger->addString("Rejecting " + mtz->getFilename() + " due to R split being too high", LogLevelDetailed);
         
         return false;
     }
@@ -530,7 +530,6 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
             if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
 				continue;
             
-            
 			long unsigned int refl_id = mtzManagers[i]->reflection(j)->getReflId();
 
 			Reflection *reflection = NULL;
@@ -616,9 +615,6 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 				Reflection *reflection = NULL;
 				friedelMtz->findReflectionWithId(
 						mtzManagers[i]->reflection(j)->getReflId(), &reflection);
-
-				// there is a bug here which would mis-sort friedel pairs if
-				// there were opposing ones of the same symmetry in the same image
 
 				if (reflection == NULL)
 				{

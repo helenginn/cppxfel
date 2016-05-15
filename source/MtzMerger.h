@@ -80,6 +80,8 @@ public:
     void mergeFull(bool anomalous = false);
     void mergeAnomalous();
     
+    void setCycle(int num);
+    
     void setScalingType(ScalingType type)
     {
         scalingType = type;
@@ -88,11 +90,6 @@ public:
     void setAllMtzs(std::vector<MtzPtr> mtzs)
     {
         allMtzs = mtzs;
-    }
-    
-    void setCycle(int cycleNum)
-    {
-        cycle = cycleNum;
     }
     
     void setExcludeWorst(bool worst)

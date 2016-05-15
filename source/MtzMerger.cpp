@@ -275,6 +275,9 @@ void MtzMerger::pruneMtzs()
         }
         else
         {
+            logged << "Rejecting " << allMtzs[i]->getFilename() << " " << rejectReason << std::endl;
+            sendLog(LogLevelDetailed);
+            
             if (rejectNums.count(rejectReason) == 0)
             {
                 rejectNums[rejectReason] = 0;
@@ -443,6 +446,8 @@ void MtzMerger::groupMillerThread(int offset)
                 for (int k = 0; k < refl->millerCount(); k++)
                 {
                     MillerPtr miller = refl->miller(k);
+                    
+                    miller->setRejected(RejectReasonMerge, false);
                     
                     if (miller->isRejected())
                     {
@@ -636,14 +641,29 @@ int MtzMerger::totalObservations()
 
 // MARK: Constructor.
 
-MtzMerger::MtzMerger()
+void MtzMerger::setCycle(int num)
 {
+    cycle = num;
+
     double corrThreshold = FileParser::getKey("CORRELATION_THRESHOLD", CORRELATION_THRESHOLD);
     double initialCorrelationThreshold = FileParser::getKey("INITIAL_CORRELATION_THRESHOLD", INITIAL_CORRELATION_THRESHOLD);
     int thresholdSwap = FileParser::getKey("THRESHOLD_SWAP", THRESHOLD_SWAP);
+    
+    if (cycle < thresholdSwap || cycle == -1)
+    {
+        correlationThreshold = initialCorrelationThreshold;
+    }
+    else
+    {
+        correlationThreshold = corrThreshold;
+    }
+}
+
+MtzMerger::MtzMerger()
+{
     rFactorThreshold = FileParser::getKey("R_FACTOR_THRESHOLD", 100.0);
     partCorrelThreshold = FileParser::getKey("PARTIALITY_CORRELATION_THRESHOLD", -2);
-    minReflectionCounts = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", 100);
+    minReflectionCounts = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", MINIMUM_REFLECTION_CUTOFF);
     lowMemoryMode = FileParser::getKey("LOW_MEMORY_MODE", false);
     excludeWorst = true;
     scalingType = ScalingTypeAverage;
@@ -653,15 +673,6 @@ MtzMerger::MtzMerger()
     friedel = -1;
     freeOnly = false;
     needToScale = true;
-    
-    if (cycle < thresholdSwap)
-    {
-        correlationThreshold = initialCorrelationThreshold;
-    }
-    else
-    {
-        correlationThreshold = corrThreshold;
-    }
 }
 
 // MARK: Things to call from other classes.

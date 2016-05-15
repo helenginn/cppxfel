@@ -189,6 +189,7 @@ void FileParser::generateFunctionList()
     parserMap["MINIMUM_CYCLES"] = simpleInt;
     parserMap["MAXIMUM_CYCLES"] = simpleInt;
     parserMap["STOP_REFINEMENT"] = simpleBool;
+    parserMap["OLD_MERGE"] = simpleBool;
 
     parserMap["SET_SIGMA_TO_UNITY"] = simpleBool;
     parserMap["APPLY_UNREFINED_PARTIALITY"] = simpleBool;

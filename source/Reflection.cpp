@@ -795,6 +795,10 @@ double Reflection::rMergeContribution(double *numerator, double *denominator)
 void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, signed char friedel)
 {
     std::vector<double> intensities, weights;
+    *rejected = 0;
+    
+    int isSpecial = (getReflId() == reflectionIdForCoordinates(5, 10, 7));
+    isSpecial = 0;
     
     for (int i = 0; i < liteMillers.size(); i++)
     {
@@ -804,13 +808,6 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
             {
                 continue;
             }
-        }
-        
-        if (liteMillers.size() > 1)
-        {
-      //      std::ostringstream aLog;
-      //      aLog << miller(0)->getH() << " " << miller(0)->getK() << " " << miller(0)->getL() << " " << liteMillers[i].intensity << std::endl;
-      //      Logger::log(aLog);
         }
         
         intensities.push_back(liteMillers[i].intensity);
@@ -849,7 +846,17 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
             intensities.push_back(testIntensity);
             weights.push_back(liteMillers[i].weight);
         }
+        
+        if (isSpecial)
+        {
+            std::ostringstream logged;
+            logged << "Rejected " << *rejected << " reflections between " << minIntensity << " and " << maxIntensity << std::endl;
+            logged << "Mean " << mean << " and stdev " << stdev << std::endl;
+            Logger::log(logged);
+        }
+
     }
+    
     
     mean = weighted_mean(&intensities, &weights);
     stdev = standard_deviation(&intensities, &weights);
@@ -876,19 +883,21 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
     
     logged << "Rejection info:" << std::endl;
     
+    int isSpecial = (getReflId() == reflectionIdForCoordinates(5, 10, 7));
+    isSpecial = 0;
+    
     if (calculateRejections)
     {
         for (int i = 0; i < millerCount(); i++)
         {
-            miller(i)->setRejected(false);
-            
-     /*       if (acceptedCount() > 1 && miller(i)->accepted())
+            if (isSpecial)
             {
                 std::ostringstream aLog;
-                aLog << miller(i)->getH() << " " << miller(i)->getK() << " " << miller(i)->getL() << " " << miller(i)->intensity() << " " << miller(i)->getWeight() << " " << miller(i)->getScale() << std::endl;
+                aLog << miller(i)->getH() << " " << miller(i)->getK() << " " << miller(i)->getL() << " " << miller(i)->getMtzParent()->getFilename() << " " << miller(i)->intensity() << " " << miller(i)->getRejectionFlags() << " " << miller(i)->getPartiality() << std::endl;
                 Logger::log(aLog);
-            }*/
+            }
             
+            miller(i)->setRejected(false);
             
             //	miller(i)->setRejected(RejectReasonPartiality, false);
         }
@@ -940,7 +949,7 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
     *intensity = mean_intensity;
     *sigma = newSigma;
     
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    Logger::mainLogger->addStream(&logged, isSpecial ? LogLevelNormal : LogLevelDebug);
 }
 
 int Reflection::rejectCount()
@@ -1064,16 +1073,16 @@ void Reflection::addLiteMiller(MillerPtr miller)
 {
     double intensity = miller->intensity();
     double weight = miller->getWeight();
-    
-    double reflId = reflectionIdForCoordinates(7, 14, 25);
+    /*
+    double reflId = reflectionIdForCoordinates(5, 10, 7);
     
     if (reflId == getReflId())
     {
-        std::ostringstream logged;
-        logged << "7 14 25: " << intensity << ", " << weight << ", " << miller->getScale() << std::endl;
-        Logger::log(logged);
+   //     std::ostringstream logged;
+   //     logged << "5 22 7: " << intensity << ", " << weight << ", " << miller->getScale() << std::endl;
+   //     Logger::log(logged);
     }
-    
+    */
     LiteMiller liteMiller;
     liteMiller.intensity = intensity;
     miller->positiveFriedel(&(liteMiller.friedel));
