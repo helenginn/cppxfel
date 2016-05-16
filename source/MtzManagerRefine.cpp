@@ -376,7 +376,7 @@ double MtzManager::bestWavelength(double lowRes, double highRes, bool usingRefer
 			double isigi = reflection(i)->miller(j)->getRawestIntensity();
 
             MtzManager *reference = MtzManager::getReferenceManager();
-            Reflection *refReflection = NULL;
+            ReflectionPtr refReflection = ReflectionPtr();
             
             if (reference != NULL)
             {
@@ -494,7 +494,7 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
 		if (reflection(i)->getResolution() > maxResolution
 				&& reflection(i)->getResolution() < 1 / 1.2)
 		{
-            Reflection *bestReflection = reflection(i);
+            ReflectionPtr bestReflection = reflection(i);
             
 			maxResolution = bestReflection->getResolution();
 		}

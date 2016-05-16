@@ -50,16 +50,23 @@ double MtzMerger::maxResolution()
 {
     double maxRes = 0;
     
-    for (int i = 0; i < someMtzs.size(); i++)
+    if (!lowMemoryMode)
     {
-        double thisRes = someMtzs[i]->maxResolution();
-        
-        if (thisRes > maxRes)
+        for (int i = 0; i < someMtzs.size(); i++)
         {
-            maxRes = thisRes;
+            double thisRes = someMtzs[i]->maxResolution();
+            
+            if (thisRes > maxRes)
+            {
+                maxRes = thisRes;
+            }
         }
     }
-    
+    else if (lowMemoryMode)
+    {
+        maxRes = FileParser::getKey("MAX_RESOLUTION_ALL", 1.4);
+    }
+
     return maxRes;
 }
 
@@ -69,12 +76,12 @@ void MtzMerger::createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive)
 {
     for (int i = 0; i < mergedMtz->reflectionCount(); i++)
     {
-        Reflection *refl = mergedMtz->reflection(i);
+        ReflectionPtr refl = mergedMtz->reflection(i);
         MillerPtr meanMiller = refl->miller(0);
         int reflId = (int)refl->getReflId();
         
-        Reflection *posRefl = NULL;
-        Reflection *negRefl = NULL;
+        ReflectionPtr posRefl = NULL;
+        ReflectionPtr negRefl = NULL;
         
         negative->findReflectionWithId(reflId, &negRefl);
         positive->findReflectionWithId(reflId, &posRefl);
@@ -155,7 +162,7 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
     
     for (int i = 0; i < mean->reflectionCount(); i++)
     {
-        Reflection *refl = mean->reflection(i);
+        ReflectionPtr refl = mean->reflection(i);
         MillerPtr meanMiller = refl->miller(0);
         int reflId = (int)refl->getReflId();
         
@@ -168,8 +175,8 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
             continue;
         }
         
-        Reflection *posRefl = NULL;
-        Reflection *negRefl = NULL;
+        ReflectionPtr posRefl = NULL;
+        ReflectionPtr negRefl = NULL;
         
         negative->findReflectionWithId(reflId, &negRefl);
         positive->findReflectionWithId(reflId, &posRefl);
@@ -267,7 +274,17 @@ void MtzMerger::pruneMtzs()
     
     for (int i = 0; i < allMtzs.size(); i++)
     {
+        if (lowMemoryMode)
+        {
+            allMtzs[i]->loadReflections(true);
+        }
+        
         MtzRejectionReason rejectReason = isMtzAccepted(allMtzs[i]);
+        
+        if (lowMemoryMode)
+        {
+            allMtzs[i]->dropReflections();
+        }
         
         if (rejectReason == MtzRejectionNotRejected)
         {
@@ -385,7 +402,7 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
     CCP4SPG *spg = someMtzs[0]->getLowGroup();
     MatrixPtr anyMat = someMtzs[0]->getMatrix();
     std::vector<double> unitCell = someMtzs[0]->getUnitCell();
-    anyMat->maxMillers(maxMillers, 1 / maxRes);
+    anyMat->maxMillers(maxMillers, maxRes);
     
     for (int h = - maxMillers[0]; h <= maxMillers[0]; h++)
     {
@@ -398,7 +415,7 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
                     MillerPtr miller = MillerPtr(new Miller(&*whichMtz, h, k, l, false));
                     miller->setRawIntensity(std::nan(" "));
 
-                    Reflection *newReflection = new Reflection();
+                    ReflectionPtr newReflection = ReflectionPtr(new Reflection());
                     newReflection->setUnitCellDouble(&unitCell[0]);
                     newReflection->setSpaceGroup(spg->spg_num);
                     newReflection->addMiller(miller);
@@ -406,7 +423,7 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
                     miller->setMatrix(whichMtz->getMatrix());
                     newReflection->calculateResolution(&*whichMtz);
                     
-                    if (newReflection->getResolution() > maxRes)
+                    if (newReflection->getResolution() > (1 / maxRes))
                     {
                         continue;
                     }
@@ -416,6 +433,8 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
             }
         }
     }
+    
+    
 }
 
 void MtzMerger::groupMillerThread(int offset)
@@ -435,8 +454,8 @@ void MtzMerger::groupMillerThread(int offset)
         
         for (int j = 0; j < mtz->reflectionCount(); j++)
         {
-            Reflection *refl = mtz->reflection(j);
-            Reflection *partnerRefl = NULL;
+            ReflectionPtr refl = mtz->reflection(j);
+            ReflectionPtr partnerRefl = NULL;
             int reflId = (int)refl->getReflId();
             
             mergedMtz->findReflectionWithId(reflId, &partnerRefl);
@@ -526,7 +545,7 @@ void MtzMerger::mergeMillersThread(int offset)
         double sigma = 0;
         int rejected = 0;
         
-        Reflection *refl = mergedMtz->reflection(i);
+        ReflectionPtr refl = mergedMtz->reflection(i);
         
         if (refl->liteMillerCount() == 0)
         {
@@ -577,15 +596,16 @@ void MtzMerger::mergeMillers()
 
 void MtzMerger::removeReflections()
 {
+    int count = 0;
+    
     for (int i = 0; i < mergedMtz->reflectionCount(); i++)
     {
-        Reflection *refl = mergedMtz->reflection(i);
-        MillerPtr miller = refl->miller(0);
-        
-        if (!miller->accepted())
+        ReflectionPtr refl = mergedMtz->reflection(i);
+        if (!refl->acceptedCount())
         {
             mergedMtz->removeReflection(i);
             i--;
+            count++;
         }
     }
 }
@@ -679,6 +699,7 @@ MtzMerger::MtzMerger()
 
 void MtzMerger::merge()
 {
+    mergedMtz = MtzPtr(new MtzManager());
     writeParameterCSV();
     pruneMtzs();
     scale();

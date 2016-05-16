@@ -150,8 +150,8 @@ void GraphDrawer::correlationPlot(std::string filename, double xMax, double yMax
 //	double scale = mtz->gradientAgainstManager(*shot2);
 //	mtz->applyScaleFactor(scale);
 
-	vector<Reflection *> reflections1;
-	vector<Reflection *> reflections2;
+	vector<ReflectionPtr> reflections1;
+	vector<ReflectionPtr> reflections2;
 	int num = 0;
 
 	shot1->findCommonReflections(shot2, reflections1, reflections2, &num);
@@ -252,7 +252,7 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
         std::cout << "Scale: " << scale << std::endl;
         mtz->applyScaleFactor(scale);
      
-		vector<Reflection *> refReflections, imgReflections;
+		vector<ReflectionPtr> refReflections, imgReflections;
 
 		mtz->findCommonReflections(referenceManager, imgReflections, refReflections,
 		NULL);
@@ -388,7 +388,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, std::string filena
 			double low = bins[shell];
 			double high = bins[shell + 3];
 
-			vector<Reflection *> refReflections, imgReflections;
+			vector<ReflectionPtr> refReflections, imgReflections;
 
 			mtz->findCommonReflections(referenceManager, imgReflections, refReflections,
 			NULL);
@@ -709,7 +709,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
         
         for (int j = 0; j < mtz->reflectionCount(); j++)
         {
-            Reflection *refl = mtz->reflection(j);
+            ReflectionPtr refl = mtz->reflection(j);
             
             long unsigned int thisID = refl->getReflId();
             

@@ -109,15 +109,15 @@ double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
     int count = 0;
     double weights = 0;
     
-    vector<Reflection *> reflections1;
-    vector<Reflection *> reflections2;
+    vector<ReflectionPtr> reflections1;
+    vector<ReflectionPtr> reflections2;
     
     this->findCommonReflections(referenceManager, reflections1, reflections2, NULL, true);
     
     for (int i = 0; i < reflections1.size(); i++)
     {
-        Reflection *reflection = reflections1[i];
-        Reflection *reflection2 = reflections2[i];
+        ReflectionPtr reflection = reflections1[i];
+        ReflectionPtr reflection2 = reflections2[i];
         
         if (withCutoff && reflection->acceptedCount() == 0)
             continue;
@@ -205,9 +205,9 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     
     for (int i = 0; i < reflections.size(); i++)
     {
-        Reflection *imageReflection = reflections[i];
-        Reflection *refReflection = NULL;
-        int reflid = imageReflection->getReflId();
+        ReflectionPtr imageReflection = reflections[i];
+        ReflectionPtr refReflection = NULL;
+        int reflid = (int)imageReflection->getReflId();
         
         referenceManager->findReflectionWithId(reflid, &refReflection);
         
@@ -794,12 +794,12 @@ void MtzManager::excludeFromLogCorrelation()
     vector<double> refIntensities;
     vector<double> imageIntensities;
     vector<double> weights;
-    vector<Reflection *> imgReflections;
+    vector<ReflectionPtr> imgReflections;
     
     for (int i = 0; i < image1.reflectionCount(); i++)
     {
-        Reflection *reflection = image1.reflection(i);
-        Reflection *reflection2 = NULL;
+        ReflectionPtr reflection = image1.reflection(i);
+        ReflectionPtr reflection2 = NULL;
         
         if (reflection->getResolution() < lowCut
             || reflection->getResolution() > highCut)
@@ -872,7 +872,7 @@ void MtzManager::excludeFromLogCorrelation()
     }
 }
 
-double MtzManager::partialityRatio(Reflection *imgReflection, Reflection *refReflection)
+double MtzManager::partialityRatio(ReflectionPtr imgReflection, ReflectionPtr refReflection)
 {
     double rawIntensity = imgReflection->miller(0)->getRawIntensity();
     double percentage = rawIntensity /= refReflection->meanIntensity();
@@ -897,7 +897,7 @@ void MtzManager::reallowPartialityOutliers()
 
 void MtzManager::excludePartialityOutliers()
 {
-    vector<Reflection *> refReflections, imgReflections;
+    vector<ReflectionPtr> refReflections, imgReflections;
     
     applyScaleFactor(this->gradientAgainstManager(referenceManager));
     
@@ -908,8 +908,8 @@ void MtzManager::excludePartialityOutliers()
     
     for (int i = 0; i < refReflections.size(); i++)
     {
-        Reflection *imgReflection = imgReflections[i];
-        Reflection *refReflection = refReflections[i];
+        ReflectionPtr imgReflection = imgReflections[i];
+        ReflectionPtr refReflection = refReflections[i];
         
         if (!imgReflection->anyAccepted())
             continue;
@@ -932,8 +932,8 @@ void MtzManager::excludePartialityOutliers()
     
     for (int i = 0; i < refReflections.size(); i++)
     {
-        Reflection *imgReflection = imgReflections[i];
-        Reflection *refReflection = refReflections[i];
+        ReflectionPtr imgReflection = imgReflections[i];
+        ReflectionPtr refReflection = refReflections[i];
         
         double ratio = partialityRatio(imgReflection, refReflection);
         

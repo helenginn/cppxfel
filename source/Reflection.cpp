@@ -360,9 +360,9 @@ void Reflection::removeMiller(int index)
     millers.erase(millers.begin() + index);
 }
 
-Reflection *Reflection::copy(bool copyMillers)
+ReflectionPtr Reflection::copy(bool copyMillers)
 {
-    Reflection *newReflection = new Reflection();
+    ReflectionPtr newReflection = ReflectionPtr(new Reflection());
     
     newReflection->spgNum = spgNum;
     newReflection->activeAmbiguity = activeAmbiguity;
@@ -664,7 +664,7 @@ void Reflection::reflectionDescription()
 }
 
 void Reflection::clearMillers()
-{   
+{
     millers.clear();
     vector<MillerPtr>().swap(millers);
     
@@ -995,7 +995,7 @@ bool Reflection::anyAccepted()
 
 double Reflection::observedPartiality(MtzManager *reference, Miller *miller)
 {
-    Reflection *refReflection;
+    ReflectionPtr refReflection;
     double reflId = getReflId();
     reference->findReflectionWithId(reflId, &refReflection);
     

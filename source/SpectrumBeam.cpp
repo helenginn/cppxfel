@@ -21,7 +21,7 @@ SpectrumBeam::SpectrumBeam(GaussianBeamPtr gaussianStart, MtzPtr mtzStart)
     
     for (int i = 0; i < mtzStart->reflectionCount(); i++)
     {
-        Reflection *single = mtzStart->reflection(i);
+        ReflectionPtr single = mtzStart->reflection(i);
 
         if (!single->acceptedCount())
             continue;
@@ -30,7 +30,7 @@ SpectrumBeam::SpectrumBeam(GaussianBeamPtr gaussianStart, MtzPtr mtzStart)
             continue;
         
         MtzManager *reference = MtzManager::getReferenceManager();
-        Reflection *holder;
+        ReflectionPtr holder;
         
         reference->findReflectionWithId(single->getReflId(), &holder);
         

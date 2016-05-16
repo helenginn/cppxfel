@@ -549,6 +549,8 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
         components[9] *= cScale;
         components[10] *= cScale;
 
+        delete [] lengths;
+        
         return;
     }
     

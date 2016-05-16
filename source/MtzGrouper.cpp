@@ -532,12 +532,12 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
             
 			long unsigned int refl_id = mtzManagers[i]->reflection(j)->getReflId();
 
-			Reflection *reflection = NULL;
+			ReflectionPtr reflection = NULL;
 			(*mergeMtz)->findReflectionWithId(refl_id, &reflection);
 
 			if (reflection == NULL)
 			{
-				Reflection *newReflection = mtzManagers[i]->reflection(j)->copy(false);
+				ReflectionPtr newReflection = mtzManagers[i]->reflection(j)->copy(false);
 				(*mergeMtz)->addReflection(newReflection);
 			}
 			else
@@ -612,13 +612,13 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 				if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
 					continue;
 
-				Reflection *reflection = NULL;
+				ReflectionPtr reflection = NULL;
 				friedelMtz->findReflectionWithId(
 						mtzManagers[i]->reflection(j)->getReflId(), &reflection);
 
 				if (reflection == NULL)
 				{
-					Reflection *newReflection = mtzManagers[i]->reflection(j)->copy(true);
+					ReflectionPtr newReflection = mtzManagers[i]->reflection(j)->copy(true);
 					newReflection->clearMillers();
 					MillerPtr newMiller = mtzManagers[i]->reflection(j)->miller(k);
 					newReflection->addMiller(newMiller);
@@ -656,7 +656,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
     
     for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
 	{
-		Reflection *reflection = (*mergeMtz)->reflection(i);
+		ReflectionPtr reflection = (*mergeMtz)->reflection(i);
 
         int accepted = reflection->acceptedCount();
         
@@ -803,8 +803,8 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 	int num = 0;
 
 	int hits = 0;
-	vector<Reflection *> posReflections;
-	vector<Reflection *> negReflections;
+	vector<ReflectionPtr> posReflections;
+	vector<ReflectionPtr> negReflections;
 
 	(*positive)->findCommonReflections(*negative, posReflections, negReflections, &hits);
 
@@ -870,14 +870,14 @@ void MtzGrouper::differenceBetweenMtzs(MtzManager **mergeMtz,
 		MtzManager **positive, MtzManager **negative)
 {
 	int hits = 0;
-	vector<Reflection *> posReflections;
-	vector<Reflection *> negReflections;
+	vector<ReflectionPtr> posReflections;
+	vector<ReflectionPtr> negReflections;
 
 	(*positive)->findCommonReflections(*negative, posReflections, negReflections, &hits);
 
 	for (int i = 0; i < posReflections.size(); i++)
 	{
-		Reflection *newReflection = posReflections[i]->copy(true);
+		ReflectionPtr newReflection = posReflections[i]->copy(true);
 		double posInt = posReflections[i]->meanIntensity();
 		double negInt = negReflections[i]->meanIntensity();
 

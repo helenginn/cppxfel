@@ -188,13 +188,20 @@ void AmbiguityBreaker::merge()
     delete idxGrouper;
  */
     
+    bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
+    
+    
     MtzMerger merger;
     merger.setAllMtzs(mtzs);
     merger.setExcludeWorst(false);
     merger.setCycle(-1);
     merger.setFilename("originalMerge.mtz");
     merger.mergeFull();
-    merger.mergeFull(true);
+    
+    if (anomalousMerge)
+    {
+        merger.mergeFull(true);
+    }
     
     merger.setFreeOnly(true);
     merger.mergeFull();

@@ -52,7 +52,7 @@ public:
 	double multiplierForParam(int l, int paramNum, double currentR,
 			double resolution);
 	double multiplierForL(int l, double currentR);
-    void mergedReflections(MtzManager *templateMtz, vector<Reflection *> &reflections, bool half, bool all);
+    void mergedReflections(MtzManager *templateMtz, vector<ReflectionPtr> &reflections, bool half, bool all);
 
 	void minimize(void);
 //	void minimizeLimited(void);

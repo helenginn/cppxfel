@@ -192,12 +192,14 @@ class Hdf5ManagerProcessing;
 class Hdf5Crystal;
 class PNGFile;
 class SpotFinderQuick;
+class Reflection;
 
 typedef boost::shared_ptr<SpectrumBeam> SpectrumBeamPtr;
 typedef boost::shared_ptr<GetterSetterMap> GetterSetterMapPtr;
 typedef boost::shared_ptr<Beam> BeamPtr;
 typedef boost::shared_ptr<GaussianBeam> GaussianBeamPtr;
 typedef boost::shared_ptr<Miller> MillerPtr;
+typedef boost::shared_ptr<Reflection> ReflectionPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
 typedef boost::shared_ptr<Panel>PanelPtr;

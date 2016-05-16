@@ -32,7 +32,7 @@ public:
 	ReflectionManager(void);
 	~ReflectionManager(void);
 
-	void addReflectionForImage(Reflection *reflection, MtzManager *manager, double l);
+	void addReflectionForImage(ReflectionPtr reflection, MtzManager *manager, double l);
 	double l_sum_E_alpha_2(vector<Scale_factor> Gs);
 	double contributionToGradient(vector<Scale_factor> Gs, int l);
 	void sortReflections();
@@ -48,7 +48,7 @@ public:
     void splitIntensities(vector<Scale_factor> *Gs,
                           double *int1, double *int2);
     double intensity(vector<Scale_factor> *Gs, double *sigma);
-    Reflection *mergedReflection(vector<Scale_factor> *Gs, bool half, bool all);
+    ReflectionPtr mergedReflection(vector<Scale_factor> *Gs, bool half, bool all);
 	
 	double E_alpha(vector<Scale_factor> Gs, int l, double *sum_alpha_beta, double *sum_alpha_alpha);
     

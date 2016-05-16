@@ -222,7 +222,7 @@ int MtzManager::index_for_reflection(int h, int k, int l, bool inverted)
     return index;
 }
 
-bool MtzManager::reflection_comparison(Reflection *i, Reflection *j)
+bool MtzManager::reflection_comparison(ReflectionPtr i, ReflectionPtr j)
 {
     return (i->getReflId() < j->getReflId());
 }
@@ -235,7 +235,7 @@ void MtzManager::insertionSortReflections(void)
 void MtzManager::sortLastReflection(void)
 {
     int i, j;
-    Reflection *tmp;
+    ReflectionPtr tmp;
     
     i = (int)reflections.size() - 1;
     j = i;
@@ -379,7 +379,7 @@ MtzPtr MtzManager::copy()
     
     for (int i = 0; i < reflections.size(); i++)
     {
-        Reflection *newReflection = reflections[i]->copy();
+        ReflectionPtr newReflection = reflections[i]->copy();
         newManager->reflections.push_back(newReflection);
     }
     
@@ -410,34 +410,24 @@ void MtzManager::setUnitCell(vector<double> unitCell)
 
 void MtzManager::clearReflections()
 {
-    for (int i = 0; i < reflections.size(); i++)
-    {
-        delete reflections[i];
-    }
-    
     reflections.clear();
-    vector<Reflection *>().swap(reflections);
+    vector<ReflectionPtr>().swap(reflections);
 }
 
 void MtzManager::removeReflection(int i)
 {
-    delete reflections[i];
-    
     reflections.erase(reflections.begin() + i);
 }
 
-void MtzManager::addReflection(Reflection *reflection)
+void MtzManager::addReflection(ReflectionPtr reflection)
 {
-    Reflection *newReflection = NULL;
+    ReflectionPtr newReflection = NULL;
     int insertionPoint = findReflectionWithId(reflection->getReflId(), &newReflection, true);
     
     reflections.insert(reflections.begin() + insertionPoint, reflection);
-    
- //   reflections.push_back(reflection);
- //   this->sortLastReflection();
 }
 
-void MtzManager::addReflections(vector<Reflection *>reflections)
+void MtzManager::addReflections(vector<ReflectionPtr>reflections)
 {
     for (int i = 0; i < reflections.size(); i++)
     {
@@ -448,7 +438,7 @@ void MtzManager::addReflections(vector<Reflection *>reflections)
 void MtzManager::addMiller(MillerPtr miller)
 {
     int reflection_reflection_index = index_for_reflection(miller->getH(), miller->getK(), miller->getL(), false);
-    Reflection *prevReflection;
+    ReflectionPtr prevReflection;
     this->findReflectionWithId(reflection_reflection_index, &prevReflection);
     
     double unitCell[6] = {cellDim[0], cellDim[1], cellDim[2], cellAngles[0], cellAngles[1], cellAngles[2]};
@@ -460,7 +450,7 @@ void MtzManager::addMiller(MillerPtr miller)
     }
     else
     {
-        Reflection *newReflection = new Reflection();
+        ReflectionPtr newReflection = ReflectionPtr(new Reflection());
         newReflection->setUnitCellDouble(unitCell);
         newReflection->setSpaceGroup(low_group->spg_num);
         newReflection->addMiller(miller);
@@ -579,7 +569,7 @@ void MtzManager::loadReflections(int partials)
 void MtzManager::dropReflections()
 {
     reflections.clear();
-    std::vector<Reflection *>().swap(reflections);
+    std::vector<ReflectionPtr>().swap(reflections);
 }
 
 void MtzManager::loadReflections(PartialityModel model, bool special)
@@ -783,7 +773,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         miller->setRejected(rejectFlags);
         miller->matrix = this->matrix;
         
-        Reflection *prevReflection;
+        ReflectionPtr prevReflection;
         
         this->findReflectionWithId(reflection_reflection_index, &prevReflection);
         
@@ -801,7 +791,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         if (prevReflection == NULL)
         {
-            Reflection *newReflection = new Reflection();
+            ReflectionPtr newReflection = ReflectionPtr(new Reflection());
             reflections.push_back(newReflection);
             newReflection->setUnitCell(cell);
             newReflection->setSpaceGroup(low_group->spg_num);
@@ -869,7 +859,7 @@ void MtzManager::setSpaceGroup(int spgnum)
     spaceGroupMutex.unlock();
 }
 
-int MtzManager::findReflectionWithId(long unsigned int refl_id, Reflection **reflection, bool insertionPoint)
+int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *reflection, bool insertionPoint)
 {
     if (reflectionCount() == 0)
     {
@@ -950,7 +940,7 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, Reflection **ref
 }
 
 void MtzManager::findCommonReflections(MtzManager *other,
-                                       vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
+                                       vector<ReflectionPtr> &reflectionVector1, vector<ReflectionPtr> &reflectionVector2,
                                        int *num, bool acceptableOnly)
 {
     matchReflections.clear();
@@ -968,16 +958,14 @@ void MtzManager::findCommonReflections(MtzManager *other,
         
         long int refl_id = reflection(i)->getReflId();
         
-        Reflection *otherReflection = NULL;
+        ReflectionPtr otherReflection = NULL;
         
         other->findReflectionWithId(refl_id, &otherReflection);
         
         if (otherReflection != NULL && otherReflection->millerCount() > 0)
         {
             reflectionVector1.push_back(reflection(i));
-            matchReflections.push_back(reflection(i));
             reflectionVector2.push_back(otherReflection);
-            refReflections.push_back(otherReflection);
         }
     }
     
@@ -1005,7 +993,7 @@ void MtzManager::applyScaleFactorsForBins(int binCount)
         double low = bins[shell];
         double high = bins[shell + 1];
         
-        vector<Reflection *> refReflections, imgReflections;
+        vector<ReflectionPtr> refReflections, imgReflections;
         
         this->findCommonReflections(referenceManager, imgReflections, refReflections,
                                     NULL);
@@ -1054,7 +1042,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
     double grad = this->gradientAgainstManager(reference);
     this->applyScaleFactor(grad);
     
-    vector<Reflection *> refReflections, imageReflections;
+    vector<ReflectionPtr> refReflections, imageReflections;
     this->findCommonReflections(reference, imageReflections, refReflections, NULL);
     
     vector<double> smoothBins;
@@ -1073,7 +1061,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
         double low = smoothBins[shell];
         double high = smoothBins[shell + 3];
         
-        vector<Reflection *> refReflections, imgReflections;
+        vector<ReflectionPtr> refReflections, imgReflections;
         
         this->findCommonReflections(referenceManager, imgReflections, refReflections);
         
@@ -1161,8 +1149,8 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
 double MtzManager::gradientAgainstManager(MtzManager *otherManager,
                                           bool withCutoff, double lowRes, double highRes)
 {
-    vector<Reflection *> reflections1;
-    vector<Reflection *> reflections2;
+    vector<ReflectionPtr> reflections1;
+    vector<ReflectionPtr> reflections2;
     
     int count = 0;
     int num = 0;
@@ -1427,15 +1415,10 @@ void MtzManager::writeToFile(std::string newFilename, bool announce)
 
 MtzManager::~MtzManager(void)
 {
-//    std::cout << "Deallocating MtzManager." << std::endl;
+    logged << "Deallocating MtzManager " << getFilename() << "." << std::endl;
+    sendLog();
     
-    for (int i = 0; i < reflections.size(); i++)
-    {
-        delete reflections[i];
-    }
-    
-    reflections.clear();
-    vector<Reflection *>().swap(reflections);
+    clearReflections();
 }
 
 void MtzManager::description(void)
@@ -1507,7 +1490,7 @@ void MtzManager::writeToDat(std::string prefix)
     
     for (int i = 0; i < reflectionCount(); i++)
     {
-        Reflection *aReflection = reflection(i);
+        ReflectionPtr aReflection = reflection(i);
         for (int j = 0; j < aReflection->millerCount(); j++)
         {
             MillerPtr miller = aReflection->miller(j);
@@ -1560,7 +1543,7 @@ int MtzManager::removeStrongSpots(std::vector<SpotPtr> *spots, bool actuallyDele
     
     for (int i = 0; i < reflectionCount(); i++)
     {
-        Reflection *ref = reflection(i);
+        ReflectionPtr ref = reflection(i);
         
         count += ref->checkSpotOverlaps(spots, actuallyDelete);
     }

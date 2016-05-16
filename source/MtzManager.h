@@ -50,7 +50,7 @@ protected:
     std::string filename;
 	static CCP4SPG *low_group;
     static std::mutex spaceGroupMutex;
-	static bool reflection_comparison(Reflection *i, Reflection *j);
+	static bool reflection_comparison(ReflectionPtr i, ReflectionPtr j);
 
 	double extreme_index(MTZ *mtz, int max);
 	void hkls_for_reflection(MTZ *mtz, float *adata, int *h, int *k, int *l,
@@ -65,7 +65,7 @@ protected:
 
     int millerCount();
     
-	vector<Reflection *> reflections;
+	vector<ReflectionPtr> reflections;
 	vector<Reflection *> refReflections;
 	vector<Reflection *> matchReflections;
     MtzManager *previousReference;
@@ -148,9 +148,9 @@ public:
 	void loadParametersMap();
 
     void addMiller(MillerPtr miller);
-    void addReflections(vector<Reflection *>reflections);
+    void addReflections(vector<ReflectionPtr>reflections);
 	void clearReflections();
-	void addReflection(Reflection *reflection);
+	void addReflection(ReflectionPtr reflection);
 	void removeReflection(int i);
 	void excludeFromLogCorrelation();
 	void excludePartialityOutliers();  // delete
@@ -180,9 +180,9 @@ public:
     void dropReflections();
 	void loadReflections(int partiality);
 	static void setReference(MtzManager *reference);
-	int findReflectionWithId(long unsigned int refl_id, Reflection **reflection, bool insertionPoint = false);
+	int findReflectionWithId(long unsigned int refl_id, ReflectionPtr *reflection, bool insertionPoint = false);
 	void findCommonReflections(MtzManager *other,
-			vector<Reflection *> &reflectionVector1, vector<Reflection *> &reflectionVector2,
+			vector<ReflectionPtr> &reflectionVector1, vector<ReflectionPtr> &reflectionVector2,
 			int *num = NULL, bool acceptableOnly = false);
 	double gradientAgainstManager(MtzManager *otherManager, bool withCutoff = true, double lowRes = 0, double highRes = 0);
 	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1, vector<std::pair<double, double> > *dataPoints = NULL);
@@ -194,7 +194,7 @@ public:
 	double averageIntensity(void);
 	void setSigmaToUnity();
 	void setPartialityToUnity();
-	double partialityRatio(Reflection *imgReflection, Reflection *refReflection);
+	double partialityRatio(ReflectionPtr imgReflection, ReflectionPtr refReflection);
 	void reallowPartialityOutliers();
     void replaceBeamWithSpectrum();
 
@@ -340,7 +340,7 @@ public:
         return (int)reflections.size();
     }
     
-    virtual Reflection *reflection(int i)
+    virtual ReflectionPtr reflection(int i)
     {
         return reflections[i];
     }

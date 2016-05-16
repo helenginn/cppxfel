@@ -69,7 +69,7 @@ public:
     void addLiteMiller(MillerPtr miller);
     
 	int millerCount();
-	Reflection *copy(bool copyMillers = false);
+	ReflectionPtr copy(bool copyMillers = false);
     
 	static int indexForReflection(int h, int k, int l, CSym::CCP4SPG *lowspgroup, bool inverted = false);
     static int reflectionIdForCoordinates(int h, int k, int l);

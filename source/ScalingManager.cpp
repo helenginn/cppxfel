@@ -284,7 +284,7 @@ double ScalingManager::residualsForImage(MtzManager *reference,
     {
         int refl_id = (int)image->reflection(j)->getReflId();
         
-        Reflection *mainImage;
+        ReflectionPtr mainImage;
         reference->findReflectionWithId(refl_id, &mainImage);
         
         if (mainImage == NULL)
@@ -461,11 +461,11 @@ double ScalingManager::gradientForL(int l, double currentR)
     return grad;
 }
 
-void ScalingManager::mergedReflections(MtzManager *templateMtz, vector<Reflection *> &reflections, bool half, bool all)
+void ScalingManager::mergedReflections(MtzManager *templateMtz, vector<ReflectionPtr> &reflections, bool half, bool all)
 {
     for (int i = 0; i < refs->size(); i++)
     {
-        Reflection *reflection = (*refs)[i].mergedReflection(&Gs, half, all);
+        ReflectionPtr reflection = (*refs)[i].mergedReflection(&Gs, half, all);
         reflection->calculateResolution(templateMtz);
         
         reflections.push_back(reflection);

@@ -42,10 +42,10 @@ void ReflectionManager::reflection_for_image(double l, Reflection **reflection)
 	if (reflections.size() == 2)
 	{
 		if (reflections[0].l == l)
-			*reflection = reflections[0].reflection;
+			*reflection = &*reflections[0].reflection;
 
 		else if (reflections[1].l == l)
-			*reflection = reflections[1].reflection;
+			*reflection = &*reflections[1].reflection;
 
 		else
 			*reflection = NULL;
@@ -339,7 +339,7 @@ void ReflectionManager::sortReflections(void)
 	std::sort(reflections.begin(), reflections.end(), reflection_comparison);
 }
 
-void ReflectionManager::addReflectionForImage(Reflection *reflection, MtzManager *manager,
+void ReflectionManager::addReflectionForImage(ReflectionPtr reflection, MtzManager *manager,
 		double l)
 {
 	double intensity = reflection->meanIntensity();
@@ -351,7 +351,7 @@ void ReflectionManager::addReflectionForImage(Reflection *reflection, MtzManager
 
 	reflections.resize(num + 1);
 
-	reflections[num].reflection = reflection;
+	reflections[num].reflection = &*reflection;
 	reflections[num].manager = manager;
 	reflections[num].l = l;
 }
@@ -402,9 +402,9 @@ double ReflectionManager::intensity(vector<Scale_factor> *Gs, double *sigma)
     return intensity;
 }
 
-Reflection *ReflectionManager::mergedReflection(vector<Scale_factor> *Gs, bool half, bool all)
+ReflectionPtr ReflectionManager::mergedReflection(vector<Scale_factor> *Gs, bool half, bool all)
 {
-    Reflection *newReflection = reflections[0].reflection->copy(false);
+    ReflectionPtr newReflection = reflections[0].reflection->copy(false);
     
     newReflection->setFlipAsActiveAmbiguity();
     

@@ -100,7 +100,7 @@ public:
     MatrixPtr getFlipMatrix();
     
 	MatrixPtr matrix;
-	Reflection *parentReflection;
+	ReflectionPtr parentReflection;
     MtzManager *mtzParent;
     bool crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
                             double spotSize, double wavelength, double bandwidth);
@@ -117,7 +117,7 @@ public:
     void setPartialityModel(PartialityModel model);
 	void setData(double _intensity, double _sigma, double _partiality,
 			double _wavelength);
-	void setParent(Reflection *reflection);
+	void setParent(ReflectionPtr reflection);
 	bool positiveFriedel(bool *positive, int *isym = NULL);
 	void setRejected(RejectReason reason, bool rejection);
 	bool isRejected(RejectReason reason);

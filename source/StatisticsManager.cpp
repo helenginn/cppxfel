@@ -123,8 +123,8 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 		int silent, int *hits, double *multiplicity,
 		double lowResolution, double highResolution, bool shouldLog, bool freeOnly)
 {
-	vector<Reflection *> reflections1;
-	vector<Reflection *> reflections2;
+	vector<ReflectionPtr> reflections1;
+	vector<ReflectionPtr> reflections2;
 	int num = 0;
     CSV csv = CSV(0);
 
@@ -326,7 +326,7 @@ double StatisticsManager::r_factor(RFactorType rFactor, MtzManager *shot1, int *
 
 	for (int i = 0; i < shot1->reflectionCount(); i++)
 	{
-		Reflection *reflection = shot1->reflection(i);
+		ReflectionPtr reflection = shot1->reflection(i);
 
         if (!reflection->anyAccepted())
             continue;
@@ -424,10 +424,10 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 
 	for (int i = 0; i < shot1->reflectionCount(); i++)
 	{
-		Reflection *reflection = shot1->reflection(i);
+		ReflectionPtr reflection = shot1->reflection(i);
         int reflid = (int)reflection->getReflId();
 
-		Reflection *reflection2 = NULL;
+		ReflectionPtr reflection2 = NULL;
 		shot2->findReflectionWithId(reflid, &reflection2);
 
 		if (reflection2 == NULL)
@@ -488,8 +488,8 @@ double StatisticsManager::cc_through_origin(int num1, int num2, int silent,
 	MtzManager *shot1 = &*(mtzs[num1]);
 	MtzManager *shot2 = &*(mtzs[num2]);
 
-	vector<Reflection *> reflections1;
-	vector<Reflection *> reflections2;
+	vector<ReflectionPtr> reflections1;
+	vector<ReflectionPtr> reflections2;
 	int num = 0;
 
 	double highRes = 1 / highResolution;
@@ -864,7 +864,7 @@ void StatisticsManager::twoImagePartialityStatsWritten(
     double scale = (*test_image)->gradientAgainstManager(*image, true);
 	(*test_image)->applyScaleFactor(scale);
 
-	vector<Reflection *>refReflections, imageReflections;
+	vector<ReflectionPtr>refReflections, imageReflections;
 
 	(*test_image)->findCommonReflections(*image, imageReflections, refReflections, NULL, false);
 
@@ -872,8 +872,8 @@ void StatisticsManager::twoImagePartialityStatsWritten(
     
 	for (int i = 0; i < refReflections.size(); i++)
 	{
-		Reflection *refReflection = refReflections[i];
-		Reflection *imageReflection = imageReflections[i];
+		ReflectionPtr refReflection = refReflections[i];
+		ReflectionPtr imageReflection = imageReflections[i];
 
 		double max_intensity = refReflection->meanIntensity();
         

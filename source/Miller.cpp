@@ -355,7 +355,7 @@ void Miller::setFlipMatrix(int i)
     flipMatrix = i;
 }
 
-void Miller::setParent(Reflection *reflection)
+void Miller::setParent(ReflectionPtr reflection)
 {
     parentReflection = reflection;
 }

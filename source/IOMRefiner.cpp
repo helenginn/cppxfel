@@ -1640,7 +1640,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         int index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
                                                mtz->getLowGroup(), false);
         
-        Reflection *found = NULL;
+        ReflectionPtr found = ReflectionPtr();
         mtz->findReflectionWithId(index, &found);
         
         Panel::addMillerToPanelArray(miller);
@@ -1652,7 +1652,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         }
         else
         {
-            Reflection *reflection = new Reflection();
+            ReflectionPtr reflection = ReflectionPtr(new Reflection());
             reflection->setSpaceGroup(spaceGroup->spg_num);
             reflection->addMiller(miller);
             reflection->setUnitCellDouble(&unitCell[0]);
