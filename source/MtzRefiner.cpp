@@ -310,6 +310,12 @@ void MtzRefiner::refineCycle(bool once)
             
             referencePtr = mergedMtz;
             std::string filename = merger.getFilename();
+            
+            if (replaceReference)
+            {
+                reference = &*mergedMtz;
+                MtzManager::setReference(reference);
+            }
         }
         else
         {
@@ -392,12 +398,12 @@ void MtzRefiner::refineCycle(bool once)
                 finished = true;
             
             //     delete grouper;
-        }
-        
-        if (replaceReference)
-        {
-            reference = &*mergedMtz;
-            MtzManager::setReference(reference);
+            
+            if (replaceReference)
+            {
+                reference = &*mergedMtz;
+                MtzManager::setReference(reference);
+            }
         }
         
         i++;
