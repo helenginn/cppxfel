@@ -868,7 +868,7 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *r
 {
     if (reflectionCount() == 0)
     {
-        *reflection = NULL;
+        *reflection = ReflectionPtr();
         return 0;
     }
     
@@ -888,7 +888,7 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *r
                 return reflectionCount();
         }
         
-        *reflection = NULL;
+        *reflection = ReflectionPtr();
         return -1;
     }
     
@@ -923,7 +923,7 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *r
                 return lowest + 1;
             }
             
-            *reflection = NULL;
+            *reflection = ReflectionPtr();
             return -1;
         }
         

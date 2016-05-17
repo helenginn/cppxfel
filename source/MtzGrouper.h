@@ -38,7 +38,7 @@ public:
 
 	vector<MtzPtr> mtzManagers;
 
-    void merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz = MtzPtr(), int cycle = -1, bool anom = false);
+    void merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz = NULL, int cycle = -1, bool anom = false);
 
 	void mergeAnomalous(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 			bool firstHalf, bool all, std::string filename = "anomalous_diff");
