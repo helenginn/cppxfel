@@ -779,7 +779,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         this->findReflectionWithId(reflection_reflection_index, &prevReflection);
         
-        if (!prevReflection)
+        if (prevReflection)
         {
             /** Exclude unobserved reflections by checking for nan */
             if (adata[col_f->source - 1] == adata[col_f->source - 1])
@@ -967,7 +967,7 @@ void MtzManager::findCommonReflections(MtzManager *other,
         
         other->findReflectionWithId(refl_id, &otherReflection);
         
-        if (!otherReflection && otherReflection->millerCount() > 0)
+        if (otherReflection && otherReflection->millerCount() > 0)
         {
             reflectionVector1.push_back(reflection(i));
             reflectionVector2.push_back(otherReflection);

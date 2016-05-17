@@ -486,7 +486,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
 {
     bool hasInitialMtz = FileParser::hasKey("INITIAL_MTZ");
     
-    if (!reference && !force)
+    if (reference && !force)
         return true;
     
     std::ostringstream logged;
@@ -498,7 +498,6 @@ bool MtzRefiner::loadInitialMtz(bool force)
     
     if (hasInitialMtz)
     {
-        
         std::string referenceFile = FileParser::getKey("INITIAL_MTZ",
                                                        std::string(""));
         
@@ -513,9 +512,10 @@ bool MtzRefiner::loadInitialMtz(bool force)
             logged << "Initial MTZ reference missing or reflection count is 0. Exiting." << std::endl;
             Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
         }
+        
+        MtzManager::setReference(&*reference);
     }
     
-    MtzManager::setReference(&*reference);
     
     return hasInitialMtz;
 }

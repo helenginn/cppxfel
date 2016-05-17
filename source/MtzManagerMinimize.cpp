@@ -211,7 +211,7 @@ double MtzManager::leastSquaresPartiality(double low, double high,
         
         referenceManager->findReflectionWithId(reflid, &refReflection);
         
-        if (!refReflection)
+        if (refReflection)
         {
             if (refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
                 continue;

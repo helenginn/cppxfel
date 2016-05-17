@@ -460,7 +460,7 @@ void MtzMerger::groupMillerThread(int offset)
             
             mergedMtz->findReflectionWithId(reflId, &partnerRefl);
             
-            if (!partnerRefl)
+            if (partnerRefl)
             {
                 for (int k = 0; k < refl->millerCount(); k++)
                 {
