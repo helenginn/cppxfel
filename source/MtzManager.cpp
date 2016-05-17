@@ -421,7 +421,7 @@ void MtzManager::removeReflection(int i)
 
 void MtzManager::addReflection(ReflectionPtr reflection)
 {
-    ReflectionPtr newReflection = NULL;
+    ReflectionPtr newReflection = ReflectionPtr();
     int insertionPoint = findReflectionWithId(reflection->getReflId(), &newReflection, true);
     
     reflections.insert(reflections.begin() + insertionPoint, reflection);
@@ -587,13 +587,15 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         return;
     }
     
+    bool recalculateWavelengths = FileParser::getKey("RECALCULATE_WAVELENGTHS", false);
+    
     MTZ *mtz = MtzGet(filename.c_str(), 0);
     
     int fromMtzNum = MtzSpacegroupNumber(mtz);
     
-    int spgnum = FileParser::getKey("SPACE_GROUP", fromMtzNum);
+  //  int spgnum = FileParser::getKey("SPACE_GROUP", fromMtzNum);
     
-    setSpaceGroup(spgnum);
+    setSpaceGroup(fromMtzNum);
     
     if (low_group == NULL)
     {
@@ -817,6 +819,9 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     << " accepted)." << std::endl;
     
     Logger::mainLogger->addStream(&log);
+    
+    if (recalculateWavelengths && matrix)
+        this->recalculateWavelengths();
     
     MtzFree(mtz);
 }

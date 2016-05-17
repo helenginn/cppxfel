@@ -815,7 +815,7 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
     }
     
     double mean = weighted_mean(&intensities, &weights);
-    double stdev = standard_deviation(&intensities, &weights);
+    double stdev = standard_deviation(&intensities, NULL);
     
     if (shouldReject && liteMillers.size() >= MIN_MILLER_COUNT)
     {

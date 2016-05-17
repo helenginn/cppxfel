@@ -20,7 +20,7 @@ class MtzRefiner : public LoggableObject
 {
 private:
     vector<MtzPtr> mtzManagers;
-	MtzManager *reference;
+	MtzPtr reference;
     MtzPtr referencePtr;
 	vector<ImagePtr> images;
     static bool hasPanelParser;

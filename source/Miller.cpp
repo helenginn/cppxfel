@@ -313,7 +313,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     }
     
     mtzParent = parent;
-    parentReflection = NULL;
     matrix = MatrixPtr();
 }
 
@@ -983,8 +982,8 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
     int l = getL();
     
     cctbx::miller::index<> newMiller = cctbx::miller::index<>(h, k, l);
-    space_group *spaceGroup = parentReflection->getSpaceGroup();
-    asu *asymmetricUnit = parentReflection->getAsymmetricUnit();
+    space_group *spaceGroup = getParentReflection()->getSpaceGroup();
+    asu *asymmetricUnit = getParentReflection()->getAsymmetricUnit();
     
     cctbx::miller::asym_index asymmetricMiller = cctbx::miller::asym_index(*spaceGroup, *asymmetricUnit, newMiller);
     
@@ -1273,7 +1272,7 @@ double Miller::observedPartiality(double reference)
 
 double Miller::observedPartiality(MtzManager *reference)
 {
-    return parentReflection->observedPartiality(reference, this);
+    return getParentReflection()->observedPartiality(reference, this);
 }
 
 Miller::~Miller()

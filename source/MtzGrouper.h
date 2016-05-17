@@ -30,7 +30,7 @@ private:
     bool exclusionByCCHalf;
 
     static void checkCCHalf(vector<MtzPtr> *managers, int offset, int *total);
-	void merge(MtzManager **mergeMtz, MtzManager **unmergedMtz, bool firstHalf,
+	void merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz, bool firstHalf,
 			bool all, std::string *unmergedName = NULL);
 public:
 	MtzGrouper();
@@ -38,22 +38,22 @@ public:
 
 	vector<MtzPtr> mtzManagers;
 
-    void merge(MtzManager **mergeMtz, MtzManager **unmergedMtz = NULL, int cycle = -1, bool anom = false);
+    void merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz = NULL, int cycle = -1, bool anom = false);
 
-	void mergeAnomalous(MtzManager **mergeMtz, MtzManager **unmergedMtz,
+	void mergeAnomalous(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 			bool firstHalf, bool all, std::string filename = "anomalous_diff");
-	void differenceBetweenMtzs(MtzManager **mergeMtz, MtzManager **positive, MtzManager **negative);
+	void differenceBetweenMtzs(MtzPtr *mergeMtz, MtzPtr *positive, MtzPtr *negative);
 
-	static void mergeWrapper(void *object, MtzManager **mergeMtz,
-			MtzManager **unmergedMtz, bool firstHalf, bool all, bool anom);
-	int groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz, int start,
+	static void mergeWrapper(void *object, MtzPtr *mergeMtz,
+			MtzPtr *unmergedMtz, bool firstHalf, bool all, bool anom);
+	int groupMillers(MtzPtr *mergeMtz, MtzPtr *unmergedMtz, int start,
 			int end);
-	void mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount);
+	void mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount);
 	void unflipMtzs();
 
-	int groupMillersWithAnomalous(MtzManager **positive, MtzManager **negative, int start,
+	int groupMillersWithAnomalous(MtzPtr *positive, MtzPtr *negative, int start,
 			int end);
-	void writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
+	void writeAnomalousMtz(MtzPtr *positive, MtzPtr *negative,
 			std::string filename);
     
     void sendLog(LogLevel priority = LogLevelNormal);

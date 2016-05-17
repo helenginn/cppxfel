@@ -130,7 +130,7 @@ void MtzGrouper::setMtzManagers(const vector<MtzPtr>& mtzManagers)
 	this->setCorrelationThreshold(averageCorrelation - 0.05);
 }
 
-void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
+void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 		int cycle, bool anom)
 {
 	logged << "N: ==== Merge cycle " << cycle << " ====" << std::endl;
@@ -302,9 +302,9 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 
 	logged << "Altered scales." << std::endl;
 
-	MtzManager *idxMerge = NULL;
-	MtzManager **unmerged = NULL;
-	MtzManager *invMerge = NULL;
+	MtzPtr idxMerge = NULL;
+	MtzPtr *unmerged = NULL;
+	MtzPtr invMerge = NULL;
 
     std::string idxName = std::string("half1Merge.mtz");
     std::string invName = std::string("half2Merge.mtz");
@@ -362,31 +362,28 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
 	logged << "N: === R split ===" << std::endl;
     sendLog();
-	idxMerge->rSplitWithManager(invMerge, false, false, 0, expectedResolution, 20, NULL, true);
+	idxMerge->rSplitWithManager(&*invMerge, false, false, 0, expectedResolution, 20, NULL, true);
 	logged << "N: === CC half ===" << std::endl;
     sendLog();
-	idxMerge->correlationWithManager(invMerge, false, false, 0,
+	idxMerge->correlationWithManager(&*invMerge, false, false, 0,
 			expectedResolution, 20, NULL, true);
     
     if (FreeMillerLibrary::active())
     {
         logged << "N: === R split (free only) ===" << std::endl;
         sendLog();
-        idxMerge->rSplitWithManager(invMerge, false, false, 0, expectedResolution, 20, NULL, true, true);
+        idxMerge->rSplitWithManager(&*invMerge, false, false, 0, expectedResolution, 20, NULL, true, true);
         logged << "N: === CC half (free only) ===" << std::endl;
         sendLog();
-        idxMerge->correlationWithManager(invMerge, false, false, 0,
+        idxMerge->correlationWithManager(&*invMerge, false, false, 0,
                                          expectedResolution, 20, NULL, false, true);
     }
         
     sendLog();
-
-	delete idxMerge;
-	delete invMerge;
 }
 
-void MtzGrouper::mergeWrapper(void *object, MtzManager **mergeMtz,
-		MtzManager **unmergedMtz, bool firstHalf, bool all, bool anom)
+void MtzGrouper::mergeWrapper(void *object, MtzPtr *mergeMtz,
+		MtzPtr *unmergedMtz, bool firstHalf, bool all, bool anom)
 {
 	if (!anom)
 	{
@@ -400,10 +397,10 @@ void MtzGrouper::mergeWrapper(void *object, MtzManager **mergeMtz,
 	}
 }
 
-void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
+void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
                        bool firstHalf, bool all, std::string *unmergedName)
 {
-	*mergeMtz = new MtzManager();
+	*mergeMtz = MtzPtr(new MtzManager());
     
     std::string filename = std::string("merged_") + (all ? std::string("all_") : std::string("half_")) + (firstHalf ? std::string("0") : std::string("1"));
     
@@ -424,7 +421,7 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
     
 	if (unmergedMtz != NULL)
 	{
-		(*unmergedMtz) = &*(*mergeMtz)->copy();
+		(*unmergedMtz) = (*mergeMtz)->copy();
 	}
     
     if (unmergedName != NULL)
@@ -442,17 +439,17 @@ void MtzGrouper::merge(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	unflipMtzs();
 }
 
-void MtzGrouper::mergeAnomalous(MtzManager **mergeMtz, MtzManager **unmergedMtz,
+void MtzGrouper::mergeAnomalous(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 		bool firstHalf, bool all, std::string filename)
 {
-	MtzManager *positive = new MtzManager();
-	MtzManager *negative = new MtzManager();
+	MtzPtr positive = MtzPtr(new MtzManager());
+	MtzPtr negative = MtzPtr(new MtzManager());
 	positive->setFilename("positive_pair");
 	negative->setFilename("negative_pair");
 	positive->copySymmetryInformationFromManager(mtzManagers[0]);
 	negative->copySymmetryInformationFromManager(mtzManagers[0]);
 
-	*mergeMtz = new MtzManager();
+	*mergeMtz = MtzPtr(new MtzManager());
 	(*mergeMtz)->setFilename(filename);
 	(*mergeMtz)->copySymmetryInformationFromManager(mtzManagers[0]);
 
@@ -481,15 +478,12 @@ void MtzGrouper::mergeAnomalous(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 		writeAnomalousMtz(&positive, &negative, filename);
 	}
 
-	delete negative;
-	delete positive;
-
 	(*mergeMtz)->description();
 
 	unflipMtzs();
 }
 
-int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
+int MtzGrouper::groupMillers(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 		int start, int end)
 {
 	int mtzCount = 0;
@@ -572,8 +566,8 @@ int MtzGrouper::groupMillers(MtzManager **mergeMtz, MtzManager **unmergedMtz,
 	return mtzCount;
 }
 
-int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
-		MtzManager **negative, int start, int end)
+int MtzGrouper::groupMillersWithAnomalous(MtzPtr *positive,
+		MtzPtr *negative, int start, int end)
 {
 	int flipCount = 0;
 	int mtzCount = 0;
@@ -607,7 +601,7 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
                 logged << "Acquired Friedel " << friedel << std::endl;
                 sendLog(LogLevelDebug);
                 
-				MtzManager *friedelMtz = (friedel ? *positive : *negative);
+				MtzPtr friedelMtz = (friedel ? *positive : *negative);
 
 				if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
 					continue;
@@ -643,7 +637,7 @@ int MtzGrouper::groupMillersWithAnomalous(MtzManager **positive,
 	return mtzCount;
 }
 
-void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
+void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
 {
 	int reflectionCount = 0;
 	int millerCount = 0;
@@ -716,7 +710,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 		ccp4spg_put_in_asu((*mergeMtz)->getLowGroup(), firstMiller->getH(),
 				firstMiller->getK(), firstMiller->getL(), &h, &k, &l);
 
-		MillerPtr newMiller = MillerPtr(new Miller((*mergeMtz), h, k, l));
+		MillerPtr newMiller = MillerPtr(new Miller(&*(*mergeMtz), h, k, l));
 
         if (totalSigma != totalSigma || totalIntensity != totalIntensity)
         {
@@ -725,7 +719,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
         
 		newMiller->setData(totalIntensity, totalSigma, 1, 0);
 		newMiller->setParent((*mergeMtz)->reflection(i));
-		(*mergeMtz)->reflection(i)->calculateResolution(*mergeMtz);
+		(*mergeMtz)->reflection(i)->calculateResolution(&**mergeMtz);
 
 		(*mergeMtz)->reflection(i)->clearMillers();
 		(*mergeMtz)->reflection(i)->addMiller(newMiller);
@@ -744,7 +738,7 @@ void MtzGrouper::mergeMillers(MtzManager **mergeMtz, bool reject, int mtzCount)
 	(*mergeMtz)->insertionSortReflections();
 }
 
-void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
+void MtzGrouper::writeAnomalousMtz(MtzPtr *positive, MtzPtr *negative,
 		std::string filename)
 {
     double doubleCell[6];
@@ -806,7 +800,7 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 	vector<ReflectionPtr> posReflections;
 	vector<ReflectionPtr> negReflections;
 
-	(*positive)->findCommonReflections(*negative, posReflections, negReflections, &hits);
+	(*positive)->findCommonReflections(&**negative, posReflections, negReflections, &hits);
 
 	for (int i = 0; i < posReflections.size(); i++)
 	{
@@ -866,14 +860,14 @@ void MtzGrouper::writeAnomalousMtz(MtzManager **positive, MtzManager **negative,
 	MtzFree(mtzout);
 }
 
-void MtzGrouper::differenceBetweenMtzs(MtzManager **mergeMtz,
-		MtzManager **positive, MtzManager **negative)
+void MtzGrouper::differenceBetweenMtzs(MtzPtr *mergeMtz,
+		MtzPtr *positive, MtzPtr *negative)
 {
 	int hits = 0;
 	vector<ReflectionPtr> posReflections;
 	vector<ReflectionPtr> negReflections;
 
-	(*positive)->findCommonReflections(*negative, posReflections, negReflections, &hits);
+	(*positive)->findCommonReflections(&**negative, posReflections, negReflections, &hits);
 
 	for (int i = 0; i < posReflections.size(); i++)
 	{

@@ -130,7 +130,7 @@ void MtzRefiner::cycleThread(int offset)
 
 void MtzRefiner::cycle()
 {
-    MtzManager::setReference(reference);
+    MtzManager::setReference(&*reference);
     
     time_t startcputime;
     time(&startcputime);
@@ -180,7 +180,7 @@ void MtzRefiner::initialMerge()
     breaker.run();
     referencePtr = breaker.getMergedMtz();
     originalMerge = &*referencePtr;
-    reference = originalMerge;
+    reference = referencePtr;
     
     reference->writeToFile("initialMerge.mtz");
 }
@@ -200,7 +200,7 @@ void MtzRefiner::refine()
 {
     setupFreeMillers();
     
-    MtzManager *originalMerge = NULL;
+    MtzPtr originalMerge;
     
     bool initialExists = loadInitialMtz();
     readMatricesAndMtzs();
@@ -235,8 +235,8 @@ void MtzRefiner::refine()
     
     originalMerge->writeToFile("originalMerge.mtz");
     
-    MtzManager::currentManager = originalMerge;
-    MtzManager::setReference(reference);
+    MtzManager::currentManager = &*originalMerge;
+    MtzManager::setReference(&*reference);
     double correl = originalMerge->correlation(true);
     std::cout << "Merged correlation = " << correl << std::endl;
     
@@ -288,10 +288,11 @@ void MtzRefiner::refineCycle(bool once)
         // *************************
         
         MtzPtr mergedMtz;
+        std::string filename = "allMerge" + i_to_str(i) + ".mtz";
         
         if (!old)
         {
-            MtzManager::setReference(reference);
+            MtzManager::setReference(&*reference);
             
             MtzMerger merger;
             merger.setAllMtzs(mtzManagers);
@@ -313,8 +314,8 @@ void MtzRefiner::refineCycle(bool once)
             
             if (replaceReference)
             {
-                reference = &*mergedMtz;
-                MtzManager::setReference(reference);
+                reference = mergedMtz;
+                MtzManager::setReference(&*reference);
             }
         }
         else
@@ -322,7 +323,7 @@ void MtzRefiner::refineCycle(bool once)
             
             std::cout << "Grouping final MTZs" << std::endl;
             MtzGrouper *grouper = new MtzGrouper();
-            MtzManager::setReference(reference);
+            MtzManager::setReference(&*reference);
             if (i >= 0)
                 grouper->setScalingType(scaling);
             if (once)
@@ -336,8 +337,7 @@ void MtzRefiner::refineCycle(bool once)
             else
                 grouper->setCorrelationThreshold(correlationThreshold);
             
-            MtzManager *mergedMtz = NULL;
-            MtzManager *unmergedMtz = NULL;
+            MtzPtr mergedMtz, unmergedMtz;
             grouper->merge(&mergedMtz, &unmergedMtz, i);
             
             
@@ -354,7 +354,6 @@ void MtzRefiner::refineCycle(bool once)
             double scale = 1000 / mergedMtz->averageIntensity();
             mergedMtz->applyScaleFactor(scale);
             
-            std::string filename = "allMerge" + i_to_str(i) + ".mtz";
             mergedMtz->writeToFile(filename.c_str(), true);
             
             
@@ -364,11 +363,11 @@ void MtzRefiner::refineCycle(bool once)
             
             if (anomalousMerge)
             {
-                MtzManager *anomMergedMtz = NULL;
+                MtzPtr anomMergedMtz;
                 grouper->merge(&anomMergedMtz, NULL, i, true);
                 
-                MtzManager::currentManager = mergedMtz;
-                MtzManager::setReference(reference);
+                MtzManager::currentManager = &*mergedMtz;
+                MtzManager::setReference(&*reference);
                 
                 std::cout << "Reflections for anomalous: " << anomMergedMtz->reflectionCount() << std::endl;
                 
@@ -376,38 +375,39 @@ void MtzRefiner::refineCycle(bool once)
                 mergedMtz->applyScaleFactor(scale);
             }
             
-            MtzManager *reloadMerged = new MtzManager();
-            
-            std::string reloadFullPath = FileReader::addOutputDirectory(filename);
-            
-            reloadMerged->setFilename(reloadFullPath.c_str());
-            reloadMerged->loadReflections(1);
-            reloadMerged->description();
-            
-            MtzManager::currentManager = reloadMerged;
-            double reloaded = reloadMerged->correlation(true);
-            std::cout << "Reloaded correlation = " << reloaded << std::endl;
-            
-            if (reloaded > 0.999 && i >= minimumCycles && stop)
-                finished = true;
-            
-            if (once)
-                finished = true;
-            
-            if (i == maximumCycles - 1 && stop)
-                finished = true;
-            
-            //     delete grouper;
             
             if (replaceReference)
             {
-                reference = &*mergedMtz;
-                MtzManager::setReference(reference);
+                reference = mergedMtz;
+                MtzManager::setReference(&*reference);
             }
         }
         
+        /*
+        MtzManager *reloadMerged = new MtzManager();
+        std::string reloadFullPath = FileReader::addOutputDirectory(filename);
+        
+        reloadMerged->setFilename(reloadFullPath.c_str());
+        reloadMerged->loadReflections(1);
+        reloadMerged->description();
+        
+        MtzManager::currentManager = reloadMerged;
+        double reloaded = reloadMerged->correlation(true);
+        std::cout << "Reloaded correlation = " << reloaded << std::endl;
+        
+        if (reloaded > 0.999 && i >= minimumCycles && stop)
+            finished = true;*/
+        
+        if (once)
+            finished = true;
+        
+        if (i == maximumCycles - 1 && stop)
+            finished = true;
+        
         i++;
+        //     delete grouper;
     }
+    
 }
 
 
@@ -439,7 +439,7 @@ void MtzRefiner::refineSymmetry()
     
     refineCycle(true);
     
-    MtzManager::setReference(reference);
+    MtzManager::setReference(&*reference);
     
     int defaultScoreInt = FileParser::getKey("DEFAULT_TARGET_FUNCTION",
                                              (int) DEFAULT_SCORE_TYPE);
@@ -503,7 +503,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
         std::string referenceFile = FileParser::getKey("INITIAL_MTZ",
                                                        std::string(""));
         
-        reference = new MtzManager();
+        reference = MtzPtr(new MtzManager());
         
         reference->setFilename(referenceFile.c_str());
         reference->loadReflections(1);
@@ -516,7 +516,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
         }
     }
     
-    MtzManager::setReference(reference);
+    MtzManager::setReference(&*reference);
     
     return hasInitialMtz;
 }
@@ -639,7 +639,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
     bool setSigmaToUnity = FileParser::getKey("SET_SIGMA_TO_UNITY", true);
-    bool recalculateWavelengths = FileParser::getKey("RECALCULATE_WAVELENGTHS", false);
     
     bool ignoreMissing = FileParser::getKey("IGNORE_MISSING_IMAGES", false);
     bool lowMemoryMode = FileParser::getKey("LOW_MEMORY_MODE", false);
@@ -901,12 +900,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             if (setSigmaToUnity)
                 newManager->setSigmaToUnity();
             
-            if (recalculateWavelengths)
-                newManager->recalculateWavelengths();
-            
             newManager->setParamLine(paramsLine);
             
-            if (newManager->reflectionCount() > 0)
+            if (newManager->reflectionCount() > 0 || lowMemoryMode)
             {
                 if (checkingUnitCell && newManager->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
                 {
@@ -1442,7 +1438,7 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
 {
     if (MtzManager::getReferenceManager() == NULL)
     {
-        MtzManager::setReference(reference);
+        MtzManager::setReference(&*reference);
     }
     
     
@@ -1473,7 +1469,7 @@ void MtzRefiner::merge(bool mergeOnly)
     setupFreeMillers();
     
     loadInitialMtz();
-    MtzManager::setReference(this->reference);
+    MtzManager::setReference(&*reference);
     readMatricesAndMtzs();
     
     bool partialityRejection = FileParser::getKey("PARTIALITY_REJECTION", false);
@@ -1535,13 +1531,10 @@ void MtzRefiner::merge(bool mergeOnly)
         
         grouper->setCorrelationThreshold(correlationThreshold);
         
-        MtzManager *mergedMtz = NULL;
-        MtzManager *unmergedMtz = NULL;
+        MtzPtr mergedMtz = NULL;
         grouper->merge(&mergedMtz, NULL, -1, mergeAnomalous);
         mergedMtz->writeToFile("remerged.mtz");
         
-        delete unmergedMtz;
-        delete mergedMtz;
         delete grouper;
     }
 }
@@ -2015,7 +2008,6 @@ MtzRefiner::~MtzRefiner()
 {
     //    std::cout << "Deallocating MtzRefiner." << std::endl;
     
-    delete reference;
     delete panelParser;
     mtzManagers.clear();
     
@@ -2068,14 +2060,14 @@ void MtzRefiner::refineDistances()
     {
         for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
         {
-            images[i]->getIOMRefiner(j)->refineDetectorAndWavelength(reference);
+            images[i]->getIOMRefiner(j)->refineDetectorAndWavelength(&*reference);
         }
     }
 }
 
 void MtzRefiner::orientationPlot()
 {
-    GraphDrawer drawer = GraphDrawer(reference);
+    GraphDrawer drawer = GraphDrawer(&*reference);
     drawer.plotOrientationStats(mtzManagers);
 }
 

@@ -100,7 +100,7 @@ public:
     MatrixPtr getFlipMatrix();
     
 	MatrixPtr matrix;
-	ReflectionPtr parentReflection;
+	ReflectionWeakPtr parentReflection;
     MtzManager *mtzParent;
     bool crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
                             double spotSize, double wavelength, double bandwidth);
@@ -384,6 +384,11 @@ public:
     int getRejectionFlags()
     {
         return rejectedReasons;
+    }
+    
+    ReflectionPtr getParentReflection()
+    {
+        return parentReflection.lock();
     }
 
     static void rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
