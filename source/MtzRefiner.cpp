@@ -38,7 +38,6 @@ int MtzRefiner::cycleNum;
 MtzRefiner::MtzRefiner()
 {
     // TODO Auto-generated constructor stub
-    reference = NULL;
     panelParser = NULL;
     
     hasPanelParser = false;
@@ -487,7 +486,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
 {
     bool hasInitialMtz = FileParser::hasKey("INITIAL_MTZ");
     
-    if (reference != NULL && !force)
+    if (!reference && !force)
         return true;
     
     std::ostringstream logged;
@@ -1531,7 +1530,7 @@ void MtzRefiner::merge(bool mergeOnly)
         
         grouper->setCorrelationThreshold(correlationThreshold);
         
-        MtzPtr mergedMtz = NULL;
+        MtzPtr mergedMtz;
         grouper->merge(&mergedMtz, NULL, -1, mergeAnomalous);
         mergedMtz->writeToFile("remerged.mtz");
         
