@@ -206,12 +206,12 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     for (int i = 0; i < reflections.size(); i++)
     {
         ReflectionPtr imageReflection = reflections[i];
-        ReflectionPtr refReflection = NULL;
+        ReflectionPtr refReflection;
         int reflid = (int)imageReflection->getReflId();
         
         referenceManager->findReflectionWithId(reflid, &refReflection);
         
-        if (refReflection != NULL)
+        if (!refReflection)
         {
             if (refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
                 continue;
@@ -799,7 +799,7 @@ void MtzManager::excludeFromLogCorrelation()
     for (int i = 0; i < image1.reflectionCount(); i++)
     {
         ReflectionPtr reflection = image1.reflection(i);
-        ReflectionPtr reflection2 = NULL;
+        ReflectionPtr reflection2;
         
         if (reflection->getResolution() < lowCut
             || reflection->getResolution() > highCut)
@@ -809,7 +809,7 @@ void MtzManager::excludeFromLogCorrelation()
         
         image2.findReflectionWithId(refl, &reflection2);
         
-        if (reflection2 == NULL)
+        if (!reflection2)
             continue;
         
         double int1 = (reflection->meanIntensity());
