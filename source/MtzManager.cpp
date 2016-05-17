@@ -779,7 +779,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         this->findReflectionWithId(reflection_reflection_index, &prevReflection);
         
-        if (prevReflection != NULL)
+        if (!prevReflection)
         {
             /** Exclude unobserved reflections by checking for nan */
             if (adata[col_f->source - 1] == adata[col_f->source - 1])
@@ -791,7 +791,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
             // reflection is a repeat so set flag.
         }
         
-        if (prevReflection == NULL)
+        if (!prevReflection)
         {
             ReflectionPtr newReflection = ReflectionPtr(new Reflection());
             reflections.push_back(newReflection);
@@ -963,11 +963,11 @@ void MtzManager::findCommonReflections(MtzManager *other,
         
         long int refl_id = reflection(i)->getReflId();
         
-        ReflectionPtr otherReflection = NULL;
+        ReflectionPtr otherReflection;
         
         other->findReflectionWithId(refl_id, &otherReflection);
         
-        if (otherReflection != NULL && otherReflection->millerCount() > 0)
+        if (!otherReflection && otherReflection->millerCount() > 0)
         {
             reflectionVector1.push_back(reflection(i));
             reflectionVector2.push_back(otherReflection);
