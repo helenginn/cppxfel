@@ -390,6 +390,12 @@ public:
     {
         return parentReflection.lock();
     }
+    
+    double getRawSigma()
+    {
+        return sigma;
+    }
+
 
     static void rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
     static void rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);

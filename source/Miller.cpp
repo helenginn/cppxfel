@@ -482,6 +482,7 @@ void Miller::makeScalesPermanent()
     bFactor = 0;
 }
 
+
 double Miller::getSigma(void)
 {
     // bigger sigma - larger error

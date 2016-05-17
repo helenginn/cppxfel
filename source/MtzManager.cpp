@@ -781,6 +781,12 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         MillerPtr miller = MillerPtr(new Miller(this, h, k, l));
         miller->setData(intensity, sigma, partiality, wavelength);
         miller->setCountingSigma(countingSigma);
+        
+     /*   if (dropped)
+        {
+            miller->setSigma(sigma);
+        }
+       */
         miller->setPhase(phase);
         miller->setLastX(shiftX);
         miller->setLastY(shiftY);
@@ -831,7 +837,11 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     log << "Loaded " << mtz->nref_filein << " reflections (" << accepted()
     << " accepted)." << std::endl;
     
-    Logger::mainLogger->addStream(&log);
+    bool lowMem = FileParser::getKey("LOW_MEMORY_MODE", false);
+    
+    Logger::mainLogger->addStream(&log, (lowMem ? LogLevelDetailed : LogLevelNormal));
+    
+    setSigmaToUnity();
     
     if (recalculateWavelengths && matrix)
         this->recalculateWavelengths();
@@ -1379,7 +1389,7 @@ void MtzManager::writeToFile(std::string newFilename, bool announce)
             MillerPtr miller = reflections[i]->miller(j);
             
             double intensity = reflections[i]->miller(j)->getRawestIntensity();
-            double sigma = reflections[i]->miller(j)->getSigma();
+            double sigma = reflections[i]->miller(j)->getRawSigma();
             double partiality = reflections[i]->miller(j)->getPartiality();
             double bFactor = reflections[i]->miller(j)->getBFactorScale();
             double countingSigma = reflections[i]->miller(j)->getRawCountingSigma();
@@ -1433,8 +1443,8 @@ void MtzManager::writeToFile(std::string newFilename, bool announce)
 
 MtzManager::~MtzManager(void)
 {
-    logged << "Deallocating MtzManager " << getFilename() << "." << std::endl;
-    sendLog();
+//    logged << "Deallocating MtzManager " << getFilename() << "." << std::endl;
+//    sendLog();
     
     clearReflections();
 }
@@ -1780,15 +1790,15 @@ std::string MtzManager::parameterHeaders()
 std::string MtzManager::writeParameterSummary()
 {
     std::ostringstream summary;
-    summary << getFilename() << "\t" << getRefCorrelation() << "\t" << rSplit(0, maxResolutionAll) << "\t" << getRefPartCorrel() << "\t"
-				<< accepted() << "\t"
-				<< getMosaicity() << "\t"
-				<< getWavelength() << "\t"
-				<< getBandwidth() << "\t";
-    summary << hRot << "\t" << kRot << "\t";
+    summary << getFilename() << "," << getRefCorrelation() << "," << rSplit(0, maxResolutionAll) << "," << getRefPartCorrel() << ","
+				<< accepted() << ","
+				<< getMosaicity() << ","
+				<< getWavelength() << ","
+				<< getBandwidth() << ",";
+    summary << hRot << "," << kRot << ",";
     
-    summary << getSpotSize() << "\t"
-    << getExponent() << "\t" << cellDim[0] << "\t" << cellDim[1] << "\t" << cellDim[2];
+    summary << getSpotSize() << ","
+    << getExponent() << "," << cellDim[0] << "," << cellDim[1] << "," << cellDim[2];
     
     
     return summary.str();

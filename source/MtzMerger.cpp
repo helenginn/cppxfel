@@ -48,6 +48,8 @@ std::string MtzMerger::makeFilename(std::string prefix)
 
 double MtzMerger::maxResolution()
 {
+    double maxInput = FileParser::getKey("MAX_RESOLUTION_ALL", 1.4);
+    
     double maxRes = 0;
     
     if (!lowMemoryMode)
@@ -64,9 +66,14 @@ double MtzMerger::maxResolution()
     }
     else if (lowMemoryMode)
     {
-        maxRes = FileParser::getKey("MAX_RESOLUTION_ALL", 1.4);
+        maxRes = maxInput;
     }
 
+    if (maxInput != 0 && maxRes > 1 / maxInput)
+    {
+        maxRes = maxInput;
+    }
+    
     return maxRes;
 }
 
@@ -230,6 +237,11 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
 
 MtzRejectionReason MtzMerger::isMtzAccepted(MtzPtr mtz)
 {
+    if (lowMemoryMode)
+    {
+        mtz->loadReflections(true);
+    }
+    
     if (!excludeWorst)
     {
         return MtzRejectionNotRejected;
@@ -264,6 +276,11 @@ MtzRejectionReason MtzMerger::isMtzAccepted(MtzPtr mtz)
         return MtzRejectionOther;
     }
     
+    if (lowMemoryMode)
+    {
+        mtz->dropReflections();
+    }
+    
     return MtzRejectionNotRejected;
 }
 
@@ -274,17 +291,8 @@ void MtzMerger::pruneMtzs()
     
     for (int i = 0; i < allMtzs.size(); i++)
     {
-        if (lowMemoryMode)
-        {
-            allMtzs[i]->loadReflections(true);
-        }
         
         MtzRejectionReason rejectReason = isMtzAccepted(allMtzs[i]);
-        
-        if (lowMemoryMode)
-        {
-            allMtzs[i]->dropReflections();
-        }
         
         if (rejectReason == MtzRejectionNotRejected)
         {
@@ -324,6 +332,29 @@ void MtzMerger::pruneMtzs()
 
 // MARK: scaling
 
+void MtzMerger::scaleIndividual(MtzPtr mtz)
+{
+    double scale = 1;
+    
+    if (lowMemoryMode)
+    {
+        mtz->loadReflections(true);
+    }
+    
+    if (scalingType == ScalingTypeAverage)
+    {
+        scale = 1000 / mtz->averageIntensity();
+    }
+    else if (scalingType == ScalingTypeReference)
+    {
+        MtzManager *reference = MtzManager::getReferenceManager();
+        
+        scale = mtz->gradientAgainstManager(reference, false);
+    }
+    
+    mtz->applyScaleFactor(scale);
+}
+
 void MtzMerger::scale()
 {
     if (!needToScale)
@@ -333,20 +364,7 @@ void MtzMerger::scale()
     
     for (int i = 0; i < someMtzs.size(); i++)
     {
-        double scale = 1;
-        
-        if (scalingType == ScalingTypeAverage)
-        {
-            scale = 1000 / someMtzs[i]->averageIntensity();
-        }
-        else if (scalingType == ScalingTypeReference)
-        {
-            MtzManager *reference = MtzManager::getReferenceManager();
-            
-            scale = someMtzs[i]->gradientAgainstManager(reference, false);
-        }
-        
-        someMtzs[i]->applyScaleFactor(scale);
+        scaleIndividual(someMtzs[i]);
     }
 }
 
@@ -504,7 +522,7 @@ void MtzMerger::groupMillerThread(int offset)
     if (wentMissing)
     {
         logged << "N: Warning: " << wentMissing << " millers went missing during merge." << std::endl;
-        sendLog();
+        sendLog(LogLevelDetailed);
     }
 }
 
@@ -598,13 +616,12 @@ void MtzMerger::removeReflections()
 {
     int count = 0;
     
-    for (int i = 0; i < mergedMtz->reflectionCount(); i++)
+    for (int i = mergedMtz->reflectionCount() - 1; i >= 0 ; i--)
     {
         ReflectionPtr refl = mergedMtz->reflection(i);
         if (!refl->acceptedCount())
         {
             mergedMtz->removeReflection(i);
-            i--;
             count++;
         }
     }
@@ -702,7 +719,12 @@ void MtzMerger::merge()
     mergedMtz = MtzPtr(new MtzManager());
     writeParameterCSV();
     pruneMtzs();
-    scale();
+    
+    if (!needToScale)
+    {
+        scale();
+    }
+   
 
     if (someMtzs.size() == 0)
     {
@@ -760,9 +782,9 @@ void MtzMerger::mergeFull(bool anomalous)
             return;
         }
     }
-    
-    scale();
 
+    scale();
+    
     std::vector<MtzPtr> firstHalfMtzs, secondHalfMtzs;
     splitAllMtzs(firstHalfMtzs, secondHalfMtzs);
     

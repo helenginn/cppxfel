@@ -59,6 +59,7 @@ private:
     static void groupMillerThreadWrapper(MtzMerger *object, int offset);
     std::string makeFilename(std::string prefix);
     
+    void scaleIndividual(MtzPtr mtz);
     void scale();
     void fixSigmas();
     void removeReflections();
