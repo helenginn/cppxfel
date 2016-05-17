@@ -302,9 +302,9 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 
 	logged << "Altered scales." << std::endl;
 
-	MtzPtr idxMerge = NULL;
-	MtzPtr *unmerged = NULL;
-	MtzPtr invMerge = NULL;
+	MtzPtr idxMerge;
+	MtzPtr *unmerged;
+	MtzPtr invMerge;
 
     std::string idxName = std::string("half1Merge.mtz");
     std::string invName = std::string("half2Merge.mtz");
@@ -526,10 +526,10 @@ int MtzGrouper::groupMillers(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
             
 			long unsigned int refl_id = mtzManagers[i]->reflection(j)->getReflId();
 
-			ReflectionPtr reflection = NULL;
+			ReflectionPtr reflection;
 			(*mergeMtz)->findReflectionWithId(refl_id, &reflection);
 
-			if (reflection == NULL)
+			if (!reflection)
 			{
 				ReflectionPtr newReflection = mtzManagers[i]->reflection(j)->copy(false);
 				(*mergeMtz)->addReflection(newReflection);
@@ -606,11 +606,11 @@ int MtzGrouper::groupMillersWithAnomalous(MtzPtr *positive,
 				if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
 					continue;
 
-				ReflectionPtr reflection = NULL;
+				ReflectionPtr reflection;
 				friedelMtz->findReflectionWithId(
 						mtzManagers[i]->reflection(j)->getReflId(), &reflection);
 
-				if (reflection == NULL)
+				if (!reflection)
 				{
 					ReflectionPtr newReflection = mtzManagers[i]->reflection(j)->copy(true);
 					newReflection->clearMillers();

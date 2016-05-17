@@ -999,7 +999,7 @@ double Reflection::observedPartiality(MtzManager *reference, Miller *miller)
     double reflId = getReflId();
     reference->findReflectionWithId(reflId, &refReflection);
     
-    if (refReflection != NULL)
+    if (!refReflection)
         return miller->observedPartiality(refReflection->meanIntensity());
     
     return nan(" ");

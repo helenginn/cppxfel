@@ -427,10 +427,10 @@ double StatisticsManager::r_split(MtzManager *shot1, MtzManager *shot2,
 		ReflectionPtr reflection = shot1->reflection(i);
         int reflid = (int)reflection->getReflId();
 
-		ReflectionPtr reflection2 = NULL;
+		ReflectionPtr reflection2;
 		shot2->findReflectionWithId(reflid, &reflection2);
 
-		if (reflection2 == NULL)
+		if (!reflection2)
 			continue;
         
         if (freeOnly && !reflection2->miller(0)->isFree())

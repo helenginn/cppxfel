@@ -382,13 +382,13 @@ double MtzManager::bestWavelength(double lowRes, double highRes, bool usingRefer
             {
                 reference->findReflectionWithId(reflection(i)->getReflId(), &refReflection);
                 
-                if (refReflection != NULL && refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
+                if (!refReflection && refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
                     continue;
             }
             
             if (usingReference)
             {
-                if (refReflection == NULL)
+                if (!refReflection)
                     continue;
                 
                 double imgIntensity = reflection(i)->miller(j)->getRawestIntensity();

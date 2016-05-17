@@ -80,13 +80,13 @@ void MtzMerger::createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive)
         MillerPtr meanMiller = refl->miller(0);
         int reflId = (int)refl->getReflId();
         
-        ReflectionPtr posRefl = NULL;
-        ReflectionPtr negRefl = NULL;
+        ReflectionPtr posRefl;
+        ReflectionPtr negRefl;
         
         negative->findReflectionWithId(reflId, &negRefl);
         positive->findReflectionWithId(reflId, &posRefl);
         
-        if (posRefl == NULL || negRefl == NULL)
+        if (!posRefl || !negRefl)
         {
             mergedMtz->removeReflection(i);
             i--;
@@ -175,13 +175,13 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
             continue;
         }
         
-        ReflectionPtr posRefl = NULL;
-        ReflectionPtr negRefl = NULL;
+        ReflectionPtr posRefl;
+        ReflectionPtr negRefl;
         
         negative->findReflectionWithId(reflId, &negRefl);
         positive->findReflectionWithId(reflId, &posRefl);
         
-        if (posRefl == NULL || negRefl == NULL)
+        if (!posRefl || !negRefl)
         {
             continue;
         }
@@ -455,12 +455,12 @@ void MtzMerger::groupMillerThread(int offset)
         for (int j = 0; j < mtz->reflectionCount(); j++)
         {
             ReflectionPtr refl = mtz->reflection(j);
-            ReflectionPtr partnerRefl = NULL;
+            ReflectionPtr partnerRefl;
             int reflId = (int)refl->getReflId();
             
             mergedMtz->findReflectionWithId(reflId, &partnerRefl);
             
-            if (partnerRefl != NULL)
+            if (!partnerRefl)
             {
                 for (int k = 0; k < refl->millerCount(); k++)
                 {
