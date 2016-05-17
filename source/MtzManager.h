@@ -58,6 +58,7 @@ protected:
 	int index_for_reflection(int h, int k, int l, bool inverted);
 	void findMultiplier(MTZ *mtz, int *multiplier, int *offset);
     ImageWeakPtr image;
+    bool dropped;
     
     BeamPtr beam;
     

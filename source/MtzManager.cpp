@@ -346,6 +346,7 @@ MtzManager::MtzManager(void)
     penaltyResolution = 2.5;
     int rotMode = FileParser::getKey("ROTATION_MODE", 0);
     rotationMode = (RotationMode)rotMode;
+    dropped = false;
     
     loadParametersMap();
     
@@ -568,8 +569,12 @@ void MtzManager::loadReflections(int partials)
 
 void MtzManager::dropReflections()
 {
+    writeToFile("tmp-" + getFilename());
+    
     reflections.clear();
     std::vector<ReflectionPtr>().swap(reflections);
+    
+    dropped = true;
 }
 
 void MtzManager::loadReflections(PartialityModel model, bool special)
@@ -589,7 +594,14 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     
     bool recalculateWavelengths = FileParser::getKey("RECALCULATE_WAVELENGTHS", false);
     
-    MTZ *mtz = MtzGet(filename.c_str(), 0);
+    std::string fullFilename = (dropped ? "tmp-" : "") + filename;
+    
+    if (dropped)
+    {
+        fullFilename = FileReader::addOutputDirectory(fullFilename);
+    }
+    
+    MTZ *mtz = MtzGet(fullFilename.c_str(), 0);
     
     int fromMtzNum = MtzSpacegroupNumber(mtz);
     
@@ -774,6 +786,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         miller->setLastY(shiftY);
         miller->setRejected(rejectFlags);
         miller->matrix = this->matrix;
+        miller->setScale(scale);
         
         ReflectionPtr prevReflection;
         
