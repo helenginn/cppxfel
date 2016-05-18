@@ -48,7 +48,7 @@ std::string MtzMerger::makeFilename(std::string prefix)
 
 double MtzMerger::maxResolution()
 {
-    double maxInput = FileParser::getKey("MAX_RESOLUTION_ALL", 1.4);
+    double maxInput = FileParser::getKey("MERGE_TO_RESOLUTION", 1.4);
     
     double maxRes = 0;
     

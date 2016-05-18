@@ -212,6 +212,7 @@ void FileParser::generateFunctionList()
     parserMap["PARTIALITY_CORRELATION_THRESHOLD"] = simpleFloat;
 	parserMap["MAX_RESOLUTION_ALL"] = simpleFloat;
 	parserMap["MAX_RESOLUTION_RLP_SIZE"] = simpleFloat;
+    parserMap["MERGE_TO_RESOLUTION"] = simpleFloat;
     parserMap["MIN_REFINED_RESOLUTION"] = simpleFloat;
     parserMap["INITIAL_CORRELATION_THRESHOLD"] = simpleFloat;
 	parserMap["THRESHOLD_SWAP"] = simpleInt;
