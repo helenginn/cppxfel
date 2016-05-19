@@ -17,8 +17,6 @@
 #include "Reflection.h"
 #include "Miller.h"
 
-MtzManager *MtzManager::currentManager;
-
 void MtzManager::applyUnrefinedPartiality()
 {
     double wavelength = bestWavelength();

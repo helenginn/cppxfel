@@ -1278,7 +1278,7 @@ double Miller::observedPartiality(MtzManager *reference)
 
 Miller::~Miller()
 {
-//    if (shoebox) std::cout << "Shoebox still exists, deallocating Miller" << std::endl;
+
 }
 
 void Miller::recalculateBetterPartiality()

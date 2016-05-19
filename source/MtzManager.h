@@ -254,9 +254,7 @@ public:
     
 // minimisation stuff
 
-	static MtzManager *currentManager;
-
-    int refinedParameterCount();
+	int refinedParameterCount();
     
     void recalculateWavelengths();
 	void getParams(double *parameters[], int paramCount = PARAM_NUM);

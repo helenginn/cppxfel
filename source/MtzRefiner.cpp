@@ -227,17 +227,12 @@ void MtzRefiner::refine()
         mtzManagers[i]->loadParametersMap();
     }
     
-    originalMerge = reference;
-    
     logged << "N: Total crystals loaded: " << mtzManagers.size() << std::endl;
     sendLog();
     
-    originalMerge->writeToFile("originalMerge.mtz");
+    reference->writeToFile("originalMerge.mtz");
     
-    MtzManager::currentManager = &*originalMerge;
     MtzManager::setReference(&*reference);
-    double correl = originalMerge->correlation(true);
-    std::cout << "Merged correlation = " << correl << std::endl;
     
     refineCycle();
     
@@ -339,9 +334,6 @@ void MtzRefiner::refineCycle(bool once)
             MtzPtr mergedMtz, unmergedMtz;
             grouper->merge(&mergedMtz, &unmergedMtz, i);
             
-            
-            MtzManager::currentManager = &*mergedMtz;
-            
             std::cout << "Reflections: " << mergedMtz->reflectionCount() << std::endl;
             if (!once)
             {
@@ -365,7 +357,6 @@ void MtzRefiner::refineCycle(bool once)
                 MtzPtr anomMergedMtz;
                 grouper->merge(&anomMergedMtz, NULL, i, true);
                 
-                MtzManager::currentManager = &*mergedMtz;
                 MtzManager::setReference(&*reference);
                 
                 std::cout << "Reflections for anomalous: " << anomMergedMtz->reflectionCount() << std::endl;
@@ -390,7 +381,6 @@ void MtzRefiner::refineCycle(bool once)
         reloadMerged->loadReflections(1);
         reloadMerged->description();
         
-        MtzManager::currentManager = reloadMerged;
         double reloaded = reloadMerged->correlation(true);
         std::cout << "Reloaded correlation = " << reloaded << std::endl;
         

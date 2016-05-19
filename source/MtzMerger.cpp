@@ -353,6 +353,11 @@ void MtzMerger::scaleIndividual(MtzPtr mtz)
     }
     
     mtz->applyScaleFactor(scale);
+    
+    if (lowMemoryMode)
+    {
+        mtz->dropReflections();
+    }
 }
 
 void MtzMerger::scale()
@@ -428,6 +433,14 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
         {
             for (int l = -maxMillers[2]; l <= maxMillers[2]; l++)
             {
+                vec hkl = new_vector(h, k, l);
+                anyMat->multiplyVector(&hkl);
+                
+                if (length_of_vector(hkl) > (1 / maxRes))
+                {
+                    continue;
+                }
+                
                 if (ccp4spg_is_in_asu(spg, h, k, l) && !ccp4spg_is_sysabs(spg, h, k, l))
                 {
                     MillerPtr miller = MillerPtr(new Miller(&*whichMtz, h, k, l, false));
@@ -440,11 +453,6 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
                     miller->setParent(newReflection);
                     miller->setMatrix(whichMtz->getMatrix());
                     newReflection->calculateResolution(&*whichMtz);
-                    
-                    if (newReflection->getResolution() > (1 / maxRes))
-                    {
-                        continue;
-                    }
                     
                     whichMtz->addReflection(newReflection);
                 }
