@@ -303,7 +303,7 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 	logged << "Altered scales." << std::endl;
 
 	MtzPtr idxMerge;
-	MtzPtr *unmerged;
+	MtzPtr unmerged;
 	MtzPtr invMerge;
 
     std::string idxName = std::string("half1Merge.mtz");
@@ -343,18 +343,18 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
         
         logged << "**** MERGING HALF DATA (1) ****" << std::endl;
         sendLog();
-        merge(&idxMerge, unmerged, true, false);
+        merge(&idxMerge, &unmerged, true, false);
 
         logged << "**** MERGING HALF DATA (2) ****" << std::endl;
         sendLog();
-        merge(&invMerge, unmerged, false, false);
+        merge(&invMerge, &unmerged, false, false);
 	}
 	else
 	{
 		mergeAnomalous(mergeMtz, unmergedMtz, false, true, anomalousName);
 
-		mergeAnomalous(&idxMerge, unmerged, true, false);
-		mergeAnomalous(&invMerge, unmerged, false, false);
+		mergeAnomalous(&idxMerge, &unmerged, true, false);
+		mergeAnomalous(&invMerge, &unmerged, false, false);
 	}
 
 	idxMerge->writeToFile(idxName, true);
