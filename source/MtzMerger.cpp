@@ -290,7 +290,7 @@ bool MtzMerger::mtzIsPruned(MtzPtr mtz)
     
     rejectNums[rejectReason]++;
     
-    return (rejectReason != RejectReasonNone);
+    return (rejectReason != MtzRejectionNotRejected);
 }
 
 void MtzMerger::summary()
