@@ -526,6 +526,7 @@ void MtzMerger::groupMillers()
     mergedMtz->setDefaultMatrix();
     
     makeEmptyReflectionShells(mergedMtz);
+    rejectNums = std::map<MtzRejectionReason, int>();
     
     boost::thread_group threads;
     int maxThreads = FileParser::getMaxThreads();

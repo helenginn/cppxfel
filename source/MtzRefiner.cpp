@@ -295,6 +295,8 @@ void MtzRefiner::refineCycle(bool once)
             merger.mergeFull();
             mergedMtz = merger.getMergedMtz();
             
+            referencePtr = mergedMtz;
+            
             if (anomalousMerge)
             {
                 merger.mergeFull(true);
@@ -303,7 +305,6 @@ void MtzRefiner::refineCycle(bool once)
             merger.setFreeOnly(true);
             merger.mergeFull();
             
-            referencePtr = mergedMtz;
             std::string filename = merger.getFilename();
             
             if (replaceReference)
