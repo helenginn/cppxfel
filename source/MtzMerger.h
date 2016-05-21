@@ -50,10 +50,14 @@ private:
     
     void splitAllMtzs(std::vector<MtzPtr> &firstHalfMtzs, std::vector<MtzPtr> &secondHalfMtzs);
     MtzRejectionReason isMtzAccepted(MtzPtr mtz);
-    void pruneMtzs();
+    std::map<MtzRejectionReason, int> rejectNums;
+    std::mutex *rejectMutex;
+    bool mtzIsPruned(MtzPtr mtz);
+    void summary();
     void writeParameterCSV();
     void groupMillerThread(int offset);
     void groupMillers();
+    void addMtzMillers(MtzPtr mtz);
     void makeEmptyReflectionShells(MtzPtr whichMtz);
     double maxResolution();
     static void groupMillerThreadWrapper(MtzMerger *object, int offset);
@@ -69,7 +73,7 @@ private:
     static void mergeMillersThreadWrapper(MtzMerger *object, int offset);
     static void writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean, std::string filename);
     void createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive);
-    
+
     void incrementRejectedReflections();
     
 protected:

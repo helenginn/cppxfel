@@ -237,11 +237,6 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
 
 MtzRejectionReason MtzMerger::isMtzAccepted(MtzPtr mtz)
 {
-    if (lowMemoryMode)
-    {
-        mtz->loadReflections(true);
-    }
-    
     if (!excludeWorst)
     {
         return MtzRejectionNotRejected;
@@ -276,40 +271,35 @@ MtzRejectionReason MtzMerger::isMtzAccepted(MtzPtr mtz)
         return MtzRejectionOther;
     }
     
-    if (lowMemoryMode)
-    {
-        mtz->dropReflections();
-    }
-    
     return MtzRejectionNotRejected;
 }
 
-void MtzMerger::pruneMtzs()
+bool MtzMerger::mtzIsPruned(MtzPtr mtz)
+{
+    MtzRejectionReason rejectReason = isMtzAccepted(mtz);
+    
+    std::lock_guard<std::mutex> lg(*rejectMutex);
+    
+    logged << "Rejecting " << mtz->getFilename() << " " << rejectReason << std::endl;
+    sendLog(LogLevelDetailed);
+    
+    if (rejectNums.count(rejectReason) == 0)
+    {
+        rejectNums[rejectReason] = 0;
+    }
+    
+    rejectNums[rejectReason]++;
+    
+    return (rejectReason != RejectReasonNone);
+}
+
+void MtzMerger::summary()
 {
     someMtzs.clear();
-    std::map<MtzRejectionReason, int> rejectNums;
     
     for (int i = 0; i < allMtzs.size(); i++)
     {
         
-        MtzRejectionReason rejectReason = isMtzAccepted(allMtzs[i]);
-        
-        if (rejectReason == MtzRejectionNotRejected)
-        {
-            someMtzs.push_back(allMtzs[i]);
-        }
-        else
-        {
-            logged << "Rejecting " << allMtzs[i]->getFilename() << " " << rejectReason << std::endl;
-            sendLog(LogLevelDetailed);
-            
-            if (rejectNums.count(rejectReason) == 0)
-            {
-                rejectNums[rejectReason] = 0;
-            }
-            
-            rejectNums[rejectReason]++;
-        }
     }
     
     if (!silent)
@@ -463,61 +453,67 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
     
 }
 
+void MtzMerger::addMtzMillers(MtzPtr mtz)
+{
+    for (int j = 0; j < mtz->reflectionCount(); j++)
+    {
+        ReflectionPtr refl = mtz->reflection(j);
+        ReflectionPtr partnerRefl;
+        int reflId = (int)refl->getReflId();
+        
+        mergedMtz->findReflectionWithId(reflId, &partnerRefl);
+        
+        if (partnerRefl)
+        {
+            for (int k = 0; k < refl->millerCount(); k++)
+            {
+                MillerPtr miller = refl->miller(k);
+                
+                miller->setRejected(RejectReasonMerge, false);
+                
+                if (miller->isRejected())
+                {
+                    incrementRejectedReflections();
+                    continue;
+                }
+                
+                if (!miller->accepted())
+                {
+                    continue;
+                }
+                
+                if (freeOnly && !miller->isFree())
+                {
+                    continue;
+                }
+                
+                partnerRefl->addLiteMiller(miller);
+            }
+        }
+    }
+}
+
 void MtzMerger::groupMillerThread(int offset)
 {
-    int wentMissing = 0;
     int maxThreads = FileParser::getMaxThreads();
     
     for (int i = offset; i < someMtzs.size(); i += maxThreads)
     {
         MtzPtr mtz = someMtzs[i];
-        mtz->flipToActiveAmbiguity();
         
         if (lowMemoryMode)
         {
             mtz->loadReflections(true);
         }
         
-        for (int j = 0; j < mtz->reflectionCount(); j++)
+        if (mtzIsPruned(mtz))
         {
-            ReflectionPtr refl = mtz->reflection(j);
-            ReflectionPtr partnerRefl;
-            int reflId = (int)refl->getReflId();
-            
-            mergedMtz->findReflectionWithId(reflId, &partnerRefl);
-            
-            if (partnerRefl)
-            {
-                for (int k = 0; k < refl->millerCount(); k++)
-                {
-                    MillerPtr miller = refl->miller(k);
-                    
-                    miller->setRejected(RejectReasonMerge, false);
-                    
-                    if (miller->isRejected())
-                    {
-                        incrementRejectedReflections();
-                        continue;
-                    }
-                    
-                    if (!miller->accepted())
-                    {
-                        continue;
-                    }
-                    
-                    if (freeOnly && !miller->isFree())
-                    {
-                        continue;
-                    }
-                    
-                    partnerRefl->addLiteMiller(miller);
-                }
-            }
-            else
-            {
-                wentMissing++;
-            }
+            continue;
         }
+        
+        mtz->flipToActiveAmbiguity();
+        scaleIndividual(mtz);
+        addMtzMillers(mtz);
         
         if (lowMemoryMode)
         {
@@ -525,12 +521,6 @@ void MtzMerger::groupMillerThread(int offset)
         }
         
         mtz->resetFlip();
-    }
-    
-    if (wentMissing)
-    {
-        logged << "N: Warning: " << wentMissing << " millers went missing during merge." << std::endl;
-        sendLog(LogLevelDetailed);
     }
 }
 
@@ -713,6 +703,7 @@ MtzMerger::MtzMerger()
     excludeWorst = true;
     scalingType = ScalingTypeAverage;
     reflCountMutex = new std::mutex;
+    rejectMutex = new std::mutex;
     rejectedReflections = 0;
     silent = false;
     friedel = -1;
@@ -726,15 +717,8 @@ void MtzMerger::merge()
 {
     mergedMtz = MtzPtr(new MtzManager());
     writeParameterCSV();
-    pruneMtzs();
     
-    if (!needToScale)
-    {
-        scale();
-    }
-   
-
-    if (someMtzs.size() == 0)
+    if (allMtzs.size() == 0)
     {
         logged << "N: Error: No MTZs, cannot merge." << std::endl;
         sendLog();
@@ -742,6 +726,7 @@ void MtzMerger::merge()
     }
     
     groupMillers();
+    summary();
     
     int imageNum = (int)someMtzs.size();
     double rejectsPerImage = (double) rejectedReflections / (double) imageNum;
