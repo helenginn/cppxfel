@@ -54,9 +54,9 @@ double MtzMerger::maxResolution()
     
     if (!lowMemoryMode)
     {
-        for (int i = 0; i < someMtzs.size(); i++)
+        for (int i = 0; i < allMtzs.size(); i++)
         {
-            double thisRes = someMtzs[i]->maxResolution();
+            double thisRes = allMtzs[i]->maxResolution();
             
             if (thisRes > maxRes)
             {
@@ -313,7 +313,7 @@ void MtzMerger::summary()
         logged << "N: Not enough reflections: " << rejectNums[MtzRejectionMinRefl] << std::endl;
         logged << "N: Some other reason: " << rejectNums[MtzRejectionOther] << std::endl;
         logged << "N: --------------------------" << std::endl;
-        logged << "N: Total accepted: " << someMtzs.size() << std::endl;
+        logged << "N: Total accepted: " << rejectNums[MtzRejectionNotRejected] << std::endl;
         logged << "N: --------------------------" << std::endl;
         
         sendLog();
@@ -325,11 +325,6 @@ void MtzMerger::summary()
 void MtzMerger::scaleIndividual(MtzPtr mtz)
 {
     double scale = 1;
-    
-    if (lowMemoryMode)
-    {
-        mtz->loadReflections(true);
-    }
     
     if (scalingType == ScalingTypeAverage)
     {
@@ -343,11 +338,6 @@ void MtzMerger::scaleIndividual(MtzPtr mtz)
     }
     
     mtz->applyScaleFactor(scale);
-    
-    if (lowMemoryMode)
-    {
-        mtz->dropReflections();
-    }
 }
 
 void MtzMerger::scale()
@@ -412,9 +402,9 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
     double maxRes = maxResolution();
     int maxMillers[3];
 
-    CCP4SPG *spg = someMtzs[0]->getLowGroup();
-    MatrixPtr anyMat = someMtzs[0]->getMatrix();
-    std::vector<double> unitCell = someMtzs[0]->getUnitCell();
+    CCP4SPG *spg = allMtzs[0]->getLowGroup();
+    MatrixPtr anyMat = allMtzs[0]->getMatrix();
+    std::vector<double> unitCell = allMtzs[0]->getUnitCell();
     anyMat->maxMillers(maxMillers, maxRes);
     
     for (int h = - maxMillers[0]; h <= maxMillers[0]; h++)
@@ -497,9 +487,9 @@ void MtzMerger::groupMillerThread(int offset)
 {
     int maxThreads = FileParser::getMaxThreads();
     
-    for (int i = offset; i < someMtzs.size(); i += maxThreads)
+    for (int i = offset; i < allMtzs.size(); i += maxThreads)
     {
-        MtzPtr mtz = someMtzs[i];
+        MtzPtr mtz = allMtzs[i];
         
         if (lowMemoryMode)
         {
@@ -532,7 +522,7 @@ void MtzMerger::groupMillerThreadWrapper(MtzMerger *object, int offset)
 void MtzMerger::groupMillers()
 {
     mergedMtz = MtzPtr(new MtzManager());
-    mergedMtz->copySymmetryInformationFromManager(someMtzs[0]);
+    mergedMtz->copySymmetryInformationFromManager(allMtzs[0]);
     mergedMtz->setDefaultMatrix();
     
     makeEmptyReflectionShells(mergedMtz);
