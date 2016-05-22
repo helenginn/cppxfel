@@ -815,7 +815,7 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
     }
     
     double mean = weighted_mean(&intensities, &weights);
-    double stdev = standard_deviation(&intensities, NULL);
+    double stdev = standard_deviation(&intensities, NULL, mean);
     
     if (shouldReject && liteMillers.size() >= MIN_MILLER_COUNT)
     {
@@ -897,9 +897,9 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
                 Logger::log(aLog);
             }
             
-            miller(i)->setRejected(false);
+     //       miller(i)->setRejected(false);
             
-            //	miller(i)->setRejected(RejectReasonPartiality, false);
+            miller(i)->setRejected(RejectReasonMerge, false);
         }
     }
     
@@ -910,7 +910,7 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
         || !calculateRejections)
     {
         *intensity = mean_intensity;
-        *sigma = stdev; // meanSigma() / meanPartiality();
+        *sigma = stdev;
         return;
     }
     
@@ -936,7 +936,7 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
                 && miller(i)->intensity() < maxIntensity)
                 continue;
             
-            miller(i)->setRejected(true);
+            miller(i)->setRejected(RejectReasonMerge, true);
             rejectedCount++;
         }
         

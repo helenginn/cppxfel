@@ -1233,13 +1233,14 @@ void Miller::setRejected(RejectReason reason, bool rejection)
     {
         // removing a flag. Flip the bits so 00001000 becomes 11110111.
         // Then & the current information with the new information
-        int flipped = ~reason;
+        
+        unsigned int flipped = ~reason;
         rejectedReasons = rejectedReasons & flipped;
     }
 }
 
 bool Miller::isRejected(RejectReason reason)
-{
+{   
     return (rejectedReasons > 0);
 }
 

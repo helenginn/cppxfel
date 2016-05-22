@@ -295,13 +295,6 @@ bool MtzMerger::mtzIsPruned(MtzPtr mtz)
 
 void MtzMerger::summary()
 {
-    someMtzs.clear();
-    
-    for (int i = 0; i < allMtzs.size(); i++)
-    {
-        
-    }
-    
     if (!silent)
     {
         logged << "N: --------------------------" << std::endl;
@@ -457,6 +450,8 @@ void MtzMerger::addMtzMillers(MtzPtr mtz)
         {
             for (int k = 0; k < refl->millerCount(); k++)
             {
+                bool accept = true;
+                
                 MillerPtr miller = refl->miller(k);
                 
                 miller->setRejected(RejectReasonMerge, false);
@@ -464,20 +459,23 @@ void MtzMerger::addMtzMillers(MtzPtr mtz)
                 if (miller->isRejected())
                 {
                     incrementRejectedReflections();
-                    continue;
+                    accept = false;
                 }
                 
                 if (!miller->accepted())
                 {
-                    continue;
+                    accept = false;
                 }
                 
                 if (freeOnly && !miller->isFree())
                 {
-                    continue;
+                    accept = false;
                 }
                 
-                partnerRefl->addLiteMiller(miller);
+                if (accept)
+                {
+                    partnerRefl->addLiteMiller(miller);
+                }
             }
         }
     }
@@ -719,8 +717,8 @@ void MtzMerger::merge()
     groupMillers();
     summary();
     
-    int imageNum = (int)someMtzs.size();
-    double rejectsPerImage = (double) rejectedReflections / (double) imageNum;
+    int imageNum = rejectNums[MtzRejectionNotRejected];
+    double rejectsPerImage = (double) rejectedReflections;// / (double) imageNum;
     
     int observations = totalObservations();
     

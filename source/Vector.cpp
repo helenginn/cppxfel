@@ -501,7 +501,7 @@ double correlation_between_vectors(vector<double> *vec1,
 	double sum_x = 0;
 	double sum_y = 0;
 	double num = 0;
-	bool needWeights = (weights == NULL);
+	bool needWeights = (weights != NULL);
 
 	for (int i = 0; i < vec1->size(); i++)
 	{
@@ -568,9 +568,6 @@ double correlation_between_vectors(vector<double> *vec1,
 
 	double r = sum_x_y_minus_mean_x_y
 			/ (sqrt(sum_x_minus_mean_x_sq) * sqrt(sum_y_minus_mean_y_sq));
-
-	if (needWeights)
-		delete weights;
 
 	return r;
 }

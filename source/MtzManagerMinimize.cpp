@@ -805,7 +805,7 @@ void MtzManager::excludeFromLogCorrelation()
             || reflection->getResolution() > highCut)
             continue;
         
-        int refl = reflection->getReflId();
+        int refl = (int)reflection->getReflId();
         
         image2.findReflectionWithId(refl, &reflection2);
         
@@ -814,9 +814,9 @@ void MtzManager::excludeFromLogCorrelation()
         
         double int1 = (reflection->meanIntensity());
         
-        double int2 = (reflection2->meanIntensityWithExclusion(&filename));
+        double int2 = (reflection2->meanIntensity());
         
-        double weight = reflection->meanPartiality() / reflection2->meanSigma();
+        double weight = reflection->meanWeight();
         
         if (int1 != int1 || int2 != int2 || weight != weight)
             continue;

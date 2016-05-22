@@ -518,7 +518,7 @@ int MtzGrouper::groupMillers(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 
 		for (int j = 0; j < mtzManagers[i]->reflectionCount(); j++)
 		{
-            if (fastMerge && mtzManagers[i]->reflection(j)->acceptedCount() == 0)
+            if (fastMerge && mtzManagers[i]->reflection(j)->acceptedCount() == 0 && mtzManagers[i]->reflection(j)->rejectCount() == 0)
                 continue;
             
             if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
@@ -541,7 +541,7 @@ int MtzGrouper::groupMillers(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 				{
                     MillerPtr newMiller = mtzManagers[i]->reflection(j)->miller(k);
                     
-                    if (fastMerge && !newMiller->accepted())
+                    if (fastMerge && !newMiller->accepted() && !newMiller->isRejected())
                     {
                         continue;
                     }
@@ -651,22 +651,39 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
     for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
 	{
 		ReflectionPtr reflection = (*mergeMtz)->reflection(i);
+        double addedRejects = reflection->rejectCount();
+        
+        for (int j = 0; j < (*mergeMtz)->reflection(i)->millerCount(); j++)
+        {
+            MillerPtr miller = (*mergeMtz)->reflection(i)->miller(j);
+            
+            if (!miller->isRejected())
+            {
+                continue;
+            }
+            
+       //     logged << miller->getH() << ", " << miller->getK() << ", " << miller->getL() << ", from " << miller->getMtzParent()->getFilename() << std::endl;
+       //     sendLog();
 
+        }
+        
         int accepted = reflection->acceptedCount();
         
         if (accepted <= minimumMultiplicity || accepted == 0)
         {
             (*mergeMtz)->removeReflection(i);
+            rejectCount += addedRejects;
             i--;
             continue;
         }
+        
         sendLog();
-
-		double totalIntensity = 0;
+        double totalIntensity = 0;
 		double totalStdev = 0;
 
 		reflection->merge(weighting, &totalIntensity, &totalStdev, reject);
 
+        rejectCount += reflection->rejectCount();
 		double error = totalStdev / totalIntensity;
 
 		if (error == error && totalStdev != 100)
@@ -702,8 +719,8 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
         }
         
 		millerCount += reflection->acceptedCount();
-		rejectCount += reflection->rejectCount();
-		reflectionCount++;
+        
+        reflectionCount++;
 
 		int h, k, l = 0;
 		MillerPtr firstMiller = (*mergeMtz)->reflection(i)->miller(0);
@@ -728,7 +745,7 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
 	aveStdErr /= aveStdErrCount;
 
 	double multiplicity = (double) millerCount / (double) reflectionCount;
-	double aveRejection = (double) rejectCount / (double) mtzCount;
+    double aveRejection = (double) rejectCount;// / (double) mtzCount;
 
 	std::cout << "N: Total MTZs: " << mtzManagers.size() << std::endl;
 	std::cout << "N: Multiplicity before merge: " << multiplicity << std::endl;

@@ -56,7 +56,7 @@ private:
 	RlpModel rlpModel;
     double polarisationCorrection;
     double getPolarisationCorrection();
-    int rejectedReasons;
+    unsigned int rejectedReasons;
 	float partialCutoff; // could/should be a float
 	float bFactor;
 	float scale; // should be extracted from Mtz. Maybe?
