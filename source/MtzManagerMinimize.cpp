@@ -201,7 +201,7 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     vector<Partial> partials;
     vector<double> partialities;
     vector<double> percentages;
-    
+    vector<double> intensities;
     
     for (int i = 0; i < reflections.size(); i++)
     {
@@ -220,6 +220,7 @@ double MtzManager::leastSquaresPartiality(double low, double high,
                 continue;
             
             Partial partial;
+            partial.miller = imageReflection->miller(0);
             partial.partiality = imageReflection->miller(0)->getPartiality();
             partial.percentage = imageReflection->miller(0)->getRawIntensity()
             / refReflection->meanIntensityWithExclusion(&filename);
@@ -249,25 +250,14 @@ double MtzManager::leastSquaresPartiality(double low, double high,
         
         partialities.push_back(partials[i].partiality);
         percentages.push_back(partials[i].percentage);
+        intensities.push_back(partials[i].miller->getRawestIntensity());
         
      //   std::cout << partials[i].partiality << "\t" << partials[i].percentage << std::endl;
     }
     
     double correl = 0;
     
-    if (typeOfScore == ScoreTypePartialityLeastSquares)
-    {
-        correl = 1
-        - least_squares_between_vectors(&partialities, &percentages, 0);
-    }
-    else if (typeOfScore == ScoreTypePartialityGradient)
-    {
-        correl = gradient_between_vectors(&partialities, &percentages);
-    }
-    else
-    {
-        correl = correlation_through_origin(&partialities, &percentages);
-    }
+    correl = correlation_through_origin(&partialities, &percentages, &intensities);
     
     return correl;
 }

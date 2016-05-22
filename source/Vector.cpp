@@ -526,6 +526,7 @@ double correlation_between_vectors(vector<double> *vec1,
 		double weight = (weights == NULL) ? 1 : (*weights)[i];
 		num += weight;
 	}
+    
 	double mean_x = sum_x / num;
 	double mean_y = sum_y / num;
 
