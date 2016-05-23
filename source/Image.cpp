@@ -306,7 +306,7 @@ void Image::addValueAt(int x, int y, int addedValue)
     
     int position = y * xDim + x;
     
-    data[position] += addedValue;
+    data[position] = std::max(data[position], addedValue);
 }
 
 int Image::valueAt(int x, int y)
