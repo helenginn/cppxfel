@@ -500,6 +500,7 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
     }
     
     dumpImage();
+    loadedSpots = true;
     
     drawSpotsOnPNG();
 }
