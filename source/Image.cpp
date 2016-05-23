@@ -491,7 +491,7 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
         {
             for (int k = 0; k < xDim; k++)
             {
-                addValueAt(k, j, images[i]->valueAt(j, k));
+                addValueAt(k, j, images[i]->valueAt(k, j));
             }
         }
         
