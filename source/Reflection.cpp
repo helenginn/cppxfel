@@ -855,11 +855,9 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
             Logger::log(logged);
         }
 
+        mean = weighted_mean(&intensities, &weights);
+        stdev = standard_deviation(&intensities, NULL, mean);
     }
-    
-    
-    mean = weighted_mean(&intensities, &weights);
-    stdev = standard_deviation(&intensities, &weights);
     
     if (intensities.size() == 1)
     {

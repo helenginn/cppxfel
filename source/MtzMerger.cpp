@@ -77,7 +77,95 @@ double MtzMerger::maxResolution()
     return maxRes;
 }
 
-// MARK: write anomalous MTZ
+// MARK: write type of MTZ
+
+void MtzMerger::createUnmergedMtz()
+{
+    double doubleCell[6];
+    float cell[6], wavelength, fdata[9];
+    int num = 0;
+    
+    /* variables for symmetry */
+    CCP4SPG *mtzspg = mergedMtz->getLowGroup();
+    float rsm[192][4][4];
+    char ltypex[2];
+    
+    /* variables for MTZ data structure */
+    MTZ *mtzout;
+    MTZXTAL *xtal;
+    MTZSET *set;
+    MTZCOL *colout[5];
+    
+    /*  Removed: General CCP4 initializations e.g. HKLOUT on command line */
+    
+    mergedMtz->getUnitCell(&doubleCell[0], &doubleCell[1], &doubleCell[2], &doubleCell[3], &doubleCell[4],
+                      &doubleCell[5]);
+    
+    for (int i = 0; i < 6; i++)
+    {
+        cell[i] = (float)doubleCell[i];
+    }
+    
+    wavelength = mergedMtz->getWavelength();
+    
+    std::string fullPath = FileReader::addOutputDirectory("u_" + filename);
+    
+    mtzout = MtzMalloc(0, 0);
+    ccp4_lwtitl(mtzout, "Unmerged dataset ", 0);
+    mtzout->refs_in_memory = 0;
+    mtzout->fileout = MtzOpenForWrite(fullPath.c_str());
+    
+    // then add symm headers...
+    for (int i = 0; i < mtzspg->nsymop; ++i)
+        CCP4::rotandtrn_to_mat4(rsm[i], mtzspg->symop[i]);
+    strncpy(ltypex, mtzspg->symbol_old, 1);
+    ccp4_lwsymm(mtzout, mtzspg->nsymop, mtzspg->nsymop_prim, rsm, ltypex,
+                mtzspg->spg_ccp4_num, mtzspg->symbol_old, mtzspg->point_group);
+    
+    // then add xtals, datasets, cols
+    xtal = MtzAddXtal(mtzout, "XFEL crystal", "XFEL project", cell);
+    set = MtzAddDataset(mtzout, xtal, "Dataset", wavelength);
+    colout[0] = MtzAddColumn(mtzout, set, "H", "H");
+    colout[1] = MtzAddColumn(mtzout, set, "K", "H");
+    colout[2] = MtzAddColumn(mtzout, set, "L", "H");
+    colout[3] = MtzAddColumn(mtzout, set, "I", "J");
+    colout[4] = MtzAddColumn(mtzout, set, "SIGI", "Q");
+
+    for (int i = 0; i < mergedMtz->reflectionCount(); i++)
+    {
+        ReflectionPtr refl = mergedMtz->reflection(i);
+        MillerPtr miller = refl->miller(0);
+        int h = miller->getH();
+        int k = miller->getK();
+        int l = miller->getL();
+        
+        for (int j = 0; j < refl->liteMillerCount(); j++)
+        {
+            LiteMiller lite = refl->liteMiller(j);
+            double meanIntensity = lite.intensity;
+            double meanSigma = lite.weight;
+            
+            if (meanSigma != meanSigma || meanIntensity != meanIntensity)
+            {
+                continue;
+            }
+            
+            num++;
+            
+            fdata[0] = h;
+            fdata[1] = k;
+            fdata[2] = l;
+            fdata[3] = meanIntensity;
+            fdata[4] = meanSigma;
+            ccp4_lwrefl(mtzout, fdata, colout, 5, num);
+        }
+    }
+    
+    // print header information, just for info
+    //	ccp4_lhprt(mtzout, 1);
+    MtzPut(mtzout, " ");
+    MtzFree(mtzout);
+}
 
 void MtzMerger::createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive)
 {
@@ -721,6 +809,11 @@ void MtzMerger::merge()
     double rejectsPerImage = (double) rejectedReflections;// / (double) imageNum;
     
     int observations = totalObservations();
+    
+    if (needToScale)
+    {
+        createUnmergedMtz();
+    }
     
     mergeMillers();
 

@@ -27,15 +27,17 @@ using cctbx::sgtbx::space_group_symbols;
 using cctbx::sgtbx::space_group_type;
 using cctbx::sgtbx::reciprocal_space::asu;
 
+struct LiteMiller
+{
+    double intensity;
+    double weight;
+    bool friedel;
+} ;
+
 class Reflection
 {
 private:
-    struct LiteMiller
-    {
-        double intensity;
-        double weight;
-        bool friedel;
-    } ;
+    
     
     std::vector<LiteMiller> liteMillers;
 	vector<MillerPtr> millers;
@@ -128,6 +130,11 @@ public:
     void resetFlip();
     void setFlip(int i);
     void setFlipAsActiveAmbiguity();
+    
+    LiteMiller liteMiller(int i)
+    {
+        return liteMillers[i];
+    }
     
     int getActiveAmbiguity()
     {

@@ -73,6 +73,7 @@ private:
     static void mergeMillersThreadWrapper(MtzMerger *object, int offset);
     static void writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean, std::string filename);
     void createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive);
+    void createUnmergedMtz();
 
     void incrementRejectedReflections();
     
