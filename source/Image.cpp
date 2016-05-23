@@ -203,8 +203,18 @@ void Image::setImageData(vector<int> newData)
     sendLog();
 }
 
+void Image::newImage()
+{
+    data = std::vector<int>(xDim * yDim, 0);
+}
+
 void Image::loadImage()
 {
+    if (isLoaded())
+    {
+        return;
+    }
+    
     std::streampos size;
     vector<char> memblock;
     
@@ -245,7 +255,9 @@ void Image::loadImage()
         }
     }
     else
+    {
         Logger::mainLogger->addString("Unable to open file");
+    }
 }
 
 void Image::dropImage()
@@ -277,6 +289,24 @@ bool Image::coveredBySpot(int x, int y)
     }
     
     return false;
+}
+
+void Image::addValueAt(int x, int y, int addedValue)
+{
+    if (!isLoaded())
+    {
+        newImage();
+    }
+
+    if (x < 0 || y < 0)
+        return;
+    
+    if (x > xDim || y > yDim)
+        return;
+    
+    int position = y * xDim + x;
+    
+    data[position] += addedValue;
 }
 
 int Image::valueAt(int x, int y)
@@ -451,6 +481,39 @@ double Image::weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
     return 1;
 }
 
+void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
+{
+    newImage();
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        for (int j = 0; j < xDim; j++)
+        {
+            for (int k = 0; k < yDim; k++)
+            {
+                addValueAt(j, k, images[i]->valueAt(j, k));
+            }
+        }
+    }
+    
+    dumpImage();
+    
+    drawSpotsOnPNG();
+}
+
+void Image::dumpImage()
+{
+    std::ofstream imgStream;
+    imgStream.open(getFilename().c_str(), std::ios::binary);
+    
+    long int size = useShortData ? shortData.size() : data.size();
+    size *= useShortData ? sizeof(short) : sizeof(int);
+    char *start = useShortData ? (char *)&shortData[0] : (char *)&data[0];
+    
+    imgStream.write(start, size);
+    
+    imgStream.close();
+}
 
 // @TODO
 bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)

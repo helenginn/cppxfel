@@ -125,6 +125,7 @@ public:
 	void focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2 = 1, bool even = false);
     void focusOnMaximum(int *x, int *y, int tolerance = 0, double shiftX = 0, double shiftY = 0);
 	void dropImage();
+    void newImage();
 	virtual ~Image();
 	void setUpIOMRefiner(MatrixPtr matrix);
     void setUpIOMRefiner(MatrixPtr unitcell, MatrixPtr rotation);
@@ -145,6 +146,8 @@ public:
     void integrateSpots();
     void drawMillersOnPNG(int crystalNum);
     void drawSpotsOnPNG();
+    void dumpImage();
+    void makeMaximumFromImages(std::vector<ImagePtr> images);
     
 	const std::string& getFilename() const
 	{
@@ -178,6 +181,7 @@ public:
     }
 
 	int valueAt(int x, int y);
+    void addValueAt(int x, int y, int addedValue);
 	bool accepted(int x, int y);
 	double intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int tolerance = 0);
 

@@ -80,6 +80,7 @@ public:
 	void merge(bool mergeOnly = false);
     void correlationAndInverse(bool shouldFlip = false);
     void refreshCurrentPartialities();
+    void maximumImage();
     
     static int getCycleNum()
     {

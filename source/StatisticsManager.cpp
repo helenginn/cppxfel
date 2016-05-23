@@ -894,8 +894,6 @@ void StatisticsManager::twoImagePartialityStatsWritten(
 
 			double wavelength =
 					imageReflection->miller(j)->getWavelength();
-            
-      //      std::cout << rawIntensity << "\t" << max_intensity << std::endl;
 
 			if (partials == NULL)
 			{

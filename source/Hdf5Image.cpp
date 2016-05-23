@@ -149,16 +149,7 @@ void Hdf5Image::loadImage()
     
     if (dumpImages)
     {
-        std::ofstream imgStream;
-        imgStream.open(getFilename().c_str(), std::ios::binary);
-        
-        long int size = useShortData ? shortData.size() : data.size();
-        size *= useShortData ? sizeof(short) : sizeof(int);
-        char *start = useShortData ? (char *)&shortData[0] : (char *)&data[0];
-        
-        imgStream.write(start, size);
-        
-        imgStream.close();
+        dumpImage();
     }
 }
 

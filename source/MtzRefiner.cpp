@@ -1562,6 +1562,13 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
     }
 }
 
+void MtzRefiner::maximumImage()
+{
+    ImagePtr maximum = ImagePtr(new Image("maxImage.img", 0, 0));
+    
+    maximum->makeMaximumFromImages(images);
+}
+
 void MtzRefiner::loadImageFiles()
 {
     loadPanels();

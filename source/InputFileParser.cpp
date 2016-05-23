@@ -209,6 +209,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->readMatricesAndMtzs();
             }
             
+            if (line == "LOAD_IMAGE_FILES")
+            {
+                understood = true;
+                refiner->loadImageFiles();
+            }
+            
             if (line == "LOAD_INITIAL_MTZ")
             {
                 understood = true;
@@ -249,6 +255,12 @@ void InputFileParser::parse(bool fromPython)
             {
                 understood = true;
                 refiner->index();
+            }
+            
+            if (line == "MAXIMUM_IMAGE")
+            {
+                understood = true;
+                refiner->maximumImage();
             }
             
             if (line == "INDEX_FROM_SCRATCH")
