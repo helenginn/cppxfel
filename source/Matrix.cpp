@@ -530,8 +530,8 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     
     if (!unitCell || !rotation)
     {
-        logged << "Just changing unit cell lengths due to unitcell/rotation distinction" << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    //    logged << "Just changing unit cell lengths due to unitcell/rotation distinction" << std::endl;
+    //    Logger::mainLogger->addStream(&logged, LogLevelDebug);
         
         double aScale = lengths[0] / newA;
         double bScale = lengths[1] / newB;

@@ -797,8 +797,7 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
     std::vector<double> intensities, weights;
     *rejected = 0;
     
-    int isSpecial = (getReflId() == reflectionIdForCoordinates(5, 10, 7));
-    isSpecial = 0;
+    int isSpecial = (getReflId() == reflectionIdForCoordinates(1, 2, 62));
     
     for (int i = 0; i < liteMillers.size(); i++)
     {

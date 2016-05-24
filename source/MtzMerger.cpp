@@ -335,7 +335,7 @@ MtzRejectionReason MtzMerger::isMtzAccepted(MtzPtr mtz)
         return MtzRejectionCorrelation;
     }
     
-    double rSplit = mtz->rSplit(0, 0);
+    double rSplit = mtz->getLastRSplit();
     
     if (rSplit > rFactorThreshold)
     {
@@ -526,6 +526,8 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
 
 void MtzMerger::addMtzMillers(MtzPtr mtz)
 {
+    int specialId = Reflection::reflectionIdForCoordinates(1, 2, 62);
+
     for (int j = 0; j < mtz->reflectionCount(); j++)
     {
         ReflectionPtr refl = mtz->reflection(j);
@@ -562,6 +564,17 @@ void MtzMerger::addMtzMillers(MtzPtr mtz)
                 
                 if (accept)
                 {
+                    /*if (partnerRefl->getReflId() == specialId)
+                    {
+                        logged << "Miller 1 2 62 from " << miller->getMtzParent()->getFilename() << std::endl;
+                        logged << "Intensity: " << miller->intensity() << std::endl;
+                        logged << "Sigma: " << miller->getSigma() << std::endl;
+                        logged << "Scale: " << miller->getScale() << std::endl;
+                        logged << "MTZ Scale: " << miller->getMtzParent()->getScale() << std::endl;
+                        logged << "Partiality: " << miller->getPartiality() << std::endl;
+
+                        sendLog();
+                    }*/
                     partnerRefl->addLiteMiller(miller);
                 }
             }
@@ -845,6 +858,16 @@ void MtzMerger::merge()
     mergedMtz->writeToFile(filename, !silent);
 }
 
+void MtzMerger::copyDetails(MtzMerger &second)
+{
+    setCycle(second.cycle);
+    setFreeOnly(second.freeOnly);
+    setNeedToScale(true);
+    setSilent(true);
+    setExcludeWorst(second.excludeWorst);
+    setScalingType(second.scalingType);
+}
+
 void MtzMerger::mergeFull(bool anomalous)
 {
     time_t startcputime;
@@ -858,30 +881,20 @@ void MtzMerger::mergeFull(bool anomalous)
         }
     }
 
-    scale();
-    
     std::vector<MtzPtr> firstHalfMtzs, secondHalfMtzs;
     splitAllMtzs(firstHalfMtzs, secondHalfMtzs);
     
     MtzMerger firstMerge = MtzMerger();
     firstMerge.setAllMtzs(firstHalfMtzs);
     firstMerge.setFilename(makeFilename("half1Merge"));
-    firstMerge.setCycle(cycle);
-    firstMerge.setFreeOnly(freeOnly);
-    firstMerge.setNeedToScale(false);
-    firstMerge.setSilent(true);
-    firstMerge.setExcludeWorst(excludeWorst);
+    firstMerge.copyDetails(*this);
     anomalous ? firstMerge.mergeAnomalous() : firstMerge.merge();
     MtzPtr idxMerge = firstMerge.getMergedMtz();
 
     MtzMerger secondMerge = MtzMerger();
     secondMerge.setAllMtzs(secondHalfMtzs);
     secondMerge.setFilename(makeFilename("half2Merge"));
-    secondMerge.setExcludeWorst(excludeWorst);
-    secondMerge.setFreeOnly(freeOnly);
-    secondMerge.setNeedToScale(false);
-    secondMerge.setSilent(true);
-    secondMerge.setCycle(cycle);
+    secondMerge.copyDetails(*this);
     anomalous ? secondMerge.mergeAnomalous() : secondMerge.merge();
     MtzPtr invMerge = secondMerge.getMergedMtz();
 
@@ -935,10 +948,7 @@ void MtzMerger::mergeAnomalous()
     firstMerge.setAllMtzs(allMtzs);
     firstMerge.setFriedel(0);
     firstMerge.setFilename(makeFilename("tmp1Merge"));
-    firstMerge.setCycle(cycle);
-    firstMerge.setNeedToScale(false);
-    firstMerge.setSilent(true);
-    firstMerge.setExcludeWorst(excludeWorst);
+    firstMerge.copyDetails(*this);
     firstMerge.merge();
     MtzPtr negativeMerge = firstMerge.getMergedMtz();
     
@@ -946,10 +956,7 @@ void MtzMerger::mergeAnomalous()
     secondMerge.setAllMtzs(allMtzs);
     secondMerge.setFriedel(1);
     secondMerge.setFilename(makeFilename("tmp2Merge"));
-    secondMerge.setExcludeWorst(excludeWorst);
-    secondMerge.setNeedToScale(false);
-    secondMerge.setSilent(true);
-    secondMerge.setCycle(cycle);
+    secondMerge.copyDetails(*this);
     secondMerge.merge();
     MtzPtr positiveMerge = secondMerge.getMergedMtz();
     

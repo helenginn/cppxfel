@@ -163,6 +163,7 @@ double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
   //      std::cout << count << std::endl;
     
     double r_split = sum_numerator / (sum_denominator * sqrt(2));
+    lastRSplit = r_split;
     
     return r_split;
     

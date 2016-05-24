@@ -117,6 +117,7 @@ protected:
 
 	ScoreType defaultScoreType;
 	double maxResolutionAll;
+    float lastRSplit;
 
     static double superGaussianScale;
     double *params;
@@ -250,6 +251,7 @@ public:
 			vector<boost::tuple<double, double, double, int> > *correlations = NULL,
 			bool shouldLog = false);
 
+    
     int symmetryRelatedReflectionCount();
     
 // minimisation stuff
@@ -311,6 +313,11 @@ public:
     
     void flipToActiveAmbiguity();
     void resetFlip();
+    
+    float getLastRSplit()
+    {
+        return lastRSplit;
+    }
     
     static bool setupGaussianTable()
     {

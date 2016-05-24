@@ -598,9 +598,6 @@ int MtzGrouper::groupMillersWithAnomalous(MtzPtr *positive,
                 bool friedel = false;
 				mtzManagers[i]->reflection(j)->miller(k)->positiveFriedel(&friedel);
                 
-                logged << "Acquired Friedel " << friedel << std::endl;
-                sendLog(LogLevelDebug);
-                
 				MtzPtr friedelMtz = (friedel ? *positive : *negative);
 
 				if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)

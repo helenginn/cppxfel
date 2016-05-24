@@ -74,7 +74,8 @@ private:
     static void writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean, std::string filename);
     void createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive);
     void createUnmergedMtz();
-
+    void copyDetails(MtzMerger &second);
+    
     void incrementRejectedReflections();
     
 protected:

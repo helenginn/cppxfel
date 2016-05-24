@@ -215,7 +215,7 @@ void NelderMead::process()
     setTestPointParameters(&testPoints[0]);
     
     logged << "Evaluation of best point: " << testPoints[0].second << std::endl;
-    sendLog(LogLevelDetailed);
+    sendLog(LogLevelDebug);
 
 }
 

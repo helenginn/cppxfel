@@ -347,6 +347,7 @@ MtzManager::MtzManager(void)
     int rotMode = FileParser::getKey("ROTATION_MODE", 0);
     rotationMode = (RotationMode)rotMode;
     dropped = false;
+    lastRSplit = 0;
     
     loadParametersMap();
     
@@ -1273,6 +1274,10 @@ void MtzManager::applyScaleFactor(double scaleFactor,
     
     logged << "Applying scale factor to " << getFilename() << " - " << scaleFactor << " (now " << this->scale << ")" << std::endl;
     
+    double averageRefIntensity = getReferenceManager()->averageIntensity();
+    logged << "Average intensity " << averageIntensity() << " compared to " << averageRefIntensity << " of " << getReferenceManager()->getFilename() << std::endl;
+    sendLog(LogLevelDebug);
+    
     for (int i = 0; i < reflections.size(); i++)
     {
         for (int j = 0; j < reflections[i]->millerCount(); j++)
@@ -1287,6 +1292,8 @@ void MtzManager::applyScaleFactor(double scaleFactor,
         }
     }
     
+    logged << "Average intensity is now " << averageIntensity() << " (" << getFilename() << ")" << std::endl;
+
     sendLog(LogLevelDebug);
 
 }
