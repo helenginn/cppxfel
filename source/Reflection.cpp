@@ -858,6 +858,8 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
         stdev = standard_deviation(&intensities, NULL, mean);
     }
     
+    stdev /= sqrt(intensities.size());
+    
     if (intensities.size() == 1)
     {
         stdev = -1;
