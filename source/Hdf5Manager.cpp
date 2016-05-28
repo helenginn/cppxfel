@@ -459,7 +459,15 @@ int Hdf5Manager::getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *
         hid_t group = H5Gopen1(handle, address.c_str());
         *type = H5Gget_objtype_by_idx(group, objIdx);
         if (group >= 0)
+        {
             H5Gclose(group);
+        }
+        else
+        {
+            logged << "Could not get sub group types for " << address << std::endl;
+            sendLog();
+        }
+
         return 1;
     }
     catch (std::exception e)
@@ -482,6 +490,8 @@ std::vector<H5G_obj_t> Hdf5Manager::getSubGroupTypes(std::string address)
         
         if (error < 0)
         {
+            logged << "Could not get sub group types for " << address << std::endl;
+            sendLog();
             return types;
         }
         
@@ -549,6 +559,9 @@ std::vector<std::string> Hdf5Manager::getSubGroupNames(std::string address)
     
     if (error < 0)
     {
+        logged << "Could not get sub group names for " << address << std::endl;
+        sendLog();
+
         return names;
     }
     
@@ -715,6 +728,13 @@ Hdf5Manager::Hdf5Manager(std::string newName, Hdf5AccessType hdf5AccessType)
     if (handle < 0 && accessFlag != H5F_ACC_RDONLY)
     {
         handle = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    }
+    
+    if (handle < 0)
+    {
+        logged << "Warning: could not open file handle " << newName << std::endl;
+        Logger::setShouldExit();
+        sendLog();
     }
     
     turnOnErrors();
