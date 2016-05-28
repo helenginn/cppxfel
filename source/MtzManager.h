@@ -308,6 +308,7 @@ public:
     
     static std::string parameterHeaders();
     std::string writeParameterSummary();
+    static MtzPtr trajectoryMtz(MtzPtr one, MtzPtr two, double fractionExcited);
     
     int ambiguityCount();
     

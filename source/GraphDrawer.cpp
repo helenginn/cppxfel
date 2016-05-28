@@ -701,7 +701,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
 {
     int index = Reflection::reflectionIdForCoordinates(h, k, l);
     
-    std::cout << "filename,intensity,+-,resolution" << std::endl;
+    std::cout << "filename,intensity,+-,phase,resolution" << std::endl;
     
     for (int i = 0; i < mtzs.size(); i++)
     {

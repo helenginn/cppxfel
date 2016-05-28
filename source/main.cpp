@@ -369,8 +369,16 @@ void new_main(int argc, char *argv[])
         
         GraphDrawer drawer = GraphDrawer(&*mtzs[0]);
         drawer.plotReflectionFromMtzs(mtzs, h, k, l);
+        
+        if (mtzs.size() == 2)
+        {
+            MtzPtr furtherMtz = MtzManager::trajectoryMtz(mtzs[0], mtzs[1], 0.4);
+            furtherMtz->writeToFile("further.mtz");
+        }
     }
-
+    
+    
+    
 #ifdef MAC
     if (strcmp(argv[1], "-partiality") == 0)
 	{

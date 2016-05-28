@@ -644,14 +644,14 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     
     if (col_f == NULL)
     {
-        col_f = MtzColLookup(mtz, "FC");
+        col_f = MtzColLookup(mtz, "F");
         
         if (col_f == NULL)
         {
             col_f = MtzColLookup(mtz, "FP");
             
             if (col_f == NULL)
-                col_f = MtzColLookup(mtz, "F");
+                col_f = MtzColLookup(mtz, "FC");
             
             if (col_f != NULL)
             {
@@ -1806,4 +1806,74 @@ std::string MtzManager::writeParameterSummary()
     
     
     return summary.str();
+}
+
+void addPolarVectors(double f1, double phi1, double f2, double phi2, double *newF, double *newPhi)
+{
+    double rad1 = phi1 * M_PI / 180;
+    double rad2 = phi2 * M_PI / 180;
+    
+    double sinAngleDiff = sin(rad2 - rad1);
+    double cosAngleDiff = cos(rad2 - rad1);
+    double leftTerm = f1 * f1 + f2 * f2;
+    double rightTerm = 2 * f1 * f2 * cosAngleDiff;
+    
+    *newF = sqrt(leftTerm + rightTerm);
+    *newPhi = rad1 + atan2(f2 * sinAngleDiff, f1 + f2 * cosAngleDiff);
+    
+    *newPhi *= 180 / M_PI;
+}
+
+void subtractPolarVectors(double f1, double phi1, double f2, double phi2, double *newF, double *newPhi)
+{
+    // f2 - f1
+    addPolarVectors(f1, phi1 + 180, f2, phi2, newF, newPhi);
+}
+
+MtzPtr MtzManager::trajectoryMtz(MtzPtr one, MtzPtr two, double fractionExcited)
+{
+    MtzPtr newMtz = one->copy();
+    double newLength = 1 / fractionExcited;
+    
+    for (int i = 0; i < newMtz->reflectionCount(); i++)
+    {
+        ReflectionPtr myRefl = newMtz->reflection(i);
+        ReflectionPtr partnerRefl;
+        two->findReflectionWithId(myRefl->getReflId(), &partnerRefl);
+        
+        if (!partnerRefl)
+        {
+            newMtz->removeReflection(i);
+            i--;
+            continue;
+        }
+        
+        double oneIntensity = myRefl->meanIntensity();
+        double onePhase = myRefl->miller(0)->getPhase();
+        
+        double twoIntensity = partnerRefl->meanIntensity();
+        double twoPhase = partnerRefl->miller(0)->getPhase();
+        
+        double diffIntensity = 0;
+        double diffPhase = 0;
+        
+        subtractPolarVectors(oneIntensity, onePhase, twoIntensity, twoPhase, &diffIntensity, &diffPhase);
+        
+        diffIntensity *= newLength;
+        
+        double newIntensity = 0;
+        double newPhase = 0;
+        
+        addPolarVectors(oneIntensity, onePhase, diffIntensity, diffPhase, &newIntensity, &newPhase);
+        
+        myRefl->miller(0)->setRawIntensity(newIntensity);
+        myRefl->miller(0)->setPhase(newPhase);
+        
+        std::ostringstream logged;
+        logged << oneIntensity << ", " << onePhase << ", " << twoIntensity << ", " << twoPhase << ", " << newIntensity << ", " << newPhase << std::endl;
+        Logger::log(logged);
+    }
+    
+    
+    return newMtz;
 }
