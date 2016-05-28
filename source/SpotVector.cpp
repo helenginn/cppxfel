@@ -254,7 +254,7 @@ double SpotVector::getMinAngleTolerance()
     double distTolerance = getMinDistanceTolerance();
     double realDistance = distance();
     
-    double reciprocalFatnessRadius = (rlpSize * 3 + 1 / distTolerance) / 2;
+    double reciprocalFatnessRadius = (rlpSize * 2 + 1 / distTolerance) / 2;
     
     double tanAngle = tan(reciprocalFatnessRadius / realDistance);
     double angle = atan(tanAngle) * 2;

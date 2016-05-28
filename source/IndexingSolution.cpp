@@ -164,14 +164,15 @@ bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, Spot
     double standardCos = standard1->cosineWithVector(standard2);
     double realCos = firstObserved->cosineWithVector(secondObserved);
     
-    double difference = fabs(realCos - standardCos);
+    double difference = fabs(acos(realCos) - acos(standardCos));
     
     double allowed = firstObserved->getMinAngleTolerance() + secondObserved->getMinAngleTolerance();
     
     if (allowed < 1)
-    {
         allowed = 1;
-    }
+    
+  //  logged << "Difference: " << difference * 180 / M_PI << ", " << allowed * 180 / M_PI << std::endl;
+  //  sendLog();
     
     return (difference < allowed);
     /*
