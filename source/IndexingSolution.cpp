@@ -166,7 +166,14 @@ bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, Spot
     
     double difference = fabs(realCos - standardCos);
     
-    return (difference < approximateCosineDelta);
+    double allowed = firstObserved->getMinAngleTolerance() + secondObserved->getMinAngleTolerance();
+    
+    if (allowed < 1)
+    {
+        allowed = 1;
+    }
+    
+    return (difference < allowed);
     /*
     double standardAngle = standard1->angleWithVector(standard2);
     double realAngle = firstObserved->angleWithVector(secondObserved);

@@ -1684,8 +1684,9 @@ void MtzRefiner::integrationSummary()
     summaryCSV << summaryString;
     summaryCSV.close();
     
-    float percentage = iomRefinerCount / imageCount;
-    logged << "Indexed " << iomRefinerCount << " images out of " << imageCount << " (" << std::setprecision(1) << percentage << "%)." << std::endl;
+    float percentage = (float)iomRefinerCount / (float)imageCount * 100;
+    logged << "Indexed " << iomRefinerCount << " images out of " << imageCount << " (" << percentage << "%)." << std::endl;
+    sendLog();
     
     Logger::mainLogger->addString("Written integration summary to integration.csv");
     

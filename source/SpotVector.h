@@ -22,6 +22,7 @@ private:
     double cachedDistance;
     double approxResolution;
     double minDistanceTolerance;
+    double minAngleTolerance;
     
     std::vector<SpotVectorPtr> sameLengthStandardVectors;
     vec hkl;
@@ -41,6 +42,7 @@ public:
     void calculateDistance();
     double getResolution();
     double getMinDistanceTolerance();
+    double getMinAngleTolerance();
     double angleWithVector(SpotVectorPtr spotVector2);
     double similarityToSpotVector(SpotVectorPtr spotVector2);
     bool isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistance);

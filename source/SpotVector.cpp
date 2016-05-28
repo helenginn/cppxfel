@@ -39,6 +39,7 @@ SpotVector::SpotVector(SpotPtr first, SpotPtr second)
     update = false;
     approxResolution = 0;
     minDistanceTolerance = 0;
+    minAngleTolerance = 0;
     
     if (!first || !second)
         return;
@@ -240,4 +241,25 @@ double SpotVector::getMinDistanceTolerance()
     minDistanceTolerance = 1 / minDistanceTolerance;
     
     return minDistanceTolerance;
+}
+
+double SpotVector::getMinAngleTolerance()
+{
+    if (minAngleTolerance != 0)
+    {
+        return minAngleTolerance;
+    }
+    
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+    double distTolerance = getMinDistanceTolerance();
+    double realDistance = distance();
+    
+    double reciprocalFatnessRadius = (rlpSize * 3 + 1 / distTolerance) / 2;
+    
+    double tanAngle = tan(reciprocalFatnessRadius / realDistance);
+    double angle = atan(tanAngle) * 2;
+    
+    minAngleTolerance = angle;
+    
+    return minAngleTolerance;
 }

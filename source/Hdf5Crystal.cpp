@@ -312,6 +312,13 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         return;
     }
     
+    if (reflectionCount() > 0)
+    {
+        return;
+    }
+    
+    bool forceRestart = FileParser::getKey("FORCE_RESTART_POST_REFINEMENT", true);
+    
     // get space group
     
     std::string scaleAddress = Hdf5Manager::concatenatePaths(address, "scale");
@@ -367,28 +374,30 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     std::string ambiguityAddress = Hdf5Manager::concatenatePaths(address, "ambiguity");
     manager->readDatasetValue(ambiguityAddress, &activeAmbiguity);
     
-    std::string hRotAddress = Hdf5Manager::concatenatePaths(address, "hRot");
-    manager->readDatasetValue(hRotAddress, &hRot);
+    if (!forceRestart)
+    {
+        std::string hRotAddress = Hdf5Manager::concatenatePaths(address, "hRot");
+        manager->readDatasetValue(hRotAddress, &hRot);
+        
+        std::string kRotAddress = Hdf5Manager::concatenatePaths(address, "kRot");
+        manager->readDatasetValue(kRotAddress, &kRot);
+        
+        std::string mosaicityAddress = Hdf5Manager::concatenatePaths(address, "mosaicity");
+        manager->readDatasetValue(mosaicityAddress, &mosaicity);
+        
+        std::string rlpSizeAddress = Hdf5Manager::concatenatePaths(address, "rlpSize");
+        manager->readDatasetValue(rlpSizeAddress, &spotSize);
+        
+        std::string wavelengthAddress = Hdf5Manager::concatenatePaths(address, "wavelength");
+        manager->readDatasetValue(wavelengthAddress, &wavelength);
+        
+        std::string bandwidthAddress = Hdf5Manager::concatenatePaths(address, "bandwidth");
+        manager->readDatasetValue(bandwidthAddress, &bandwidth);
+        
+        std::string exponentAddress = Hdf5Manager::concatenatePaths(address, "exponent");
+        manager->readDatasetValue(exponentAddress, &exponent);
+    }
     
-    std::string kRotAddress = Hdf5Manager::concatenatePaths(address, "kRot");
-    manager->readDatasetValue(kRotAddress, &kRot);
-    
-    std::string mosaicityAddress = Hdf5Manager::concatenatePaths(address, "mosaicity");
-    manager->readDatasetValue(mosaicityAddress, &mosaicity);
-    
-    std::string rlpSizeAddress = Hdf5Manager::concatenatePaths(address, "rlpSize");
-    manager->readDatasetValue(rlpSizeAddress, &spotSize);
-    
-    std::string wavelengthAddress = Hdf5Manager::concatenatePaths(address, "wavelength");
-    manager->readDatasetValue(wavelengthAddress, &wavelength);
-    
-    std::string bandwidthAddress = Hdf5Manager::concatenatePaths(address, "bandwidth");
-    manager->readDatasetValue(bandwidthAddress, &bandwidth);
-    
-    std::string exponentAddress = Hdf5Manager::concatenatePaths(address, "exponent");
-    manager->readDatasetValue(exponentAddress, &exponent);
-    
-    Hdf5Miller *millers;
     std::string reflAddress = Hdf5Manager::concatenatePaths(address, "refls");
     
     int size = millerTable.readSizeFromManager(manager, reflAddress);
@@ -419,22 +428,31 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         MillerPtr miller = MillerPtr(new Miller(this, data->h, data->k, data->l));
         miller->setFree(data->free);
         miller->setRawIntensity(data->rawIntensity);
-        miller->setSigma(data->sigma);
         miller->setCountingSigma(data->countingSigma);
-        miller->setPartiality(data->partiality);
-        miller->setWavelength(data->wavelength);
-        miller->setResolution(data->resolution);
         miller->setPhase(data->phase);
-        miller->setScale(this->scale);
-        miller->setBFactor(data->bFactor);
         miller->setLastX(data->lastX);
         miller->setLastY(data->lastY);
         miller->setShift(std::make_pair(data->shiftX, data->shiftY));
-        if (data->rejectReason != RejectReasonNone)
-        {
-            miller->setRejected(data->rejectReason, true);
-        }
         miller->setMatrix(this->matrix);
+        miller->setSigma(1);
+        miller->setPartiality(1);
+        miller->setWavelength(data->wavelength);
+        miller->setResolution(data->resolution);
+        miller->setScale(1);
+        miller->setBFactor(0);
+        miller->setRejected(0);
+        
+        if (!forceRestart)
+        {
+            miller->setSigma(data->sigma);
+            miller->setPartiality(data->partiality);
+            miller->setScale(this->scale);
+            miller->setBFactor(data->bFactor);
+            if (data->rejectReason != RejectReasonNone)
+            {
+                miller->setRejected(data->rejectReason, true);
+            }
+        }
         
    //     std::cout << data->h << ", " << data->k << ", " << data->l << "\t" << data->partiality << std::endl;
         
@@ -442,6 +460,7 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         addMiller(miller);
     }
 
+    recalculateWavelengths();
     
     if (size > 0)
     {
