@@ -37,9 +37,8 @@ void SpotFinderQuick::findSignalToNoise(Value *data, size_t position, int xDim, 
     *signalToNoiseRatio = data[position] / *backgroundVariance;
 }
 
-void SpotFinderQuick::findSpecificSpots()
+void SpotFinderQuick::findSpecificSpots(std::vector<SpotPtr> *spots)
 {    
-    std::vector<SpotPtr> spots;
     int xDim = image->getXDim();
     int yDim = image->getYDim();
     float minSeparationSquared = minSeparation * minSeparation;

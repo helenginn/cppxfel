@@ -16,7 +16,7 @@ std::vector<SpotPtr> SpotFinder::findSpots()
     peaks = NULL;
     totalPeaks = 0;
     
-    findSpecificSpots();
+    findSpecificSpots(&spots);
     
     // now peaks is full of information
     

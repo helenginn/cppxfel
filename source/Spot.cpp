@@ -41,7 +41,7 @@ Spot::Spot(ImagePtr image)
     
     if (minCorrelation == 0)
     {
-        maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 3.0);
+        maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 2.0);
         minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 600.);
         minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
     }
@@ -140,6 +140,8 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
     
     double resol = this->resolution();
     
+  //  logged << "Resolution: " << resol << " for " << focusedX << ", " << focusedY << " -> " << getX() << ", " << getY() << std::endl;
+  //  sendLog();
     
     if (resol > (1. / maxResolution)) return false;
     if (resol < 0) return false;
@@ -155,7 +157,6 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
         {
             if (!(this->getParentImage()->accepted(focusedX + i, focusedY + j)))
             {
-                logged << "Unacceptable pixel for round " << round << std::endl;
                 return false;
             }
             
@@ -175,9 +176,8 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
     
     double correlation = correlation_between_vectors(&probeIntensities, &realIntensities);
     
-    logged << "Correlation: " << correlation << " for round " << round << std::endl;
-    if (round > 1)
-        sendLog(LogLevelDetailed);
+    logged << "Correlation: " << correlation << " for intensity height " << pixelIntensity << std::endl;
+    sendLog(LogLevelDetailed);
 
     if (correlation < minCorrelation)
         return false;

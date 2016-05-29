@@ -26,6 +26,7 @@
 #include "PNGFile.h"
 #include "Miller.h"
 #include "SpotFinderQuick.h"
+#include "SpotFinderCorrelation.h"
 
 Image::Image(std::string filename, double wavelength,
              double distance)
@@ -366,9 +367,9 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
     std::string bestPixels;
     std::vector<double> values;
     
-    for (int i = *x - tolerance1 - tolerance2; i <= *x + tolerance1 + tolerance2; i++)
+    for (int j = *y - tolerance1 - tolerance2; j <= *y + tolerance1 + tolerance2; j++)
     {
-        for (int j = *y - tolerance1 - tolerance2; j <= *y + tolerance1 + tolerance2; j++)
+        for (int i = *x - tolerance1 - tolerance2; i <= *x + tolerance1 + tolerance2; i++)
         {
             int aValue = valueAt(i, j);
             
@@ -378,18 +379,18 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
     
     double stdev = standard_deviation(&values);
     
-    for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
+    for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
     {
-        for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
+        for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
         {
             double newValue = 0;
             int count = 0;
        //     std::ostringstream pixelLog;
        //     pixelLog << "Metrology pixels: ";
             
-            for (int h = i - tolerance2; h <= i + tolerance2 + adjustment; h++)
+            for (int k = j - tolerance2; k <= j + tolerance2 + adjustment; k++)
             {
-                for (int k = j - tolerance2; k <= j + tolerance2 + adjustment; k++)
+                for (int h = i - tolerance2; h <= i + tolerance2 + adjustment; h++)
                 {
                     if (!accepted(h, k))
                         continue;
@@ -1257,20 +1258,26 @@ void Image::addSpotIfNotMasked(SpotPtr newSpot)
 void Image::findSpots()
 {
     int algorithm = FileParser::getKey("SPOT_FINDING_ALGORITHM", 1);
+    std::vector<SpotPtr> tempSpots;
+    loadImage();
+    SpotFinderPtr spotFinder;
     
     if (algorithm == 1)
     {
-    SpotFinderQuickPtr spotFinder = SpotFinderQuickPtr(new SpotFinderQuick(shared_from_this()));
-    loadImage();
-    std::vector<SpotPtr> tempSpots = spotFinder->findSpots();
+        spotFinder = SpotFinderPtr(new SpotFinderQuick(shared_from_this()));
+    }
+    else if (algorithm == 0)
+    {
+        spotFinder = SpotFinderPtr(new SpotFinderCorrelation(shared_from_this()));
+    }
+    
+    tempSpots = spotFinder->findSpots();
     
     for (int i = 0; i < tempSpots.size(); i++)
     {
         addSpotIfNotMasked(tempSpots[i]);
     }
-    }
-    else if (algorithm == 0)
-    {
+    /*
         double jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
         
         for (int i = jump; i < xDim - jump; i += jump * 2)
@@ -1307,7 +1314,7 @@ void Image::findSpots()
             }
         }
     }
-    
+    */
     loadedSpots = true;
     dropImage();
 

@@ -192,6 +192,7 @@ class Hdf5ManagerProcessing;
 class Hdf5Crystal;
 class PNGFile;
 class SpotFinderQuick;
+class SpotFinder;
 class Reflection;
 
 typedef boost::shared_ptr<SpectrumBeam> SpectrumBeamPtr;
@@ -221,7 +222,7 @@ typedef boost::shared_ptr<UnitCellLattice> UnitCellLatticePtr;
 typedef boost::shared_ptr<Hdf5ManagerCheetahSacla> Hdf5ManagerCheetahSaclaPtr;
 typedef boost::shared_ptr<Hdf5ManagerProcessing> Hdf5ManagerProcessingPtr;
 typedef std::shared_ptr<PNGFile> PNGFilePtr;
-typedef std::shared_ptr<SpotFinderQuick> SpotFinderQuickPtr;
+typedef std::shared_ptr<SpotFinder> SpotFinderPtr;
 
 typedef boost::variant<double, double, std::string, bool, int,
   vector<double>, vector<int>, vector<std::string> > ParameterVariant;

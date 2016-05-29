@@ -51,7 +51,7 @@ public:
         calculateBackgroundShifts();
     }
     
-    virtual void findSpecificSpots();
+    virtual void findSpecificSpots(std::vector<SpotPtr> *spots);
 };
 
 #endif /* defined(__cppxfel__SpotFinderQuick__) */
