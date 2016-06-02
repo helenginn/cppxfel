@@ -13,7 +13,7 @@
 #include "Spot.h"
 #include "parameters.h"
 
-class SpotVector
+class SpotVector : public LoggableObject
 {
 private:
     SpotPtr firstSpot;

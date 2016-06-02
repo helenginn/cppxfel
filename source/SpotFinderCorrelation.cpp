@@ -50,12 +50,9 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
             if (success)
             {
                 spots->push_back(spot);
-                spot = SpotPtr(new Spot(image));
             }
-            else
-            {
-                spot->setUpdate();
-            }
+
+            spot = SpotPtr(new Spot(image));
         }
     }
 }

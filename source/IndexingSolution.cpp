@@ -161,6 +161,7 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
 
 bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2)
 {
+    /*
     double standardCos = standard1->cosineWithVector(standard2);
     double realCos = firstObserved->cosineWithVector(secondObserved);
     
@@ -171,17 +172,14 @@ bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, Spot
     if (allowed < 1)
         allowed = 1;
     
-  //  logged << "Difference: " << difference * 180 / M_PI << ", " << allowed * 180 / M_PI << std::endl;
-  //  sendLog();
+    return (difference < allowed);*/
     
-    return (difference < allowed);
-    /*
-    double standardAngle = standard1->angleWithVector(standard2);
-    double realAngle = firstObserved->angleWithVector(secondObserved);
+    double standardCos = standard1->cosineWithVector(standard2);
+    double realCos = firstObserved->cosineWithVector(secondObserved);
     
-    double difference = fabs(realAngle - standardAngle);
+    double difference = fabs(realCos - standardCos);
     
-    return (difference < angleTolerance);*/
+    return (difference < approximateCosineDelta);
 }
 
 bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr *firstMatch, SpotVectorPtr *secondMatch)
