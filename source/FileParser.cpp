@@ -198,6 +198,7 @@ void FileParser::generateFunctionList()
     parserMap["NELDER_MEAD_CYCLES"] = simpleInt;
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
+    parserMap["WAVELENGTH_FROM_REF_COUNT"] = simpleInt;
     parserMap["LANDSCAPE_DIVISIONS"] = simpleInt;
     parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
     parserMap["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = simpleFloat;

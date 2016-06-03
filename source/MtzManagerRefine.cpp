@@ -289,6 +289,41 @@ static bool greaterThan(double num1, double num2)
     return (num1 > num2);
 }
 
+double MtzManager::wavelengthFromTopReflections(double lowRes, double highRes, int refNum)
+{
+    std::vector<std::pair<double, double> > orderedWavelengths;
+    
+    for (int i = 0; i < reflectionCount(); i++)
+    {
+        for (int j = 0; j < reflection(i)->millerCount(); j++)
+        {
+            double wavelength = reflection(i)->miller(0)->getWavelength();
+            double intensity = reflection(i)->miller(j)->getRawestIntensity();
+            
+            std::pair<double, double> pair = std::make_pair(intensity, wavelength);
+            
+            orderedWavelengths.push_back(pair);
+        }
+    }
+    
+    std::sort(orderedWavelengths.begin(), orderedWavelengths.end(), std::greater<std::pair<double, double>>());
+    double sum = 0;
+    
+    if (refNum < orderedWavelengths.size())
+    {
+        refNum = (int)orderedWavelengths.size();
+    }
+    
+    for (int i = 0; i < refNum; i++)
+    {
+        sum += orderedWavelengths[i].second;
+    }
+    
+    sum /= refNum;
+    
+    return sum;
+}
+
 double MtzManager::medianWavelength(double lowRes, double highRes)
 {
     vector<double> wavelengths;
@@ -333,9 +368,15 @@ double MtzManager::medianWavelength(double lowRes, double highRes)
 double MtzManager::bestWavelength(double lowRes, double highRes, bool usingReference)
 {
     bool median = FileParser::getKey("MEDIAN_WAVELENGTH", false);
+    bool topRefl = FileParser::getKey("WAVELENGTH_FROM_REF_COUNT", 0);
     
     if (median)
         return medianWavelength(lowRes, highRes);
+    
+    if (topRefl > 0)
+    {
+        return wavelengthFromTopReflections(lowRes, highRes, topRefl);
+    }
     
     vector<double> wavelengthRange = FileParser::getKey("WAVELENGTH_RANGE", vector<double>());
     

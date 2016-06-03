@@ -265,6 +265,7 @@ public:
     void setParams(double parameters[], int paramCount = PARAM_NUM);
 
     double medianWavelength(double lowRes, double highRes);
+    double wavelengthFromTopReflections(double lowRes, double highRes, int refNum);
 	double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
 	int accepted(void);
 	static double exclusionScoreWrapper(void *object, double lowRes = 0,
