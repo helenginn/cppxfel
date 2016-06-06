@@ -957,6 +957,7 @@ void MtzManager::findSteps(int param1, int param2, std::string csvName)
     csvStream.open(csvName);
     
     params = new double[PARAM_NUM];
+    double *goodParams = new double[PARAM_NUM];
     
     if (isnan(wavelength))
         return;
@@ -973,7 +974,6 @@ void MtzManager::findSteps(int param1, int param2, std::string csvName)
     params[PARAM_UNIT_CELL_A] = this->cellDim[0];
     params[PARAM_UNIT_CELL_B] = this->cellDim[1];
     params[PARAM_UNIT_CELL_C] = this->cellDim[2];
-    
     
     refreshPartialities(params);
     
@@ -1028,7 +1028,8 @@ void MtzManager::findSteps(int param1, int param2, std::string csvName)
     
     vector<ResultTuple> results;
     double bestResult = rSplit(0, maxResolutionAll);
-  
+    double lowestResult = exclusionScoreWrapper(this);
+    
     for (int i = 0; i < divisions; i++)
     {
         double iParam = iMinParam + iStep * (double)i;
@@ -1043,13 +1044,19 @@ void MtzManager::findSteps(int param1, int param2, std::string csvName)
                 params[param2] = jParam;
             
             this->refreshPartialities(params);
-            double score = rSplit(0, maxResolutionAll);
+            double score = exclusionScoreWrapper(this);
             double rSplitValue = rSplit(0, maxResolutionAll);
+            
+            if (score < lowestResult)
+            {
+                lowestResult = score;
+                getParams(&goodParams);
+            }
             
             ResultTuple result = boost::make_tuple<>(iParam, jParam, 0, rSplitValue, score);
             results.push_back(result);
             
-            csvStream << iParam << "," << jParam << "," << rSplitValue << std::endl;
+            csvStream << iParam << "," << jParam << "," << score << std::endl;
             sendLog(LogLevelNormal);
             
             if (bestResult > score)
@@ -1060,6 +1067,15 @@ void MtzManager::findSteps(int param1, int param2, std::string csvName)
             }
         }
     }
+    
+    logged << "New lowest result: " << lowestResult << std::endl;
+    sendLog();
+    
+    refreshPartialities(goodParams);
+    writeToFile(std::string("ref-") + filename);
+    
+    delete [] params;
+    delete [] goodParams;
     
     csvStream.close();
 }
