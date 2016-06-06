@@ -29,6 +29,7 @@ public:
     
     static void closeHdf5Files();
     virtual ~Hdf5ManagerCheetahSacla() {};
+    bool wavelengthForImage(std::string address, void **buffer);
     
     Hdf5ManagerCheetahSacla(std::string newName) : Hdf5ManagerImageAddresses(newName)
     {

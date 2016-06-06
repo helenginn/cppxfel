@@ -79,6 +79,12 @@ bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
     return Hdf5Manager::dataForAddress(dataAddress, buffer);
 }
 
+bool Hdf5ManagerCheetahSacla::wavelengthForImage(std::string address, void **buffer)
+{
+    std::string dataAddress = concatenatePaths(address, "photon_wavelength_A");
+    return Hdf5Manager::dataForAddress(dataAddress, buffer);
+}
+
 void Hdf5ManagerCheetahSacla::closeHdf5Files()
 {
     for (int i = 0; i < cheetahManagers.size(); i++)

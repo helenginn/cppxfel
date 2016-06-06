@@ -59,6 +59,7 @@ protected:
 	void findMultiplier(MTZ *mtz, int *multiplier, int *offset);
     ImageWeakPtr image;
     bool dropped;
+    void getWavelengthFromHDF5();
     
     BeamPtr beam;
     

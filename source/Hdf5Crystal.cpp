@@ -467,6 +467,8 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         free(millerData);
     }
     
+    getWavelengthFromHDF5();
+
     logged << "Loaded " << reflectionCount() << " reflections (" << millerCount() << " unique)." << std::endl;
     sendLog();
 }

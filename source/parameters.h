@@ -240,7 +240,7 @@ typedef std::pair<std::pair<SpotVectorPtr, VectorDistance>, double> Match;
 typedef double (*Getter)(void *);
 typedef void (*Setter)(void *, double newValue);
 
-//typedef std::vector<std::pair<void *, std::pair<Getter, Setter> > > GetterSetterMap;
+typedef std::map<int, std::pair<int, int> > PowderHistogram;
 
 
 typedef enum

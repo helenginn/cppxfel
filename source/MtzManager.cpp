@@ -578,6 +578,43 @@ void MtzManager::dropReflections()
     dropped = true;
 }
 
+void MtzManager::getWavelengthFromHDF5()
+{
+    if (!dropped)
+    {
+        bool useHdf5Wavelength = FileParser::getKey("USE_HDF5_WAVELENGTH", false);
+        
+        if (!useHdf5Wavelength)
+        {
+            return;
+        }
+        
+        if (!Hdf5ManagerCheetahSacla::cheetahManagerCount())
+        {
+            return;
+        }
+
+        unsigned long length = filename.length();
+        std::string noImg = filename.substr(4, length - 4); // [img-tag-XXXXX_0 to tag-XXXXX_0]
+        unsigned long underscoreIndex = noImg.rfind("_");
+        std::string noCryst = noImg.substr(0, underscoreIndex);
+        
+        Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(noCryst);
+        double aWavelength = 0;
+        double *wavePtr = &aWavelength;
+        
+        if (!manager)
+        {
+            return;
+        }
+        
+        manager->wavelengthForImage(noCryst, (void **)&wavePtr);
+        
+        logged << "Searching for wavelength in " << noCryst << " and found wavelength " << aWavelength << std::endl;
+        sendLog();
+    }
+}
+
 void MtzManager::loadReflections(PartialityModel model, bool special)
 {
     if (reflectionCount())
@@ -848,6 +885,9 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         this->recalculateWavelengths();
     
     MtzFree(mtz);
+
+    getWavelengthFromHDF5();
+    
 }
 
 void MtzManager::setReference(MtzManager *reference)
@@ -1786,7 +1826,7 @@ std::string MtzManager::parameterHeaders()
     
     summary << "hRot,kRot,";
     
-    summary << "rlpSize,exp,cellA,cellB,cellC";
+    summary << "rlpSize,exp,cellA,cellB,cellC,scale";
 
     return summary.str();
 }
@@ -1802,7 +1842,7 @@ std::string MtzManager::writeParameterSummary()
     summary << hRot << "," << kRot << ",";
     
     summary << getSpotSize() << ","
-    << getExponent() << "," << cellDim[0] << "," << cellDim[1] << "," << cellDim[2];
+    << getExponent() << "," << cellDim[0] << "," << cellDim[1] << "," << cellDim[2] << "," << getScale();
     
     
     return summary.str();
