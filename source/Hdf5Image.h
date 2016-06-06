@@ -24,7 +24,8 @@ private:
     Hdf5ManagerCheetahSaclaPtr chManager;
     Hdf5Table spotTable;
     void createSpotTable();
-
+    void getWavelengthFromHdf5();
+    
 protected:
     
 public:
@@ -33,6 +34,8 @@ public:
     {
         imageAddress = std::string();
         createSpotTable();
+        
+        getWavelengthFromHdf5();
     };
     
     Hdf5ManagerCheetahSaclaPtr getManager();

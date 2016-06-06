@@ -306,5 +306,21 @@ void Hdf5Image::createSpotTable()
     spotTable.setFieldSizes(fieldSizes);
     spotTable.setTypes(fieldTypes);
     spotTable.setCompress(false);
+}
+
+void Hdf5Image::getWavelengthFromHdf5()
+{
+    bool useHdf5Wavelength = FileParser::getKey("USE_HDF5_WAVELENGTH", false);
     
+    if (!useHdf5Wavelength)
+    {
+        return;
+    }
+    
+    std::string address = getAddress();
+    double wavelength = 0;
+    double *wavePtr = &wavelength;
+
+    this->getManager()->wavelengthForImage(address, (void **)&wavePtr);
+    this->setWavelength(wavelength);
 }

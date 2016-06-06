@@ -593,7 +593,7 @@ void MtzManager::getWavelengthFromHDF5()
         {
             return;
         }
-
+        
         unsigned long length = filename.length();
         std::string noImg = filename.substr(4, length - 4); // [img-tag-XXXXX_0 to tag-XXXXX_0]
         unsigned long underscoreIndex = noImg.rfind("_");
