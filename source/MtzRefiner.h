@@ -40,6 +40,7 @@ IndexManager *indexManager;
     static void radialAverageThread(MtzRefiner *me, int offset);
     static void integrateSpotsThread(MtzRefiner *me, int offset);
     Hdf5ManagerProcessingPtr hdf5ProcessingPtr;
+    void readDataFromOrientationMatrixList(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages);
 public:
 	MtzRefiner();
 	virtual ~MtzRefiner();

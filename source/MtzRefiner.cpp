@@ -686,7 +686,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             continue;
         }
         
-        if (readFromHdf5)
+        if (readFromHdf5 && newImages != NULL)
         {
             Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(imgName);
             
@@ -912,34 +912,8 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
 }
 
-void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
+void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
 {
-    Hdf5ManagerCheetahSacla::initialiseSaclaManagers();
-    
-    if (targetImages == NULL && images.size() > 0)
-        return;
-    
-    std::string hdf5OutputFile = FileParser::getKey("HDF5_OUTPUT_FILE", std::string(""));
-    
-    bool hdf5 = hdf5OutputFile.length();
-    
-    std::string aFilename = "";
-    
-    if (!hdf5)
-    {
-        if (filename == NULL)
-        {
-            aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
-            filename = &aFilename;
-            
-            if (filename->length() == 0)
-            {
-                logged << "No orientation matrix list provided. Exiting now." << std::endl;
-                sendLog(LogLevelNormal, true);
-            }
-        }
-    }
-    
     double version = FileParser::getKey("MATRIX_LIST_VERSION", 2.0);
     
     // thought: turn the vector concatenation into a templated function
@@ -952,14 +926,6 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     vector<vector<MtzPtr> > mtzSubsets;
     imageSubsets.resize(maxThreads);
     mtzSubsets.resize(maxThreads);
-    
-    if (hdf5)
-    {
-        readFromHdf5(&images);
-        
-        return;
-    }
-    
     
     for (int i = 0; i < maxThreads; i++)
     {
@@ -1016,9 +982,46 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
             lastPos += mtzSubsets[i].size();
         }
     }
+}
+
+void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
+{
+    Hdf5ManagerCheetahSacla::initialiseSaclaManagers();
     
-    //   if (version == 2.0 && areImages)
-    //       applyParametersToImages();
+    if (targetImages == NULL && images.size() > 0)
+        return;
+    
+    std::string hdf5OutputFile = FileParser::getKey("HDF5_OUTPUT_FILE", std::string(""));
+    
+    bool hdf5 = hdf5OutputFile.length();
+    
+    std::string aFilename = "";
+    
+    if (!hdf5)
+    {
+        if (filename == NULL)
+        {
+            aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
+            filename = &aFilename;
+            
+            if (filename->length() == 0)
+            {
+                logged << "No orientation matrix list provided. Exiting now." << std::endl;
+                sendLog(LogLevelNormal, true);
+            }
+        }
+    }
+    
+    
+    if (hdf5)
+    {
+        readFromHdf5(&images);
+    }
+    else
+    {
+        readDataFromOrientationMatrixList(filename, areImages, targetImages);
+    }
+    
 }
 
 void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset)
@@ -1247,6 +1250,11 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     
     logged << "N: Images loaded from HDF5: " << newImages->size() << std::endl;;
     logged << "N: Crystals loaded from images: " << mtzManagers.size() << std::endl;;
+    
+    if (mtzManagers.size() == 0)
+    {
+        
+    }
     
     sendLog();
 }
