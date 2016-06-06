@@ -609,6 +609,8 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
     std::vector<std::string> hdf5Sources = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
     bool readFromHdf5 = hdf5Sources.size() > 0;
+    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
+    vector<double> cellDims = FileParser::getKey("UNIT_CELL", vector<double>());
     
     bool checkingUnitCell = false;
     
@@ -841,6 +843,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                     newMatrix = MatrixPtr(new Matrix);
                     newMatrix->setComplexMatrix(unitCell, rotation);
                     
+                    if (fixUnitCell)
+                        newMatrix->changeOrientationMatrixDimensions(cellDims[0], cellDims[1], cellDims[2], cellDims[3], cellDims[4], cellDims[5]);
+                    
                     if (newImages)
                     {
                         newImage->setUpIOMRefiner(newMatrix);
@@ -859,6 +864,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 paramsLine = lines[i];
             }
         }
+        
         if (newImages)
         {
             if (hasSpots)
