@@ -609,6 +609,7 @@ void MtzManager::getWavelengthFromHDF5()
         }
         
         manager->wavelengthForImage(noCryst, (void **)&wavePtr);
+        finalised = true;
         
         logged << "Searching for wavelength in " << noCryst << " and found wavelength " << aWavelength << std::endl;
         sendLog();
