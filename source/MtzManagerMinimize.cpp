@@ -1096,7 +1096,7 @@ void MtzManager::resetDefaultParameters()
 {
     if (!setInitialValues)
     {
-        wavelength = FileParser::getKey("INITIAL_WAVELENGTH", 0.0);
+        wavelength = FileParser::getKey("INITIAL_WAVELENGTH", wavelength);
         bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
         mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
         spotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
