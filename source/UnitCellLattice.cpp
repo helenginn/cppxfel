@@ -138,3 +138,8 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
             minDistance = length_of_vector(hkl);
     }
 }
+
+void UnitCellLattice::refineUnitCell(PowderHistogram aHistogram)
+{
+    histogram = aHistogram;
+}

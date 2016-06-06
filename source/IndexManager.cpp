@@ -886,6 +886,20 @@ void IndexManager::powderPattern()
    // angleLog.close();
 }
 
+void IndexManager::refineUnitCell()
+{
+    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
+    }
+    
+    PowderHistogram frequencies = generatePowderHistogram();
+    
+    lattice->refineUnitCell(frequencies);
+}
+
 ImagePtr IndexManager::getNextImage()
 {
     std::lock_guard<std::mutex> lock(indexMutex);

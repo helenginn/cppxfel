@@ -22,7 +22,6 @@
 #include "LoggableObject.h"
 #include <mutex>
 
-typedef std::map<int, std::pair<int, int> > PowderHistogram;
 
 class IndexManager : LoggableObject
 {
@@ -82,6 +81,7 @@ public:
     void index();
     void indexFromScratch();
     void powderPattern();
+    void refineUnitCell();
     IndexManager(std::vector<ImagePtr>images);
 };
 
