@@ -321,6 +321,13 @@ void Hdf5Image::getWavelengthFromHdf5()
     double wavelength = 0;
     double *wavePtr = &wavelength;
 
-    this->getManager()->wavelengthForImage(address, (void **)&wavePtr);
+    Hdf5ManagerCheetahSaclaPtr manager = this->getManager();
+    
+    if (!manager)
+    {
+        return;
+    }
+    
+    manager->wavelengthForImage(address, (void **)&wavePtr);
     this->setWavelength(wavelength);
 }
