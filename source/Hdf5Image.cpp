@@ -38,6 +38,12 @@ std::string Hdf5Image::findAddress()
     {
         Hdf5ManagerCheetahSaclaPtr manager = getManager();
         
+        if (!manager)
+        {
+            failureMessage();
+            return "";
+        }
+        
         address = manager->addressForImage(getFilename());
         imageAddress = address;
     }

@@ -888,6 +888,14 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             MtzPtr newManager = MtzPtr(new MtzManager());
             
             newManager->setFilename(imgName.c_str());
+            
+            if (!newMatrix)
+            {
+                logged << "Warning! Matrix for " << imgName << " is missing." << std::endl;
+                Logger::setShouldExit();
+                Logger::log(logged);
+            }
+            
             newManager->setMatrix(newMatrix);
             
             if (!lowMemoryMode)
