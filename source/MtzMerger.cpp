@@ -264,11 +264,11 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
         int h = meanMiller->getH();
         int k = meanMiller->getK();
         int l = meanMiller->getL();
-        
+    /*
         if (ccp4spg_is_centric(mtzspg, h, k, l))
         {
             continue;
-        }
+        }*/
         
         ReflectionPtr posRefl;
         ReflectionPtr negRefl;
