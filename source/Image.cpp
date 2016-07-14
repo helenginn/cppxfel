@@ -2334,6 +2334,10 @@ double Image::standardDeviationOfPixels()
         for (int j = 0; j < yDim; j++)
         {
             int value = valueAt(i, j);
+            
+            if (value < 0)
+                value = 0;
+            
             values.push_back(value);
         }
     }
