@@ -2412,6 +2412,9 @@ void Image::writePNG(PNGFilePtr file)
         for (int j = 0; j < yDim; j++)
         {
             double value = valueAt(i, j);
+            if (value < 0)
+                value = 0;
+            
             unsigned char pixelValue = std::min(value, threshold) * 255 / threshold;
             pixelValue = 255 - pixelValue;
             
