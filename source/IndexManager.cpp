@@ -526,6 +526,20 @@ int IndexManager::indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset)
             }
         }
     }
+    /*
+    std::cout << "Additional operators: " << std::endl;
+    
+    for (int i = 0; i < chosenSolutions.size(); i++)
+    {
+        for (int j = 0; j < this->lattice->symOperatorCount(); j++)
+        {
+            MatrixPtr mat = lattice->symOperator(j);
+            MatrixPtr aSolution = chosenSolutions[i]->copy();
+            aSolution->preMultiply(*mat);
+            
+            std::cout << aSolution->summary() << std::endl;
+        }
+    }*/
     
     Logger::mainLogger->addStream(&logged, LogLevelDetailed); logged.str("");
     
