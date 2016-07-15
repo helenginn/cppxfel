@@ -1581,6 +1581,12 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
             images[i]->refineOrientations();
         
         vector<MtzPtr> mtzs = images[i]->currentMtzs();
+        
+        for (int j = 0; j < mtzs.size(); j++)
+        {
+            images[i]->addMtz(mtzs[j]);
+        }
+        
         mtzSubset->insert(mtzSubset->end(), mtzs.begin(), mtzs.end());
         images[i]->dropImage();
     }
