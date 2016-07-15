@@ -46,7 +46,7 @@ public:
     void writeImageOutput();
     void process();
     void setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue);
-    void drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue);
+    void drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue, float thickness = 3);
     
     PNGFile(std::string filename, int width = 2400, int height = 2400);
     

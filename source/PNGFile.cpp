@@ -300,11 +300,11 @@ void PNGFile::setPixelForChannel(int x, int y, int channel, png_byte value)
     data[offset] = value;
 }
 
-void PNGFile::drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue)
+void PNGFile::drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue, float thickness)
 {
     moveCoordRelative(&x, &y);
     double radiusSqr = radius * radius;
-    double minDiff = radiusSqr - pow(radius - 1.5, 2);
+    double minDiff = radiusSqr - pow(radius - thickness / 2, 2);
     
     for (int i = x - radius; i <= x + radius; i++)
     {

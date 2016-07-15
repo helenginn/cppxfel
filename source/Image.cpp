@@ -2386,12 +2386,18 @@ void Image::drawMillersOnPNG(int crystalNum)
             Coord predicted = myMiller->getLastXY();
             Coord shift = myMiller->getShift();
             
+            double isigi = myMiller->getRawestIntensity() / myMiller->getCountingSigma();
+            
+            bool strong = (isigi > 12);
+            
+            double thickness = (isigi > 12) ? 4 : 2;
+            
             predicted.first += shift.first;
             predicted.second += shift.second;
             
             double partiality = myMiller->getPartiality();
             
-            file->drawCircleAroundPixel(predicted.first, predicted.second, 14, partiality, 0, 0, 0);
+            file->drawCircleAroundPixel(predicted.first, predicted.second, 14, (strong ? 1 : 0.2), 0, 0, 0, (strong ? 4 : 1));
         }
     }
     
