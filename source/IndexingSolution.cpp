@@ -161,19 +161,6 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
 
 bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2)
 {
-    /*
-    double standardCos = standard1->cosineWithVector(standard2);
-    double realCos = firstObserved->cosineWithVector(secondObserved);
-    
-    double difference = fabs(acos(realCos) - acos(standardCos));
-    
-    double allowed = firstObserved->getMinAngleTolerance() + secondObserved->getMinAngleTolerance();
-    
-    if (allowed < 1)
-        allowed = 1;
-    
-    return (difference < allowed);*/
-    
     double standardCos = standard1->cosineWithVector(standard2);
     double realCos = firstObserved->cosineWithVector(secondObserved);
     
