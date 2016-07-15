@@ -818,7 +818,6 @@ void MtzMerger::merge()
     groupMillers();
     summary();
     
-    int imageNum = rejectNums[MtzRejectionNotRejected];
     double rejectsPerImage = (double) rejectedReflections;// / (double) imageNum;
     
     int observations = totalObservations();
