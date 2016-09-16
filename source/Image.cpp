@@ -1396,6 +1396,7 @@ void Image::processSpotList()
         
         double x = atof(components[0].c_str());
         double y = atof(components[1].c_str());
+        
         vec beamXY = new_vector(beamX, beamY, 1);
         vec newXY = new_vector(x, y, 1);
         vec xyVec = vector_between_vectors(beamXY, newXY);
@@ -1438,6 +1439,11 @@ void Image::processSpotList()
         logged << "SPOT\t" << i << "\t" << newSpot->getRawXY().first << "\t" << newSpot->getRawXY().second
         << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
         sendLog(LogLevelDebug);
+        
+        if (Panel::panelForSpot(&*newSpot) == PanelPtr())
+        {
+            add = false;
+        }
         
         if (add)
         {
@@ -2388,9 +2394,9 @@ void Image::drawMillersOnPNG(int crystalNum)
             
             double isigi = myMiller->getRawestIntensity() / myMiller->getCountingSigma();
             
-            bool strong = (isigi > 12);
+            bool strong = IOMRefiner::millerReachesThreshold(myMiller);
             
-            double thickness = (isigi > 12) ? 4 : 2;
+            double thickness = (strong) ? 4 : 2;
             
             predicted.first += shift.first;
             predicted.second += shift.second;
