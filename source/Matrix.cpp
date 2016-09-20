@@ -1074,3 +1074,4 @@ bool Matrix::writeToHdf5(std::string address)
     
     return processingManager->writeDataset(address, (void **)&components, H5T_NATIVE_DOUBLE);    
 }
+
