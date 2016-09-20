@@ -397,6 +397,7 @@ void FileParser::generateFunctionList()
     parserMap["INDEXING_TIME_LIMIT"] = simpleInt;
     parserMap["MAX_LATTICES_PER_IMAGE"] = simpleInt;
     parserMap["CHECKING_COMMON_SPOTS"] = simpleBool;
+    parserMap["EXCLUDE_WEAKEST_SPOT_FRACTION"] = simpleFloat;
     parserMap["REJECT_UNDER_SPOT_COUNT"] = simpleInt;
     parserMap["REJECT_IF_SPOT_COUNT"] = simpleInt;
     parserMap["POWDER_PATTERN_STEP"] = simpleFloat;
