@@ -20,7 +20,6 @@ class GraphDrawer
 {
 private:
 	MtzManager *mtz;
-//	vector<MtzManager *>mtzs;
 
 public:
 	GraphDrawer(MtzManager *mtz);
@@ -45,6 +44,7 @@ public:
 	std::string plot(std::string filename, GraphMap properties,
 			vector<vector<double> > xs, vector<vector<double> > ys);
 
+    void resolutionStatsCSV(std::vector<MtzManager *>& managers);
 	void resolutionStatsPlot(vector<MtzManager *>& managers, std::string filename = "resolution_stats",
 			GraphMap properties = GraphMap(), bool intensityBins = false, bool image = false);
 
