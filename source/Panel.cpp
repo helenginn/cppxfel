@@ -334,7 +334,6 @@ PanelPtr Panel::panelForMiller(Miller *miller)
     {
         if (badPanels[i]->isMillerInPanel(miller))
         {
-            //     Logger::mainLogger->addString("Hit bad mask", LogLevelDetailed);
             return PanelPtr();
         }
     }
