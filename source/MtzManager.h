@@ -222,7 +222,7 @@ public:
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 
-	virtual void writeToFile(std::string newFilename, bool announce = false);
+	virtual void writeToFile(std::string newFilename, bool announce = false, bool plusAmbiguity = false);
     void writeToHdf5();
     void writeToDat(std::string prefix = "");
     void sendLog(LogLevel priority = LogLevelNormal);

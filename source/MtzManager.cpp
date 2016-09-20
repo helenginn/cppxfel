@@ -1298,6 +1298,8 @@ void MtzManager::applyBFactor(double bFactor)
  //   if (bFactor < 0)
  //       bFactor = 0 - bFactor;
     
+    this->bFactor = bFactor;
+    
     for (int i = 0; i < reflections.size(); i++)
     {
         for (int j = 0; j < reflections[i]->millerCount(); j++)
@@ -1370,7 +1372,7 @@ void MtzManager::applyPolarisation(void)
 }
 
 
-void MtzManager::writeToFile(std::string newFilename, bool announce)
+void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAmbiguity)
 {
     int columns = 11;
     
@@ -1429,6 +1431,11 @@ void MtzManager::writeToFile(std::string newFilename, bool announce)
     
     int num = 0;
     
+    if (plusAmbiguity)
+    {
+        flipToActiveAmbiguity();
+    }
+    
     for (int i = 0; i < reflectionCount(); i++)
     {
         for (int j = 0; j < reflections[i]->millerCount(); j++)
@@ -1455,8 +1462,8 @@ void MtzManager::writeToFile(std::string newFilename, bool announce)
             int h = reflections[i]->miller(j)->getH();
             int k = reflections[i]->miller(j)->getK();
             int l = reflections[i]->miller(j)->getL();
-            int _h, _k, _l;
-            ccp4spg_put_in_asu(low_group, h, k, l, &_h, &_k, &_l);
+//            int _h, _k, _l;
+//            ccp4spg_put_in_asu(low_group, h, k, l, &_h, &_k, &_l);
             
             // set fdata
             fdata[0] = h;
@@ -1474,6 +1481,12 @@ void MtzManager::writeToFile(std::string newFilename, bool announce)
             ccp4_lwrefl(mtzout, fdata, colout, columns, num);
         }
     }
+    
+    if (plusAmbiguity)
+    {
+        resetFlip();
+    }
+
     
     MtzPut(mtzout, " ");
     MtzFree(mtzout);
