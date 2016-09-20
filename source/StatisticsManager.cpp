@@ -297,7 +297,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 		*hits = num_counted;
 
 	double r = sum_x_y_minus_mean_x_y
-			/ (sqrt(sum_x_minus_mean_x_sq) * sqrt(sum_y_minus_mean_y_sq));
+			/ (sqrt(sum_x_minus_mean_x_sq * sum_y_minus_mean_y_sq));
 
 	if (r < 0)
 		r = 0;
