@@ -295,7 +295,7 @@ void new_main(int argc, char *argv[])
 		mtz->loadReflections(1);
         mtz->setActiveAmbiguity(1);
 
-		mtz->writeToFile(std::string("inv-") + argv[2]);
+		mtz->writeToFile(std::string("inv-") + argv[2], true, true);
 	}
 
 	if (strcmp(argv[1], "-stats") == 0)
@@ -476,13 +476,15 @@ void new_main(int argc, char *argv[])
 		}
 
 		GraphDrawer graph = GraphDrawer(reference);
+        graph.resolutionStatsCSV(managers);
 
+        /*
 		graph.resolutionStatsPlot(managers, "intensity_bins", GraphMap(), true,
 				false);
 		graph.resolutionStatsPlot(managers, "intensity_bins_2", GraphMap(),
 				true, true);
 		graph.resolutionStatsPlot(managers);
-        graph.bFactorPlot(managers);
+        graph.bFactorPlot(managers);*/
         
 		for (int i = 0; i < managers.size(); i++)
 			delete managers[i];
