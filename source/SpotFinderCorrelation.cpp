@@ -8,32 +8,8 @@
 
 #include "SpotFinderCorrelation.h"
 #include "Image.h"
-/*
-void SpotFinderCorrelation::focusOnMax(int *x, int *y)
-{
-    double bestX = *x;
-    double bestY = *y;
-    double maxValue = 0;
-    
-    for (int j = - jump; j < + jump; j++)
-    {
-        for (int i = - jump; i < +jump; i++)
-        {
-            double value = image->valueAt(*x + i, *y + j);
-            
-            if (value > maxValue)
-            {
-                maxValue = value;
-                bestX = *x + i;
-                bestY = *y + j;
-            }
-        }
-    }
-    
-    *x = bestX;
-    *y = bestY;
-}
-*/
+
+
 void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
 {
     int xDim = this->image->getXDim();
