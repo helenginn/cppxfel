@@ -264,7 +264,6 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 
 			double imgIntensity = imgReflections[j]->meanIntensity();
 			double refIntensity = refReflections[j]->meanIntensity();
-      //      double meanPartiality = imgReflections[j]->meanPartiality();
             
 			double percent = imgIntensity / refIntensity;
 
@@ -312,6 +311,129 @@ void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
 	ys.push_back(redY);
 
 	plot(filename, properties, xs, ys);
+}
+
+void GraphDrawer::resolutionStatsCSV(std::vector<MtzManager *>& managers)
+{
+    double maxRes = this->mtz->maxResolution();
+    std::vector<std::vector<double> > intensitiesPerBinList;
+    vector<double> bins;
+    StatisticsManager::generateResolutionBins(50, 1.7, 6, &bins);
+
+    for (int i = 0; i < managers.size(); i++)
+    {
+        MtzManager *myMtz = managers[i];
+        
+/*        if (myMtz->accepted() < 130)
+            continue;
+  */
+        std::vector<ReflectionPtr> imgRefls, refRefls;
+        this->mtz->findCommonReflections(myMtz, imgRefls, refRefls);
+        
+        double correl = myMtz->correlation(true);
+        
+        if (MtzManager::getReferenceManager()->ambiguityCount() == 2)
+        {
+            myMtz->setActiveAmbiguity(1);
+            double invCorrel = myMtz->correlation(true);
+            
+            if (invCorrel < correl)
+                myMtz->setActiveAmbiguity(0);
+        }
+
+        double scale = myMtz->gradientAgainstManager(this->mtz);
+        myMtz->applyScaleFactor(scale);
+ 
+      /*
+        double scale, bFactor;
+        myMtz->bFactorAndScale(&scale, &bFactor);
+        myMtz->applyScaleFactor(scale);
+        myMtz->applyBFactor(bFactor);*/
+        
+        std::vector<double> intensitiesPerBin;
+        
+        for (int j = 0; j < bins.size() - 1; j++)
+        {
+            double lowResCut = bins[j];
+            double highResCut = bins[j + 1];
+            
+            double imgSum = 0;
+            double refSum = 0;
+            
+            for (int k = 0; k < imgRefls.size(); k++)
+            {
+                ReflectionPtr imgRefl = imgRefls[k];
+                
+                if (!imgRefl->betweenResolutions(lowResCut, highResCut))
+                {
+                    continue;
+                }
+                
+                if (!imgRefl->anyAccepted())
+                    continue;
+                
+                ReflectionPtr refRefl = refRefls[k];
+                
+                double imgIntensity = imgRefl->meanIntensity();
+                double refIntensity = refRefl->meanIntensity();
+                
+                if (imgIntensity != imgIntensity || refIntensity != refIntensity)
+                {
+                    continue;
+                }
+                
+                imgSum += imgIntensity;
+                refSum += refIntensity;
+            }
+            
+            double ratio = imgSum / refSum;
+            
+            if (refSum == 0)
+            {
+                ratio = 0;
+            }
+            
+            intensitiesPerBin.push_back(ratio);
+        }
+        
+        intensitiesPerBinList.push_back(intensitiesPerBin);
+    }
+  /*
+    if (!intensitiesPerBinList.size())
+        return;
+*/
+    for (int i = 0; i < intensitiesPerBinList[0].size(); i++)
+    {
+        for (int j = 0; j < intensitiesPerBinList.size(); j++)
+        {
+            std::cout << 1 / pow(bins[i], 2) << ", ";
+            std::cout << intensitiesPerBinList[j][i] << ", ";
+        }
+        
+        std::cout << std::endl;
+    }
+    
+    std::cout << "Behaved" << std::endl;
+    
+    for (int j = 0; j < intensitiesPerBinList.size(); j++)
+    {
+        if (intensitiesPerBinList[j][0] < 1.15)
+        {
+            std::cout << "good ";
+        }
+        else
+        {
+            std::cout << "bad ";
+        }
+        
+        std::cout << managers[j]->getFilename();
+        
+        double correl = managers[j]->correlation();
+        double scale = managers[j]->getScale();
+        double bFactor = managers[j]->bFactor;
+        
+        std::cout << " " << correl << " " << scale << " " << bFactor << std::endl;
+    }
 }
 
 void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, std::string filename,
@@ -393,7 +515,7 @@ void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, std::string filena
 			mtz->findCommonReflections(referenceManager, imgReflections, refReflections,
 			NULL);
 
-			double weights = 0;
+            double weights = 0;
 			double refMean = 0;
 			double imgMean = 0;
 			int count = 0;
@@ -679,23 +801,21 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
     CCP4SPG *spaceGroup = mtzs[0]->getLowGroup();
     UnitCellLattice lattice = UnitCellLattice(100, 100, 100, 90, 90, 90, spaceGroup->spg_num);
     
-    
-    vector<double> xs, ys, zs;
-    
     for (int i = 0; i < mtzs.size(); i++)
     {
-        MatrixPtr matrix = mtzs[i]->getMatrix();
+        MatrixPtr matrix = mtzs[i]->getMatrix()->getRotation();
         
         for (int j = 0; j < lattice.symOperatorCount(); j++)
         {
             MatrixPtr op = lattice.symOperator(j);
             
             MatrixPtr mat2 = matrix->copy();
-            matrix->preMultiply(*op);
+            mat2->preMultiply(*op);
             std::cout << mtzs[i]->getFilename() << "\t" << mat2->summary() << std::endl;
         }
     }
 }
+
 
 void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l)
 {
