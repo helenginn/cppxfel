@@ -148,6 +148,7 @@ public:
     void drawSpotsOnPNG();
     void dumpImage();
     void makeMaximumFromImages(std::vector<ImagePtr> images);
+    void excludeWeakestSpots(double fraction);
     
 	const std::string& getFilename() const
 	{

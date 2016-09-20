@@ -1277,44 +1277,7 @@ void Image::findSpots()
     {
         addSpotIfNotMasked(tempSpots[i]);
     }
-    /*
-        double jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
-        
-        for (int i = jump; i < xDim - jump; i += jump * 2)
-        {
-            for (int j = jump; j < yDim - jump; j += jump * 2)
-            {
-                SpotPtr testSpot = SpotPtr(new Spot(shared_from_this()));
-                int count = 1;
-                int consecutiveFailures = 0;
-                
-                if (!accepted(i, j))
-                    continue;
-                
-                while (consecutiveFailures <= 0 && count == 1)
-                {
-                    bool success = testSpot->focusOnNearbySpot(jump, i, j, count);
-                    
-                    if (success)
-                        consecutiveFailures = 0;
-                    else
-                        consecutiveFailures++;
-                    
-                    if (success)
-                    {
-                        Coord spotCoord = testSpot->getRawXY();
-                        
-                        logged << "Found spot (" << spotCoord.first << ", " << spotCoord.second << ")" << std::endl;
-                        sendLog(LogLevelDetailed);
-                        addSpotIfNotMasked(testSpot);
-                    }
-                    
-                    count++;
-                }
-            }
-        }
-    }
-    */
+    
     loadedSpots = true;
     dropImage();
 
@@ -1340,8 +1303,7 @@ void Image::processSpotList()
         findSpots();
         return;
     }
-    
-    if (!FileReader::exists(spotsFile))
+    else if (!FileReader::exists(spotsFile))
     {
         logged << "Cannot find spot file " << spotsFile << std::endl;
         loadImage();
@@ -1349,54 +1311,26 @@ void Image::processSpotList()
         sendLog();
         return;
     }
-    
-    try
+    else
     {
-        spotContents = FileReader::get_file_contents(spotsFile.c_str());
-    }
-    catch(int e)
-    {
-        logged << "Error reading spot file " << filename << std::endl;
-        sendLog();
+        try
+        {
+            spotContents = FileReader::get_file_contents(spotsFile.c_str());
+        }
+        catch(int e)
+        {
+            logged << "Error reading spot file " << filename << std::endl;
+            sendLog();
+            
+            return;
+        }
         
-        return;
-    }
-    
-    spots.clear();
-    
-    vector<std::string> spotLines = FileReader::split(spotContents, '\n');
-    
-    double x = beamX;
-    double y = beamY;
-    vec beamXY = new_vector(beamX, beamY, 1);
-    vec newXY = new_vector(x, y, 1);
-    vec xyVec = vector_between_vectors(beamXY, newXY);
-    MatrixPtr rotateMat = MatrixPtr(new Matrix());
-    rotateMat->rotate(0, 0, M_PI);
-    rotateMat->multiplyVector(&xyVec);
-    
-    SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
-    newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
-    
-    addSpotIfNotMasked(newSpot);
-    double tooCloseDistance = 0;
-    bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
-    if (rejectCloseSpots)
-    {
-        tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
-    }
-    
-    for (int i = 0; i < spotLines.size(); i++)
-    {
-        std::string line = spotLines[i];
-        vector<std::string> components = FileReader::split(line, '\t');
+        spots.clear();
         
-        if (components.size() < 2)
-            continue;
+        vector<std::string> spotLines = FileReader::split(spotContents, '\n');
         
-        double x = atof(components[0].c_str());
-        double y = atof(components[1].c_str());
-        
+        double x = beamX;
+        double y = beamY;
         vec beamXY = new_vector(beamX, beamY, 1);
         vec newXY = new_vector(x, y, 1);
         vec xyVec = vector_between_vectors(beamXY, newXY);
@@ -1406,53 +1340,91 @@ void Image::processSpotList()
         
         SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
         newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
-        bool add = true;
         
-        vec myVec = newSpot->estimatedVector();
-        
-        for (int j = 0; j < spots.size(); j++)
+        addSpotIfNotMasked(newSpot);
+        double tooCloseDistance = 0;
+        bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
+        if (rejectCloseSpots)
         {
-            SpotPtr testSpot = spots[j];
+            tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
+        }
+        
+        for (int i = 0; i < spotLines.size(); i++)
+        {
+            std::string line = spotLines[i];
+            vector<std::string> components = FileReader::split(line, '\t');
             
-            if (tooCloseDistance > 0)
+            if (components.size() < 2)
+                continue;
+            
+            double x = atof(components[0].c_str());
+            double y = atof(components[1].c_str());
+            
+            vec beamXY = new_vector(beamX, beamY, 1);
+            vec newXY = new_vector(x, y, 1);
+            vec xyVec = vector_between_vectors(beamXY, newXY);
+            MatrixPtr rotateMat = MatrixPtr(new Matrix());
+            rotateMat->rotate(0, 0, M_PI);
+            rotateMat->multiplyVector(&xyVec);
+            
+            SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
+            newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
+            bool add = true;
+            
+            vec myVec = newSpot->estimatedVector();
+            
+            for (int j = 0; j < spots.size(); j++)
             {
-                vec testVec = testSpot->estimatedVector();
-                vec copyVec = copy_vector(myVec);
-                take_vector_away_from_vector(testVec, &copyVec);
+                SpotPtr testSpot = spots[j];
                 
-                double distance = length_of_vector(copyVec);
-                if (distance < tooCloseDistance)
+                if (tooCloseDistance > 0)
+                {
+                    vec testVec = testSpot->estimatedVector();
+                    vec copyVec = copy_vector(myVec);
+                    take_vector_away_from_vector(testVec, &copyVec);
+                    
+                    double distance = length_of_vector(copyVec);
+                    if (distance < tooCloseDistance)
+                    {
+                        add = false;
+                    }
+                }
+            }
+            
+            for (int j = 0; j < spots.size(); j++)
+            {
+                if (newSpot->isSameAs(spots[j]))
                 {
                     add = false;
                 }
             }
-        }
-        
-        for (int j = 0; j < spots.size(); j++)
-        {
-            if (newSpot->isSameAs(spots[j]))
+            
+            logged << "SPOT\t" << i << "\t" << newSpot->getRawXY().first << "\t"
+            << newSpot->getRawXY().second
+            << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
+            sendLog(LogLevelDebug);
+            
+            if (Panel::panelForSpot(&*newSpot) == PanelPtr())
             {
                 add = false;
             }
+            
+            if (add)
+            {
+                addSpotIfNotMasked(newSpot);
+            }
         }
         
-        logged << "SPOT\t" << i << "\t" << newSpot->getRawXY().first << "\t" << newSpot->getRawXY().second
-        << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
-        sendLog(LogLevelDebug);
-        
-        if (Panel::panelForSpot(&*newSpot) == PanelPtr())
-        {
-            add = false;
-        }
-        
-        if (add)
-        {
-            addSpotIfNotMasked(newSpot);
-        }
+        logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;
+        sendLog(LogLevelNormal);
     }
     
-    logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;
-    sendLog(LogLevelNormal);
+    double fractionToExclude = FileParser::getKey("EXCLUDE_WEAKEST_SPOT_FRACTION", 0.0);
+    
+    if (fractionToExclude > 0)
+    {
+        excludeWeakestSpots(fractionToExclude);
+    }
     
     loadedSpots = true;
 }
@@ -2222,6 +2194,50 @@ void Image::integrateSpots()
     
     logged << "Written to file: " << csvName << std::endl;
     sendLog();
+}
+
+bool compareSpotIntensities(SpotPtr her, SpotPtr him)
+{
+    return (her->getIntensity() < him->getIntensity());
+}
+
+void Image::excludeWeakestSpots(double fraction)
+{
+    std::vector<SpotPtr> sortedSpots;
+    
+    for (int i = 0; i < spotCount(); i++)
+    {
+        spot(i)->integrate();
+        sortedSpots.push_back(spot(i));
+    }
+    
+    std::sort(sortedSpots.begin(), sortedSpots.end(), compareSpotIntensities);
+    
+    int numExclude = fraction * sortedSpots.size();
+    
+    if (sortedSpots.size() == 0)
+    {
+        return;
+    }
+    double minIntensity = sortedSpots[0]->getIntensity();
+    double maxIntensity = sortedSpots[numExclude]->getIntensity();
+    
+    /* want to preserve original order of spots I think */
+    for (int i = 0; i < numExclude; i++)
+    {
+        for (int j = 0; j < spotCount(); j++)
+        {
+            if (spot(j) == sortedSpots[i])
+            {
+                spots.erase(spots.begin() + j);
+                j--;
+            }
+        }
+    }
+    
+    std::cout << "Removed " << numExclude << " spots between intensities "
+    << minIntensity << " and " << maxIntensity << std::endl;
+    
 }
 
 void Image::radialAverage()
