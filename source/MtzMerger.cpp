@@ -417,6 +417,14 @@ void MtzMerger::scaleIndividual(MtzPtr mtz)
         
         scale = mtz->gradientAgainstManager(reference, false);
     }
+    else if (scalingType == ScalingTypeBFactor)
+    {
+        double bFactor, scale;
+        mtz->bFactorAndScale(&scale, &bFactor);
+        
+        mtz->applyScaleFactor(scale);
+        mtz->applyBFactor(bFactor);
+    }
     
     mtz->applyScaleFactor(scale);
 }
