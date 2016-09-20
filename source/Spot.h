@@ -26,6 +26,7 @@ private:
     int successfulCommonLines;
     double correctedX; double correctedY;
     double x; double y;
+    double intensity;
     bool rejected;
     int height;
     int length;
@@ -113,7 +114,10 @@ public:
 		this->parentImage = parentImage;
 	}
     
-
+    double getIntensity()
+    {
+        return intensity;
+    }
 };
 
 #endif /* SPOT_H_ */
