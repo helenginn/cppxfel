@@ -327,9 +327,7 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
     
     // Now we twirl around the firstAxisUnit until the rotated observed vector matches the second simulated vector
     // as closely as possible.
-    MatrixPtr secondTwizzleMatrix = closest_rotation_matrix(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
-    
-    //   logged << "Resultant angle: " << resultantAngle << std::endl;
+    MatrixPtr secondTwizzleMatrix = closest_rotmat_analytical(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
     
     // We want to apply the first matrix and then the second matrix, so we multiply these.
     MatrixPtr combinedMatrix = rotateSpotDiffMatrix->copy();
