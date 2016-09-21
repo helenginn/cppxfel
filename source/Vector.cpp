@@ -117,6 +117,44 @@ MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
     return matrix;
 }
 
+MatrixPtr closest_rotmat_analytical(vec vec1, vec vec2,
+                                    vec axis, double *resultantAngle)
+{
+    scale_vector_to_distance(&vec1, 1);
+    scale_vector_to_distance(&vec2, 1);
+    scale_vector_to_distance(&axis, 1);
+    
+    double a = vec2.h;
+    double b = vec2.k;
+    double c = vec2.l;
+    
+    double p = vec1.h;
+    double q = vec1.k;
+    double r = vec1.l;
+    
+    double x = axis.h;
+    double y = axis.k;
+    double z = axis.l;
+    
+    double A = a*(p*x*x - p + x*y*q + x*z*r) +
+    b*(p*x*y + q*y*y - q + r*y*z) +
+    c*(p*x*z + q*y*z + r*z*z - r);
+    
+    double B = a*(y*r - z*q) + b*(p*z - r*x) + c*(q*x - p*y);
+    
+    double tanTheta = - B / A;
+    double theta = atan(tanTheta);
+    
+    double bestAngle = theta + M_PI; // work out why this is always correct...?
+    *resultantAngle = bestAngle;
+    
+    MatrixPtr mat = MatrixPtr(new Matrix());
+    mat->rotateRoundUnitVector(axis, bestAngle);
+    
+    return mat;
+}
+
+/** DON'T USE THIS ANYMORE! **/
 MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle)
 {
     bool close = false;
@@ -135,35 +173,7 @@ MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, do
     bool divided = false;
     
     int cycles = 0;
-    /*
-    double biggestCosAngle = 0;
-    double bestRotation = 0;
-    
-    std::ostringstream logged;
-    
-    for (double i = 0; i < 2 * M_PI; i += step)
-    {
-        mat->rotateRoundUnitVector(chosenCrossProduct, i);
-        vec vec1Copy = copy_vector(vec1);
-        mat->multiplyVector(&vec1Copy);
-        double cosTheta = cosineBetweenVectors(vec1Copy, vec2);
-        
-        if (cosTheta > biggestCosAngle)
-        {
-            bestRotation = i;
-            biggestCosAngle = cosTheta;
-        }
-        
-        mat->setIdentity();
-    }
-    
-    MatrixPtr mat2 = MatrixPtr(new Matrix());
-    mat2->rotateRoundUnitVector(chosenCrossProduct, bestRotation);
-    logged << mat2->description() << std::endl;
-    return mat2;
-    
-    mat->setIdentity();
-    */
+   
     double totalStep = 0;
     
     while (!close && cycles < 20000)
@@ -172,7 +182,6 @@ MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, do
         vec vec1Copy = copy_vector(vec1);
         mat->multiplyVector(&vec1Copy);
         double cosTheta = cosineBetweenVectors(vec1Copy, vec2);
-        //double angleDiff = fabs(angleBetweenVectors(vec1Copy, vec2)); // checked
         
         if (cosTheta < lastCosAngle)
         {
@@ -191,6 +200,7 @@ MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, do
         
         totalStep += step;
         lastCosAngle = cosTheta;
+        
         cycles++;
     }
     
