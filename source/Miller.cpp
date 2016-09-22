@@ -1152,16 +1152,8 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     }
     
     rawIntensity = getImage()->intensityAt(x, y, shoebox, &countingSigma, 0);
-
-    if (h == 4 && k == -2 && l == -2)
-    {
-        logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelDebug);
     
-    }
-    
- //   if (rawIntensity > 1000 && false)
-    if (h == -12 && k == 4 && l == 4 && false)
+    if (false && h == 20 && k == -49 && l == -65)
     {
         logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
         Logger::mainLogger->addStream(&logged, LogLevelNormal);

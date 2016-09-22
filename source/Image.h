@@ -182,6 +182,7 @@ public:
     }
 
 	int valueAt(int x, int y);
+    int rawValueAt(int x, int y);
     void addValueAt(int x, int y, int addedValue);
 	bool accepted(int x, int y);
 	double intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int tolerance = 0);

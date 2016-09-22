@@ -310,7 +310,7 @@ void Image::addValueAt(int x, int y, int addedValue)
     data[position] = std::max(data[position], addedValue);
 }
 
-int Image::valueAt(int x, int y)
+int Image::rawValueAt(int x, int y)
 {
     if (!isLoaded())
     {
@@ -347,13 +347,20 @@ int Image::valueAt(int x, int y)
             return 0;
     }
     
+    return (useShortData ? shortData[position] : data[position]);
+}
+
+int Image::valueAt(int x, int y)
+{
+    double rawValue = rawValueAt(x, y);
+    
     PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
     double panelGain = detectorGain;
     
     if (panel)
         panelGain *= panel->getGainScale();
     
-    return (useShortData ? shortData[position] : data[position]) * panelGain;
+    return rawValue * panelGain;
 }
 
 void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even)
@@ -546,9 +553,6 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
             
             if (!accepted(panelPixelX, panelPixelY))
             {
-                std::ostringstream logged;
-                logged << "Rejecting miller at (" << panelPixelX << ", " << panelPixelY << ") - pixel not acceptable" << std::endl;
-                Logger::mainLogger->addStream(&logged, LogLevelDebug);
                 return false;
             }
             
@@ -557,14 +561,7 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
                 zeroCount++;
         }
     }
-    /*
-    if (double(zeroCount) / double(count) > 0.4)
-    {
-        logged << "Rejecting miller - too many zeros" << std::endl;
-        sendLog(LogLevelDebug);
-        return false;
-    }
-    */
+    
     return true;
 }
 
@@ -843,11 +840,6 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *
     int background = 0;
     int backNum = 0;
     
-    //	print = true;
-//    logged << "Foreground pixels: ";
-//    std::ostringstream logged2;
-//    logged2 << "Background pixels: ";
-    
     for (int i = 0; i < slowSide; i++)
     {
         int panelPixelX = (i - centreX) + x;
@@ -871,29 +863,19 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *
                 foreNum += weight;
                 foreground += value * weight;
                 
-           //     logged << value << ", ";
-                
                 if (value > pixelCountCutoff && pixelCountCutoff > 0)
                 {
-                    return isnan(' ');
+                    return std::nan(" ");
                 }
             }
             else if (flag == MaskBackground)
             {
-          //      logged2 << value << ", ";
                 backNum++;
                 background += value;
             }
         }
     }
-    
- /*   logged << std::endl;
-    sendLog(LogLevelDebug);
-    
-    logged2 << std::endl;
-    Logger::mainLogger->addStream(&logged2, LogLevelDebug);
-  */
-    
+  
     double totalSigmaForBackground = sqrt(background);
     double averageSigmaForBackground = totalSigmaForBackground / (double)backNum;
     
@@ -935,12 +917,12 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int to
         else
             focusOnAverageMax(&x1, &y1, tolerance, 1, shoebox->isEven());
     }
-    /*
+    /* commenting out because it's dealt with in the following call
     if (checkShoebox(shoebox, x1, y1) == 0)
     {
         return nan("");
-    }*/
-    
+    }
+    */
     double integral = integrateWithShoebox(x1, y1, shoebox, error);
     
     return integral;
@@ -948,7 +930,7 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int to
 
 bool Image::accepted(int x, int y)
 {
-    double value = valueAt(x, y);
+    double value = rawValueAt(x, y);
     
     if (shouldMaskValue)
     {
@@ -960,7 +942,7 @@ bool Image::accepted(int x, int y)
     
     if (shouldMaskUnderValue)
     {
-        if (value < maskedUnderValue)
+        if (value <= maskedUnderValue)
         {
             return false;
         }
