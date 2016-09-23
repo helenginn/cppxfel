@@ -92,6 +92,7 @@ std::string Matrix::summary()
     vec bDummyVec = new_vector(1, 0, 0);
     
     this->multiplyVector(&bDummyVec);
+    scale_vector_to_distance(&bDummyVec, 1);
     
     double alpha = acos(bDummyVec.l / length_of_vector(bDummyVec));
     double beta = atan(bDummyVec.k / bDummyVec.h);
@@ -213,7 +214,7 @@ MatrixPtr Matrix::getNegativeCopy()
     return newMat;
 }
 
-void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma)
+void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma, bool orthogonal)
 {
     cctbx::sgtbx::space_group_symbols spaceGroupSymbol = cctbx::sgtbx::space_group_symbols(spaceGroup->spg_num);
     std::string hallSymbol = spaceGroupSymbol.hall();
@@ -237,17 +238,17 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
         {
             MatrixPtr newMat = MatrixPtr(new Matrix());
             
-            newMat->components[0] = orthogonal_rotation[0];
-            newMat->components[4] = orthogonal_rotation[1];
-            newMat->components[8] = orthogonal_rotation[2];
+            newMat->components[0] = orthogonal ? orthogonal_rotation[0] : rotation[0];
+            newMat->components[4] = orthogonal ? orthogonal_rotation[1] : rotation[1];
+            newMat->components[8] = orthogonal ? orthogonal_rotation[2] : rotation[2];
             
-            newMat->components[1] = orthogonal_rotation[3];
-            newMat->components[5] = orthogonal_rotation[4];
-            newMat->components[9] = orthogonal_rotation[5];
+            newMat->components[1] = orthogonal ? orthogonal_rotation[3] : rotation[3];
+            newMat->components[5] = orthogonal ? orthogonal_rotation[4] : rotation[4];
+            newMat->components[9] = orthogonal ? orthogonal_rotation[5] : rotation[5];
             
-            newMat->components[2] = orthogonal_rotation[6];
-            newMat->components[6] = orthogonal_rotation[7];
-            newMat->components[10] = orthogonal_rotation[8];
+            newMat->components[2] = orthogonal ? orthogonal_rotation[6] : rotation[6];
+            newMat->components[6] = orthogonal ? orthogonal_rotation[7] : rotation[7];
+            newMat->components[10] = orthogonal ? orthogonal_rotation[8] : rotation[8];
             
             for (int i = 0; i < 9; i+= 3)
             {

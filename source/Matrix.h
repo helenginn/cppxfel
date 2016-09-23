@@ -66,7 +66,7 @@ public:
     MatrixPtr inverse3DMatrix();
     MatrixPtr transpose();
     cctbx::miller::index<double> multiplyIndex(cctbx::miller::index<> *index);
-    static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma);
+    static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma, bool orthogonal = true);
     static MatrixPtr matrixFromEulerAngles(double theta, double phi, double psi);
     
     void translate(double x, double y, double z);

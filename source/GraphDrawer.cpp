@@ -801,6 +801,9 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
     CCP4SPG *spaceGroup = mtzs[0]->getLowGroup();
     UnitCellLattice lattice = UnitCellLattice(100, 100, 100, 90, 90, 90, spaceGroup->spg_num);
     
+    std::ofstream pdbLog;
+    pdbLog.open("plot.pdb");
+    
     for (int i = 0; i < mtzs.size(); i++)
     {
         MatrixPtr matrix = mtzs[i]->getMatrix()->getRotation();
@@ -810,10 +813,25 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
             MatrixPtr op = lattice.symOperator(j);
             
             MatrixPtr mat2 = matrix->copy();
+            vec test = new_vector(1, 0, 0);
             mat2->preMultiply(*op);
             std::cout << mtzs[i]->getFilename() << "\t" << mat2->summary() << std::endl;
+            mat2->multiplyVector(&test);
+            scale_vector_to_distance(&test, 1);
+            
+            pdbLog << "HETATM";
+            pdbLog << std::fixed;
+            pdbLog << std::setw(5) << j << "                   ";
+            pdbLog << std::setw(8) << std::setprecision(2) << test.h * 50;
+            pdbLog << std::setw(8) << std::setprecision(2) << test.k * 50;
+            pdbLog << std::setw(8) << std::setprecision(2) << test.l * 50;
+            pdbLog << "                       O" << std::endl;
+            
         }
     }
+    
+    pdbLog.close();
+
 }
 
 
