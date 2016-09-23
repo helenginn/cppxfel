@@ -151,9 +151,9 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
     
     int padding = (length - 1) / 2;
     
-    for (int i = -padding; i < padding + 1; i++)
+    for (int j = -padding; j < padding + 1; j++)
     {
-        for (int j = -padding; j < padding + 1; j++)
+        for (int i = -padding; i < padding + 1; i++)
         {
             if (!(this->getParentImage()->accepted(focusedX + i, focusedY + j)))
             {
