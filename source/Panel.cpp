@@ -663,8 +663,6 @@ void Panel::plotVectors(int i, PlotType plotType)
             
             Coord shift = miller->getShift();
             Coord expectedShift = this->getTotalShift((&*miller)->getLastXY());
-         //   shift.first -= originalShift.first; // plot relative shift away from the last round of refinement
-         //   shift.second -= originalShift.second;
             
             if (shift.first < minX)
                 minX = shift.first;
@@ -703,7 +701,12 @@ void Panel::plotVectors(int i, PlotType plotType)
             under = (miller->getRawIntensity() / miller->getCountingSigma() < 17);
             double strength = miller->getRawIntensity();// / miller->getCountingSigma();
             
-            csv.addEntry(0, difference.first, difference.second, strength, rel_x, rel_y, angle);
+            bool isStrong = IOMRefiner::millerReachesThreshold(miller);
+            
+            if (isStrong)
+            {
+                csv.addEntry(0, difference.first, difference.second, strength, rel_x, rel_y, angle);
+            }
             
       /*      xRed.push_back(difference.first);
             yRed.push_back(difference.second);
@@ -726,53 +729,17 @@ void Panel::plotVectors(int i, PlotType plotType)
         filename_stream << std::string("panel_plot_") << i << "_" << j << "_" << resString.str() + ".csv";
         std::string filename = filename_stream.str();
         
+        logged << "Panel plot for (" << topLeft.first << ", " << topLeft.second << ") to ("
+        << bottomRight.first << ", " << bottomRight.second << ")" << std::endl;
+        sendLog();
+        
+        csv.plotColumns(0, 1);
+        
         csv.writeToFile(filename);
         
         resMillers.clear();
         vector<MillerPtr>().swap(resMillers);
-        /*
-        vector<vector<double> > xs;
-        vector<vector<double> > ys;
-        xs.push_back(xRed); // actually green
-        ys.push_back(yRed);
-        xs.push_back(xBlue); // actually blue
-        ys.push_back(yBlue);
-        
-        GraphDrawer drawer = GraphDrawer(MtzManager::getReferenceManager());
-        GraphMap map = GraphMap();
-        
-        std::ostringstream title_stream;
-        title_stream << "Panel plot ";
-        title_stream << topLeft.first << " " << topLeft.second << " "
-        << bottomRight.first << " " << bottomRight.second;
-        std::string title = title_stream.str();
-        
-        map["title"] = title;
-        map["xTitle"] = "X shift";
-        map["yTitle"] = "Y shift";
-        map["plotType"] = "point";
-        
-        if (plotType == PlotTypeRelative)
-        {
-            map["xMin"] = minX;
-            map["yMin"] = minY;
-            map["xMax"] = maxX;
-            map["yMax"] = maxY;
-        }
-        map["colour_0"] = 3;
-        map["colour_1"] = 9;
-        
-        std::ostringstream resString;
-        if (j < bins.size())
-            resString << bins[j];
-        else
-            resString << "all";
-        
-        std::ostringstream filename_stream;
-        filename_stream << std::string("panel_plot_") << i << "_" << j << "_" << resString.str();
-        std::string filename = filename_stream.str();
-        
-        drawer.plot(filename, map, xs, ys);*/
+    
     }
 #endif
 }
@@ -1079,8 +1046,8 @@ double Panel::stepScore()
     double stdevY = standard_deviation(&shiftYs, NULL, 0);
     double aScore = stdevX + stdevY;
     
-    logged << "Panel " << panelNum << " on st dev " << aScore << std::endl;
-    sendLog();
+//    logged << "Panel " << panelNum << " on st dev " << aScore << std::endl;
+//   sendLog();
     
     return aScore;
 }
