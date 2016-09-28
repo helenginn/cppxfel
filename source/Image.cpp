@@ -1989,7 +1989,8 @@ void Image::findIndexingSolutions()
     
     sendLog();
     
-    bool continuing = !FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
+    bool continuing = true;
+    bool allowBiggestSolution = !FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     int successes = 0;
     int maxSuccesses = FileParser::getKey("SOLUTION_ATTEMPTS", 1);
     int maxLattices = FileParser::getKey("MAX_LATTICES_PER_IMAGE", 1);
@@ -2068,7 +2069,7 @@ void Image::findIndexingSolutions()
             }
         }
         
-        if (continuing)
+        if (continuing && allowBiggestSolution)
         {
             if (!biggestFailedSolution)
             {
