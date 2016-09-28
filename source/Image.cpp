@@ -932,6 +932,13 @@ bool Image::accepted(int x, int y)
 {
     double value = rawValueAt(x, y);
     
+    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
+    
+    if (!panel)
+    {
+        return false;
+    }
+    
     if (shouldMaskValue)
     {
         if (value == maskedValue)
@@ -950,7 +957,7 @@ bool Image::accepted(int x, int y)
     
     if (value == -100000)
         return false;
-
+    
     return true;
 }
 
