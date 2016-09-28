@@ -235,11 +235,19 @@ std::string CSV::plotColumns(int col1, int col2)
         }
         else if (currentChar == '.')
         {
+            plot[yFullCharsIn][xFullCharsIn] = ':';
+        }
+        else if (currentChar == ':')
+        {
             plot[yFullCharsIn][xFullCharsIn] = '*';
         }
         else if (currentChar == '*')
         {
             plot[yFullCharsIn][xFullCharsIn] = '#';
+        }
+        else if (currentChar == '#')
+        {
+            plot[yFullCharsIn][xFullCharsIn] = '@';
         }
     }
 
