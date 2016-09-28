@@ -1290,7 +1290,6 @@ void Image::processSpotList()
         logged << "Finding spots using cppxfel" << std::endl;
         sendLog();
         findSpots();
-        return;
     }
     else if (!FileReader::exists(spotsFile))
     {
@@ -1298,7 +1297,6 @@ void Image::processSpotList()
         loadImage();
         findSpots();
         sendLog();
-        return;
     }
     else
     {
