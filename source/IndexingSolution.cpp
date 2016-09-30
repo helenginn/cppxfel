@@ -427,8 +427,6 @@ bool IndexingSolution::vectorAgreesWithExistingVectors(SpotVectorPtr observedVec
 {
     for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
     {
-        SpotVectorPtr myVector = it->first;
-        
         bool similar = vectorPairLooksLikePair(it->first, observedVector, it->second, standardVector);
         
         if (!similar)

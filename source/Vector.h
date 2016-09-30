@@ -24,6 +24,7 @@ double length_of_vector_squared(vec vec);
 double distance_between_vectors(vec vec1, vec vec2);
 double angleBetweenVectors(vec vec1, vec vec2);
 double cosineBetweenVectors(vec vec1, vec vec2);
+double cosineBetweenUnitVectors(vec vec1, vec vec2);
 vec copy_vector(vec old_vec);
 void add_vector_to_vector(vec *vec1, vec vec2);
 vec vector_between_vectors(vec vec1, vec vec2);

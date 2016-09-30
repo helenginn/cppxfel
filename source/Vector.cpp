@@ -282,6 +282,13 @@ vec copy_vector(vec old_vec)
 	return vec;
 }
 
+double cosineBetweenUnitVectors(vec vec1, vec vec2)
+{
+    double dotProduct = vec1.h * vec2.h + vec1.k * vec2.k + vec1.l * vec2.l;
+    
+    return dotProduct;
+}
+
 double cosineBetweenVectors(vec vec1, vec vec2)
 {
     double dotProduct = vec1.h * vec2.h + vec1.k * vec2.k + vec1.l * vec2.l;

@@ -703,7 +703,7 @@ void IndexManager::powderPattern()
         {
             SpotVectorPtr spotVec = images[i]->spotVector(j);
             
-            vec spotDiff = copy_vector(spotVec->getSpotDiff());
+            vec spotDiff = copy_vector(spotVec->getVector());
             spotDiff.h *= 106 * 20;
             spotDiff.k *= 106 * 20;
             spotDiff.l *= 106 * 20;

@@ -29,7 +29,7 @@ SpotVector::SpotVector(vec transformedHKL, vec normalHKL)
     update = false;
     hkl = normalHKL;
     spotDiff = copy_vector(transformedHKL);
-    cachedDistance = length_of_vector(spotDiff);
+    calculateUnitVector();
 }
 
 SpotVector::SpotVector(SpotPtr first, SpotPtr second)
@@ -47,6 +47,13 @@ SpotVector::SpotVector(SpotPtr first, SpotPtr second)
     calculateDistance();
 }
 
+void SpotVector::calculateUnitVector()
+{
+    cachedDistance = length_of_vector(spotDiff);
+    unitSpotDiff = copy_vector(spotDiff);
+    scale_vector_to_distance(&unitSpotDiff, 1.);
+}
+
 void SpotVector::calculateDistance()
 {
     vec firstVector = firstSpot->estimatedVector();
@@ -54,7 +61,8 @@ void SpotVector::calculateDistance()
     
     spotDiff = copy_vector(secondVector);
     take_vector_away_from_vector(firstVector, &spotDiff);
-    cachedDistance = length_of_vector(spotDiff);
+    
+    calculateUnitVector();
 }
 
 double SpotVector::distance()
@@ -76,12 +84,12 @@ double SpotVector::angleWithVector(SpotVectorPtr spotVector2)
 
 double SpotVector::cosineWithVector(SpotVectorPtr spotVector2)
 {
-    return cosineBetweenVectors(spotVector2->spotDiff, spotDiff);
+    return cosineBetweenUnitVectors(spotVector2->getUnitVector(), unitSpotDiff);
 }
 
 bool SpotVector::isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistance)
 {
-    vec spotDiff2 = spotVector2->getSpotDiff();
+    vec spotDiff2 = spotVector2->getVector();
     
     if (fabs(spotDiff2.h - spotDiff.h) > maxDistance || fabs(spotDiff2.k - spotDiff.k) > maxDistance
         || fabs(spotDiff2.l - spotDiff.l) > maxDistance)
@@ -93,7 +101,7 @@ bool SpotVector::isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistan
 double SpotVector::similarityToSpotVector(SpotVectorPtr spotVector2)
 {
     vec displace = copy_vector(spotDiff);
-    take_vector_away_from_vector(spotVector2->getSpotDiff(), &displace);
+    take_vector_away_from_vector(spotVector2->getVector(), &displace);
     
     return length_of_vector(displace);
 }

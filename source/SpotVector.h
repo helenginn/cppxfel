@@ -27,6 +27,9 @@ private:
     std::vector<SpotVectorPtr> sameLengthStandardVectors;
     vec hkl;
     vec spotDiff;
+    vec unitSpotDiff;
+
+    void calculateUnitVector();
 public:
     
     static bool isGreaterThan(SpotVectorPtr spotVec1, SpotVectorPtr spotVec2)
@@ -70,6 +73,11 @@ public:
         return spotDiff;
     }
     
+    vec getUnitVector()
+    {
+        return unitSpotDiff;
+    }
+    
     SpotPtr getFirstSpot()
     {
         return firstSpot;
@@ -78,11 +86,6 @@ public:
     SpotPtr getSecondSpot()
     {
         return secondSpot;
-    }
-    
-    vec getSpotDiff()
-    {
-        return spotDiff;
     }
     
     double getH()
