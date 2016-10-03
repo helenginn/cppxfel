@@ -147,6 +147,13 @@ def printData(path):
 	else:
 		print >> output, "spots find"
 
+        f = open(path, 'rb')
+        x = pickle.load(f)
+        f.close()
+        
+        if ('WAVELENGTH' in x):
+                print >> output, "wavelength", x['WAVELENGTH']
+
 	if os.path.isfile(experimentsJson):
 		print "Found DIALS indexing solutions."
 		matrixForFilename(experimentsJson, output)
