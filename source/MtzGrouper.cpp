@@ -172,7 +172,7 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
     
     logged << "hRot\tkRot\t";
     
-    logged << "rlpSize\texp\tcellA\tcellB\tcellC" << std::endl;
+    logged << "rlpSize\texp\tcellA\tcellB\tcellC\tscale" << std::endl;
 
 	for (int i = 0; i < mtzManagers.size(); i++)
     {
@@ -215,7 +215,9 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
         logged << hRot << "\t" << kRot << "\t";
         
         logged << mtzManagers[i]->getSpotSize() << "\t"
-            << mtzManagers[i]->getExponent() << "\t" << cellDims[0] << "\t" << cellDims[1] << "\t" << cellDims[2] << std::endl;
+        << mtzManagers[i]->getExponent() << "\t" << cellDims[0] << "\t" << cellDims[1] << "\t" << cellDims[2] << "\t";
+        
+        logged << mtzManagers[i]->getScale() << std::endl;
         
         delete [] cellDims;
 	}
