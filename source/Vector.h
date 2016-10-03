@@ -22,7 +22,7 @@ vec new_vector(double h, double k, double l);
 double length_of_vector(vec vect);
 double length_of_vector_squared(vec vec);
 double distance_between_vectors(vec vec1, vec vec2);
-double angleBetweenVectors(vec vec1, vec vec2);
+double angleBetweenVectors(vec vec1, vec vec2, int isUnit = false);
 double cosineBetweenVectors(vec vec1, vec vec2);
 double cosineBetweenUnitVectors(vec vec1, vec vec2);
 vec copy_vector(vec old_vec);

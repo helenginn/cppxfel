@@ -300,9 +300,18 @@ double cosineBetweenVectors(vec vec1, vec vec2)
     return cosTheta;
 }
 
-double angleBetweenVectors(vec vec1, vec vec2)
+double angleBetweenVectors(vec vec1, vec vec2, int isUnit)
 {
-    double cosTheta = cosineBetweenVectors(vec1, vec2);
+    double cosTheta = 0;
+    
+    if (!isUnit)
+    {
+        cosTheta = cosineBetweenVectors(vec1, vec2);
+    }
+    else
+    {
+        cosTheta = cosineBetweenUnitVectors(vec1, vec2);
+    }
 
     if (cosTheta > 1)
         cosTheta = 1;

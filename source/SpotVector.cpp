@@ -79,7 +79,7 @@ double SpotVector::distance()
 // in radians
 double SpotVector::angleWithVector(SpotVectorPtr spotVector2)
 {
-    return angleBetweenVectors(spotVector2->spotDiff, spotDiff);
+    return angleBetweenVectors(spotVector2->getUnitVector(), unitSpotDiff, true);
 }
 
 double SpotVector::cosineWithVector(SpotVectorPtr spotVector2)
