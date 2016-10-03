@@ -774,6 +774,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                     newWavelength = atof(components[1].c_str());
                 
                 newImage->setWavelength(newWavelength);
+                
+                logged << "Setting wavelength for " << imgName << " to " << newWavelength << " Angstroms." << std::endl;
+                Logger::log(logged);
             }
             
             if (components[0] == "distance" && detectorDistance == 0)
@@ -1844,6 +1847,8 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         {
             integrateMats << "spots " << image->getSpotsFile() << std::endl;
         }
+        
+        integrateMats << "wavelength " << image->getWavelength() << std::endl;
     }
     
     Logger::mainLogger->addString("Written to filename set: " + filename);
