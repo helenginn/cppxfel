@@ -1031,6 +1031,9 @@ vector<MtzPtr> Image::currentMtzs()
     for (int i = 0; i < IOMRefinerCount(); i++)
     {
         MtzPtr newMtz = indexers[i]->newMtz(i);
+        newMtz->removeStrongSpots(&spots, true);
+        logged << "After integrating crystal " << i << " on " << filenameRoot() << ", spot count now " << spots.size() << std::endl;
+        sendLog();
 
         std::string imgFilename = "img-" + filenameRoot() + "_" + i_to_str(i) + ".mtz";
         newMtz->writeToFile(imgFilename, true);
@@ -1744,6 +1747,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     if (successfulImage || acceptAllSolutions)
     {
         logged << "Successful crystal for " << getFilename() << std::endl;
+        Logger::log(logged); logged.str("");
         goodSolutions.push_back(solutionPtr);
         int spotCountBefore = (int)spots.size();
         refiner->showHistogram(false);
@@ -1756,7 +1760,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         
         logged << "Removed spots; from " << spotCountBefore << " to " << spotCountAfter << "." << std::endl;
         
-        Logger::mainLogger->addStream(&logged); logged.str("");
+        Logger::log(logged); logged.str("");
         
         addMtz(mtz);
         std::string imgFilename = "img-" + mtz->getFilename();
