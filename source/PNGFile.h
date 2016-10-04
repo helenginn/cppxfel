@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <png.h>
 #include <string>
+#include "parameters.h"
 
 typedef enum
 {
@@ -47,8 +48,9 @@ public:
     void process();
     void setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue);
     void drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue, float thickness = 3);
+    void drawShoeboxAroundPixel(int x, int y, ShoeboxPtr shoebox);
     
-    PNGFile(std::string filename, int width = 2400, int height = 4400);
+    PNGFile(std::string filename, int width = 2400, int height = 4800);
     
     void setCentre(int newX, int newY)
     {

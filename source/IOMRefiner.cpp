@@ -134,9 +134,9 @@ bool IOMRefiner::millerReachesThreshold(MillerPtr miller)
     
     std::ostringstream logged;
     
-    logged << "iSigI is " << iSigI << ", raw intensity is " << miller->getRawIntensity() << std::endl;
+  //  logged << "iSigI is " << iSigI << ", raw intensity is " << miller->getRawIntensity() << std::endl;
     
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+  //  Logger::mainLogger->addStream(&logged, LogLevelDebug);
     
     if (absoluteIntensity)
     {
@@ -1662,7 +1662,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
             mtz->sortLastReflection();
         }
     }
-    
+        
     this->sendLog(LogLevelDetailed);
     
     double cutoff = FileParser::getKey("SIGMA_RESOLUTION_CUTOFF", SIGMA_RESOLUTION_CUTOFF);

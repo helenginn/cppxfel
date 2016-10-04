@@ -2389,6 +2389,8 @@ void Image::drawMillersOnPNG(int crystalNum)
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename));
     writePNG(file);
     
+    bool addShoebox = FileParser::getKey("PNG_SHOEBOX", false);
+    
     MtzPtr myMtz = mtz(crystalNum);
     
     for (int i = 0; i < myMtz->reflectionCount(); i++)
@@ -2400,18 +2402,17 @@ void Image::drawMillersOnPNG(int crystalNum)
             Coord predicted = myMiller->getLastXY();
             Coord shift = myMiller->getShift();
             
-            double isigi = myMiller->getRawestIntensity() / myMiller->getCountingSigma();
-            
             bool strong = IOMRefiner::millerReachesThreshold(myMiller);
-            
-            double thickness = (strong) ? 4 : 2;
             
             predicted.first += shift.first;
             predicted.second += shift.second;
             
-            double partiality = myMiller->getPartiality();
-            
             file->drawCircleAroundPixel(predicted.first, predicted.second, 14, (strong ? 1 : 0.2), 0, 0, 0, (strong ? 4 : 1));
+            
+            if (addShoebox)
+            {
+                file->drawShoeboxAroundPixel(predicted.first, predicted.second, myMiller->getShoebox());
+            }
         }
     }
     

@@ -175,6 +175,11 @@ public:
     vec getTransformedHKL(MatrixPtr matrix);
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
     
+    ShoeboxPtr getShoebox()
+    {
+        return shoebox;
+    }
+    
     static double averageRawIntensity(vector<MillerPtr> millers);
     RejectReason getRejectedReason();
 
@@ -395,6 +400,8 @@ public:
     {
         return sigma;
     }
+    
+    
 
 
     static void rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);

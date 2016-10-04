@@ -51,6 +51,16 @@ public:
         return shoebox[index];
     }
     
+    vector<double>& row(int index)
+    {
+        return shoebox[index];
+    }
+    
+    int height()
+    {
+        return (int)shoebox.size();
+    }
+    
     MillerPtr getMiller()
     {
         return miller.lock();

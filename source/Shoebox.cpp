@@ -33,8 +33,8 @@ void Shoebox::centre(int *centreX, int *centreY)
     int slowSide = 0; int fastSide = 0;
     sideLengths(&slowSide, &fastSide);
     
-    *centreX = (slowSide % 2 == 0) ? slowSide / 2 : (slowSide - 1) / 2;
-    *centreY = (fastSide % 2 == 0) ? fastSide / 2 : (fastSide - 1) / 2;
+    *centreY = (slowSide % 2 == 0) ? slowSide / 2 : (slowSide - 1) / 2;
+    *centreX = (fastSide % 2 == 0) ? fastSide / 2 : (fastSide - 1) / 2;
 }
 
 void Shoebox::sideLengths(int *slowSide, int *fastSide)
@@ -157,10 +157,13 @@ void Shoebox::putBoxOnPaddedBackground(Box &smallBox, Box &newShoebox)
     int slowSize = (int)smallBox.size();
     int fastSize = (int)smallBox[0].size();
     
-    int newSlow = slowSize + 4;
-    int newFast = fastSize + 4;
+    int bgPadding = 3;
+    
+    int newSlow = slowSize + 4 + bgPadding;
+    int newFast = fastSize + 4 + bgPadding;
     
     newShoebox.resize(newSlow);
+    
     for (int i = 0; i < newSlow; i++)
     {
         newShoebox[i].resize(newFast);
@@ -168,13 +171,15 @@ void Shoebox::putBoxOnPaddedBackground(Box &smallBox, Box &newShoebox)
         {
             newShoebox[i][j] = 0;
             
-            if (i == 0 || i == newSlow - 1 || j == 0 || j == newFast - 1)
-                newShoebox[i][j] = -1;
-            
-            if (i > 1 && i < newSlow - 2 && j > 1 && j < newFast - 2)
+            if (i < bgPadding || i >= newSlow - bgPadding || j < bgPadding || j >= newFast - bgPadding)
             {
-                int x = i - 2;
-                int y = j - 2;
+                newShoebox[i][j] = -1;
+            }
+            
+            if (i > bgPadding && i < newSlow - bgPadding - 1 && j > bgPadding && j < newFast - bgPadding - 1)
+            {
+                int x = i - bgPadding - 1;
+                int y = j - bgPadding - 1;
                 
                 newShoebox[i][j] = smallBox[x][y];
             }
@@ -398,6 +403,7 @@ void Shoebox::complexShoebox(double wavelength, double bandwidth, double radius)
     
     double angle = cartesian_to_angle(hkl.h, hkl.k);
     angle += M_PI / 2;
+    angle = 2 * M_PI - angle;
     
     Box smallBox;
     Box newShoebox;

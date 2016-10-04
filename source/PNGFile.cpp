@@ -14,6 +14,7 @@
 #include <iomanip>
 #include "FileReader.h"
 #include <cmath>
+#include "Shoebox.h"
 
 int PNGFile::writeImage(std::string filename, int width, int height, std::string title)
 {
@@ -316,6 +317,41 @@ void PNGFile::drawCircleAroundPixel(int x, int y, float radius, float transparen
             if (diff < minDiff)
             {
                 setPixelColour(i, j, red, green, blue, transparency);
+            }
+        }
+    }
+}
+
+void PNGFile::drawShoeboxAroundPixel(int x, int y, ShoeboxPtr shoebox)
+{
+    moveCoordRelative(&x, &y);
+    int fastLength, slowLength;
+    int fastCentre, slowCentre;
+    shoebox->sideLengths(&slowLength, &fastLength);
+    shoebox->centre(&fastCentre, &slowCentre);
+   
+    for (int i = 0; i < slowLength; i++) // y
+    {
+        std::vector<double> row = shoebox->row(i);
+        
+        int slowOffset = i - slowCentre;
+        
+        for (int j = 0; j < fastLength; j++) // x
+        {
+            int fastOffset = j - fastCentre;
+            
+            double value = row[j];
+            
+            int xPos = x + fastOffset;
+            int yPos = y + slowOffset;
+            
+            if (value < 0)
+            {
+                setPixelColour(xPos, yPos, 255, 0, 0, 0.5);
+            }
+            else if (value > 0)
+            {
+                setPixelColour(xPos, yPos, 0, 0, 255, 0.5);
             }
         }
     }
