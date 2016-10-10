@@ -421,9 +421,6 @@ void MtzMerger::scaleIndividual(MtzPtr mtz)
     {
         double bFactor, scale;
         mtz->bFactorAndScale(&scale, &bFactor);
-        
-        mtz->applyScaleFactor(scale);
-        mtz->applyBFactor(bFactor);
     }
     
     mtz->applyScaleFactor(scale);

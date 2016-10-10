@@ -411,14 +411,16 @@ bool Miller::isRejected()
 
 double Miller::getBFactorScale()
 {
-    if (bFactorScale != 0)
-        return bFactorScale;
+    if (bFactor == 0)
+    {
+        return 1;
+    }
     
     double resn = getResolution();
     
-    double sinThetaOverLambda = resn / 2;// 1 / (2 / resn);
+    double four_d_squared = 4 * pow(1 / resn, 2); // = 1 / (4d^2) = (sinTheta / lambda) ^ 2
     
-    double factor = exp(- bFactor * pow(sinThetaOverLambda, 2));
+    double factor = exp(-2 * bFactor * 1 / four_d_squared);
     
     bFactorScale = factor;
     
@@ -428,15 +430,11 @@ double Miller::getBFactorScale()
 double Miller::scaleForScaleAndBFactor(double scaleFactor, double bFactor,
                                       double resn, double exponent_exponent)
 {
-    double four_d_squared = 4 * pow(resn, 2);
+    double four_d_squared = 4 * pow(resn, 2); // = 1 / (4d^2) = (sinTheta / lambda) ^ 2
     
-    double right_exp = pow(1 / four_d_squared, exponent_exponent);
+    double right_exp = exp(-2 * bFactor * four_d_squared);
     
-    double four_d_to_exp = pow(2, exponent_exponent) * right_exp;
-    
-    double exponent = pow(bFactor, exponent_exponent) * four_d_to_exp;
-    
-    double scale = scaleFactor * exp(pow(exponent, exponent_exponent));
+    double scale = scaleFactor * right_exp;
     
     return scale;
 }
@@ -446,7 +444,9 @@ double Miller::intensity(bool withCutoff)
     if ((this->accepted() && withCutoff) || !withCutoff)
     {
         double modifier = scale;
-        modifier /= getBFactorScale();
+        double bFacScale = getBFactorScale();
+        
+        modifier /= bFacScale;
         modifier /= correctingPolarisation ? getPolarisationCorrection() : 1;
         
         if (model == PartialityModelScaled)
@@ -583,6 +583,8 @@ double Miller::getWeight(bool cutoff, WeightType weighting)
         
         weight = intensity / sigma;
     }
+    
+    weight *= getBFactorScale();
 
     return weight;
 }

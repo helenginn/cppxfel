@@ -272,13 +272,12 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 					reference, false);
        //     std::cout << mtzManagers[i]->getFilename() << " " << scale << std::endl;
 		}
-		else if (scalingType == ScalingTypeBFactor) // delete
+		else if (scalingType == ScalingTypeBFactor)
 		{
 			double newScale = 1;
 			double bFactor = 0;
 
 			mtzManagers[i]->bFactorAndScale(&newScale, &bFactor);
-			mtzManagers[i]->applyScaleFactor(newScale, bFactor);
 		}
 		else if (scalingType == ScalingTypeResolutionShells)
 		{

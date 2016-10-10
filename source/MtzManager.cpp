@@ -1108,63 +1108,28 @@ void MtzManager::applyScaleFactorsForBins(int binCount)
     }
 }
 
-void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent,
-                                 vector<std::pair<double, double> > *dataPoints)
+void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent)
 {
     clearScaleFactor();
     MtzManager *reference = MtzManager::getReferenceManager();
     
-    double grad = this->gradientAgainstManager(reference);
-    this->applyScaleFactor(grad);
-    
     vector<ReflectionPtr> refReflections, imageReflections;
     this->findCommonReflections(reference, imageReflections, refReflections, NULL);
     
-    vector<double> smoothBins;
-    StatisticsManager::generateResolutionBins(50, 1.8, 24, &smoothBins);
-    
-    if (dataPoints == NULL)
-    {
-        vector<std::pair<double, double> > data = vector<std::pair<double, double> >();
-        dataPoints = &data;
-    }
-    
     vector<boost::tuple<double, double, double> > pointsToFit;
     
-    for (int shell = 0; shell < smoothBins.size() - 3; shell++)
+    for (int i = 0; i < imageReflections.size(); i++)
     {
-        double low = smoothBins[shell];
-        double high = smoothBins[shell + 3];
+        ReflectionPtr imgRef = imageReflections[i];
+        ReflectionPtr refRef = refReflections[i];
         
-        vector<ReflectionPtr> refReflections, imgReflections;
+        if (!imgRef->anyAccepted())
+            continue;
         
-        this->findCommonReflections(referenceManager, imgReflections, refReflections);
-        
-        double weights = 0;
-        double refMean = 0;
-        double imgMean = 0;
-        int count = 0;
-        
-        for (int i = 0; i < imgReflections.size(); i++)
-        {
-            if (!imgReflections[i]->anyAccepted())
-                continue;
-            
-            if (imgReflections[i]->betweenResolutions(low, high))
-            {
-                weights += imgReflections[i]->meanPartiality();
-                
-                refMean += refReflections[i]->meanIntensity()
-                * imgReflections[i]->meanPartiality();
-                
-                imgMean += imgReflections[i]->meanIntensity()
-                * imgReflections[i]->meanPartiality();
-                count++;
-            }
-        }
-        
-        refMean /= weights;
-        imgMean /= weights;
+        double refMean = refRef->meanIntensity();
+        double imgMean = imgRef->meanIntensity();
+        double imgWeight = imgRef->meanPartiality();
+        imgWeight *= log(1 / imgRef->getResolution());
         
         double ratio = refMean / imgMean;
         ratio = 1 / ratio;
@@ -1172,33 +1137,24 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
         if (ratio != ratio)
             continue;
         
-        double resolution = StatisticsManager::midPointBetweenResolutions(
-                                                                          smoothBins[shell], smoothBins[shell + 3]);
-        
-        double res_squared = pow(1 / resolution, 2);
+        double resolution = 1 / imgRef->getResolution();
         
         double four_d_squared = 4 * pow(resolution, 2);
         
-        double right_exp = pow(1 / four_d_squared, exponent);
+        double right_exp = 1 / four_d_squared;
         
-        double four_d_to_exp = pow(2, exponent) * right_exp;
-        
-        double intensityRatio = (refMean / imgMean);
+        double intensityRatio = (imgMean / refMean);
         double logIntensityRatio = log(intensityRatio);
         
         if (logIntensityRatio != logIntensityRatio)
             continue;
         
-        double weight = 1;
-        weight /= res_squared;
+//        double weight = 1;
+//        weight /= res_squared;
         
-        boost::tuple<double, double, double> point = boost::make_tuple(four_d_to_exp,
-                                                              logIntensityRatio, weight);
+        boost::tuple<double, double, double> point = boost::make_tuple(right_exp,
+                                                              logIntensityRatio, imgWeight);
         
-        std::pair<double, double> showPoint = std::make_pair(res_squared,
-                                                        1 / intensityRatio);
-        
-        dataPoints->push_back(showPoint);
         pointsToFit.push_back(point);
     }
     
@@ -1207,18 +1163,21 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
     
     regression_line(pointsToFit, intercept, gradient);
     
-    double k = exp(intercept);
+    double k = 1 / exp(intercept);
     
-    double b = pow(fabs(gradient), 1 / (double) exponent);
-    
-    if (gradient < 0)
-        b = -b;
+    double b = gradient / -2;//pow(fabs(gradient), 1 / (double) exponent);
     
     if (b != b)
         b = 0;
     
+    logged << "Last scale for " << getFilename() << ": " << k << ", bFactor: " << b << std::endl;
+    sendLog(LogLevelDetailed);
+    
     *scale = k;
     *bFactor = b;
+    
+    applyScaleFactor(k);
+    applyBFactor(b);
 }
 
 double MtzManager::gradientAgainstManager(MtzManager *otherManager,
@@ -1272,14 +1231,8 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
 
 void MtzManager::clearScaleFactor()
 {
-    for (int i = 0; i < reflections.size(); i++)
-    {
-        for (int j = 0; j < reflections[i]->millerCount(); j++)
-        {
-            reflections[i]->miller(j)->setScale(1);
-            reflections[i]->miller(j)->setBFactor(0);
-        }
-    }
+    applyScaleFactor(1, 0, 0, true);
+    applyBFactor(0);
 }
 
 void MtzManager::makeScalesPermanent()
