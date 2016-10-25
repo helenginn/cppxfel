@@ -2030,7 +2030,7 @@ void MtzRefiner::refineMetrology()
         }
     }
     
-    logged << "Loaded " << count << " panels into memory! Now refining..." << std::endl;
+    logged << "Loaded " << count << " images into memory! Now refining..." << std::endl;
     sendLog();
     
     Panel::printToFile("new_panels.txt");
