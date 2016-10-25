@@ -1882,7 +1882,7 @@ void MtzRefiner::index()
     
     mtzManagers = indexManager->getMtzs();
     
-    writeNewOrientations();
+    writeNewOrientations(false, true);
     integrationSummary();
 }
 
