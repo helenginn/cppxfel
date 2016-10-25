@@ -932,7 +932,7 @@ bool Image::accepted(int x, int y)
 {
     double value = rawValueAt(x, y);
     
-    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
+    PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
     
     if (!panel)
     {
@@ -1303,6 +1303,8 @@ void Image::processSpotList()
     }
     else
     {
+        bool spotsAreReciprocalCoordinates = FileParser::getKey("SPOTS_ARE_RECIPROCAL_COORDINATES", false);
+        
         try
         {
             spotContents = FileReader::get_file_contents(spotsFile.c_str());
@@ -1347,8 +1349,32 @@ void Image::processSpotList()
             if (components.size() < 2)
                 continue;
             
-            double x = atof(components[0].c_str());
-            double y = atof(components[1].c_str());
+            if (spotsAreReciprocalCoordinates && components.size() < 3)
+                continue;
+            
+            double x = 0; double y = 0;
+            
+            if (spotsAreReciprocalCoordinates)
+            {
+                double k = atof(components[0].c_str()) * 10e-11;
+                double h = atof(components[1].c_str()) * 10e-11;
+                double l = atof(components[2].c_str()) * 10e-11;
+                
+                vec hkl = new_vector(h, k, l);
+                
+                Coord coord = reciprocalCoordinatesToPixels(hkl);
+                
+                x = coord.first;
+                y = coord.second;
+                
+                logged << "Coord:\t" << h << "\t" << k << "\t" << l << "\t" << x << "\t" << y << std::endl;
+                sendLog();
+            }
+            else
+            {
+                x = atof(components[0].c_str());
+                y = atof(components[1].c_str());
+            }
             
             vec beamXY = new_vector(beamX, beamY, 1);
             vec newXY = new_vector(x, y, 1);
