@@ -251,8 +251,8 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
     
     if (MtzManager::getReferenceManager() != NULL)
     {
-  //      double refScale = 1000 / MtzManager::getReferenceManager()->averageIntensity();
-  //      MtzManager::getReferenceManager()->applyScaleFactor(refScale);
+        double refScale = 1000 / MtzManager::getReferenceManager()->averageIntensity();
+        MtzManager::getReferenceManager()->applyScaleFactor(refScale);
     }
     
 	for (int i = 0; i < mtzManagers.size(); i++)
