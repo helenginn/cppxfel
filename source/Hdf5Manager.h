@@ -67,7 +67,8 @@ public:
     int hdf5MallocBytesForDataset(std::string dataAddress, void **buffer);
     bool createDataset(std::string address, int nDimensions, hsize_t *dims, hid_t type);
     bool writeDataset(std::string address, void **buffer, hid_t type);
-    bool dataForAddress(std::string address, void **buffer);
+    bool dataForAddress(std::string address, void **buffer, int offset = -1);
+    void identifiersFromAddress(std::vector<std::string> *list, std::string idAddress);
     
     template <class Value>
     bool writeSingleValueDataset(std::string address, Value value, hid_t type)

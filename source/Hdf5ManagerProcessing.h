@@ -10,16 +10,16 @@
 #define __cppxfel__Hdf5ManagerProcessing__
 
 #include <stdio.h>
-#include "Hdf5ManagerImageAddresses.h"
 #include "FileParser.h"
+#include "Hdf5ManagerCheetah.h"
 
-class Hdf5ManagerProcessing  : public Hdf5ManagerImageAddresses
+class Hdf5ManagerProcessing  : public Hdf5ManagerCheetah
 {
 private:
     static Hdf5ManagerProcessingPtr processingManager;
     
 public:
-    Hdf5ManagerProcessing(std::string filename) : Hdf5ManagerImageAddresses(filename, Hdf5AccessTypeReadWrite)
+    Hdf5ManagerProcessing(std::string filename) : Hdf5ManagerCheetah(filename, Hdf5AccessTypeReadWrite)
     {
         
     }

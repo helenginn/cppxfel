@@ -599,7 +599,7 @@ void MtzManager::getWavelengthFromHDF5()
         unsigned long underscoreIndex = noImg.rfind("_");
         std::string noCryst = noImg.substr(0, underscoreIndex);
         
-        Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(noCryst);
+        Hdf5ManagerCheetahPtr manager = Hdf5ManagerCheetah::hdf5ManagerForImage(noCryst);
         double aWavelength = 0;
         double *wavePtr = &aWavelength;
         

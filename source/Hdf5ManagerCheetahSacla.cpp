@@ -7,58 +7,26 @@
 //
 
 #include "Hdf5ManagerCheetahSacla.h"
-#include "misc.h"
 #include "FileParser.h"
 
-std::vector<Hdf5ManagerCheetahSaclaPtr> Hdf5ManagerCheetahSacla::cheetahManagers;
-
-void Hdf5ManagerCheetahSacla::initialiseSaclaManagers()
+Hdf5ManagerCheetahPtr Hdf5ManagerCheetahSacla::makeManager(std::string filename)
 {
-    if (cheetahManagers.size() > 0)
-        return;
+    Hdf5ManagerCheetahSaclaPtr cheetahPtr = Hdf5ManagerCheetahSaclaPtr(new Hdf5ManagerCheetahSacla(filename));
     
-    std::vector<std::string> hdf5FileGlobs = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
-    std::ostringstream logged;
-    
-    for (int i = 0; i < hdf5FileGlobs.size(); i++)
-    {
-        std::vector<std::string> hdf5Files = glob(hdf5FileGlobs[i]);
-        
-        logged << "HDF5_SOURCE_FILES entry (no. " << i << ") matches: " << std::endl;
-        
-        for (int j = 0; j < hdf5Files.size(); j++)
-        {
-            std::string aFilename = hdf5Files[j];
-            
-            Hdf5ManagerCheetahSaclaPtr cheetahPtr = Hdf5ManagerCheetahSaclaPtr(new Hdf5ManagerCheetahSacla(aFilename));
-            cheetahManagers.push_back(cheetahPtr);
-            
-            logged << hdf5Files[j] << ", ";
-        }
-        
-        logged << std::endl;
-    }
-    
-    logged << "... now managing " << cheetahManagers.size() << " hdf5 image source files." << std::endl;
-    
-    Logger::mainLogger->addStream(&logged);
+    return std::static_pointer_cast<Hdf5ManagerCheetah>(cheetahPtr);
 }
 
-Hdf5ManagerCheetahSaclaPtr Hdf5ManagerCheetahSacla::hdf5ManagerForImage(std::string imageName)
+
+bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
 {
-    for (int i = 0; i < cheetahManagers.size(); i++)
-    {
-        Hdf5ManagerCheetahSaclaPtr cheetahManager = cheetahManagers[i];
-        
-        std::string address = cheetahManager->addressForImage(imageName);
-        
-        if (address.length() > 0)
-        {
-            return cheetahManager;
-        }
-    }
-    
-    return Hdf5ManagerCheetahSaclaPtr();
+    std::string dataAddress = concatenatePaths(address, "data");
+    return Hdf5Manager::dataForAddress(dataAddress, buffer);
+}
+
+double Hdf5ManagerCheetahSacla::wavelengthForImage(std::string address, void **buffer)
+{
+    std::string dataAddress = concatenatePaths(address, "photon_wavelength_A");
+    return Hdf5Manager::dataForAddress(dataAddress, buffer);
 }
 
 int Hdf5ManagerCheetahSacla::hdf5MallocBytesForImage(std::string address, void **buffer)
@@ -72,24 +40,3 @@ size_t Hdf5ManagerCheetahSacla::bytesPerTypeForImageAddress(std::string address)
     std::string dataAddress = concatenatePaths(address, "data");
     return Hdf5Manager::bytesPerTypeForDatasetAddress(dataAddress);
 }
-
-bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
-{
-    std::string dataAddress = concatenatePaths(address, "data");
-    return Hdf5Manager::dataForAddress(dataAddress, buffer);
-}
-
-bool Hdf5ManagerCheetahSacla::wavelengthForImage(std::string address, void **buffer)
-{
-    std::string dataAddress = concatenatePaths(address, "photon_wavelength_A");
-    return Hdf5Manager::dataForAddress(dataAddress, buffer);
-}
-
-void Hdf5ManagerCheetahSacla::closeHdf5Files()
-{
-    for (int i = 0; i < cheetahManagers.size(); i++)
-    {
-        cheetahManagers[i]->closeHdf5();
-    }
-}
-

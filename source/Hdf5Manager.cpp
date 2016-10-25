@@ -309,6 +309,7 @@ int Hdf5Manager::hdf5MallocBytesForDataset(std::string dataAddress, void **buffe
     size_t sizeType = 0;
     
     std::lock_guard<std::mutex> lg(readingHdf5);
+    size_t numPixels = 0;
     
     try
     {
@@ -318,6 +319,22 @@ int Hdf5Manager::hdf5MallocBytesForDataset(std::string dataAddress, void **buffe
         hid_t space = H5Dget_space(dataset);
         sizeType = H5Tget_size(type);
         sizeSet = H5Sget_simple_extent_npoints(space);
+        
+        int numDims = H5Sget_simple_extent_ndims(space);
+        
+        if (numDims < 3)
+        {
+            // This is a single image, like a SACLA image
+            numPixels = sizeSet;
+        }
+        else
+        {
+            // This is probably - hopefully - a pack of images, like at LCLS
+            // int H5Sget_simple_extent_dims(hid_t space_id, hsize_t *dims, hsize_t *maxdims )
+            hsize_t dims[numDims];
+            H5Sget_simple_extent_dims(space, dims, NULL);
+            numPixels = dims[1] * dims[2];
+        }
         
         if (space >= 0)
             H5Sclose(space);
@@ -334,9 +351,9 @@ int Hdf5Manager::hdf5MallocBytesForDataset(std::string dataAddress, void **buffe
         return 0; // failure
     }
     
-    *buffer = malloc(sizeSet * sizeType);
+    *buffer = malloc(numPixels * sizeType);
     
-    return (int)(sizeSet * sizeType);
+    return (int)(numPixels * sizeType);
 }
 
 size_t Hdf5Manager::bytesPerTypeForDatasetAddress(std::string dataAddress)
@@ -375,7 +392,7 @@ size_t Hdf5Manager::bytesPerTypeForDatasetAddress(std::string dataAddress)
     return sizeType;
 }
 
-bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer)
+bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer, int offset)
 {
     std::lock_guard<std::mutex> lg(readingHdf5);
     
@@ -383,7 +400,52 @@ bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer)
     {
         hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
         hid_t type = H5Dget_type(dataset);
-        H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, *buffer);
+        
+        if (offset == -1)
+        {
+            H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, *buffer);
+        }
+        else
+        {
+            hid_t space = H5Dget_space(dataset);
+            hsize_t unsigned_offset[3];
+            hsize_t count[3];
+            int numDims = H5Sget_simple_extent_ndims(space);
+            
+            if (numDims < 3)
+            {
+                logged << "This HDF5 file does no support offsets when reading images!" << std::endl;
+                sendLog();
+            }
+            else
+            {
+                /* make data space thing */
+                hsize_t dims[numDims];
+                H5Sget_simple_extent_dims(space, dims, NULL);
+                
+                count[0] = 1;
+                count[1] = dims[1];
+                count[2] = dims[2];
+                
+                unsigned_offset[0] = offset;
+                unsigned_offset[1] = 0;
+                unsigned_offset[2] = 0;
+                
+                H5Sselect_hyperslab(space, H5S_SELECT_SET, unsigned_offset, NULL, count, NULL);
+                
+                /* make memory space thing */
+                
+                hid_t memspace_id = H5Screate_simple (3, count, NULL);
+                
+                /* read */
+                
+                H5Dread(dataset, type, memspace_id, space, H5P_DEFAULT, *buffer);
+                
+                H5Sclose(space);
+                H5Sclose(memspace_id);
+            }
+        }
+        
         H5Dclose(dataset);
         H5Tclose(type);
         
@@ -446,10 +508,31 @@ void Hdf5Manager::groupsWithPrefix(std::vector<std::string> *list, std::string p
             
         }
     }
-    
-    
 }
-                
+
+void Hdf5Manager::identifiersFromAddress(std::vector<std::string> *list, std::string idAddress)
+{
+    char *buffer;
+    int idSizes = hdf5MallocBytesForDataset(idAddress, (void **)&buffer);
+    dataForAddress(idAddress, (void **)&buffer);
+    // nah you need to make this memspace thingy
+    int lastStart = 0;
+    
+    for (int i = 0; i < idSizes; i++)
+    {
+        if (buffer[i] == '\0')
+        {
+            std::string anId = std::string(&buffer[lastStart]);
+            lastStart = i + 1;
+            
+            if (anId.size() > 0)
+            {
+                list->push_back(anId);
+            }
+        }
+    }
+}
+    
 int Hdf5Manager::getSubTypeForIndex(std::string address, int objIdx, H5G_obj_t *type)
 {
     std::lock_guard<std::mutex> lg(readingHdf5);
@@ -602,7 +685,7 @@ bool Hdf5Manager::groupExists(std::string address)
 
 std::string Hdf5Manager::lastComponent(std::string path)
 {
-    std::vector<std::string> components = FileReader::split(path, "/");
+    std::vector<std::string> components = FileReader::split(path, '/');
     
     if (components.size() == 0)
     {

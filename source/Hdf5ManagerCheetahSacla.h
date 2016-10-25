@@ -10,43 +10,28 @@
 #define __cppxfel__Hdf5ManagerCheetahSacla__
 
 #include <stdio.h>
-#include "Hdf5ManagerImageAddresses.h"
+#include "Hdf5ManagerCheetah.h"
 #include <iostream>
 #include <mutex>
 
-class Hdf5ManagerCheetahSacla : public Hdf5ManagerImageAddresses
+class Hdf5ManagerCheetahSacla : public Hdf5ManagerCheetah
 {
-private:
-    static std::vector<Hdf5ManagerCheetahSaclaPtr> cheetahManagers;
-    
+private:    
 public:
-    static void initialiseSaclaManagers();
+    static Hdf5ManagerCheetahPtr makeManager(std::string filename);
     
-    static Hdf5ManagerCheetahSaclaPtr hdf5ManagerForImage(std::string imageName);
+    virtual bool dataForImage(std::string address, void **buffer);
+    virtual ~Hdf5ManagerCheetahSacla() {};
+    virtual double wavelengthForImage(std::string address, void **buffer);
+    virtual int hdf5MallocBytesForImage(std::string address, void **buffer);
     
-    bool dataForImage(std::string address, void **buffer);
     size_t bytesPerTypeForImageAddress(std::string address);
     
-    static void closeHdf5Files();
-    virtual ~Hdf5ManagerCheetahSacla() {};
-    bool wavelengthForImage(std::string address, void **buffer);
-    
-    Hdf5ManagerCheetahSacla(std::string newName) : Hdf5ManagerImageAddresses(newName)
+    Hdf5ManagerCheetahSacla(std::string newName) : Hdf5ManagerCheetah(newName)
     {
-
+        groupsWithPrefix(&imagePaths, "tag");
     }
     
-    static int cheetahManagerCount()
-    {
-        return (int)cheetahManagers.size();
-    }
-    
-    static Hdf5ManagerCheetahSaclaPtr cheetahManager(int i)
-    {
-        return cheetahManagers[i];
-    }
-    
-    int hdf5MallocBytesForImage(std::string address, void **buffer);
 };
 
 #endif /* defined(__cppxfel__Hdf5ManagerCheetahSacla__) */

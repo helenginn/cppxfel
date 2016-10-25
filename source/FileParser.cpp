@@ -242,6 +242,9 @@ void FileParser::generateFunctionList()
     parserMap["FREE_MILLER_LIST"] = simpleString;
     parserMap["FREE_MILLER_PROPORTION"] = simpleFloat;
     parserMap["USE_HDF5_WAVELENGTH"] = simpleBool;
+    parserMap["FREE_ELECTRON_LASER"] = simpleInt;
+    parserMap["CHEETAH_DATA_ADDRESSES"] = simpleString;
+    parserMap["CHEETAH_ID_ADDRESSES"] = simpleString;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;

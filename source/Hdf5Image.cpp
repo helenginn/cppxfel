@@ -36,7 +36,7 @@ std::string Hdf5Image::findAddress()
     
     if (!address.length())
     {
-        Hdf5ManagerCheetahSaclaPtr manager = getManager();
+        Hdf5ManagerCheetahPtr manager = getManager();
         
         if (!manager)
         {
@@ -99,7 +99,7 @@ void Hdf5Image::loadCrystals()
 
 void Hdf5Image::loadImage()
 {
-    Hdf5ManagerCheetahSaclaPtr manager = getManager();
+    Hdf5ManagerCheetahPtr manager = getManager();
     
     if (!manager)
         return;
@@ -151,6 +151,9 @@ void Hdf5Image::loadImage()
     
     free(buffer);
     
+    logged << "Loaded data for " << getFilename() << std::endl;
+    sendLog();
+    
     bool dumpImages = FileParser::getKey("DUMP_IMAGES", false);
     
     if (dumpImages)
@@ -159,11 +162,11 @@ void Hdf5Image::loadImage()
     }
 }
 
-Hdf5ManagerCheetahSaclaPtr Hdf5Image::getManager()
+Hdf5ManagerCheetahPtr Hdf5Image::getManager()
 {
     if (!chManager)
     {
-        chManager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(getFilename());
+        chManager = Hdf5ManagerCheetah::hdf5ManagerForImage(getFilename());
     }
 
     return chManager;
@@ -327,7 +330,7 @@ void Hdf5Image::getWavelengthFromHdf5()
     double wavelength = 0;
     double *wavePtr = &wavelength;
 
-    Hdf5ManagerCheetahSaclaPtr manager = this->getManager();
+    Hdf5ManagerCheetahPtr manager = this->getManager();
     
     if (!manager)
     {

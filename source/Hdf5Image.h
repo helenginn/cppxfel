@@ -21,7 +21,7 @@ private:
     virtual void loadImage();
     std::string imageAddress;
     std::string findAddress();
-    Hdf5ManagerCheetahSaclaPtr chManager;
+    Hdf5ManagerCheetahPtr chManager;
     Hdf5Table spotTable;
     void createSpotTable();
     void getWavelengthFromHdf5();
@@ -38,7 +38,7 @@ public:
         getWavelengthFromHdf5();
     };
     
-    Hdf5ManagerCheetahSaclaPtr getManager();
+    Hdf5ManagerCheetahPtr getManager();
     
     void writeSpotsList(std::string spotFile);
     void processSpotList();

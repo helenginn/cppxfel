@@ -600,7 +600,7 @@ void MtzRefiner::applyParametersToImages()
 
 void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset)
 {
-    Hdf5ManagerCheetahSacla::initialiseSaclaManagers();
+    Hdf5ManagerCheetah::initialiseCheetahManagers();
     
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
@@ -690,7 +690,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         
         if (readFromHdf5 && newImages != NULL)
         {
-            Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::hdf5ManagerForImage(imgName);
+            Hdf5ManagerCheetahPtr manager = Hdf5ManagerCheetah::hdf5ManagerForImage(imgName);
             
             if (!manager)
             {
@@ -1005,7 +1005,7 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
 
 void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
 {
-    Hdf5ManagerCheetahSacla::initialiseSaclaManagers();
+    Hdf5ManagerCheetahSacla::initialiseCheetahManagers();
     
     if (targetImages == NULL && images.size() > 0)
         return;
@@ -1200,7 +1200,7 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
         return;
     
     // get input files ready (assuming SACLA for now)
-    Hdf5ManagerCheetahSacla::initialiseSaclaManagers();
+    Hdf5ManagerCheetahSacla::initialiseCheetahManagers();
     
     // processing pointer active
     hdf5ProcessingPtr = Hdf5ManagerProcessingPtr(new Hdf5ManagerProcessing(hdf5OutputFile));
@@ -1220,7 +1220,7 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     
     for (int i = 0; i < inputHdf5Count; i++)
     {
-        Hdf5ManagerCheetahSaclaPtr manager = Hdf5ManagerCheetahSacla::cheetahManager(i);
+        Hdf5ManagerCheetahPtr manager = Hdf5ManagerCheetah::cheetahManager(i);
         
         for (int j = 0; j < manager->imageAddressCount(); j++)
         {
