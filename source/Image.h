@@ -211,7 +211,8 @@ public:
     void filterSpotVectors();
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     void updateAllSpots();
-    
+    void clusterCountWithSpotNumber(int spotNum);
+
     void addSpotIfNotMasked(SpotPtr newSpot);
     
     void removeRefiner(int j)

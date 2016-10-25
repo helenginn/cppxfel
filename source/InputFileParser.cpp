@@ -300,6 +300,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->writePNGs();
             }
             
+            if (line == "HIT_ANALYSIS")
+            {
+                understood = true;
+                refiner->hitAnalysis();
+            }
+            
             if (!understood)
             {
                 log << "Skipping line " << line << std::endl;

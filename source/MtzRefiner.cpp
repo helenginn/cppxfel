@@ -2098,6 +2098,14 @@ void MtzRefiner::refineDistances()
     }
 }
 
+void MtzRefiner::hitAnalysis()
+{
+    for (int i = 0; i < images.size(); i++)
+    {
+        images[i]->clusterCountWithSpotNumber(4);
+    }
+}
+
 void MtzRefiner::orientationPlot()
 {
     GraphDrawer drawer = GraphDrawer(&*reference);

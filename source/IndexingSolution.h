@@ -102,6 +102,11 @@ public:
         return lattice->symOperatorCount();
     }
     
+    static double latticeMinDistance()
+    {
+        return lattice->getMinDistance();
+    }
+    
     static MatrixPtr symOperator(int i)
     {
         return lattice->symOperator(i);

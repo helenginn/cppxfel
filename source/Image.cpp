@@ -2395,6 +2395,96 @@ double Image::standardDeviationOfPixels()
     return standard_deviation(&values);
 }
 
+void Image::clusterCountWithSpotNumber(int spotNum)
+{
+    double minDistance = IndexingSolution::getMinDistance();
+    
+    if (!loadedSpots)
+    {
+        processSpotList();
+    }
+    
+    if (spots.size() < 3)
+    {
+        return;
+    }
+    
+    std::vector<int> results = std::vector<int>(spotNum + 1, 0);
+    std::vector<SpotPtr> allSpotsIncluded;
+    
+    logged << getFilename() << "\t";
+    
+    for (int i = 0; i < spots.size() - 2; i++)
+    {
+        SpotPtr spot1 = spots[i];
+        for (int j = i + 1; j < spots.size() - 1; j++)
+        {
+            SpotPtr spot2 = spots[j];
+            
+            SpotVectorPtr vector = SpotVectorPtr(new SpotVector(spot1, spot2));
+            std::vector<SpotPtr> includedSpots;
+            
+            if (vector->distance() < minDistance)
+            {
+                includedSpots.push_back(spot1);
+                includedSpots.push_back(spot2);
+                allSpotsIncluded.push_back(spot1);
+                allSpotsIncluded.push_back(spot2);
+                
+                for (int k = j + 1; k < spots.size(); k++)
+                {
+                    SpotPtr spot3 = spots[k];
+                    bool ok = true;
+                    
+                    std::vector<SpotPtr>::iterator possibleSpot = std::find(allSpotsIncluded.begin(), allSpotsIncluded.end(), spot3);
+                    
+                    if (possibleSpot != allSpotsIncluded.end())
+                    {
+                        continue;
+                    }
+                    
+                    for (int l = 0; l < includedSpots.size(); l++)
+                    {
+                        SpotVectorPtr checkVec = SpotVectorPtr(new SpotVector(includedSpots[l], spot3));
+                        
+                        if (checkVec->distance() > minDistance)
+                        {
+                            ok = false;
+                        }
+                    }
+                    
+                    if (ok)
+                    {
+                        includedSpots.push_back(spot3);
+                        allSpotsIncluded.push_back(spot3);
+                    }
+                    
+                    if (includedSpots.size() == spotNum)
+                    {
+                        break;
+                    }
+                }
+                
+                size_t clusterSize = includedSpots.size();
+                
+                results[clusterSize]++;
+                includedSpots.clear();
+            }
+        }
+    }
+
+    logged << spots.size() << "\t";
+    
+    for (int i = 2; i < spotNum + 1; i++)
+    {
+        logged << results[i] << "\t";
+    }
+    
+    logged << std::endl;
+    
+    sendLog();
+}
+
 void Image::drawSpotsOnPNG()
 {
     if (!loadedSpots)
