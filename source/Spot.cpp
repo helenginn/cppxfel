@@ -395,7 +395,9 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
     
     for (int i = 0; i < spots.size(); i++)
     {
-        csv.addEntry(1000, 0., 0., 0., spots[i]->angleInPlaneOfDetector(), 1., 1., spots[i]->getRawXY().first, spots[i]->getRawXY().second, 1.);
+        vec estimated = spots[i]->estimatedVector();
+        
+        csv.addEntry(1000, estimated.h, estimated.k, estimated.l, spots[i]->angleInPlaneOfDetector(), 1., 1., spots[i]->getRawXY().first, spots[i]->getRawXY().second, 1.);
     
     //    dat << "0\t0\t0\t" << spots[i]->angleInPlaneOfDetector() << "\t1\t1\t"
     //    << spots[i]->x << "\t" << spots[i]->y
