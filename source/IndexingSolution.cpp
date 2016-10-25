@@ -309,7 +309,7 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
     vec simulatedVec2 = secondStandard->getVector();
     
     // Rotate reciprocal space so that the first observed vector lines up with the simulated vector.
-    MatrixPtr rotateSpotDiffMatrix = rotation_between_vectors(observedVec1, simulatedVec1);
+    MatrixPtr rotateSpotDiffMatrix = rotation_between_vectors(simulatedVec1, observedVec1);
     
     // The first simulated vector shall become the new axis to twirl around
     vec firstAxisUnit = copy_vector(simulatedVec1); // checked
@@ -318,30 +318,30 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
     scale_vector_to_distance(&firstAxisUnit, 1);
     
     // Make a copy of the second observed vector
-    vec rotatedObservedVec2 = copy_vector(observedVec2); // checked
+    vec rotatedSimulatedVec2 = copy_vector(simulatedVec2); // checked
     
     // Rotate this vector by first matrix so that we have treated the two observed vectors equally
-    rotateSpotDiffMatrix->multiplyVector(&rotatedObservedVec2); // checked
-    
+    rotateSpotDiffMatrix->multiplyVector(&rotatedSimulatedVec2); // checked
+
     double resultantAngle = 0;
     
     // Now we twirl around the firstAxisUnit until the rotated observed vector matches the second simulated vector
     // as closely as possible.
-    MatrixPtr secondTwizzleMatrix = closest_rotmat_analytical(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
+    MatrixPtr secondTwizzleMatrix = closest_rotmat_analytical(rotatedSimulatedVec2, observedVec2, observedVec1, &resultantAngle);
     
     // We want to apply the first matrix and then the second matrix, so we multiply these.
     MatrixPtr combinedMatrix = rotateSpotDiffMatrix->copy();
     combinedMatrix->multiply(*secondTwizzleMatrix);
     
     // But we actually need the inverse rotation to go from "true" coordinates to "crystal" coordinates.
-    MatrixPtr rotateFinalMatrix = combinedMatrix->inverse3DMatrix();
+  //  MatrixPtr rotateFinalMatrix = combinedMatrix->inverse3DMatrix();
     
     // Rotate because of funny business from cctbx.xfel (rotated matrix is 90º from DIALS).
-    rotateFinalMatrix->rotate(0, 0, -M_PI/2);
+    combinedMatrix->rotate(0, 0, -M_PI/2);
     
     // Create the goods.
     MatrixPtr fullMat = MatrixPtr(new Matrix());
-    fullMat->setComplexMatrix(lattice->getUnitCellOnly()->copy(), rotateFinalMatrix);
+    fullMat->setComplexMatrix(lattice->getUnitCellOnly()->copy(), combinedMatrix);
     
     // Send back the goods.
     return fullMat;
