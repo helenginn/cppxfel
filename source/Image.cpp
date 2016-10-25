@@ -1841,8 +1841,12 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
         if (newlyAdded > 0)
         {
             trials++;
-            logged << "Starting new branch with " << added + newlyAdded << " additions (trial " << trials << ")." << std::endl;
-            sendLog(LogLevelDetailed);
+            
+            if (Logger::getPriorityLevel() >= LogLevelDetailed)
+            {
+                logged << "Starting new branch with " << added + newlyAdded << " additions (trial " << trials << ")." << std::endl;
+                sendLog(LogLevelDetailed);
+            }
             IndexingSolutionStatus success = extendIndexingSolution(copyPtr, newVectors, failures, added + newlyAdded);
             
             if (success == IndexingSolutionBranchFailure)
@@ -1863,8 +1867,11 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
                 if (trials >= trialLimit)
                 {
                     (*failures)++;
-                    logged << "Given up this branch, too many failures." << std::endl;
-                    sendLog(LogLevelDetailed);
+                    if (Logger::getPriorityLevel() >= LogLevelDetailed)
+                    {
+                        logged << "Given up this branch, too many failures." << std::endl;
+                        sendLog(LogLevelDetailed);
+                    }
                     
                     return success;
                 }
@@ -1888,8 +1895,11 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
     
     if (added < minimumSolutionNetworkCount)
     {
-        logged << "Didn't go anywhere..." << std::endl;
-        sendLog(LogLevelDetailed);
+        if (Logger::getPriorityLevel() >= LogLevelDetailed)
+        {
+            logged << "Didn't go anywhere..." << std::endl;
+            sendLog(LogLevelDetailed);
+        }
     }
     
     existingVectors.clear();
