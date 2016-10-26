@@ -2531,20 +2531,23 @@ void Image::drawMillersOnPNG(int crystalNum)
         for (int j = 0; j < myMtz->reflection(i)->millerCount(); j++)
         {
             MillerPtr myMiller = myMtz->reflection(i)->miller(j);
+            PanelPtr panel = Panel::panelForMiller(&*myMiller);
             
-            Coord predicted = myMiller->getLastXY();
-            Coord shift = myMiller->getShift();
+            if (!panel)
+                continue;
+            
+            double correctedX = myMiller->getCorrectedX();
+            double correctedY = myMiller->getCorrectedY();
+
+            Coord corrected = std::pair<double, double>(correctedX, correctedY);
+            Coord shifted = panel->shiftSpot(corrected);
             
             bool strong = IOMRefiner::millerReachesThreshold(myMiller);
-            
-            predicted.first += shift.first;
-            predicted.second += shift.second;
-            
-            file->drawCircleAroundPixel(predicted.first, predicted.second, 14, (strong ? 1 : 0.2), 0, 0, 0, (strong ? 4 : 1));
+            file->drawCircleAroundPixel(shifted.first, shifted.second, 14, (strong ? 1 : 0.2), 0, 0, 0, (strong ? 4 : 1));
             
             if (addShoebox)
             {
-                file->drawShoeboxAroundPixel(predicted.first, predicted.second, myMiller->getShoebox());
+                file->drawShoeboxAroundPixel(shifted.first, shifted.second, myMiller->getShoebox());
             }
         }
     }

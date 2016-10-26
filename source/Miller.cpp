@@ -1109,6 +1109,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             *y = intLastY;
         }
     }
+    
+    correctedX = *x;
+    correctedY = *y;
 }
 
 void Miller::makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize)

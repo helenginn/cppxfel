@@ -62,6 +62,8 @@ private:
 	float scale; // should be extracted from Mtz. Maybe?
 	float lastX;
 	float lastY;
+    float correctedX;
+    float correctedY;
     
     float bFactorScale; // should be extracted from Mtz.
     
@@ -286,6 +288,16 @@ public:
 		return lastY;
 	}
     
+    double getCorrectedX() const
+    {
+        return correctedX;
+    }
+
+    double getCorrectedY() const
+    {
+        return correctedY;
+    }
+
     std::pair<double, double> position()
     {
         return std::make_pair(lastX, lastY);
