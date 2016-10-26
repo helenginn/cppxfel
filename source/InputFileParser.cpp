@@ -166,7 +166,7 @@ void InputFileParser::parse(bool fromPython)
                 refiner->refine();
 			}
             
-            if (line == "REFINE_METROLOGY")
+            if (line == "REFINE_METROLOGY" || line == "REFINE_GEOMTERY")
             {
                 understood = true;
                 refiner->refineMetrology();

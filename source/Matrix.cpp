@@ -249,7 +249,7 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
             newMat->components[2] = orthogonal ? orthogonal_rotation[6] : rotation[6];
             newMat->components[6] = orthogonal ? orthogonal_rotation[7] : rotation[7];
             newMat->components[10] = orthogonal ? orthogonal_rotation[8] : rotation[8];
-            
+            /*
             for (int i = 0; i < 9; i+= 3)
             {
                 for (int j = 0; j < 3; j++)
@@ -261,7 +261,7 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
             }
             
             logged << std::endl;
-            
+            */
             MatrixPtr transposeMat = newMat->copy();
             matrices->push_back(transposeMat->transpose());
             MatrixPtr transNegMat = transposeMat->getNegativeCopy();
