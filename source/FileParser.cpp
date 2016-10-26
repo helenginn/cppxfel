@@ -502,8 +502,6 @@ FileParser::FileParser(void)
 
 FileParser::FileParser(std::string name, std::vector<std::string> someExtras)
 {
-	std::cout << "Initialising parser" << std::endl;
-    
 	this->filename = name;
 	generateFunctionList();
     
