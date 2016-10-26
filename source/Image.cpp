@@ -1288,6 +1288,13 @@ void Image::processSpotList()
 {
     std::string spotContents;
     
+    if (!spotsFile.length())
+    {
+        spotsFile = "_" + getBasename() + "_strong.list";
+        logged << "Guessing name of spots file as " << spotsFile << std::endl;
+        sendLog();
+    }
+    
     if (spotsFile == "find")
     {
         logged << "Finding spots using cppxfel" << std::endl;
