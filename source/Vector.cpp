@@ -118,7 +118,7 @@ MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
 }
 
 MatrixPtr closest_rotmat_analytical(vec vec1, vec vec2,
-                                    vec axis, double *resultantAngle)
+                                    vec axis, double *resultantAngle, bool addPi)
 {
     scale_vector_to_distance(&vec1, 1);
     scale_vector_to_distance(&vec2, 1);
@@ -145,8 +145,34 @@ MatrixPtr closest_rotmat_analytical(vec vec1, vec vec2,
     double tanTheta = - B / A;
     double theta = atan(tanTheta);
     
-    double bestAngle = theta + M_PI; // work out why this is always correct...?
-    *resultantAngle = bestAngle;
+   // work out why this is always correct...? NOPE IT ISN'T YOU IDIOT
+    // ARRRRRGH
+    
+//    *resultantAngle = bestAngle;
+    double cc = cos(theta);
+    double C = 1 - cc;
+    double s = sin(theta);
+    double occ = -cc;
+    double oC = 1 - occ;
+    double os = -s;
+    
+    double pPrime = (x*x*C+cc)*p + (x*y*C-z*s)*q + (x*z*C+y*s)*r;
+    double qPrime = (y*x*C+z*s)*p + (y*y*C+cc)*q + (y*z*C-x*s)*r;
+    double rPrime = (z*x*C-y*s)*p + (z*y*C+x*s)*q + (z*z*C+cc)*r;
+    
+    double pDoublePrime = (x*x*oC+occ)*p + (x*y*oC-z*os)*q + (x*z*oC+y*os)*r;
+    double qDoublePrime = (y*x*oC+z*os)*p + (y*y*oC+occ)*q + (y*z*oC-x*os)*r;
+    double rDoublePrime = (z*x*oC-y*os)*p + (z*y*oC+x*os)*q + (z*z*oC+occ)*r;
+    
+    double cosAlpha = pPrime * a + qPrime * b + rPrime * c;
+    double cosAlphaOther = pDoublePrime * a + qDoublePrime * b + rDoublePrime * c;
+    
+    std::ostringstream logged;
+ /*   logged << "Cos alpha = " << cosAlpha << ", cosAlphaOther = " << cosAlphaOther << std::endl;
+    Logger::log(logged);*/
+    
+    addPi = (cosAlphaOther > cosAlpha);
+    double bestAngle = theta + addPi * M_PI;
     
     MatrixPtr mat = MatrixPtr(new Matrix());
     mat->rotateRoundUnitVector(axis, bestAngle);
