@@ -600,8 +600,6 @@ void MtzRefiner::applyParametersToImages()
 
 void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset)
 {
-    Hdf5ManagerCheetah::initialiseCheetahManagers();
-    
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
@@ -674,7 +672,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         imgName.erase(std::remove(imgName.begin(), imgName.end(), '\r'), imgName.end());
         imgName.erase(std::remove(imgName.begin(), imgName.end(), '\n'), imgName.end());
         
-        if (newImages)
+        if (newImages && !readFromHdf5)
             imgName += ".img";
         else if (newMtzs)
             imgName += ".mtz";
@@ -1005,42 +1003,36 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
 
 void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
 {
-    Hdf5ManagerCheetahSacla::initialiseCheetahManagers();
-    
     if (targetImages == NULL && images.size() > 0)
         return;
     
     std::string hdf5OutputFile = FileParser::getKey("HDF5_OUTPUT_FILE", std::string(""));
+    std::vector<std::string> hdf5ProcessingFiles = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
     
-    bool hdf5 = hdf5OutputFile.length();
-    
+    bool hdf5 = hdf5OutputFile.length() || hdf5ProcessingFiles.size();
+    Hdf5ManagerCheetah::initialiseCheetahManagers();
+
     std::string aFilename = "";
+    aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
     
     if (!hdf5)
     {
-        if (filename == NULL)
+        if (aFilename.length() == 0)
         {
-            aFilename = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
-            filename = &aFilename;
-            
-            if (filename->length() == 0)
-            {
-                logged << "No orientation matrix list provided. Exiting now." << std::endl;
-                sendLog(LogLevelNormal, true);
-            }
+            logged << "No orientation matrix list provided. Exiting now." << std::endl;
+            sendLog(LogLevelNormal, true);
         }
     }
     
+    if (aFilename.length())
+    {
+        readDataFromOrientationMatrixList(&aFilename, areImages, targetImages);
+    }
     
     if (hdf5)
     {
         readFromHdf5(&images);
     }
-    else
-    {
-        readDataFromOrientationMatrixList(filename, areImages, targetImages);
-    }
-    
 }
 
 void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset)
@@ -1194,16 +1186,21 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     if (givenUnitCell.size() > 0 && tolerance > 0.0)
         checkingUnitCell = true;
     
+    std::string orientationList = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
+    bool hasList = (orientationList.length() > 0);
+    
     std::string hdf5OutputFile = FileParser::getKey("HDF5_OUTPUT_FILE", std::string(""));
     
-    if (hdf5OutputFile.length() == 0)
+/*    if (hdf5OutputFile.length() == 0)
         return;
-    
-    // get input files ready (assuming SACLA for now)
-    Hdf5ManagerCheetahSacla::initialiseCheetahManagers();
+  */
     
     // processing pointer active
-    hdf5ProcessingPtr = Hdf5ManagerProcessingPtr(new Hdf5ManagerProcessing(hdf5OutputFile));
+    
+    if (hdf5OutputFile.length())
+    {
+        hdf5ProcessingPtr = Hdf5ManagerProcessingPtr(new Hdf5ManagerProcessing(hdf5OutputFile));
+    }
     
     int startImage = FileParser::getKey("IMAGE_SKIP", 0);
     int endImage = startImage + FileParser::getKey("IMAGE_LIMIT", 0);
@@ -1213,10 +1210,14 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     if (!loadAll)
     {
         logged << "Starting from image " << startImage << " and ending on image " << endImage << std::endl;
-        sendLog();
     }
+    else
+    {
+        logged << "Loading all images from HDF5 source files." << std::endl;
+    }
+    sendLog();
     
-    int inputHdf5Count = Hdf5ManagerCheetahSacla::cheetahManagerCount();
+    int inputHdf5Count = Hdf5ManagerCheetah::cheetahManagerCount();
     
     for (int i = 0; i < inputHdf5Count; i++)
     {
@@ -1237,22 +1238,26 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
             
             std::string imgName = manager->lastComponent(imageAddress) + ".img";
             
-            logged << "Loading image " << newImages->size() << " (" << imgName << ")"
-            << std::endl;
-            
-            Hdf5ImagePtr hdf5Image = Hdf5ImagePtr(new Hdf5Image(imgName, wavelength,
-                                                                detectorDistance));
-            ImagePtr newImage = boost::static_pointer_cast<Image>(hdf5Image);
-            hdf5Image->loadCrystals();
-            
-            if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
+            if (!hasList)
             {
-                newImages->push_back(newImage);
+                logged << "Loading image " << newImages->size() << " (" << imgName << ")"
+                << std::endl;
+                Hdf5ImagePtr hdf5Image = Hdf5ImagePtr(new Hdf5Image(imgName, wavelength,
+                                                                    detectorDistance));
+                ImagePtr newImage = boost::static_pointer_cast<Image>(hdf5Image);
+                hdf5Image->loadCrystals();
                 
+                if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
+                {
+                    newImages->push_back(newImage);
+                    
+                }
+                else if (!checkingUnitCell)
+                {
+                    newImages->push_back(newImage);
+                }
             }
-            else if (!checkingUnitCell)
-                newImages->push_back(newImage);
-            
+
             count++;
         }
     }
@@ -1268,7 +1273,6 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     }
     
     logged << "N: Images loaded from HDF5: " << newImages->size() << std::endl;;
-    logged << "N: Crystals loaded from images: " << mtzManagers.size() << std::endl;;
     
     if (mtzManagers.size() == 0)
     {
