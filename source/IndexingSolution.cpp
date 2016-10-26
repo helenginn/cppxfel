@@ -169,11 +169,16 @@ bool IndexingSolution::vectorPairLooksLikePair(SpotVectorPtr firstObserved, Spot
     return (difference < approximateCosineDelta);
 }
 
-bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr *firstMatch, SpotVectorPtr *secondMatch)
+typedef std::map<double, std::pair<SpotVectorPtr, SpotVectorPtr> > MatchPair;
+
+bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, std::vector<SpotVectorPtr> *firstMatches, std::vector<SpotVectorPtr> *secondMatches)
 {
-    for (int i = 0; i < standardVectorCount(); i++)
+    MatchPair matchPairs;
+    double realAngle = firstVector->angleWithVector(secondVector);
+    
+    for (int i = 0; i < uniqueSymVectorCount(); i++) // FIXME: standardVectorCount
     {
-        double firstVectorTrust = firstVector->trustComparedToStandardVector(standardVector(i));
+        double firstVectorTrust = firstVector->trustComparedToStandardVector(uniqueSymVector(i));
         double firstTolerance = firstVector->getMinDistanceTolerance();
         
         if (firstVectorTrust > firstTolerance)
@@ -185,16 +190,18 @@ bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVector
                 
                 if (secondVectorTrust > secondTolerance)
                 {
-                    double realAngle = firstVector->angleWithVector(secondVector);
-                    double expectedAngle = standardVector(i)->angleWithVector(standardVector(j));
+                    double expectedAngle = uniqueSymVector(i)->angleWithVector(standardVector(j));
                     
                     double difference = fabs(realAngle - expectedAngle);
                     
                     if (difference < angleTolerance)
                     {
-                        *firstMatch = standardVector(i);
-                        *secondMatch = standardVector(j);
+                        std::pair<SpotVectorPtr, SpotVectorPtr> aPair = std::make_pair(uniqueSymVector(i), standardVector(j));
+                        double score = 1 / firstVectorTrust + 1 / secondVectorTrust;
                         
+                        matchPairs[score] = aPair;
+                        firstMatches->push_back(uniqueSymVector(i));
+                        secondMatches->push_back(standardVector(j));
                         return true;
                     }
                 }
@@ -202,7 +209,13 @@ bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVector
         }
     }
     
-    return false;
+    for (MatchPair::iterator it = matchPairs.begin(); it != matchPairs.end(); it++)
+    {
+        firstMatches->push_back(it->second.first);
+        secondMatches->push_back(it->second.second);
+    }
+    
+    return true;
 }
 
 bool match_greater_than_match(std::pair<MatrixPtr, double> a, std::pair<MatrixPtr, double> b)
@@ -677,80 +690,27 @@ std::vector<IndexingSolutionPtr> IndexingSolution::startingSolutionsForVectors(S
     
     std::vector<IndexingSolutionPtr> solutions;
     
-    SpotVectorPtr firstMatch = SpotVectorPtr();
-    SpotVectorPtr secondMatch = SpotVectorPtr();
+    std::vector<SpotVectorPtr> firstMatches, secondMatches;
     
-    vectorMatchesVector(firstVector, secondVector, &firstMatch, &secondMatch);
+    vectorMatchesVector(firstVector, secondVector, &firstMatches, &secondMatches);
+    std::ostringstream logged;
     
-    if (!(firstMatch && secondMatch))
+    if (!firstMatches.size())
+    {
         return solutions;
+    }
+    else
+    {
+//        logged << "Seed matches " << firstMatches.size() << " combinations." << std::endl;
+    }
     
-    IndexingSolutionPtr newSolution = IndexingSolutionPtr(new IndexingSolution(firstVector, secondVector, firstMatch, secondMatch));
-    solutions.push_back(newSolution);
+    for (int i = 0; i < firstMatches.size(); i++)
+    {
+        IndexingSolutionPtr newSolution = IndexingSolutionPtr(new IndexingSolution(firstVector, secondVector, firstMatches[i], secondMatches[i]));
+        solutions.push_back(newSolution);
+    }
     
     return solutions;
-}
-
-IndexingSolutionPtr IndexingSolution::startingSolutionsForThreeSpots(std::vector<SpotPtr> *spots, std::vector<SpotVectorPtr> *spotVectors)
-{
-    if (notSetup)
-    {
-        setupStandardVectors();
-    }
-    
-    for (int i = 0; i < spots->size() - 2; i++)
-    {
-        for (int j = i + 1; j < spots->size() - 1; j++)
-        {
-            for (int k = j + 1; k < spots->size(); k++)
-            {
-                SpotVectorPtr vector1 = SpotVector::vectorBetweenSpotsFromArray(*spotVectors, spots->at(i), spots->at(j));
-                
-                if (!vector1)
-                    continue;
-                
-                SpotVectorPtr vector2 = SpotVector::vectorBetweenSpotsFromArray(*spotVectors, spots->at(j), spots->at(k));
-                
-                if (!vector2)
-                    continue;
-                
-                SpotVectorPtr vector3 = SpotVector::vectorBetweenSpotsFromArray(*spotVectors, spots->at(k), spots->at(i));
-                
-            //    if (!vector3)
-            //        continue;
-                
-                SpotVectorPtr match12_1 = SpotVectorPtr();
-                SpotVectorPtr match12_2 = SpotVectorPtr();
-                SpotVectorPtr match23_1 = SpotVectorPtr();
-                SpotVectorPtr match23_2 = SpotVectorPtr();
-                SpotVectorPtr match31_1 = SpotVectorPtr();
-                SpotVectorPtr match31_2 = SpotVectorPtr();
-                
-                if ((vectorMatchesVector(vector1, vector2, &match12_1, &match12_2))/* &&
-                    (vectorMatchesVector(vector2, vector3, &match23_1, &match23_2)) &&
-                    (vectorMatchesVector(vector1, vector2, &match31_1, &match31_2))*/)
-                {
-                    // there is still some way in which this will still not match
-                    
-                    IndexingSolutionPtr newSolution = IndexingSolutionPtr(new IndexingSolution(vector1, vector2, match12_1, match12_2));
-                    
-                   // if (newSolution->vectorSolutionsAreCompatible(vector3, match23_2))
-                   // {
-                        spots->erase(spots->begin() + i);
-                        i--;
-                        spots->erase(spots->begin() + j);
-                        j--;
-                  //      spots->erase(spots->begin() + k);
-                  //      k--;
-                        
-                        return newSolution;
-                   // }
-                }
-            }
-        }
-    }
-    
-    return IndexingSolutionPtr();
 }
 
 IndexingSolution::~IndexingSolution()

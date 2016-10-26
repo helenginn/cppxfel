@@ -2081,9 +2081,9 @@ void Image::findIndexingSolutions()
                 
                 std::vector<IndexingSolutionPtr> moreSolutions = IndexingSolution::startingSolutionsForVectors(spotVector1, spotVector2);
                 
-                if (moreSolutions.size() > 0)
+                for (int k = 0; k < moreSolutions.size(); k++)
                 {
-                    IndexingSolutionStatus status = testSeedSolution(moreSolutions[0], spotVectors, &successes);
+                    IndexingSolutionStatus status = testSeedSolution(moreSolutions[k], spotVectors, &successes);
                     
                     if (status == IndexingSolutionTrialSuccess || status == IndexingSolutionTrialDuplicate)
                     {

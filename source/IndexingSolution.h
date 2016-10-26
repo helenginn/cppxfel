@@ -27,13 +27,12 @@ class IndexingSolution : LoggableObject
 {
 private:
     static Reflection *newReflection;
-    SpotVectorMap spotVectors;
     SpotVectorMatrixMap2D matrices;
     static UnitCellLatticePtr lattice;
     static std::mutex setupMutex;
     
     bool vectorAgreesWithExistingVectors(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
-    static bool vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr *firstMatch, SpotVectorPtr *secondMatch);
+    static bool vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, std::vector<SpotVectorPtr> *firstMatch, std::vector<SpotVectorPtr> *secondMatch);
     MatrixPtr createSolution(SpotVectorPtr firstVector, SpotVectorPtr secondVector, SpotVectorPtr firstStandard = SpotVectorPtr());
     bool vectorPairLooksLikePair(SpotVectorPtr firstObserved, SpotVectorPtr secondObserved, SpotVectorPtr standard1, SpotVectorPtr standard2);
     void addVectorToList(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
@@ -81,9 +80,9 @@ public:
     std::vector<double> totalAngles();
     std::vector<double> totalDistanceTrusts();
     bool spotsAreNotTooClose(SpotVectorPtr observedVector);
-    static IndexingSolutionPtr startingSolutionsForThreeSpots(std::vector<SpotPtr> *spots, std::vector<SpotVectorPtr> *spotVectors);
     static void reset();
-    
+    SpotVectorMap spotVectors;
+
     IndexingSolutionPtr copy();
     ~IndexingSolution();
     
@@ -94,12 +93,12 @@ public:
     
     static int uniqueSymVectorCount()
     {
-        return lattice->standardVectorCount();
+        return lattice->uniqueSymVectorCount();
     }
 
     static SpotVectorPtr uniqueSymVector(int i)
     {
-        return lattice->standardVector(i);
+        return lattice->uniqueSymVector(i);
     }
 
     static SpotVectorPtr standardVector(int i)

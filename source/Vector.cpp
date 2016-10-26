@@ -167,10 +167,6 @@ MatrixPtr closest_rotmat_analytical(vec vec1, vec vec2,
     double cosAlpha = pPrime * a + qPrime * b + rPrime * c;
     double cosAlphaOther = pDoublePrime * a + qDoublePrime * b + rDoublePrime * c;
     
-    std::ostringstream logged;
- /*   logged << "Cos alpha = " << cosAlpha << ", cosAlphaOther = " << cosAlphaOther << std::endl;
-    Logger::log(logged);*/
-    
     addPi = (cosAlphaOther > cosAlpha);
     double bestAngle = theta + addPi * M_PI;
     
