@@ -220,15 +220,12 @@ MatrixPtr IndexingSolution::createSolution()
         allSpotVectors.push_back(it->first);
     }
     
-    for (int i = 0; i < allSpotVectors.size() && i < 1; i++)
+    for (int i = 0; i < allSpotVectors.size() - 1 && i < 1; i++)
     {
         for (int j = i + 1; j < allSpotVectors.size(); j++)
         {
             MatrixPtr mat = createSolution(allSpotVectors[i], allSpotVectors[j]);
             matrices.push_back(mat);
-            
-            double theta, phi, psi;
-            mat->eulerAngles(&theta, &phi, &psi);
         }
     }
     
@@ -271,15 +268,6 @@ MatrixPtr IndexingSolution::createSolution()
     
     if (scoredSolutions.size())
     {
-        /*     MatrixPtr rotationMat = Matrix::matrixFromEulerAngles(averageTheta, averagePhi, averagePsi);
-         
-         double theta, phi, psi;
-         rotationMat->eulerAngles(&theta, &phi, &psi);
-         
-         MatrixPtr unitCellMat = unitCellOnly->copy();
-         
-         chosenMat->setComplexMatrix(unitCellMat, rotationMat);*/
-        
         chosenMat = scoredSolutions[0].first;
 #ifndef __OPTIMIZE__
         logged << "Chosen solution:\t" << chosenMat->summary() << "\tfrom " << spotVectors.size() << " vectors"<< std::endl;
@@ -447,10 +435,7 @@ bool IndexingSolution::vectorSolutionsAreCompatible(SpotVectorPtr observedVector
         double psiDiff = fabs(averagePsi - psi);
         
         bool similar = ((thetaDiff < solutionAngleSpread) && (phiDiff < solutionAngleSpread) && (psiDiff < solutionAngleSpread));
-        
-        //    logged << solutionAngleSpread << ": " << thetaDiff << ", " << phiDiff << ", " << psiDiff << " = " << similar << std::endl;
-        //    sendLog();
-        
+  
         if (!similar)
             return false;
         
@@ -489,6 +474,9 @@ void IndexingSolution::addMatrix(SpotVectorPtr observedVector1, SpotVectorPtr ob
 void IndexingSolution::addVectorToList(SpotVectorPtr observedVector, SpotVectorPtr standardVector)
 {
     spotVectors[observedVector] = standardVector;
+
+    if (spotVectors.size() == 1)
+        return;
     
     for (SpotVectorMap::iterator i = spotVectors.begin(); i != spotVectors.end(); i++)
     {
