@@ -21,7 +21,7 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
     if (cheetahManagers.size() > 0)
         return;
     
-    int laserInt = FileParser::getKey("FREE_ELECTRON_LASER", 0);
+    int laserInt = FileParser::getKey("FREE_ELECTRON_LASER", 1);
     FreeElectronLaserType laser = (FreeElectronLaserType)laserInt;
     
     std::vector<std::string> hdf5FileGlobs = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
