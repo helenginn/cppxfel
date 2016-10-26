@@ -63,6 +63,11 @@ public:
         return sameLengthStandardVectors;
     }
     
+    vec getHKL()
+    {
+        return hkl;
+    }
+    
     void setUpdate()
     {
         update = true;

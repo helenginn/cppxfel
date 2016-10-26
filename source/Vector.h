@@ -36,7 +36,7 @@ MatrixPtr rotation_between_vectors_custom_cross(vec vec1, vec vec2, vec chosenCr
 
 MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle);
 MatrixPtr closest_rotmat_analytical(vec vec1, vec vec2,
-                                    vec axis, double *resultantAngle);
+                                    vec axis, double *resultantAngle, bool addPi = true);
 
 void setFloatingPointErrorZerosToZero(vec *vec1, double limit = 10e-8);
 
