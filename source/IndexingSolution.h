@@ -92,6 +92,16 @@ public:
         return lattice->standardVectorCount();
     }
     
+    static int uniqueSymVectorCount()
+    {
+        return lattice->standardVectorCount();
+    }
+
+    static SpotVectorPtr uniqueSymVector(int i)
+    {
+        return lattice->standardVector(i);
+    }
+
     static SpotVectorPtr standardVector(int i)
     {
         return lattice->standardVector(i);

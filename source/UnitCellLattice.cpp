@@ -116,8 +116,15 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 
                 vec3<int> integer = vec3<int>(i, j, k);
                 integerVectors.push_back(integer);
+                int asym = CSym::ccp4spg_is_in_asu(spaceGroup, i, j, k);
                 
                 spotVectors.push_back(newStandardVector);
+                
+                if (asym)
+                {
+                    uniqueSymVectors.push_back(newStandardVector);
+                }
+                
                 count++;
             }
         }
