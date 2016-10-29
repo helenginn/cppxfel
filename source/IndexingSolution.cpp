@@ -303,16 +303,11 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
     SpotVectorPtr secondStandard = spotVectors[secondObserved];
     
     // Get our important variables.
-    vec observedVec1 = firstObserved->getVector();
-    vec observedVec2 = secondObserved->getVector();
+    vec observedVec1 = firstObserved->getUnitVector();
+    vec observedVec2 = secondObserved->getUnitVector();
     
-    vec simulatedVec1 = firstStandard->getVector();
-    vec simulatedVec2 = secondStandard->getVector();
-    
-    scale_vector_to_distance(&observedVec1, 1);
-    scale_vector_to_distance(&observedVec2, 1);
-    scale_vector_to_distance(&simulatedVec1, 1);
-    scale_vector_to_distance(&simulatedVec2, 1);
+    vec simulatedVec1 = firstStandard->getUnitVector();
+    vec simulatedVec2 = secondStandard->getUnitVector();
     
     // Rotate reciprocal space so that the first simulated vector lines up with the first observed vector.
     MatrixPtr rotateSpotDiffMatrix = rotation_between_vectors(simulatedVec1, observedVec1);
