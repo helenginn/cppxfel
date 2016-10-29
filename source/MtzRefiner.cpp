@@ -1599,11 +1599,48 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
     }
 }
 
+void MtzRefiner::maximumImageThread(MtzRefiner *me, ImagePtr maxImage, int offset)
+{
+    std::vector<ImagePtr> selection;
+    int maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = offset; i < me->images.size(); i += maxThreads)
+    {
+        selection.push_back(me->images[i]);
+    }
+    
+    maxImage->makeMaximumFromImages(selection);
+}
+
 void MtzRefiner::maximumImage()
 {
-    ImagePtr maximum = ImagePtr(new Image("maxImage.img", 0, 0));
+    if (images.size() == 0)
+    {
+        loadImageFiles();
+    }
     
-    maximum->makeMaximumFromImages(images);
+    ImagePtr maximum = ImagePtr(new Image("maxImage.img", 0, 0));
+    int maxThreads = FileParser::getMaxThreads();
+    
+    std::vector<ImagePtr> maxSelections;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        ImagePtr anImage = ImagePtr(new Image("maxImage_" + i_to_str(i) + ".img", 0, 0));
+        maxSelections.push_back(anImage);
+    }
+
+    boost::thread_group threads;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(maximumImageThread, this, maxSelections[i], i);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+    
+    maximum->makeMaximumFromImages(maxSelections);
 }
 
 void MtzRefiner::loadImageFiles()

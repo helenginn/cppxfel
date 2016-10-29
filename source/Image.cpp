@@ -502,9 +502,6 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
                 addValueAt(k, j, images[i]->valueAt(k, j));
             }
         }
-        
-        logged << "Processed image " << i << std::endl;
-        sendLog();
     }
     
     dumpImage();

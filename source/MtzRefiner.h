@@ -35,6 +35,7 @@ IndexManager *indexManager;
     void applyParametersToImages();
     static int cycleNum;
     bool hasRefined;
+    int maxThreads;
     bool isPython;
     static int imageSkip(size_t totalCount);
     static void radialAverageThread(MtzRefiner *me, int offset);
@@ -83,6 +84,7 @@ public:
     void correlationAndInverse(bool shouldFlip = false);
     void refreshCurrentPartialities();
     void maximumImage();
+    static void maximumImageThread(MtzRefiner *me, ImagePtr maxImage, int offset);
     
     static int getCycleNum()
     {
