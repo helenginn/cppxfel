@@ -1249,7 +1249,7 @@ void Image::addSpotIfNotMasked(SpotPtr newSpot)
 
 void Image::findSpots()
 {
-    int algorithm = FileParser::getKey("SPOT_FINDING_ALGORITHM", 1);
+    int algorithm = FileParser::getKey("SPOT_FINDING_ALGORITHM", 0);
     std::vector<SpotPtr> tempSpots;
     loadImage();
     SpotFinderPtr spotFinder;
