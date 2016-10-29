@@ -11,12 +11,10 @@
 
 #include <stdio.h>
 #include "SpotFinder.h"
-#include "FileParser.h"
 
 class SpotFinderQuick : public SpotFinder
 {
 private:
-    int threshold;
     int minRadius;
     int maxRadius;
     int minPixels;
@@ -33,8 +31,6 @@ private:
 public:
     SpotFinderQuick(ImagePtr image) : SpotFinder(image)
     {
-        threshold = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 100.);
-
         // this has not been calibrated
         
         minRadius = 6;

@@ -9,6 +9,7 @@
 #ifndef __cppxfel__SpotFinder__
 #define __cppxfel__SpotFinder__
 #include "parameters.h"
+#include "FileParser.h"
 
 #include <stdio.h>
 
@@ -25,10 +26,13 @@ protected:
     ImagePtr image;
     Peak *peaks;
     size_t totalPeaks;
+    int threshold;
 
 public:
     SpotFinder(ImagePtr anImage)
     {
+        threshold = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 100.);
+
         image = anImage;
         peaks = NULL;
         totalPeaks = 0;

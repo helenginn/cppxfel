@@ -17,11 +17,16 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
     
     SpotPtr spot = SpotPtr(new Spot(image));
     
-    for (int y = jump; y < yDim - jump; y += jump * 2)
+    for (int y = 0; y < yDim; y++)
     {
-        for (int x = jump; x < xDim - jump; x += jump * 2)
+        for (int x = 0; x < xDim; x++)
         {
-            bool success = spot->focusOnNearbySpot(jump, x, y);
+            double value = this->image->valueAt(x, y);
+            
+            if (value < threshold)
+                continue;
+            
+            bool success = spot->focusOnNearbySpot(0, x, y);
             
             if (success)
             {

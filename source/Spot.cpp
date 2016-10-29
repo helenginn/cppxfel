@@ -126,7 +126,12 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
   //  sendLog(round > 1 ? LogLevelDetailed : LogLevelDebug);
         int focusedX = trialX;
     int focusedY = trialY;
+    
+    if (maxShift > 0)
+    {
     this->getParentImage()->focusOnAverageMax(&focusedX, &focusedY, maxShift);
+    }
+    
     setXY(focusedX, focusedY);
   //  logged << "Original position (" << trialX << ", " << trialY << ") focusing on " << focusedX << ", " << focusedY << std::endl;
   //  sendLog(LogLevelDetailed);
