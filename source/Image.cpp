@@ -502,12 +502,14 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
                 addValueAt(k, j, images[i]->valueAt(k, j));
             }
         }
+        
+        images[i]->dropImage();
     }
     
-    dumpImage();
     loadedSpots = true;
     
     drawSpotsOnPNG();
+    dumpImage();
 }
 
 void Image::dumpImage()
