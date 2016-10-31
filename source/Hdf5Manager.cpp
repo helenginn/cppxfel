@@ -493,12 +493,8 @@ void Hdf5Manager::groupsWithPrefix(std::vector<std::string> *list, std::string p
         }
         else
         {
-            readingHdf5.lock();
-
             H5G_obj_t type;
             getSubTypeForIndex(startAddress, i, &type);
-            
-            readingHdf5.unlock();
 
             if (type == H5G_GROUP)
             {
