@@ -441,6 +441,7 @@ void FileParser::generateFunctionList()
     parserMap["PNG_TOTAL"] = simpleInt;
     parserMap["PNG_THRESHOLD"] = simpleFloat;
     parserMap["PNG_SHOEBOX"] = simpleBool;
+    parserMap["PNG_ALL_LATTICES"] = simpleBool;
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;
