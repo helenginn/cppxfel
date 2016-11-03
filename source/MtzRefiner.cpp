@@ -2192,7 +2192,7 @@ void MtzRefiner::writePNGs(int total)
     {
         images[i]->drawSpotsOnPNG();
         
-        if (allLattices)
+        if (allLattices && images[i]->mtzCount() > 0)
         {
             images[i]->drawCrystalsOnPNG(-1);
         }
