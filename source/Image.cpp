@@ -2567,7 +2567,7 @@ void Image::drawCrystalsOnPNG(int crystalNum)
         
         for (int i = 0; i < count; i++)
         {
-            double brightness = 0.5;
+            double brightness = 0.8;
             double saturation = 1.0;
             png_byte red, green, blue;
             PNGFile::HSB_to_RGB(hue, saturation, brightness, &red, &blue, &green);
