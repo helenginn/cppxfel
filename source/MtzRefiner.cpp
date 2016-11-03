@@ -668,11 +668,12 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             continue;
         
         std::string imgName = components[1];
+        std::string imgNameOnly = components[1];
         
         imgName.erase(std::remove(imgName.begin(), imgName.end(), '\r'), imgName.end());
         imgName.erase(std::remove(imgName.begin(), imgName.end(), '\n'), imgName.end());
         
-        if (newImages && !readFromHdf5)
+        if (newImages)
             imgName += ".img";
         else if (newMtzs)
             imgName += ".mtz";
@@ -688,7 +689,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         
         if (readFromHdf5 && newImages != NULL)
         {
-            Hdf5ManagerCheetahPtr manager = Hdf5ManagerCheetah::hdf5ManagerForImage(imgName);
+            Hdf5ManagerCheetahPtr manager = Hdf5ManagerCheetah::hdf5ManagerForImage(imgNameOnly);
             
             if (!manager)
             {
