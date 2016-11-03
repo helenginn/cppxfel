@@ -1797,7 +1797,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         addMtz(mtz);
         std::string imgFilename = "img-" + mtz->getFilename();
         mtz->writeToFile(imgFilename, true);
-        mtz->writeToDat();
+        mtz->writeToDat("img-");
         
         return IndexingSolutionTrialSuccess;
     }

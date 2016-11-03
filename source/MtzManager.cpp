@@ -1520,9 +1520,19 @@ int MtzManager::accepted(void)
 
 void MtzManager::writeToDat(std::string prefix)
 {
-    std::string name = filename;
+    std::string name = getFilename();
     int lastindex = (int)name.find_last_of(".");
-    std::string rootName = name.substr(0, lastindex);
+        std::string rootName;
+    
+    if (lastindex == std::string::npos)
+    {
+        rootName = name;
+    }
+    else
+    {
+        rootName = name.substr(0, lastindex);
+    }
+    
     std::string datName = prefix + rootName + ".csv";
     /*
     std::ofstream datOutput;
