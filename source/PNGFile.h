@@ -49,6 +49,8 @@ public:
     void setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue);
     void drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue, float thickness = 3);
     void drawShoeboxAroundPixel(int x, int y, ShoeboxPtr shoebox);
+    static void HSB_to_RGB(float hue, float sat, float bright,
+                           png_byte *red, png_byte *green, png_byte *blue);
     
     PNGFile(std::string filename, int width = 2400, int height = 4800);
     

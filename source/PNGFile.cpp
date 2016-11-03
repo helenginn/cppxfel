@@ -104,6 +104,63 @@ finalise:
 }
 
 
+// Hue should be between 0 and 360 degrees (rainbow)
+// Saturation between 0 and 1
+// Brightness between 0 and 1
+void PNGFile::HSB_to_RGB(float hue, float sat, float bright,
+                         png_byte *red, png_byte *green, png_byte *blue)
+{
+    double c = bright * sat;
+    double x = c * (1 - fabs(fmod((hue / 60), 2) - 1));
+    double m = bright - c;
+    
+    double tempRed, tempGreen, tempBlue;
+    
+    if (hue < 60)
+    {
+        tempRed = c;
+        tempGreen = x;
+        tempBlue = 0;
+    }
+    else if (hue < 120)
+    {
+        tempRed = x;
+        tempGreen = c;
+        tempBlue = 0;
+    }
+    else if (hue < 180)
+    {
+        tempRed = 0;
+        tempGreen = c;
+        tempBlue = x;
+
+    }
+    else if (hue < 240)
+    {
+        tempRed = 0;
+        tempGreen = x;
+        tempBlue = c;
+    }
+    else if (hue < 300)
+    {
+        tempRed = x;
+        tempGreen = 0;
+        tempBlue = c;
+
+    }
+    else if (hue <= 360)
+    {
+        tempRed = c;
+        tempGreen = 0;
+        tempBlue = x;
+    }
+
+    *red = (tempRed + m) * 255;
+    *green = (tempGreen + m) * 255;
+    *blue = (tempBlue + m) * 255;
+    
+}
+
 PNGFile::PNGFile(std::string filename, int width, int height)
 {
     // set data using libpng...
