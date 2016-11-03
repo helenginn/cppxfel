@@ -2548,7 +2548,8 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
 
 void Image::drawCrystalsOnPNG(int crystalNum)
 {
-    std::string crystNumString = (crystalNum > 0 ? i_to_str(crystalNum) : "all");
+    int count = mtzCount();
+    std::string crystNumString = (crystalNum > 0 ? i_to_str(crystalNum) : "all" + i_to_str(count));
     
     std::string filename = getBasename() + "_" + crystNumString + ".png";
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename));
@@ -2561,7 +2562,6 @@ void Image::drawCrystalsOnPNG(int crystalNum)
     }
     else
     {
-        int count = mtzCount();
         double hueJump = 360 / (double)count;
         double hue = 0;
         
