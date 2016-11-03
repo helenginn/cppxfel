@@ -2515,15 +2515,9 @@ void Image::drawSpotsOnPNG()
     file->writeImageOutput();
 }
 
-void Image::drawMillersOnPNG(int crystalNum)
+void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green, char blue)
 {
-    std::string filename = getBasename() + "_" + i_to_str(crystalNum) + ".png";
-    PNGFilePtr file = PNGFilePtr(new PNGFile(filename));
-    writePNG(file);
-    
     bool addShoebox = FileParser::getKey("PNG_SHOEBOX", false);
-    
-    MtzPtr myMtz = mtz(crystalNum);
     
     for (int i = 0; i < myMtz->reflectionCount(); i++)
     {
@@ -2537,17 +2531,51 @@ void Image::drawMillersOnPNG(int crystalNum)
             
             double correctedX = myMiller->getCorrectedX();
             double correctedY = myMiller->getCorrectedY();
-
+            
             Coord corrected = std::pair<double, double>(correctedX, correctedY);
             Coord shifted = panel->shiftSpot(corrected);
             
             bool strong = IOMRefiner::millerReachesThreshold(myMiller);
-            file->drawCircleAroundPixel(shifted.first, shifted.second, 14, (strong ? 1 : 0.2), 0, 0, 0, (strong ? 4 : 1));
+            file->drawCircleAroundPixel(shifted.first, shifted.second, 14, (strong ? 1 : 0.2), red, green, blue, (strong ? 4 : 1));
             
             if (addShoebox)
             {
                 file->drawShoeboxAroundPixel(shifted.first, shifted.second, myMiller->getShoebox());
             }
+        }
+    }
+}
+
+void Image::drawCrystalsOnPNG(int crystalNum)
+{
+    std::string crystNumString = (crystalNum > 0 ? i_to_str(crystalNum) : "all");
+    
+    std::string filename = getBasename() + "_" + crystNumString + ".png";
+    PNGFilePtr file = PNGFilePtr(new PNGFile(filename));
+    writePNG(file);
+    
+    if (crystalNum >= 0)
+    {
+        MtzPtr myMtz = mtz(crystalNum);
+        drawMillersOnPNG(file, myMtz);
+    }
+    else
+    {
+        int count = mtzCount();
+        double hueJump = 360 / (double)count;
+        double hue = 0;
+        
+        for (int i = 0; i < count; i++)
+        {
+            double brightness = 0.5;
+            double saturation = 1.0;
+            png_byte red, green, blue;
+            PNGFile::HSB_to_RGB(hue, saturation, brightness, &red, &blue, &green);
+            
+            MtzPtr myMtz = mtz(i);
+            drawMillersOnPNG(file, myMtz, red, green, blue);
+            
+            hue += hueJump;
         }
     }
     

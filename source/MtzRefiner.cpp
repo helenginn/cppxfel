@@ -2186,13 +2186,22 @@ void MtzRefiner::writePNGs(int total)
     if (skip == 0)
         skip = 1;
     
+    bool allLattices = FileParser::getKey("PNG_ALL_LATTICES", false);
+    
     for (int i = 0; i < totalImages; i += skip)
     {
         images[i]->drawSpotsOnPNG();
         
-        for (int j = 0; j < images[i]->mtzCount(); j++)
+        if (allLattices)
         {
-            images[i]->drawMillersOnPNG(j);
+            images[i]->drawCrystalsOnPNG(-1);
+        }
+        else
+        {
+            for (int j = 0; j < images[i]->mtzCount(); j++)
+            {
+                images[i]->drawCrystalsOnPNG(j);
+            }
         }
     }
     

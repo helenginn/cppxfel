@@ -144,7 +144,8 @@ public:
     void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
     void radialAverage();
     void integrateSpots();
-    void drawMillersOnPNG(int crystalNum);
+    void drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red = 0, char green = 0, char blue = 0);
+    void drawCrystalsOnPNG(int crystalNum);
     void drawSpotsOnPNG();
     void dumpImage();
     void makeMaximumFromImages(std::vector<ImagePtr> images);
