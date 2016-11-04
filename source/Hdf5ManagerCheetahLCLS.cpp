@@ -17,6 +17,8 @@ Hdf5ManagerCheetahPtr Hdf5ManagerCheetahLCLS::makeManager(std::string filename)
     return std::static_pointer_cast<Hdf5ManagerCheetah>(cheetahPtr);
 }
 
+
+
 bool Hdf5ManagerCheetahLCLS::dataForImage(std::string address, void **buffer)
 {
     // need to find the index of the correct image
@@ -36,6 +38,32 @@ bool Hdf5ManagerCheetahLCLS::dataForImage(std::string address, void **buffer)
     }
     
     return false;
+}
+
+void Hdf5ManagerCheetahLCLS::prepareWavelengths()
+{
+    double *tempWaves;
+    size_t bytes = Hdf5Manager::hdf5MallocBytesForDataset(wavelengthAddress, (void **)&tempWaves);
+    size_t waveNum = bytes / sizeof(double);
+    Hdf5Manager::dataForAddress(wavelengthAddress, (void **)&tempWaves);
+    wavelengths.resize(waveNum);
+    memcpy(&wavelengths[0], &tempWaves[0], bytes);
+}
+
+double Hdf5ManagerCheetahLCLS::wavelengthForImage(std::string address, void **buffer)
+{
+    std::vector<std::string>::iterator it = std::find(imagePaths.begin(),
+                                                      imagePaths.end(),
+                                                      address);
+    
+    if (it != imagePaths.end() && *it == address)
+    {
+        size_t index = it - imagePaths.begin();
+        memcpy(*buffer, &wavelengths[index], sizeof(double));
+        return wavelengths[index];
+    }
+    
+    return 0;
 }
 
 int Hdf5ManagerCheetahLCLS::hdf5MallocBytesForImage(std::string address, void **buffer)

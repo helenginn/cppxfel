@@ -21,6 +21,8 @@ private:
     // I'm tired.
     std::string idAddress;
     std::string dataAddress;
+    std::string wavelengthAddress;
+    std::vector<double> wavelengths;
     
 public:
     Hdf5ManagerCheetahLCLS(std::string newName) : Hdf5ManagerCheetah(newName)
@@ -28,11 +30,15 @@ public:
         idAddress = FileParser::getKey("CHEETAH_ID_ADDRESSES",
                                                    std::string("entry_1/data_1/experiment_identifier"));
         dataAddress = FileParser::getKey("CHEETAH_DATA_ADDRESSES", std::string("entry_1/data_1/data"));
+        wavelengthAddress = FileParser::getKey("CHEETAH_WAVELENGTH_ADDRESSES", std::string("LCLS/photon_wavelength_A"));
         identifiersFromAddress(&imagePaths, idAddress);
+        prepareWavelengths();
     }
     
     static Hdf5ManagerCheetahPtr makeManager(std::string filename);
     
+    void prepareWavelengths();
+    virtual double wavelengthForImage(std::string address, void **buffer);
     virtual bool dataForImage(std::string address, void **buffer);
     virtual int hdf5MallocBytesForImage(std::string address, void **buffer);
     virtual size_t bytesPerTypeForImageAddress(std::string address);
