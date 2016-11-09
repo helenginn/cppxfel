@@ -651,7 +651,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     
     int spgnum = FileParser::getKey("SPACE_GROUP", fromMtzNum);
     
-    setSpaceGroup(fromMtzNum);
+    setSpaceGroup(spgnum);
     
     if (low_group == NULL)
     {
