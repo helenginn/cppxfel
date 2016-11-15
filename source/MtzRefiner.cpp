@@ -1553,8 +1553,8 @@ void MtzRefiner::merge(bool mergeOnly)
         
         grouper->setCorrelationThreshold(correlationThreshold);
         
-        MtzPtr mergedMtz;
-        grouper->merge(&mergedMtz, NULL, -1, mergeAnomalous);
+        MtzPtr mergedMtz, unmergedMtz;
+        grouper->merge(&mergedMtz, &unmergedMtz, -1, mergeAnomalous);
         mergedMtz->writeToFile("remerged.mtz");
         
         delete grouper;
