@@ -871,14 +871,14 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
             intensities.push_back(testIntensity);
             weights.push_back(liteMillers[i].weight);
         }
-        
+        /*
         if (isSpecial)
         {
             std::ostringstream logged;
             logged << "Rejected " << *rejected << " reflections between " << minIntensity << " and " << maxIntensity << std::endl;
             logged << "Mean " << mean << " and stdev " << stdev << std::endl;
             Logger::log(logged);
-        }
+        }*/
 
         mean = weighted_mean(&intensities, &weights);
         stdev = standard_deviation(&intensities, NULL, mean);
