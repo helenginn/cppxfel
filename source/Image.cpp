@@ -257,7 +257,7 @@ void Image::loadImage()
     }
     else
     {
-        Logger::mainLogger->addString("Unable to open file");
+        Logger::mainLogger->addString("Unable to open file " + getFilename());
     }
 }
 
