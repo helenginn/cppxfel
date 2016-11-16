@@ -164,7 +164,7 @@ void NelderMead::process()
 {
     int count = 0;
     
-    int maxCount = FileParser::getKey("NELDER_MEAD_CYCLES", 100);
+    int maxCount = FileParser::getKey("NELDER_MEAD_CYCLES", 30);
     
     while ((!converged() && count < maxCount) || unlimited)
     {
