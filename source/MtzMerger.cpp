@@ -650,6 +650,8 @@ void MtzMerger::mergeMillersThread(int offset)
 {
     int maxThreads = FileParser::getMaxThreads();
     
+    bool mergeMedian = FileParser::getKey("MERGE_MEDIAN", false);
+    
     for (int i = offset; i < mergedMtz->reflectionCount(); i += maxThreads)
     {
         double intensity = 0;
@@ -663,8 +665,22 @@ void MtzMerger::mergeMillersThread(int offset)
             continue;
         }
         
-        refl->liteMerge(&intensity, &sigma, &rejected, friedel);
-     
+        if (!mergeMedian)
+        {
+            refl->liteMerge(&intensity, &sigma, &rejected, friedel);
+        }
+        else
+        {
+            refl->medianMerge(&intensity, &sigma, &rejected, friedel);
+        }
+        
+        float intFloat = (float)intensity;
+    
+        if (!std::isfinite(intFloat))
+        {
+            continue;
+        }
+        
         // this could be better coded
         for (int r = 0; r < rejected; r++)
         {

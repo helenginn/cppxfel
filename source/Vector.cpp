@@ -767,15 +767,22 @@ bool higher(double mean1, double mean2)
 double median(vector<double> *means)
 {
     std::sort(means->begin(), means->end(), higher);
-    int mid = (int)means->size() / 2;
+    size_t total = means->size();
+    size_t mid = (total % 2 == 1) ? ((total - 1) / 2) : (total / 2);
+    
     double midPoint = 0;
     
+    if (means->size() == 0)
+    {
+        return std::nan(" ");
+    }
     if (means->size() % 2 == 0)
     {
         midPoint = ((*means)[mid] + (*means)[mid + 1]) / 2;
     }
     else
         midPoint = (*means)[mid];
+    
     
     return midPoint;
 }

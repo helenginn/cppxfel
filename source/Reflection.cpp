@@ -792,12 +792,38 @@ double Reflection::rMergeContribution(double *numerator, double *denominator)
     return littleNum / littleDenom;
 }
 
+void Reflection::medianMerge(double *intensity, double *sigma, int *rejected, signed char friedel)
+{
+    std::vector<double> intensities, weights;
+    
+    for (int i = 0; i < liteMillers.size(); i++)
+    {
+        if (friedel != -1)
+        {
+            if (liteMillers[i].friedel != friedel)
+            {
+                continue;
+            }
+        }
+        
+        intensities.push_back(liteMillers[i].intensity);
+    }
+    
+    *intensity = median(&intensities);
+    *sigma = standard_deviation(&intensities);
+    *rejected = 0;
+    
+    /*
+    std::ostringstream logged;
+    logged << "Int " << *intensity << " from " << intensities.size() << " reflections for (" << miller(0)->getH() << ", " << miller(0)->getK() << ", " << miller(0)->getL() << ")" << std::endl;
+    Logger::log(logged);*/
+}
+
+
 void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, signed char friedel)
 {
     std::vector<double> intensities, weights;
     *rejected = 0;
-    
-    int isSpecial = (getReflId() == reflectionIdForCoordinates(1, 2, 62));
     
     for (int i = 0; i < liteMillers.size(); i++)
     {
