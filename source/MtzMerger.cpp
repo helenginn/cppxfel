@@ -48,7 +48,7 @@ std::string MtzMerger::makeFilename(std::string prefix)
 
 double MtzMerger::maxResolution()
 {
-    double maxInput = FileParser::getKey("MERGE_TO_RESOLUTION", 1.4);
+    double maxInput = 1 / FileParser::getKey("MERGE_TO_RESOLUTION", 1.4);
     
     double maxRes = 0;
     
@@ -74,7 +74,7 @@ double MtzMerger::maxResolution()
         maxRes = maxInput;
     }
     
-    return maxRes;
+    return 1 / maxRes;
 }
 
 // MARK: write type of MTZ
