@@ -16,7 +16,7 @@
 
 class StatisticsManager;
 
-class AmbiguityBreaker
+class AmbiguityBreaker : public LoggableObject
 {
 private:
     vector<MtzPtr> mtzs;

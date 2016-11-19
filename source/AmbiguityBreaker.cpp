@@ -117,19 +117,26 @@ void AmbiguityBreaker::setMtzs(vector<MtzPtr> newMtzs)
     
     if (shouldApplyUnrefinedPartiality)
     {
+        logged << "Applying unrefined partiality to images." << std::endl;
+        sendLog();
+        
         for (int i = 0; i < mtzs.size(); i++)
         {
             mtzs[i]->applyUnrefinedPartiality();
         }
+    }
+    else
+    {
+        logged << "Merging without applying any starting partiality model." << std::endl;
+        sendLog();
     }
     
     bool trustAnyway = FileParser::getKey("TRUST_INDEXING_SOLUTION", false);
     
     if (trustAnyway)
     {
-        std::ostringstream logged;
         logged << "TRUST_INDEXING_SOLUTION is set to ON so ambiguity breaking is skipped." << std::endl;
-        Logger::log(logged);
+        sendLog();
         
         return;
     }
@@ -211,8 +218,6 @@ void AmbiguityBreaker::merge()
 
 void AmbiguityBreaker::printResults()
 {
-    std::ostringstream logged;
-    
     for (int i = 0; i < mtzs.size(); i++)
     {
         int start = i * ambiguityCount;
@@ -228,7 +233,7 @@ void AmbiguityBreaker::printResults()
         logged << std::endl;
     }
     
-    Logger::mainLogger->addStream(&logged);
+    sendLog();
 }
 
 void AmbiguityBreaker::breakAmbiguity()
@@ -242,8 +247,6 @@ void AmbiguityBreaker::breakAmbiguity()
     
     int n = ambiguityCount * (int)mtzs.size();
 
-    std::ostringstream logged;
-    
     scitbx::af::shared<int> nbd(n);
     scitbx::af::shared<double> lowerLims(n);
     scitbx::af::shared<double> upperLims(n);
@@ -276,7 +279,7 @@ void AmbiguityBreaker::breakAmbiguity()
         x[i] = random;
     }
     
-    Logger::mainLogger->addStream(&logged);
+    sendLog();
     
     scitbx::af::shared<double> g(n);
     scitbx::af::ref<double> gb(g.begin(), n);
