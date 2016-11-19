@@ -1815,6 +1815,9 @@ std::string MtzManager::parameterHeaders()
 
 std::string MtzManager::writeParameterSummary()
 {
+    double *cellDims = new double[3];
+    getMatrix()->unitCellLengths(&cellDims);
+
     std::ostringstream summary;
     summary << getFilename() << "," << getRefCorrelation() << "," << rSplit(0, maxResolutionAll) << "," << getRefPartCorrel() << ","
 				<< accepted() << ","
@@ -1824,7 +1827,7 @@ std::string MtzManager::writeParameterSummary()
     summary << hRot << "," << kRot << ",";
     
     summary << getSpotSize() << ","
-    << getExponent() << "," << cellDim[0] << "," << cellDim[1] << "," << cellDim[2] << "," << getScale();
+    << getExponent() << "," << cellDims[0] << "," << cellDims[1] << "," << cellDims[2] << "," << getScale();
     
     
     return summary.str();

@@ -455,13 +455,11 @@ void MtzMerger::writeParameterCSV()
     params.open(fullPath.c_str());
     
     params << MtzManager::parameterHeaders() << std::endl;
-    
-    if (cycle >= 0)
+
+
+    for (int i = 0; i < allMtzs.size(); i++)
     {
-        for (int i = 0; i < allMtzs.size(); i++)
-        {
-            params << allMtzs[i]->writeParameterSummary() << std::endl;
-        }
+        params << allMtzs[i]->writeParameterSummary() << std::endl;
     }
     
     params.close();
