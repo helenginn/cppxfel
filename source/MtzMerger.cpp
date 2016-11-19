@@ -48,7 +48,11 @@ std::string MtzMerger::makeFilename(std::string prefix)
 
 double MtzMerger::maxResolution()
 {
-    double maxInput = 1 / FileParser::getKey("MERGE_TO_RESOLUTION", 1.4);
+    if (FileParser::hasKey("MERGE_TO_RESOLUTION"))
+    {
+        /* Return this resolution if it exists - user preference takes precedence */
+        return FileParser::getKey("MERGE_TO_RESOLUTION", 1.4);
+    }
     
     double maxRes = 0;
     
@@ -66,12 +70,8 @@ double MtzMerger::maxResolution()
     }
     else if (lowMemoryMode)
     {
-        maxRes = maxInput;
-    }
-
-    if (maxInput != 0 && maxRes > 1 / maxInput)
-    {
-        maxRes = maxInput;
+        /* Return a default, any default! */
+        maxRes = 1.4;
     }
     
     return 1 / maxRes;
