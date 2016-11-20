@@ -191,7 +191,8 @@ void AmbiguityBreaker::merge()
     idxGrouper->setWeighting(WeightTypeAverage);
     idxGrouper->setExcludeWorst(false);
     idxGrouper->setMtzManagers(mtzs);
-    idxGrouper->merge(&merged);
+    MtzPtr unmerged;
+    idxGrouper->merge(&merged, &unmerged);
     delete idxGrouper;
  */
     
