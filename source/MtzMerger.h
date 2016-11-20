@@ -47,6 +47,7 @@ private:
     int friedel;
     bool freeOnly;
     bool needToScale;
+    bool preventRejections;
     
     void splitAllMtzs(std::vector<MtzPtr> &firstHalfMtzs, std::vector<MtzPtr> &secondHalfMtzs);
     MtzRejectionReason isMtzAccepted(MtzPtr mtz);
@@ -102,6 +103,11 @@ public:
     void setExcludeWorst(bool worst)
     {
         excludeWorst = worst;
+    }
+    
+    void setPreventRejections(bool prevent)
+    {
+        preventRejections = prevent;
     }
 
     void setFilename(std::string newName)

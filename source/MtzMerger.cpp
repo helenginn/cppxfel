@@ -604,7 +604,12 @@ void MtzMerger::groupMillerThread(int offset)
         }
         
         mtz->flipToActiveAmbiguity();
-        scaleIndividual(mtz);
+        
+        if (needToScale)
+        {
+            scaleIndividual(mtz);
+        }
+        
         addMtzMillers(mtz);
         
         if (lowMemoryMode)
@@ -663,13 +668,15 @@ void MtzMerger::mergeMillersThread(int offset)
             continue;
         }
         
+        int *rejPtr = preventRejections ? NULL : &rejected;
+        
         if (!mergeMedian)
         {
-            refl->liteMerge(&intensity, &sigma, &rejected, friedel);
+            refl->liteMerge(&intensity, &sigma, rejPtr, friedel);
         }
         else
         {
-            refl->medianMerge(&intensity, &sigma, &rejected, friedel);
+            refl->medianMerge(&intensity, &sigma, rejPtr, friedel);
         }
         
         float intFloat = (float)intensity;
@@ -818,6 +825,7 @@ MtzMerger::MtzMerger()
     friedel = -1;
     freeOnly = false;
     needToScale = true;
+    preventRejections = false;
 }
 
 // MARK: Things to call from other classes.
@@ -881,10 +889,11 @@ void MtzMerger::copyDetails(MtzMerger &second)
 {
     setCycle(second.cycle);
     setFreeOnly(second.freeOnly);
-    setNeedToScale(true);
+    setNeedToScale(second.needToScale);
     setSilent(true);
     setExcludeWorst(second.excludeWorst);
     setScalingType(second.scalingType);
+    setPreventRejections(second.preventRejections);
 }
 
 void MtzMerger::mergeFull(bool anomalous)
@@ -922,6 +931,8 @@ void MtzMerger::mergeFull(bool anomalous)
         filename = makeFilename("allMerge");
     }
 
+    setNeedToScale(false);
+    
     anomalous ? mergeAnomalous() : merge();
     
     double maxRes = 1 / maxResolution();

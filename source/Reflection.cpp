@@ -823,7 +823,11 @@ void Reflection::medianMerge(double *intensity, double *sigma, int *rejected, si
 void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, signed char friedel)
 {
     std::vector<double> intensities, weights;
-    *rejected = 0;
+    
+    if (rejected != NULL)
+    {
+        *rejected = 0;
+    }
     
     for (int i = 0; i < liteMillers.size(); i++)
     {
@@ -842,7 +846,9 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
     double mean = weighted_mean(&intensities, &weights);
     double stdev = standard_deviation(&intensities, NULL, mean);
     
-    if (shouldReject && liteMillers.size() >= MIN_MILLER_COUNT)
+    bool shouldRejectLocal = (rejected != NULL) * shouldReject;
+    
+    if (shouldRejectLocal && liteMillers.size() >= MIN_MILLER_COUNT)
     {
         intensities.clear();
         weights.clear();

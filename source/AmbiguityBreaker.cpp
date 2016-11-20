@@ -200,6 +200,8 @@ void AmbiguityBreaker::merge()
     
     
     MtzMerger merger;
+    merger.setNeedToScale(false);
+    merger.setPreventRejections(true);
     merger.setAllMtzs(mtzs);
     merger.setExcludeWorst(false);
     merger.setCycle(-1);
