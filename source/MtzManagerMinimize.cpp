@@ -101,6 +101,11 @@ double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
         withCutoff = !FileParser::getKey("SMOOTH_FUNCTION", false);
     }
     
+    if (referenceManager == NULL)
+    {
+        return 0;
+    }
+    
     double scale = this->gradientAgainstManager(referenceManager, withCutoff);
     applyScaleFactor(scale);
     
