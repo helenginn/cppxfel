@@ -207,12 +207,12 @@ void AmbiguityBreaker::merge()
     merger.setCycle(-1);
     merger.setFilename("originalMerge.mtz");
     merger.mergeFull();
-    
+    /*
     if (anomalousMerge)
     {
         merger.mergeFull(true);
     }
-    
+    */
     merger.setFreeOnly(true);
     merger.mergeFull();
     
