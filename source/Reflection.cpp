@@ -811,7 +811,11 @@ void Reflection::medianMerge(double *intensity, double *sigma, int *rejected, si
     
     *intensity = median(&intensities);
     *sigma = standard_deviation(&intensities);
-    *rejected = 0;
+    
+    if (rejected != NULL)
+    {
+        *rejected = 0;        
+    }
     
     /*
     std::ostringstream logged;
