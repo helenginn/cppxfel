@@ -21,7 +21,7 @@ for line in geomfile:
 	if (components < 2):
 		continue
 	if components[0].strip() == rigidGroupString:
-		print "Found", rigidGroupString
+#		print "Found", rigidGroupString
 		panels = components[1].strip().split(",")
 		break
 
