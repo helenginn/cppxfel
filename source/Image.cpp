@@ -1286,15 +1286,16 @@ void Image::findSpots()
 void Image::processSpotList()
 {
     std::string spotContents;
+    bool forceSpotFinding = FileParser::getKey("FORCE_SPOT_FINDING", false);
     
-    if (!spotsFile.length())
+    if (!spotsFile.length() && !forceSpotFinding)
     {
         spotsFile = "_" + getBasename() + "_strong.list";
         logged << "Guessing name of spots file as " << spotsFile << std::endl;
         sendLog();
     }
     
-    if (spotsFile == "find")
+    if (spotsFile == "find" || forceSpotFinding)
     {
         logged << "Finding spots using cppxfel" << std::endl;
         sendLog();
