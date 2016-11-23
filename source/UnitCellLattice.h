@@ -30,13 +30,13 @@ private:
     double maxDistance;
     double minDistance;
     std::vector<vec3<int> > integerVectors;
-    void getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax);
     PowderHistogram histogram;
     std::vector<SpotVectorPtr> uniqueSymVectors;
     
 public:
     void setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0);
     void refineUnitCell(PowderHistogram histogram);
+    void getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax);
     
     int standardVectorCount()
     {

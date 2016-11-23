@@ -83,7 +83,12 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 
     solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 10.0);
     
-    maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
+    int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
+    lattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
+                                                     unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
+
+    double resolution = 1 / FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+    lattice->getMaxMillerIndicesForResolution(resolution, &maxMillerIndexTrialH, &maxMillerIndexTrialK, &maxMillerIndexTrialL);
     maxDistance = 0;
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, unitCell[0], unitCell[1], unitCell[2],
@@ -92,14 +97,12 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     logged << "Calculating distances of unit cell " << spaceGroupNum << std::endl;
     sendLog();
     
-    lattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
-                                                     unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
     
-    for (int i = -maxMillerIndexTrial; i <= maxMillerIndexTrial; i++)
+    for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
     {
-        for (int j = -maxMillerIndexTrial; j <= maxMillerIndexTrial; j++)
+        for (int j = -maxMillerIndexTrialK; j <= maxMillerIndexTrialK; j++)
         {
-            for (int k = -maxMillerIndexTrial; k <= maxMillerIndexTrial; k++)
+            for (int k = -maxMillerIndexTrialL; k <= maxMillerIndexTrialL; k++)
             {
                 if (spaceGroupNum != 19 && spaceGroupNum != 178 && spaceGroupNum != 5)
                 {
@@ -121,7 +124,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
                 
-                if (length_of_vector(hkl) > maxMillerIndexTrial)
+                if (1 / length_of_vector(hkl) > resolution)
                     continue;
                 
                 unitCellMatrix->multiplyVector(&hkl_transformed);
