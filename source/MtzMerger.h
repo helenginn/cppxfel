@@ -100,6 +100,11 @@ public:
         allMtzs = mtzs;
     }
     
+    void setSomeMtzs(std::vector<MtzPtr> mtzs)
+    {
+        someMtzs = mtzs;
+    }
+    
     void setExcludeWorst(bool worst)
     {
         excludeWorst = worst;

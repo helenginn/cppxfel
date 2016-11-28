@@ -1489,7 +1489,7 @@ void MtzRefiner::linearScaling()
     readMatricesAndMtzs();
     
     MtzMerger merger;
-    merger.setAllMtzs(mtzManagers);
+    merger.setSomeMtzs(mtzManagers);
     merger.setCycle(-1);
     merger.setScalingType(ScalingTypeReference);
     merger.setFilename("scaling.mtz");
