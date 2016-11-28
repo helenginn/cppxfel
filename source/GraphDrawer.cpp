@@ -867,9 +867,11 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
                 logged << mtz->getFilename() << "\t" << mtz->getTimeDelay() << "\t" << miller->intensity() << "\t" << miller->getCountingSigma() << "\t" << miller->getScale() << miller->getPartiality() << "\t" << miller->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
             }
             
-            Logger::log(logged);
         }
     }
+
+    Logger::log(logged);
+
 }
 
 GraphDrawer::~GraphDrawer()
