@@ -2075,6 +2075,7 @@ void MtzRefiner::plotIntensities()
 {
     int h, k, l;
     std::vector<int> hkl = FileParser::getKey("MILLER_INDEX", std::vector<int>());
+    GraphDrawer drawer = GraphDrawer(NULL);
     
     if (hkl.size() < 3)
     {
@@ -2085,7 +2086,6 @@ void MtzRefiner::plotIntensities()
         k = hkl[1];
         l = hkl[2];
         
-        GraphDrawer drawer = GraphDrawer(NULL);
         drawer.plotReflectionFromMtzs(getMtzManagers(), h, k, l);
     }
     else
