@@ -1466,12 +1466,13 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
 
 MtzManager::~MtzManager(void)
 {
+/*
     if (filename.length())
     {
         logged << "Deallocating MtzManager " << getFilename() << "." << std::endl;
         sendLog();
     }
-    
+   */
     clearReflections();
 }
 
