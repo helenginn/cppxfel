@@ -839,7 +839,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
 {
     int index = Reflection::reflectionIdForCoordinates(h, k, l);
     
-    std::cout << "filename,intensity,+-,phase,resolution" << std::endl;
+    std::cout << "filename,intensity,+-,partiality,phase,resolution" << std::endl;
     
     for (int i = 0; i < mtzs.size(); i++)
     {
@@ -859,7 +859,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
             if (!refl->anyAccepted())
                 continue;
             
-            std::cout << mtz->getFilename() << "\t" << refl->meanIntensity() << "\t" << refl->meanSigma() << "\t" << refl->miller(0)->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
+            std::cout << mtz->getFilename() << "\t" << refl->meanIntensity() << "\t" << refl->meanWeight() << "\t" << refl->meanPartiality() << "\t" << refl->miller(0)->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
         }
     }
 }
