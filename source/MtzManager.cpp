@@ -879,7 +879,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     std::ostringstream log;
     
     log << "Loaded " << mtz->nref_filein << " reflections (" << accepted()
-    << " accepted)." << std::endl;
+    << " accepted) for " << getFilename() << std::endl;
     
     bool lowMem = FileParser::getKey("LOW_MEMORY_MODE", false);
     

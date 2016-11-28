@@ -1401,8 +1401,6 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
             continue;
         }
         
-        log << "Loading file " << mtzName << std::endl;
-        
         double matrix[9];
         
         readMatrix(matrix, lines[i]);
