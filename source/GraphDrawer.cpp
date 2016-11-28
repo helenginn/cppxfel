@@ -24,6 +24,7 @@
 #include "Reflection.h"
 #include "Miller.h"
 #include "UnitCellLattice.h"
+#include "FileParser.h"
 
 GraphDrawer::GraphDrawer(MtzManager *mtz)
 {
@@ -834,13 +835,13 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 
 }
 
-
-void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l)
+void GraphDrawer::plotSingleMillerFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l)
 {
     int index = Reflection::reflectionIdForCoordinates(h, k, l);
     
-    std::ostringstream logged;
-    logged << "filename,delay,intensity,countingSigma,scale,partiality,phase,resolution" << std::endl;
+    std::ofstream csv;
+    csv.open("miller_" + i_to_str(h) + "_" + i_to_str(k) + "_" + i_to_str(l) + ".csv");
+    csv << "filename,delay,intensity,countingSigma,scale,partiality,phase,resolution" << std::endl;
     
     for (int i = 0; i < mtzs.size(); i++)
     {
@@ -867,14 +868,49 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
                 if (!miller->accepted())
                     continue;
                 
-                logged << mtz->getFilename() << "\t" << mtz->getTimeDelay() << "\t" << miller->intensity() << "\t" << miller->getCountingSigma() << "\t" << miller->getScale() << "\t" << miller->getPartiality() << "\t" << miller->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
+                csv << mtz->getFilename() << "\t" << mtz->getTimeDelay() << "\t" << miller->intensity() << "\t" << miller->getCountingSigma() << "\t" << miller->getScale() << "\t" << miller->getPartiality() << "\t" << miller->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
             }
             
         }
     }
 
-    Logger::log(logged);
+    csv.close();
+}
 
+void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l)
+{
+    if (!(h == 0 && k == 0 && l == 0))
+    {
+        plotSingleMillerFromMtzs(mtzs, h, k, l);
+        return;
+    }
+
+    // if not, we need to plot all out to resolution
+    
+    double resol = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 3.0);
+    std::vector<double> unitCell = mtzs[0]->getUnitCell();
+    
+    UnitCellLattice lattice = UnitCellLattice(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5], mtzs[0]->getLowGroup()->spg_num);
+    
+    int hMax, kMax, lMax;
+    
+    lattice.getMaxMillerIndicesForResolution(resol, &hMax, &kMax, &lMax);
+    
+    for (int i = -hMax; i < hMax; i++)
+    {
+        for (int j = -kMax; j < kMax; j++)
+        {
+            for (int k = -lMax; k < lMax; k++)
+            {
+                bool asu = ccp4spg_is_in_asu(mtzs[0]->getLowGroup(), i, j, k);
+                
+                if (asu)
+                {
+                    plotSingleMillerFromMtzs(mtzs, i, j, k);
+                }
+            }
+        }
+    }
 }
 
 GraphDrawer::~GraphDrawer()

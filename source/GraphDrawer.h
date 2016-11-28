@@ -54,7 +54,8 @@ public:
 	void bFactorPlot(vector<MtzManager *>& managers,
                      std::string filename = "all_gradients", GraphMap properties = GraphMap());
     
-    void plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l);
+    void plotSingleMillerFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l);
+    void plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h = 0, int k = 0, int l = 0);
     void plotOrientationStats(vector<MtzPtr> mtzs);
     void plotPartialityStats(int h = 0, int k = 0, int l = 0);
     MtzManager*& getMtz()
