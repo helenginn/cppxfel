@@ -840,7 +840,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
     int index = Reflection::reflectionIdForCoordinates(h, k, l);
     
     std::ostringstream logged;
-    logged << "filename,intensity,+-,partiality,phase,resolution" << std::endl;
+    logged << "filename,delay,intensity,countingSigma,scale,partiality,phase,resolution" << std::endl;
     
     for (int i = 0; i < mtzs.size(); i++)
     {
@@ -864,7 +864,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
             {
                 MillerPtr miller = refl->miller(k);
                 
-                logged << mtz->getFilename() << "\t" << miller->intensity() << "\t" << miller->getCountingSigma() << "\t" << miller->getScale() << miller->getPartiality() << "\t" << miller->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
+                logged << mtz->getFilename() << "\t" << mtz->getTimeDelay() << "\t" << miller->intensity() << "\t" << miller->getCountingSigma() << "\t" << miller->getScale() << miller->getPartiality() << "\t" << miller->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
             }
             
             Logger::log(logged);
