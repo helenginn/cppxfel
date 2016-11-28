@@ -2081,16 +2081,15 @@ void MtzRefiner::plotIntensities()
     {
         logged << "To plot a specific Miller index please use MILLER_INDEX; this will dump a huge number" << std::endl;
         sendLog();
-        
+        drawer.plotReflectionFromMtzs(getMtzManagers());
+    }
+    else
+    {
         h = hkl[0];
         k = hkl[1];
         l = hkl[2];
         
         drawer.plotReflectionFromMtzs(getMtzManagers(), h, k, l);
-    }
-    else
-    {
-        drawer.plotReflectionFromMtzs(getMtzManagers());
     }
     
     
