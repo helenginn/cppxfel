@@ -1765,7 +1765,7 @@ void MtzRefiner::integrationSummary()
     
 }
 
-void MtzRefiner::loadPanels()
+void MtzRefiner::loadPanels(bool mustFail)
 {
     std::string panelList = FileParser::getKey("PANEL_LIST", std::string(""));
     
@@ -1777,7 +1777,7 @@ void MtzRefiner::loadPanels()
         panelParser->parse();
         hasPanelParser = true;
     }
-    else if (panelList == "")
+    else if (panelList == "" && mustFail)
     {
         logged << "No panel list provided. Exiting as all reflections will be rejected."
         << std::endl;

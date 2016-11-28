@@ -309,7 +309,7 @@ void InputFileParser::parse(bool fromPython)
             if (line == "PLOT_INTENSITIES")
             {
                 understood = true;
-                refiner->plotIntensities();
+                refiner->plotIntensities(false);
             }
             
             

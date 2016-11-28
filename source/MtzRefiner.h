@@ -68,7 +68,7 @@ public:
     void loadImageFiles();
     void findSpots();
     
-    void loadPanels();
+    void loadPanels(bool mustFail = true);
 	void integrate();
     void integrationSummary();
 	static void integrateImagesWrapper(MtzRefiner *object,
