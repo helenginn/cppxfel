@@ -116,6 +116,7 @@ public:
     void removeSigmaValues();
     void radialAverage();
     void integrateSpots();
+    void linearScaling();
     
     void plotIntensities();
     

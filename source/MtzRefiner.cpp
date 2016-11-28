@@ -1483,6 +1483,21 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
     }
 }
 
+void MtzRefiner::linearScaling()
+{
+    loadInitialMtz();
+    readMatricesAndMtzs();
+    
+    MtzMerger merger;
+    merger.setAllMtzs(mtzManagers);
+    merger.setCycle(-1);
+    merger.setScalingType(ScalingTypeReference);
+    merger.setFilename("scaling.mtz");
+    merger.scale();
+    
+    referencePtr = merger.getMergedMtz();
+}
+
 void MtzRefiner::merge(bool mergeOnly)
 {
     setupFreeMillers();

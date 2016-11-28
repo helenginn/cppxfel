@@ -65,7 +65,6 @@ private:
     std::string makeFilename(std::string prefix);
     
     void scaleIndividual(MtzPtr mtz);
-    void scale();
     void fixSigmas();
     void removeReflections();
     void mergeMillersThread(int offset);
@@ -87,6 +86,7 @@ public:
     void merge();
     void mergeFull(bool anomalous = false);
     void mergeAnomalous();
+    void scale();
     
     void setCycle(int num);
     

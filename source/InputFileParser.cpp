@@ -221,6 +221,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->loadInitialMtz(true);
             }
             
+            if (line == "LINEAR_SCALING")
+            {
+                understood = true;
+                refiner->linearScaling();
+            }
+            
             if (line == "WRITE_NEW_MATRICES")
             {
                 understood = true;
