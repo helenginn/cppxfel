@@ -117,6 +117,8 @@ public:
     void radialAverage();
     void integrateSpots();
     
+    void plotIntensities();
+    
     void writePNGs(int total = 0);
 };
 

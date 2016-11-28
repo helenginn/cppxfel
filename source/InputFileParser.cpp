@@ -306,6 +306,13 @@ void InputFileParser::parse(bool fromPython)
                 refiner->hitAnalysis();
             }
             
+            if (line == "PLOT_INTENSITIES")
+            {
+                understood = true;
+                refiner->plotIntensities();
+            }
+            
+            
             if (!understood)
             {
                 log << "Skipping line " << line << std::endl;

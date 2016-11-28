@@ -447,6 +447,8 @@ void FileParser::generateFunctionList()
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;
+    
+    parserMap["MILLER_INDEX"] = simpleInt;
 }
 
 ParserFunction FileParser::splitLine(std::string line, std::string &command,

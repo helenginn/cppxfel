@@ -2057,6 +2057,28 @@ void MtzRefiner::integrateSpots()
 
 // MARK: Miscellaneous
 
+void MtzRefiner::plotIntensities()
+{
+    int h, k, l;
+    std::vector<int> hkl = FileParser::getKey("MILLER_INDEX", std::vector<int>());
+    
+    if (hkl.size() < 3)
+    {
+        logged << "To plot intensities please specify Miller index using MILLER_INDEX" << std::endl;
+        sendLog();
+        return;
+    }
+    
+    h = hkl[0];
+    k = hkl[1];
+    l = hkl[2];
+    
+    GraphDrawer drawer = GraphDrawer(NULL);
+    drawer.plotReflectionFromMtzs(getMtzManagers(), h, k, l);
+    
+    
+}
+
 void MtzRefiner::refineMetrology()
 {
     int count = 0;
