@@ -1507,7 +1507,11 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     if (spotCount() < minSpots)
     {
         logged << "N: Aborting image " << getFilename() << " due to too few spots." << std::endl;
-        sendLog();
+        
+        if (IOMRefinerCount() == 0)
+        {
+            sendLog();
+        }
         spotVectors.clear();
         std::vector<SpotVectorPtr>().swap(spotVectors);
         return;
