@@ -697,10 +697,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             }
         }
         
-        logged << "Loading image " << i << " (" << imgName << ")"
-        << std::endl;
-        Logger::mainLogger->addStream(&logged);
-        
         double usedWavelength = wavelength;
         double usedDistance = detectorDistance;
         
@@ -1133,9 +1129,6 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
             continue;
         }
         
-        std::cout << "Loading image " << i << " (" << imgName << ")"
-        << std::endl;
-        
         if (components.size() > 11)
         {
             wavelength = atof(components[10].c_str());
@@ -1249,8 +1242,6 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
             
             if (!hasList)
             {
-                logged << "Loading image " << newImages->size() << " (" << imgName << ")"
-                << std::endl;
                 Hdf5ImagePtr hdf5Image = Hdf5ImagePtr(new Hdf5Image(imgName, wavelength,
                                                                     detectorDistance));
                 ImagePtr newImage = boost::static_pointer_cast<Image>(hdf5Image);
