@@ -856,6 +856,9 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
                 continue;
             }
             
+            if (!refl->anyAccepted())
+                continue;
+            
             std::cout << mtz->getFilename() << "\t" << refl->meanIntensity() << "\t" << refl->meanSigma() << "\t" << refl->miller(0)->getPhase() << "\t" << 1 / refl->getResolution() << std::endl;
         }
     }
