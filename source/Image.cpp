@@ -2504,7 +2504,7 @@ void Image::drawSpotsOnPNG()
     }
     
     std::string filename = getBasename() + ".png";
-    int height = FileParser::getKey("PNG_HEIGHT", 4800);
+    int height = FileParser::getKey("PNG_HEIGHT", 2400);
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename, 2400, height));
     writePNG(file);
     

@@ -52,7 +52,7 @@ public:
     static void HSB_to_RGB(float hue, float sat, float bright,
                            png_byte *red, png_byte *green, png_byte *blue);
     
-    PNGFile(std::string filename, int width = 2400, int height = 4800);
+    PNGFile(std::string filename, int width = 2400, int height = 2400);
     
     void setCentre(int newX, int newY)
     {
