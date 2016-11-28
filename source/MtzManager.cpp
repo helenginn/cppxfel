@@ -926,6 +926,16 @@ void MtzManager::setSpaceGroup(int spgnum)
         return;
     }
     
+    if (FileParser::hasKey("SPACE_GROUP"))
+    {
+        logged << "N: Taking overridden space group from input file instead." << std::endl;
+        spgnum = FileParser::getKey("SPACE_GROUP", 1);
+    }
+    else
+    {
+        logged << "N: Input file does not specify an override space group." << std::endl;
+    }
+    
     low_group = ccp4spg_load_by_ccp4_num(spgnum);
     
     logged << "Loaded space group " << spgnum << " for all MTZs" << std::endl;
