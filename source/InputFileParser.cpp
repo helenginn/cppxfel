@@ -205,7 +205,7 @@ void InputFileParser::parse(bool fromPython)
             if (line == "LOAD_MTZ_FILES")
             {
                 understood = true;
-                refiner->loadPanels();
+                refiner->loadPanels(false);
                 refiner->readMatricesAndMtzs();
             }
             
@@ -309,7 +309,7 @@ void InputFileParser::parse(bool fromPython)
             if (line == "PLOT_INTENSITIES")
             {
                 understood = true;
-                refiner->plotIntensities(false);
+                refiner->plotIntensities();
             }
             
             
