@@ -714,6 +714,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         
         MatrixPtr unitCell;
         MatrixPtr newMatrix;
+        double delay = 0;
         std::string paramsLine = "";
         
         ImagePtr newImage;
@@ -867,6 +868,12 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             {
                 paramsLine = lines[i];
             }
+            
+            if (components[0] == "delay" && newMtzs)
+            {
+                if (components.size() > 1)
+                    delay = atof(components[1].c_str());
+            }
         }
         
         if (newImages)
@@ -909,6 +916,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 newManager->setSigmaToUnity();
             
             newManager->setParamLine(paramsLine);
+            newManager->setTimeDelay(delay);
             
             if (newManager->reflectionCount() > 0 || lowMemoryMode)
             {

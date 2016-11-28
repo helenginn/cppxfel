@@ -348,6 +348,7 @@ MtzManager::MtzManager(void)
     rotationMode = (RotationMode)rotMode;
     dropped = false;
     lastRSplit = 0;
+    timeDelay = 0;
     
     loadParametersMap();
     

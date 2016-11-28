@@ -90,6 +90,9 @@ protected:
 	double scale;
 	double cellDim[3];
 	double cellAngles[3];
+    
+    double timeDelay;
+    
     uint32 activeAmbiguity;
     
 	bool usingFixedWavelength;
@@ -729,6 +732,16 @@ public:
     void setImage(ImageWeakPtr imagePtr)
     {
         image = imagePtr;
+    }
+    
+    void setTimeDelay(double delay)
+    {
+        timeDelay = delay;
+    }
+    
+    double getTimeDelay()
+    {
+        return timeDelay;
     }
 };
 
