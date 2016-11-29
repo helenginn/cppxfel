@@ -444,6 +444,7 @@ void FileParser::generateFunctionList()
     parserMap["PNG_SHOEBOX"] = simpleBool;
     parserMap["PNG_ALL_LATTICES"] = simpleBool;
     parserMap["PNG_HEIGHT"] = simpleInt;
+    parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["SKIP_LINES"] = simpleInt;

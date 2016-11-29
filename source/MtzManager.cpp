@@ -1532,6 +1532,13 @@ int MtzManager::accepted(void)
 
 void MtzManager::writeToDat(std::string prefix)
 {
+    bool enableCSVs = FileParser::getKey("ENABLE_IMAGE_CSVS", false);
+    
+    if (!enableCSVs)
+    {
+        return;
+    }
+    
     std::string name = getFilename();
     int lastindex = (int)name.find_last_of(".");
         std::string rootName;
