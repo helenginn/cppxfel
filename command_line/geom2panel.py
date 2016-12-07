@@ -87,6 +87,7 @@ for panel in panelInfo:
         offsetY = imageMiddleY - physicalMiddleY
         rotation = - math.atan2(axisXY, axisXX) / math.pi * 180.0
 
+        print "#", panel
         print "PANEL %f %f %f %f %f %f 0 0 %f 1" % (min(relativeNewX, relativeNewOtherCornerX), min(relativeNewY, relativeNewOtherCornerY),
                                                     max(relativeNewX, relativeNewOtherCornerX), max(relativeNewY, relativeNewOtherCornerY),    
                                                     offsetX, offsetY, rotation)
