@@ -38,15 +38,16 @@ Spot::Spot(ImagePtr image)
     height = FileParser::getKey("IMAGE_SPOT_PROBE_HEIGHT", 100);
     background = FileParser::getKey("IMAGE_SPOT_PROBE_BACKGROUND", 10);
     length = FileParser::getKey("IMAGE_SPOT_PROBE_PADDING", 1) * 2 + 1;
+    int backgroundPadding = FileParser::getKey("IMAGE_SPOT_PROBE_BG_PADDING", 0) * 2 + 1;
     
     if (minCorrelation == 0)
     {
         maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 2.0);
-        minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 600.);
+        minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 100.);
         minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
     }
     
-	makeProbe(height, background, length);
+	makeProbe(height, background, length, backgroundPadding);
 }
 
 Spot::~Spot()
@@ -192,33 +193,41 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
     return true;
 }
 
-void Spot::makeProbe(int height, int background, int length)
+void Spot::makeProbe(int height, int background, int length, int backPadding)
 {
+    if (backPadding < length)
+        backPadding = length;
+    
 	for (int i = 0; i < probe.size(); i++)
 		probe[i].clear();
 
 	probe.clear();
 
-	if (length % 2 == 0)
-		length++;
-
-	int size = (length - 1) / 2;
+	if (backPadding % 2 == 0)
+		backPadding++;
+    
+    if (length % 2 == 0)
+        length++;
+    
+    int backgroundThickness = (backPadding - length) / 2;
+    
+	int size = (backPadding - 1) / 2;
 
 	int centre = size;
 
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < backPadding; i++)
 	{
 		probe.push_back(vector<double>());
 
-		for (int j = 0; j < length; j++)
+		for (int j = 0; j < backPadding; j++)
 		{
-			probe[i].push_back(0);
+			probe[i].push_back(background);
 		}
 	}
 
-	for (int i = 0; i < length; i++)
+	for (int i = backgroundThickness; i < length + backgroundThickness; i++)
 	{
-		for (int j = 0; j < length; j++)
+		for (int j = backgroundThickness; j < length + backgroundThickness; j++)
 		{
 			int from_centre_i = i - centre;
 			int from_centre_j = j - centre;
@@ -231,12 +240,14 @@ void Spot::makeProbe(int height, int background, int length)
 
             // further out the fraction, the lower the value
 			if (fraction > 1)
+            {
 				probe[i][j] = background;
+            }
 			else
+            {
 				probe[i][j] = (1 - fraction) * height + background;
-
+            }
 		}
-
 	}
 }
 
