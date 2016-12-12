@@ -624,9 +624,6 @@ void Panel::plotVectors(int i, PlotType plotType)
         if (bins.size() == 2 && j == 1)
             break;
 
-   /*     vector<double> xRed, yRed;
-        vector<double> xBlue, yBlue;
-    */
         vector<MillerPtr> resMillers;
     
         
@@ -716,12 +713,6 @@ void Panel::plotVectors(int i, PlotType plotType)
             {
                 csv.addEntry(0, difference.first, difference.second, strength, rel_x, rel_y, angle);
             }
-            
-      /*      xRed.push_back(difference.first);
-            yRed.push_back(difference.second);
-            xBlue.push_back(strength);
-            yBlue.push_back(0); */
-            
         }
         
         std::ostringstream resString;
