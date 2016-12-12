@@ -937,9 +937,6 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
         MtzPtr mtz = mtzs[i];
         ImagePtr image = mtz->getImagePtr();
         
-        logged << "Checking MTZ " << mtz->getFilename() << std::endl;
-        Logger::log(logged);
-        
         for (int j = 0; j < mtz->reflectionCount(); j++)
         {
             ReflectionPtr refl = mtz->reflection(j);
@@ -950,9 +947,6 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
             {
                 continue;
             }
-            
-            logged << "Found suitable reflection on " << mtz->getFilename() << std::endl;
-            Logger::log(logged);
             
             
             if (!refl->anyAccepted())
@@ -966,8 +960,6 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
                 if (!miller->accepted())
                     continue;
                 
-                logged << "Found Miller on " << mtz->getFilename() << std::endl;
-                Logger::log(logged);
                 
                 int xStart = xGrid * (windowPadding * 2 + 3) + 2;
                 int yStart = yGrid * (windowPadding * 2 + 3) + 2;
@@ -977,6 +969,9 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
                 Coord millerCoord = std::make_pair(x, y);
                 PanelPtr panel = Panel::panelForCoord(millerCoord);
                 Coord shifted = panel->shiftSpot(millerCoord);
+                
+                logged << "Found Miller on " << mtz->getFilename() << " - will be plotting at (" << shifted.first << ", " << shifted.second << ")" << std::endl;
+                Logger::log(logged);
                 
                 for (int s = -windowPadding; s < windowPadding + 1; s++)
                 {
