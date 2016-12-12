@@ -61,8 +61,7 @@ private:
     void centreWindowShift();
     void findAllParameters();
     void findShift(double windowSize, double step, double x = 0, double y = 0);
-    void findAxisDependence(double windowSize);
-
+    
     double tiltShiftScore(double stdev = true);
     static double tiltShiftScoreWrapper(void *object);
     static double swivelShiftScoreWrapper(void *object);
