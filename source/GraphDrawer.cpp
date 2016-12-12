@@ -974,6 +974,9 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
                 
                 double x = miller->getLastX();
                 double y = miller->getLastY();
+                Coord millerCoord = std::make_pair(x, y);
+                PanelPtr panel = Panel::panelForCoord(millerCoord);
+                Coord shifted = panel->shiftSpot(millerCoord);
                 
                 for (int s = -windowPadding; s < windowPadding + 1; s++)
                 {
@@ -982,7 +985,10 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
                         int pngX = xStart + s + windowPadding;
                         int pngY = yStart + t + windowPadding;
                         
-                        double value = image->valueAt(x + s, y + t);
+                        int shiftX = shifted.first + s;
+                        int shiftY = shifted.second + t;
+                        
+                        double value = image->valueAt(shiftX, shiftY);
                         if (value < 0)
                             value = 0;
                         
