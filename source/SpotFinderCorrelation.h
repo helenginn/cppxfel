@@ -16,15 +16,12 @@
 class SpotFinderCorrelation : public SpotFinder
 {
 private:
-    double jump;
     
     void focusOnMax(int *x, int *y);
 
 public:
     SpotFinderCorrelation(ImagePtr image) : SpotFinder(image)
     {
-        jump = FileParser::getKey("IMAGE_PIXEL_JUMP", 10);
-        
         
     }
     
