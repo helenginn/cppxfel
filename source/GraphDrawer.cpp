@@ -969,8 +969,8 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
                 logged << "Found Miller on " << mtz->getFilename() << std::endl;
                 Logger::log(logged);
                 
-                int xStart = xGrid * (windowPadding + 2) + 2;
-                int yStart = yGrid * (windowPadding + 2) + 2;
+                int xStart = xGrid * (windowPadding * 2 + 3) + 2;
+                int yStart = yGrid * (windowPadding * 2 + 3) + 2;
                 
                 double x = miller->getLastX();
                 double y = miller->getLastY();
