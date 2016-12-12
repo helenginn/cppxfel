@@ -38,7 +38,7 @@ Spot::Spot(ImagePtr image)
     height = FileParser::getKey("IMAGE_SPOT_PROBE_HEIGHT", 100);
     background = FileParser::getKey("IMAGE_SPOT_PROBE_BACKGROUND", 10);
     length = FileParser::getKey("IMAGE_SPOT_PROBE_PADDING", 1) * 2 + 1;
-    int backgroundPadding = FileParser::getKey("IMAGE_SPOT_PROBE_BG_PADDING", 0) * 2 + 1;
+    backgroundPadding = FileParser::getKey("IMAGE_SPOT_PROBE_BG_PADDING", 0) * 2 + 1;
     
     if (minCorrelation == 0)
     {
@@ -155,7 +155,7 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
     
     std::vector<double> probeIntensities, realIntensities;
     
-    int padding = (length - 1) / 2;
+    int padding = (backgroundPadding - 1) / 2;
     
     for (int j = -padding; j < padding + 1; j++)
     {
@@ -523,6 +523,26 @@ void Spot::spotsAndVectorsToResolution(double lowRes, double highRes, std::vecto
             && (firstSpot->resolution() > minResol && secondSpot->resolution() > minResol))
         {
             lowResSpotVectors->push_back(spotVectors[i]);
+        }
+    }
+}
+
+void Spot::addToMask(int *mask, int width)
+{
+    int padding = (backgroundPadding - 1) / 2;
+    
+    for (int j = -padding; j < padding + 1; j++)
+    {
+        for (int i = -padding; i < padding + 1; i++)
+        {
+            double xPos = getRawXY().first;
+            double yPos = getRawXY().second;
+            
+            int xShifted = xPos + i;
+            int yShifted = yPos + j;
+            
+            int position = width * yShifted + xShifted;
+            mask[position] = 1;
         }
     }
 }
