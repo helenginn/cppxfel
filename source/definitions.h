@@ -10,7 +10,6 @@
 
 #include "parameters.h"
 
-#define MAC
 #define MAX_THREADS 8
 
 #endif /* DEFINITIONS_H_ */

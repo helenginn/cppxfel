@@ -49,11 +49,7 @@ void Wiki::process()
 
 	vector<std::string> tags;
 
-#ifdef MAC
 	tags.push_back("Apple");
-#else
-	tags.push_back("Linux");
-#endif
 
 	vector<std::string> directories = FileReader::split(filename, '/');
 

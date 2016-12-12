@@ -607,7 +607,6 @@ double Panel::angleForMiller(Miller *miller)
 
 void Panel::plotVectors(int i, PlotType plotType)
 {
-#ifdef MAC
     bool splitResolution = Panel::panelCount() == 1;
     
     vector<double> bins;
@@ -751,9 +750,7 @@ void Panel::plotVectors(int i, PlotType plotType)
         vector<MillerPtr>().swap(resMillers);
     
     }
-#endif
 }
-
 
 double Panel::stdevScore(double minRes, double maxRes)
 {

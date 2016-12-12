@@ -377,9 +377,6 @@ void new_main(int argc, char *argv[])
         }
     }
     
-    
-    
-#ifdef MAC
     if (strcmp(argv[1], "-partiality") == 0)
 	{
 		if (argc <= 3)
@@ -512,7 +509,6 @@ void new_main(int argc, char *argv[])
 
 		delete reference;
 	}
-#endif
     
     time_t endcputime;
     time(&endcputime);
