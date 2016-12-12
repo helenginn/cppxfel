@@ -964,13 +964,13 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
                 int xStart = xGrid * (windowPadding * 2 + 3) + 2;
                 int yStart = yGrid * (windowPadding * 2 + 3) + 2;
                 
-                double x = miller->getLastX();
-                double y = miller->getLastY();
-                Coord millerCoord = std::make_pair(x, y);
-                PanelPtr panel = Panel::panelForCoord(millerCoord);
-                Coord shifted = panel->shiftSpot(millerCoord);
+                PanelPtr panel = Panel::panelForMiller(&*miller);
+                Coord bestShift = panel->shiftForMiller(&*miller);
                 
-                logged << "Found Miller on " << mtz->getFilename() << " - will be plotting at (" << shifted.first << ", " << shifted.second << ")" << std::endl;
+                double shiftedX = miller->getLastX() + bestShift.first;
+                double shiftedY = miller->getLastY() + bestShift.second;
+                
+                logged << "Found Miller on " << mtz->getFilename() << " - will be plotting at (" << shiftedX << ", " << shiftedY << ")" << std::endl;
                 Logger::log(logged);
                 
                 for (int s = -windowPadding; s < windowPadding + 1; s++)
@@ -980,10 +980,10 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
                         int pngX = xStart + s + windowPadding;
                         int pngY = yStart + t + windowPadding;
                         
-                        int shiftX = shifted.first + s;
-                        int shiftY = shifted.second + t;
+                        int localX = shiftedX + s;
+                        int localY = shiftedY + t;
                         
-                        double value = image->valueAt(shiftX, shiftY);
+                        double value = image->valueAt(localX, localY);
                         if (value < 0)
                             value = 0;
                         
