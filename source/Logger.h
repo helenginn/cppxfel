@@ -69,6 +69,8 @@ public:
     static void log(std::ostringstream &stream)
     {
         mainLogger->addStream(&stream);
+        stream.str("");
+        stream.clear();
     }
 };
 
