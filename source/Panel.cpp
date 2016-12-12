@@ -66,7 +66,7 @@ void Panel::init(vector<double> dimensions, PanelTag newTag)
         originalShift = std::make_pair(dimensions[4], dimensions[5]);
         bestShift = std::make_pair(dimensions[4], dimensions[5]);
     }
-    else
+    else if (tag != PanelTagBad)
     {
         usePanelInfo = false;
     }
@@ -368,28 +368,41 @@ Coord Panel::shiftSpot(Coord xy)
     return translated;
 }
 
-PanelPtr Panel::panelForSpotCoord(Coord coord)
+PanelPtr Panel::spotCoordFallsInMask(Coord shifted)
 {
-    for (int i = 0; i < badPanels.size(); i++)
+    for (int j = 0; j < badPanels.size(); j++)
     {
-        Coord shifted = badPanels[i]->shiftSpot(coord);
-        
-        if (badPanels[i]->isCoordInPanel(shifted))
+        if (badPanels[j]->isCoordInPanel(shifted))
         {
-            return PanelPtr();
+            return badPanels[j];
         }
     }
-    
+
+    return PanelPtr();
+}
+
+PanelPtr Panel::panelForSpotCoord(Coord coord, PanelPtr *anyBadPanel)
+{
     for (int i = 0; i < panels.size(); i++)
     {
         Coord shifted = panels[i]->shiftSpot(coord);
         
         if (panels[i]->isCoordInPanel(shifted))
         {
+            PanelPtr mask = spotCoordFallsInMask(shifted);
+            
+            if (mask)
+            {
+                if (anyBadPanel) *anyBadPanel = mask;
+                return PanelPtr();
+            }
+            
+            if (anyBadPanel) *anyBadPanel = PanelPtr();
             return panels[i];
         }
     }
     
+    if (anyBadPanel) *anyBadPanel = PanelPtr();
     return PanelPtr();
 }
 

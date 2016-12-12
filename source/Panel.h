@@ -98,8 +98,9 @@ public:
 	static void addMillerToPanelArray(MillerPtr miller);
 	static PanelPtr panelForMiller(Miller *miller);
     static PanelPtr panelForSpot(Spot *spot);
-    static PanelPtr panelForSpotCoord(Coord coord);
+    static PanelPtr panelForSpotCoord(Coord coord, PanelPtr *anyBadPanel = NULL);
     static PanelPtr panelForCoord(Coord coord);
+    static PanelPtr spotCoordFallsInMask(Coord shifted);
     Coord shiftSpot(Coord xy);
     static void setupPanel(PanelPtr panel);
     static void removePanel(PanelPtr panel);

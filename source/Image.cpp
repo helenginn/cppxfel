@@ -2606,7 +2606,8 @@ void Image::writePNG(PNGFilePtr file)
     double threshold = FileParser::getKey("PNG_THRESHOLD", defaultThreshold);
     
     PanelPtr lastPanel = PanelPtr();
-    
+ //   PanelPtr lastMask = PanelPtr();
+
     for (int i = 0; i < xDim; i++)
     {
         for (int j = 0; j < yDim; j++)
@@ -2618,20 +2619,16 @@ void Image::writePNG(PNGFilePtr file)
             unsigned char pixelValue = std::min(value, threshold) * 255 / threshold;
             pixelValue = 255 - pixelValue;
             
-          //  std::cout << (int)pixelValue << ", ";
-            
             Coord coord = std::make_pair(i, j);
             
-            //Panel::translationShiftForSpot(this);
-            //panel->getSwivelShift(spot->getRawXY(), true);
-            
             PanelPtr panel = lastPanel;
+        //    PanelPtr mask = lastMask;
             
             if (panel)
             {
                 Coord shifted = lastPanel->shiftSpot(coord);
                 
-                if (!panel->isCoordInPanel(shifted))
+                if (!panel->isCoordInPanel(shifted) || Panel::spotCoordFallsInMask(shifted))
                 {
                     panel = Panel::panelForSpotCoord(coord);
                 }
@@ -2644,6 +2641,7 @@ void Image::writePNG(PNGFilePtr file)
             if (panel)
             {
                 lastPanel = panel;
+          //      lastMask = mask;
                 
                 Coord realPosition = panel->realCoordsForImageCoord(coord);
                 file->setPixelColourRelative(realPosition.first, realPosition.second, pixelValue, pixelValue, pixelValue);

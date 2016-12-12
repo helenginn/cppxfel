@@ -52,8 +52,7 @@ void PanelParser::addPanel(std::string rest, PanelTag tag)
     
 	vector<double> panelCoords = boost::get<vector<double> >(singleParameter[keyword]);
 
-	PanelPtr ptr = PanelPtr(new Panel(panelCoords));
-    ptr->setTag(tag);
+	PanelPtr ptr = PanelPtr(new Panel(panelCoords, tag));
 	Panel::setupPanel(ptr);
 	panels.push_back(ptr);
 }
