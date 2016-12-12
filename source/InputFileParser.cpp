@@ -318,6 +318,11 @@ void InputFileParser::parse(bool fromPython)
                 refiner->plotIntensities();
             }
             
+            if (line == "PLOT_INTEGRATION_WINDOWS")
+            {
+                understood = true;
+                refiner->plotIntegrationWindows();
+            }
             
             if (!understood)
             {

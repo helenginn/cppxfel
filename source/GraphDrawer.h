@@ -58,6 +58,8 @@ public:
     void plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h = 0, int k = 0, int l = 0);
     void plotOrientationStats(vector<MtzPtr> mtzs);
     void plotPartialityStats(int h = 0, int k = 0, int l = 0);
+    void cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h = 0, int k = 0, int l = 0);
+    
     MtzManager*& getMtz()
 	{
 		return mtz;

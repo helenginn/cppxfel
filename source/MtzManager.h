@@ -48,6 +48,7 @@ class MtzManager : public boost::enable_shared_from_this<MtzManager>
 
 protected:
     std::string filename;
+    std::string parentImage;
 	static CCP4SPG *low_group;
     static std::mutex spaceGroupMutex;
 	static bool reflection_comparison(ReflectionPtr i, ReflectionPtr j);
@@ -147,6 +148,7 @@ public:
     double externalScale;
     int removeStrongSpots(std::vector<SpotPtr> *spots, bool actuallyDelete = true);
     int rejectOverlaps();
+    ImagePtr loadParentImage();
 
 	MtzManager(void);
 	virtual ~MtzManager(void);
@@ -742,6 +744,16 @@ public:
     double getTimeDelay()
     {
         return timeDelay;
+    }
+    
+    std::string getParentImageName()
+    {
+        return parentImage;
+    }
+    
+    void setParentImageName(std::string pImage)
+    {
+        parentImage = pImage;
     }
 };
 

@@ -1921,3 +1921,16 @@ MtzPtr MtzManager::trajectoryMtz(MtzPtr one, MtzPtr two, double fractionExcited)
     
     return newMtz;
 }
+
+ImagePtr MtzManager::loadParentImage()
+{
+    ImagePtr currentImage = getImagePtr();
+    
+    if (currentImage == ImagePtr())
+    {
+        currentImage = ImagePtr(new Image(getParentImageName()));
+        image = currentImage;
+    }
+    
+    return currentImage;
+}

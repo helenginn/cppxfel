@@ -728,6 +728,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         }
         
         bool hasSpots = false;
+        std::string parentImage = "";
         
         for (int i = 1; i < lines.size(); i++)
         {
@@ -741,6 +742,11 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 std::string spotsFile = components[1];
                 newImage->setSpotsFile(spotsFile);
                 hasSpots = true;
+            }
+            
+            if (components[0] == "parent")
+            {
+                parentImage = components[1];
             }
             
             if (components[0] == "matrix")
@@ -893,6 +899,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             MtzPtr newManager = MtzPtr(new MtzManager());
             
             newManager->setFilename(imgName.c_str());
+            newManager->setParentImageName(parentImage);
             
             if (!newMatrix)
             {
@@ -1842,6 +1849,14 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         // write out matrices etc.
         std::string imgFilename = manager->filenameRoot();
         
+        ImagePtr image = manager->getImagePtr();
+        std::string parentName;
+        
+        if (image)
+        {
+            parentName = image->getBasename();
+        }
+        
         MatrixPtr matrix = manager->getMatrix()->copy();
         
         if (includeRots)
@@ -1868,6 +1883,8 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         {
             refineMats << "image " << prefix << imgFilename << std::endl;
             mergeMats << "image ref-" << prefix << imgFilename << std::endl;
+            refineMats << "parent " << imgFilename << std::endl;
+            mergeMats << "parent " << imgFilename << std::endl;
             std::string description = matrix->description(true);
             refineMats << description << std::endl;
             mergeMats << description << std::endl;
@@ -2070,6 +2087,31 @@ void MtzRefiner::integrateSpots()
 }
 
 // MARK: Miscellaneous
+
+void MtzRefiner::plotIntegrationWindows()
+{
+    int h, k, l;
+    std::vector<int> hkl = FileParser::getKey("MILLER_INDEX", std::vector<int>());
+    GraphDrawer drawer = GraphDrawer(NULL);
+    
+    if (hkl.size() < 3)
+    {
+        logged << "Please set MILLER_INDEX" << std::endl;
+        sendLog();
+    }
+    else
+    {
+        h = hkl[0];
+        k = hkl[1];
+        l = hkl[2];
+        
+        logged << "Drawing integration windows for " << h << " " << k << " " << l << " for " << mtzManagers.size() << " mtzs." << std::endl;
+        sendLog();
+        
+        drawer.cutoutIntegrationAreas(mtzManagers, h, k, l);
+    }
+
+}
 
 void MtzRefiner::plotIntensities()
 {

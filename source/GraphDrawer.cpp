@@ -25,6 +25,8 @@
 #include "Miller.h"
 #include "UnitCellLattice.h"
 #include "FileParser.h"
+#include "PNGFile.h"
+#include "Image.h"
 
 GraphDrawer::GraphDrawer(MtzManager *mtz)
 {
@@ -911,6 +913,102 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
             }
         }
     }
+}
+
+void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k, int l)
+{
+    int index = Reflection::reflectionIdForCoordinates(h, k, l);
+    int windowPadding = 10;
+    double threshold = FileParser::getKey("PNG_THRESHOLD", 1000.);
+    
+    PNGFile png = PNGFile("windows.png", 1000, 1000);
+    
+    int xGrid = 0;
+    int yGrid = 0;
+    
+    std::ostringstream logged;
+    
+    logged << "Checking " << mtzs.size() << " mtz files." << std::endl;
+    Logger::log(logged);
+    
+    
+    for (int i = 0; i < mtzs.size(); i++)
+    {
+        MtzPtr mtz = mtzs[i];
+        ImagePtr image = mtz->getImagePtr();
+        
+        logged << "Checking MTZ " << mtz->getFilename() << std::endl;
+        Logger::log(logged);
+        
+        for (int j = 0; j < mtz->reflectionCount(); j++)
+        {
+            ReflectionPtr refl = mtz->reflection(j);
+            
+            long unsigned int thisID = refl->getReflId();
+            
+            if (thisID != index)
+            {
+                continue;
+            }
+            
+            logged << "Found suitable reflection on " << mtz->getFilename() << std::endl;
+            Logger::log(logged);
+            
+            
+            if (!refl->anyAccepted())
+                continue;
+            
+            
+            for (int k = 0; k < refl->millerCount(); k++)
+            {
+                MillerPtr miller = refl->miller(k);
+                
+                if (!miller->accepted())
+                    continue;
+                
+                logged << "Found Miller on " << mtz->getFilename() << std::endl;
+                Logger::log(logged);
+                
+                int xStart = xGrid * (windowPadding + 2) + 2;
+                int yStart = yGrid * (windowPadding + 2) + 2;
+                
+                double x = miller->getLastX();
+                double y = miller->getLastY();
+                
+                for (int s = -windowPadding; s < windowPadding + 1; s++)
+                {
+                    for (int t = -windowPadding; t < windowPadding + 1; t++)
+                    {
+                        int pngX = xStart + s + windowPadding;
+                        int pngY = yStart + t + windowPadding;
+                        
+                        double value = image->valueAt(x + s, y + t);
+                        if (value < 0)
+                            value = 0;
+                        
+                        unsigned char pixelValue = std::min(value, threshold) * 255 / threshold;
+                        pixelValue = 255 - pixelValue;
+                        
+                        png.setPixelColour(pngX, pngY, pixelValue, pixelValue, pixelValue);
+                    }
+                }
+                
+                xGrid++;
+                
+                if (xGrid > 10)
+                {
+                    xGrid = 0;
+                    yGrid++;
+                }
+            }
+            
+        }
+    }
+    
+    png.writeImageOutput();
+    
+    logged << "Plotted Miller " << h << ", " << k << ", " << l << std::endl;
+    Logger::log(logged);
 }
 
 GraphDrawer::~GraphDrawer()

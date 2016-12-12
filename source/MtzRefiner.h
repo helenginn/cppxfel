@@ -119,6 +119,7 @@ public:
     void linearScaling();
     
     void plotIntensities();
+    void plotIntegrationWindows();
     
     void writePNGs(int total = 0);
 };
