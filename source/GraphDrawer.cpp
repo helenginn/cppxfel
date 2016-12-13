@@ -876,6 +876,10 @@ void GraphDrawer::plotSingleMillerFromMtzs(std::vector<MtzPtr> mtzs, int h, int 
         }
     }
 
+    std::ostringstream logged;
+    logged << "Plotted Miller " << h << ", " << k << ", " << l << std::endl;
+    Logger::log(logged);
+    
     csv.close();
 }
 
