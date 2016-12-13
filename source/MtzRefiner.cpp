@@ -643,6 +643,19 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
     vector<std::string> imageList = FileReader::split(contents, "\nimage ");
     
+    std::ostringstream logged;
+    
+    if (imageList[0].substr(0, 6) == "ersion")
+    {
+        std::string vString = imageList[0].substr(7, imageList[0].length() - 7);
+        float version = atof(vString.c_str());
+        
+        logged << "Autodetecting matrix list version: " << version << std::endl;
+        
+        v3 = (version > 2.99 && version < 3.01);
+    }
+    Logger::log(logged);
+    
     int maxThreads = FileParser::getMaxThreads();
     
     int skip = imageSkip(imageList.size());
