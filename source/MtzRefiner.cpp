@@ -1832,6 +1832,46 @@ void MtzRefiner::findSteps()
 
 // MARK: indexing
 
+void MtzRefiner::writeAllNewOrientations()
+{
+    std::string filename = FileParser::getKey("NEW_MATRIX_LIST", std::string("new_orientations.dat"));
+    bool includeRots = false;
+    
+    std::ofstream allMats;
+    allMats.open(FileReader::addOutputDirectory("all-" + filename));
+    
+    allMats << "version 3.0" << std::endl;
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        std::string imageName = images[i]->getBasename();
+        allMats << "image " << imageName << std::endl;
+        
+        for (int j = 0; j < images[i]->mtzCount(); j++)
+        {
+            MtzPtr mtz = images[i]->mtz(j);
+            int crystalNum = j;
+            
+            MatrixPtr matrix = mtz->getMatrix()->copy();
+            
+            if (includeRots)
+            {
+                double hRad = mtz->getHRot() * M_PI / 180;
+                double kRad = mtz->getKRot() * M_PI / 180;
+                
+                matrix->rotate(hRad, kRad, 0);
+            }
+            
+            allMats << "crystal " << crystalNum << std::endl;
+            std::string description = matrix->description(true);
+            allMats << description << std::endl;
+        }
+    }
+    
+    Logger::mainLogger->addString("Written to matrix list: all-" + filename);
+    allMats.close();
+}
+
 void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
 {
     std::ofstream mergeMats;
@@ -1929,6 +1969,8 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
     refineMats.close();
     mergeMats.close();
     integrateMats.close();
+    
+    writeAllNewOrientations();
 }
 
 void MtzRefiner::findSpotsThread(MtzRefiner *me, int offset)

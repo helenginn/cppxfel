@@ -112,6 +112,7 @@ public:
     void displayIndexingHands();
     void findSteps();
     
+    void writeAllNewOrientations();
     void writeNewOrientations(bool includeRots = false, bool detailed = false);
     void removeSigmaValues();
     void radialAverage();
