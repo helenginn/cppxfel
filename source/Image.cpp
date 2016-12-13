@@ -2177,11 +2177,6 @@ std::vector<MtzPtr> Image::getLastMtzs()
 
 void Image::writeSpotsList(std::string spotFile)
 {
-    bool enableCSVs = FileParser::getKey("ENABLE_IMAGE_CSVS", false);
-    
-    if (!enableCSVs)
-        return;
-    
     std::string spotDat;
     
     if (spotFile == "")

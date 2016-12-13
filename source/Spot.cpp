@@ -403,8 +403,11 @@ bool Spot::isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees)
 
 void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
 {
-  //  std::ofstream dat;
-  //  dat.open(filename);
+    bool enableCSVs = FileParser::getKey("ENABLE_IMAGE_CSVS", false);
+    
+    if (!enableCSVs)
+        return;
+    
     int count = 0;
     
     CSV csv = CSV(9, "h", "k", "l", "angle", "1", "1", "x", "y", "1");
