@@ -1157,14 +1157,6 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     }
     
     rawIntensity = getImage()->intensityAt(x, y, shoebox, &countingSigma, 0);
-    
-    if (false && h == 20 && k == -49 && l == -65)
-    {
-        logged << "Raw intensity " << rawIntensity << ", counting sigma " << countingSigma << " for position " << x << ", " << y << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal);
-        getImage()->printBox(x, y, 8);
-        shoebox->printShoebox();
-    }
 }
 
 void Miller::incrementOverlapMask(double hRot, double kRot)
