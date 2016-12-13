@@ -599,7 +599,7 @@ void MtzRefiner::applyParametersToImages()
     }
 }
 
-void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset, bool v3)
+void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset, bool v3, MtzRefiner *me)
 {
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
@@ -880,7 +880,8 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                     if (v3 && newMtzs)
                     {
                         MtzPtr newManager = MtzPtr(new MtzManager());
-                        newManager->setFilename(("img-" + imgNameOnly + "_" + i_to_str(currentCrystal) + ".mtz").c_str());
+                        std::string prefix = (me->readRefinedMtzs ? "ref-" : "");
+                        newManager->setFilename((prefix + "img-" + imgNameOnly + "_" + i_to_str(currentCrystal) + ".mtz").c_str());
                         newManager->setMatrix(newMatrix);
                         
                         if (setSigmaToUnity)
@@ -888,9 +889,19 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                         
                         newManager->setParamLine(paramsLine);
                         newManager->setTimeDelay(delay);
-            
-                        newImage->addMtz(newManager);
-                        newMtzs->push_back(newManager);
+                        newManager->setImage(newImage);
+                        newManager->loadReflections(PartialityModelScaled);
+                        
+                        if (newManager->reflectionCount() > 0)
+                        {
+                            newImage->addMtz(newManager);
+                            newMtzs->push_back(newManager);
+                        }
+                        else
+                        {
+                            logged << "No reflections loaded for crystal " << currentCrystal << " for image " << imgNameOnly << " so removing this MTZ." << std::endl;
+                            Logger::log(logged);
+                        }
                     }
                     
                     unitCell = MatrixPtr();
@@ -1005,13 +1016,13 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
             vector<MtzPtr> *chosenMtzs = areImages ? NULL : &mtzSubsets[i];
             vector<ImagePtr> *chosenImages = areImages ? &imageSubsets[i] : NULL;
             boost::thread *thr = new boost::thread(readSingleImageV2, filename,
-                                                   chosenImages, chosenMtzs, i, false);
+                                                   chosenImages, chosenMtzs, i, false, this);
             threads.add_thread(thr);
         }
         else if (version == 3.0)
         {
             boost::thread *thr = new boost::thread(readSingleImageV2, filename,
-                                                   &imageSubsets[i], &mtzSubsets[i], i, true);
+                                                   &imageSubsets[i], &mtzSubsets[i], i, true, this);
             threads.add_thread(thr);
         }
     }
