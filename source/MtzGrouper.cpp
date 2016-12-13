@@ -34,7 +34,6 @@ MtzGrouper::MtzGrouper()
 	acceptableResolution = 1;
 	cutResolution = false;
     expectedResolution = FileParser::getKey("MAX_RESOLUTION_ALL", 1.6);
-    usingNewRefinement = FileParser::getKey("MASS_SCALING", false);
     
     exclusionByCCHalf = FileParser::getKey("EXCLUSION_BY_CC_HALF", false);
         

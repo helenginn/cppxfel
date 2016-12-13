@@ -17,7 +17,6 @@
 class MtzGrouper
 {
 private:
-    bool usingNewRefinement;
     std::ostringstream logged;
 	double correlationThreshold;
 	ScalingType scalingType;
