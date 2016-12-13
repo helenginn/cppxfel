@@ -1601,6 +1601,8 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
         logged << "Integrating image " << i << std::endl;
         Logger::mainLogger->addStream(&logged);
         
+        images[i]->clearMtzs();
+        
         if (refineDistances)
             images[i]->refineDistances();
         

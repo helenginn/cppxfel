@@ -276,6 +276,12 @@ public:
         std::vector<IOMRefinerPtr>().swap(indexers);
     }
     
+    void clearMtzs()
+    {
+        mtzs.clear();
+        std::vector<MtzPtr>().swap(mtzs);
+    }
+    
 	int getXDim() const
 	{
 		return xDim;
