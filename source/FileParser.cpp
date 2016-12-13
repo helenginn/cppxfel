@@ -191,7 +191,8 @@ void FileParser::generateFunctionList()
     parserMap["STOP_REFINEMENT"] = simpleBool;
     parserMap["OLD_MERGE"] = simpleBool;
     parserMap["MERGE_MEDIAN"] = simpleBool;
-
+    parserMap["READ_REFINED_MTZS"] = simpleBool;
+    
     parserMap["SET_SIGMA_TO_UNITY"] = simpleBool;
     parserMap["APPLY_UNREFINED_PARTIALITY"] = simpleBool;
     parserMap["BINARY_PARTIALITY"] = simpleBool;

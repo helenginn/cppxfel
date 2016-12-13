@@ -48,6 +48,7 @@ MtzRefiner::MtzRefiner()
     
     hasRefined = false;
     isPython = false;
+    readRefinedMtzs = FileParser::getKey("READ_REFINED_MTZS", false);
     
     indexManager = NULL;
 }
@@ -1539,6 +1540,7 @@ void MtzRefiner::merge(bool mergeOnly)
     
     loadInitialMtz();
     MtzManager::setReference(&*reference);
+    readRefinedMtzs = true;
     readMatricesAndMtzs();
     
     bool partialityRejection = FileParser::getKey("PARTIALITY_REJECTION", false);
