@@ -598,7 +598,7 @@ void MtzRefiner::applyParametersToImages()
     }
 }
 
-void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset)
+void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset, bool v3)
 {
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
@@ -638,8 +638,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         ignoreMissing = true;
     }
     
-    const std::string contents = FileReader::get_file_contents(
-                                                               filename->c_str());
+    const std::string contents = FileReader::get_file_contents( filename->c_str());
     
     vector<std::string> imageList = FileReader::split(contents, "\nimage ");
     
@@ -680,14 +679,14 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         
         std::ostringstream logged;
         
-        if (!FileReader::exists(imgName) && !ignoreMissing)
+        if (!FileReader::exists(imgName) && !ignoreMissing && !v3)
         {
             logged << "Skipping image " << imgName << std::endl;
             Logger::mainLogger->addStream(&logged);
             continue;
         }
         
-        if (readFromHdf5 && newImages != NULL)
+        if ((readFromHdf5 && newImages != NULL) || v3)
         {
             Hdf5ManagerCheetahPtr manager = Hdf5ManagerCheetah::hdf5ManagerForImage(imgNameOnly);
             
@@ -729,6 +728,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         
         bool hasSpots = false;
         std::string parentImage = "";
+        int currentCrystal = -1;
         
         for (int i = 1; i < lines.size(); i++)
         {
@@ -747,6 +747,11 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             if (components[0] == "parent")
             {
                 parentImage = components[1];
+            }
+            
+            if (components[0] == "crystal")
+            {
+                currentCrystal = atoi(components[1].c_str());
             }
             
             if (components[0] == "matrix")
@@ -827,7 +832,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                     {
                         vector<double> correction = FileParser::getKey("ORIENTATION_CORRECTION", vector<double>());
                         
-                        if (fromDials)
+                        if (fromDials && !v3)
                         {
                             rotation->rotate(0, 0, M_PI / 2);
                         }
@@ -856,6 +861,22 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                     if (newImages)
                     {
                         newImage->setUpIOMRefiner(newMatrix);
+                    }
+                    
+                    if (v3 && newMtzs)
+                    {
+                        MtzPtr newManager = MtzPtr(new MtzManager());
+                        newManager->setFilename(("img-" + imgNameOnly + "_" + i_to_str(currentCrystal) + ".mtz").c_str());
+                        newManager->setMatrix(newMatrix);
+                        
+                        if (setSigmaToUnity)
+                            newManager->setSigmaToUnity();
+                        
+                        newManager->setParamLine(paramsLine);
+                        newManager->setTimeDelay(delay);
+            
+                        newImage->addMtz(newManager);
+                        newMtzs->push_back(newManager);
                     }
                     
                     unitCell = MatrixPtr();
@@ -894,11 +915,12 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 newImages->push_back(newImage);
         }
         
-        if (newMtzs)
+        if (newMtzs && !v3)
         {
             MtzPtr newManager = MtzPtr(new MtzManager());
             
             newManager->setFilename(imgName.c_str());
+            
             newManager->setParentImageName(parentImage);
             
             if (!newMatrix)
@@ -958,7 +980,7 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
     
     for (int i = 0; i < maxThreads; i++)
     {
-        if (version == 1.0)
+        if (version == 1.0) // floating point comparison???
         {
             boost::thread *thr = new boost::thread(singleLoadImages, filename,
                                                    &imageSubsets[i], i);
@@ -969,7 +991,13 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
             vector<MtzPtr> *chosenMtzs = areImages ? NULL : &mtzSubsets[i];
             vector<ImagePtr> *chosenImages = areImages ? &imageSubsets[i] : NULL;
             boost::thread *thr = new boost::thread(readSingleImageV2, filename,
-                                                   chosenImages, chosenMtzs, i);
+                                                   chosenImages, chosenMtzs, i, false);
+            threads.add_thread(thr);
+        }
+        else if (version == 3.0)
+        {
+            boost::thread *thr = new boost::thread(readSingleImageV2, filename,
+                                                   &imageSubsets[i], &mtzSubsets[i], i, true);
             threads.add_thread(thr);
         }
     }
@@ -1296,7 +1324,7 @@ void MtzRefiner::readMatricesAndMtzs()
     
     double version = FileParser::getKey("MATRIX_LIST_VERSION", 2.0);
     
-    if (version == 2.0)
+    if (version >= 2.0)
     {
         readMatricesAndImages(NULL, false);
         

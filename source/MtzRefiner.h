@@ -28,7 +28,7 @@ private:
     static int imageLimit;
     static int imageMax(size_t lineCount);
     static void singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset);
-    static void readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset);
+    static void readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset, bool v3 = false);
     static void findSpotsThread(MtzRefiner *me, int offset);
     void readFromHdf5(std::vector<ImagePtr> *newImages);
 IndexManager *indexManager;
