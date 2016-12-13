@@ -199,8 +199,8 @@ void FileParser::generateFunctionList()
     parserMap["NELDER_MEAD_CYCLES"] = simpleInt;
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
-    parserMap["WAVELENGTH_FROM_REF_COUNT"] = simpleInt;
-    parserMap["LANDSCAPE_DIVISIONS"] = simpleInt;
+    parserMap["WAVELENGTH_FROM_REF_COUNT"] = simpleInt; // remove?
+    parserMap["LANDSCAPE_DIVISIONS"] = simpleInt;       // remove?
     parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
     parserMap["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = simpleFloat;
     parserMap["ALLOW_TRUST"] = simpleBool;
@@ -208,14 +208,14 @@ void FileParser::generateFunctionList()
     parserMap["PARTIALITY_CUTOFF"] = simpleFloat;
 	parserMap["DEFAULT_TARGET_FUNCTION"] = simpleInt;
     parserMap["TARGET_FUNCTIONS"] = intVector;
-    parserMap["USE_PARTIALITY_FUNCTION"] = simpleBool;
+    parserMap["USE_PARTIALITY_FUNCTION"] = simpleBool; // remove?
     parserMap["RLP_MODEL"] = simpleInt;
 	parserMap["CORRELATION_THRESHOLD"] = simpleFloat;
     parserMap["PARTIALITY_CORRELATION_THRESHOLD"] = simpleFloat;
 	parserMap["MAX_RESOLUTION_ALL"] = simpleFloat;
 	parserMap["MAX_RESOLUTION_RLP_SIZE"] = simpleFloat;
     parserMap["MERGE_TO_RESOLUTION"] = simpleFloat;
-    parserMap["MIN_REFINED_RESOLUTION"] = simpleFloat;
+    parserMap["MIN_REFINED_RESOLUTION"] = simpleFloat; // simplify all these resolutions?
     parserMap["INITIAL_CORRELATION_THRESHOLD"] = simpleFloat;
 	parserMap["THRESHOLD_SWAP"] = simpleInt;
 	parserMap["OUTLIER_REJECTION_SIGMA"] = simpleFloat;
@@ -224,7 +224,7 @@ void FileParser::generateFunctionList()
 	parserMap["PARTIALITY_REJECTION"] = simpleBool;
     parserMap["POLARISATION_CORRECTION"] = simpleBool;
     parserMap["POLARISATION_FACTOR"] = simpleFloat;
-    parserMap["REFINEMENT_INTENSITY_THRESHOLD"] = simpleFloat;
+    parserMap["REFINEMENT_INTENSITY_THRESHOLD"] = simpleFloat; // merge with intensity threshold?
     parserMap["TRUST_INDEXING_SOLUTION"] = simpleBool;
     parserMap["REFINE_B_FACTOR"] = simpleBool;
     parserMap["INITIAL_GRID_SEARCH"] = simpleBool; // remove?
