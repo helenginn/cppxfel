@@ -48,7 +48,8 @@ private:
 
     Coord getSwivelShift(Coord millerCoord, bool isSpot = false);
     Coord getTiltShift(Coord millerCoord);
-	Coord getTotalShift(Coord millerCoord, bool isMiller = false);
+    Coord millerToSpotCoordShift(Coord millerCoord);
+    Coord millerToSpotCoord(Coord millerCoord);
     
     void fractionalCoordinates(Coord coord, Coord *frac);
     void fractionalCoordinates(Miller *miller, Coord *frac);
@@ -62,8 +63,6 @@ private:
     void findAllParameters();
     void findShift(double windowSize, double step, double x = 0, double y = 0);
     
-    double tiltShiftScore(double stdev = true);
-    static double tiltShiftScoreWrapper(void *object);
     static double swivelShiftScoreWrapper(void *object);
 
     std::map<boost::thread::id, vector<MillerPtr> > tempMillers;
@@ -92,7 +91,7 @@ public:
     void init(vector<double> dimensions, PanelTag newTag);
     virtual ~Panel();
 
-    bool isCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
+    bool isMillerCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
     bool isMillerInPanel(Miller *miller);
 	static void addMillerToPanelArray(MillerPtr miller);
 	static PanelPtr panelForMiller(Miller *miller);
@@ -100,7 +99,7 @@ public:
     static PanelPtr panelForSpotCoord(Coord coord, PanelPtr *anyBadPanel = NULL);
     static PanelPtr panelForCoord(Coord coord);
     static PanelPtr spotCoordFallsInMask(Coord shifted);
-    Coord shiftSpot(Coord xy);
+    Coord spotToMillerCoord(Coord xy);
     static void setupPanel(PanelPtr panel);
     static void removePanel(PanelPtr panel);
 	void plotVectors(int i, PlotType plotType);

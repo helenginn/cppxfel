@@ -136,7 +136,7 @@ double Panel::height()
     return bottomRight.second - topLeft.second;
 }
 
-bool Panel::isCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
+bool Panel::isMillerCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
 {
     double x = coord.first;
     double y = coord.second;
@@ -152,16 +152,13 @@ bool Panel::isCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
     
     if (y < topLeft->second || y > bottomRight->second)
         return false;
-    /*
-    logged << "Success!" << std::endl;
-    sendLog();*/
     
     return true;
 }
 
 bool Panel::isMillerInPanel(Miller *miller)
 {
-    return isCoordInPanel(miller->getLastXY());
+    return isMillerCoordInPanel(miller->getLastXY());
 }
 
 Coord Panel::midPoint()
@@ -176,7 +173,7 @@ bool Panel::addMiller(MillerPtr miller)
 {
     Coord coord = std::make_pair(miller->getLastX(), miller->getLastY());
     
-    if (!isCoordInPanel(coord))
+    if (!isMillerCoordInPanel(coord))
         return false;
     
     boost::thread::id thread_id = boost::this_thread::get_id();
@@ -349,7 +346,7 @@ PanelPtr Panel::panelForMiller(Miller *miller)
     return PanelPtr();
 }
 
-Coord Panel::shiftSpot(Coord xy)
+Coord Panel::spotToMillerCoord(Coord xy)
 {
     Coord shift = bestShift;
     Coord swivelShift = getSwivelShift(xy, true);
@@ -372,7 +369,7 @@ PanelPtr Panel::spotCoordFallsInMask(Coord shifted)
 {
     for (int j = 0; j < badPanels.size(); j++)
     {
-        if (badPanels[j]->isCoordInPanel(shifted))
+        if (badPanels[j]->isMillerCoordInPanel(shifted))
         {
             return badPanels[j];
         }
@@ -385,9 +382,9 @@ PanelPtr Panel::panelForSpotCoord(Coord coord, PanelPtr *anyBadPanel)
 {
     for (int i = 0; i < panels.size(); i++)
     {
-        Coord shifted = panels[i]->shiftSpot(coord);
+        Coord shifted = panels[i]->spotToMillerCoord(coord);
         
-        if (panels[i]->isCoordInPanel(shifted))
+        if (panels[i]->isMillerCoordInPanel(shifted))
         {
             PanelPtr mask = spotCoordFallsInMask(shifted);
             
@@ -489,7 +486,7 @@ Coord Panel::getTiltShift(Coord millerCoord)
     return std::make_pair(xShift, yShift);
 }
 
-Coord Panel::getTotalShift(Coord millerCoord, bool isMiller)
+Coord Panel::millerToSpotCoordShift(Coord millerCoord)
 {
     Coord swivelShift = getSwivelShift(millerCoord);
     Coord tiltShift = getTiltShift(millerCoord);
@@ -501,6 +498,13 @@ Coord Panel::getTotalShift(Coord millerCoord, bool isMiller)
     return std::make_pair(x, y);
 }
 
+Coord Panel::millerToSpotCoord(Coord millerCoord)
+{
+    Coord theShift = millerToSpotCoordShift(millerCoord);
+    
+    return std::make_pair(millerCoord.first + theShift.first, millerCoord.second + theShift.second);
+}
+
 Coord Panel::shiftForMiller(Miller *miller)
 {
     PanelPtr panel = panelForMiller(miller);
@@ -508,7 +512,7 @@ Coord Panel::shiftForMiller(Miller *miller)
     if (!panel)
         return std::make_pair(FLT_MAX, FLT_MAX);
     
-    return panel->getTotalShift(miller->getLastXY());
+    return panel->millerToSpotCoordShift(miller->getLastXY());
 }
 
 Coord Panel::realCoordsForImageCoord(Coord xy)
@@ -668,7 +672,7 @@ void Panel::plotVectors(int i, PlotType plotType)
             double intensity = miller->getRawIntensity();
             
             Coord shift = miller->getShift();
-            Coord expectedShift = this->getTotalShift((&*miller)->getLastXY());
+            Coord expectedShift = this->millerToSpotCoordShift((&*miller)->getLastXY());
             
             if (shift.first < minX)
                 minX = shift.first;
@@ -859,7 +863,7 @@ void Panel::findShift(double windowSize, double step, double x, double y)
                 Coord millerShift = std::make_pair(newShift.first + currentShift.first,
                                                    newShift.second + currentShift.second);
                 
-                bool inWindow = isCoordInPanel(millerShift, &windowTopLeft,
+                bool inWindow = isMillerCoordInPanel(millerShift, &windowTopLeft,
                                                &windowBottomRight);
                 
                 if (!inWindow)
@@ -913,58 +917,7 @@ double Panel::swivelShiftScoreWrapper(void *object)
     
     double score = stdevX + stdevY;
     
- //   std::ostringstream logged;
- //   logged << "Swivel score: " << score << " for " << panel->swivel << std::endl;
- //   Logger::mainLogger->addStream(&logged);
-    
     return score;
-}
-
-double Panel::tiltShiftScoreWrapper(void *object)
-{
-    return static_cast<Panel *>(object)->tiltShiftScore();
-}
-
-double Panel::tiltShiftScore(double stdev)
-{
-    double xMin = bestShift.first - tiltWindowSize / 2;
-    double xMax = bestShift.first + tiltWindowSize / 2;
-    
-    double yMin = bestShift.second - tiltWindowSize / 2;
-    double yMax = bestShift.second + tiltWindowSize / 2;
-    
-    vector<double> tiltShifts;
-    vector<double> weights;
-    
-    for (int k = 0; k < millers.size(); k++)
-    {
-        Coord shift = millers[k]->getShift();
-        
-        if (shift.first < xMin || shift.first > xMax)
-            continue;
-        
-        if (shift.second < yMin || shift.second > yMax)
-            continue;
-        
-        if (millers[k]->getRawIntensity() < averageIntensity)
-            continue;
-        
-        double rawIntensity = millers[k]->getRawIntensity();
-        
-        Coord totalShift = this->shiftForMiller(&*millers[k]);
-        Coord shiftDifference = std::make_pair(totalShift.first - shift.first,
-                                               totalShift.second - shift.second);
-        
-        double desiredAxis = tiltHorizontalAxis ? shiftDifference.first : shiftDifference.second;
-        
-        tiltShifts.push_back(desiredAxis);
-        weights.push_back(log(rawIntensity));
-    }
-    
-    double stdeviation = standard_deviation(&tiltShifts);
-    double mean = weighted_mean(&tiltShifts, &weights);
-    
-    return stdev ? stdeviation : mean;
 }
 
 double Panel::detectorGain(double *error)

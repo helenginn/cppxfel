@@ -354,7 +354,7 @@ int Image::valueAt(int x, int y)
 {
     double rawValue = rawValueAt(x, y);
     
-    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
+    PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
     double panelGain = detectorGain;
     
     if (panel)
@@ -2539,7 +2539,7 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             double correctedY = myMiller->getCorrectedY();
             
             Coord corrected = std::pair<double, double>(correctedX, correctedY);
-            Coord shifted = panel->shiftSpot(corrected);
+            Coord shifted = panel->spotToMillerCoord(corrected);
             
             bool strong = IOMRefiner::millerReachesThreshold(myMiller);
             file->drawCircleAroundPixel(shifted.first, shifted.second, 14, (strong ? 1 : 0.5), red, green, blue, (strong ? 4 : 1));
@@ -2621,9 +2621,9 @@ void Image::writePNG(PNGFilePtr file)
             
             if (panel)
             {
-                Coord shifted = lastPanel->shiftSpot(coord);
+                Coord shifted = lastPanel->spotToMillerCoord(coord);
                 
-                if (!panel->isCoordInPanel(shifted) || Panel::spotCoordFallsInMask(shifted))
+                if (!panel->isMillerCoordInPanel(shifted) || Panel::spotCoordFallsInMask(shifted))
                 {
                     panel = Panel::panelForSpotCoord(coord);
                 }
