@@ -2248,9 +2248,15 @@ void MtzRefiner::refineMetrology()
     }
     
     logged << "Loaded " << count << " images into memory! Now refining..." << std::endl;
+    logged << "Panel plots from before refinement:" << std::endl;
     sendLog();
     
+    Panel::plotAll(PlotTypeAbsolute);
     Panel::printToFile("new_panels.txt");
+    
+    logged << "Panel plots from after refinement:" << std::endl;
+    sendLog();
+    
     Panel::plotAll(PlotTypeAbsolute);
 }
 
