@@ -18,6 +18,7 @@
 #include "CSV.h"
 #include <complex>
 #include "GetterSetterMap.h"
+#include "FileReader.h"
 
 vector<PanelPtr> Panel::panels;
 vector<PanelPtr> Panel::badPanels;
@@ -252,9 +253,10 @@ void Panel::print(std::ostringstream *stream)
 void Panel::printToFile(std::string filename)
 {
     std::string info = printAllThreaded();
+    std::string dirFilename = FileReader::addOutputDirectory(filename);
     
     std::ofstream file;
-    file.open(filename);
+    file.open(dirFilename);
     file << info;
     file.close();
     
