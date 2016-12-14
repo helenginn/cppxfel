@@ -982,6 +982,10 @@ void Panel::stepSearch()
 {
     usePanelInfo = true;
     
+    Coord origBottomRight = millerToSpotCoord(bottomRight);
+    
+    Coord origTopLeft = millerToSpotCoord(topLeft);
+    
     GetterSetterMapPtr refinementMap = GetterSetterMapPtr(new GetterSetterMap());
     
     refinementMap->addParameter(this, getBestShiftX, setBestShiftX, 2.0, 0.2);
@@ -993,5 +997,20 @@ void Panel::stepSearch()
     refinementMap->setCycles(30);
     
     refinementMap->refine(GetterSetterStepSearch);
+    
+    Coord newTopLeft = spotToMillerCoord(origTopLeft);
+    Coord newBottomRight = spotToMillerCoord(origBottomRight);
+    
+    double topLeftCorrectionX = newTopLeft.first - topLeft.first;
+    double topLeftCorrectionY = newTopLeft.second - topLeft.second;
+    
+    double bottomRightCorrectionX = newBottomRight.first - bottomRight.first;
+    double bottomRightCorrectionY = newBottomRight.second - bottomRight.second;
+    
+    topLeft.first -= topLeftCorrectionX;
+    topLeft.second -= topLeftCorrectionY;
+    
+    bottomRight.first -= bottomRightCorrectionX;
+    bottomRight.second -= bottomRightCorrectionY;
 }
 
