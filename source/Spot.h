@@ -60,6 +60,7 @@ public:
     bool isSameAs(SpotPtr spot2);
     double closeToSecondSpot(SpotPtr spot2, double squareMinDistance);
     double integrate();
+    void recentreInWindow(int windowPadding = 0);
 
     Coord getXY();
     double getX(bool update = false);

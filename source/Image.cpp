@@ -1446,6 +1446,16 @@ void Image::processSpotList()
         excludeWeakestSpots(fractionToExclude);
     }
     
+    bool recentreSpots = FileParser::getKey("FORCE_RECENTRE_SPOTS", false);
+    
+    if (recentreSpots)
+    {
+        for (int i = 0; i < spotCount(); i++)
+        {
+            spots[i]->recentreInWindow();
+        }
+    }
+    
     loadedSpots = true;
 }
 

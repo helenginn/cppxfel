@@ -386,6 +386,37 @@ Coord Spot::getRawXY()
     return std::make_pair(x, y);
 }
 
+void Spot::recentreInWindow(int windowPadding)
+{
+    if (windowPadding == 0)
+    {
+        windowPadding = backgroundPadding + 4;
+    }
+    
+    std::vector<double> xPositions, yPositions, weights;
+    Coord xy = this->getRawXY();
+    ImagePtr thisImage = getParentImage();
+    
+    for (int i = -windowPadding; i < windowPadding + 1; i++)
+    {
+        for (int j = -windowPadding; j < windowPadding + 1; j++)
+        {
+            int myX = xy.first + i;
+            int myY = xy.second + j;
+            int pixelIntensity = thisImage->valueAt(myX, myY);
+            
+            xPositions.push_back(myX);
+            yPositions.push_back(myY);
+            weights.push_back(pixelIntensity);
+        }
+    }
+    
+    double newX = weighted_mean(&xPositions, &weights);
+    double newY = weighted_mean(&yPositions, &weights);
+    
+    setXY(newX, newY);
+}
+
 bool Spot::isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees)
 {
     double tolerance = toleranceDegrees * M_PI / 180;
