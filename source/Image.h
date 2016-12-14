@@ -63,7 +63,6 @@ private:
 	double beamX;
 	double beamY;
 	double mmPerPixel;
-    bool noCircles;
     double detectorGain;
 
 	double detectorDistance; // mm
@@ -75,7 +74,6 @@ private:
     std::vector<IndexingSolutionPtr> goodSolutions;
     std::vector<IndexingSolutionPtr> badSolutions;
     std::vector<SpotVectorPtr> spotVectors;
-    double commonCircleThreshold;
     bool _hasSeeded;
     std::map<ImageCluster *, bool> unexpectedMatches;
     

@@ -44,9 +44,6 @@ Image::Image(std::string filename, double wavelength,
         yDim = dims[1];
     }
     
-    noCircles = false;
-    commonCircleThreshold = FileParser::getKey("COMMON_CIRCLE_THRESHOLD", 0.05);
-    
     minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
     indexingFailureCount = 0;
     data = vector<int>();

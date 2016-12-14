@@ -411,12 +411,8 @@ void FileParser::generateFunctionList()
     
     // force spot finding
     
-    // SPOT_FINDING_MIN_PIXELS
-    // SPOT_FINDING_SIGNAL_TO_NOISE
-    
     parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
     parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;
-    parserMap["IMAGE_PIXEL_JUMP"] = simpleInt;
     parserMap["IMAGE_SPOT_PROBE_HEIGHT"] = simpleInt;
     parserMap["IMAGE_SPOT_PROBE_BACKGROUND"] = simpleInt;
     parserMap["IMAGE_SPOT_PROBE_PADDING"] = simpleInt;
@@ -435,9 +431,7 @@ void FileParser::generateFunctionList()
     
     parserMap["PIXEL_TOLERANCE"] = simpleFloat;
     parserMap["MINIMUM_CIRCLE_SPOTS"] = simpleInt;
-    parserMap["COMMON_CIRCLE_THRESHOLD"] = simpleFloat;
     parserMap["MAX_UNIT_CELL"] = simpleFloat;
-    parserMap["COMMON_CIRCLE_ANGLE_RANGE"] = doubleVector;
     parserMap["RANDOM_SEED"] = simpleInt;
     
     parserMap["PNG_TOTAL"] = simpleInt;
