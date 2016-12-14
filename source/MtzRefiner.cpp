@@ -640,21 +640,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     }
     
     const std::string contents = FileReader::get_file_contents( filename->c_str());
-    
     vector<std::string> imageList = FileReader::split(contents, "\nimage ");
-    
-    std::ostringstream logged;
-    
-    if (imageList[0].substr(0, 6) == "ersion")
-    {
-        std::string vString = imageList[0].substr(7, imageList[0].length() - 7);
-        float version = atof(vString.c_str());
-        
-        logged << "Autodetecting matrix list version: " << version << std::endl;
-        
-        v3 = (version > 2.99 && version < 3.01);
-    }
-    Logger::log(logged);
     
     int maxThreads = FileParser::getMaxThreads();
     
@@ -985,7 +971,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             }
         }
     }
-    
 }
 
 void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
@@ -1003,6 +988,22 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
     imageSubsets.resize(maxThreads);
     mtzSubsets.resize(maxThreads);
     
+    const std::string contents = FileReader::get_file_contents( filename->c_str());
+    vector<std::string> imageList = FileReader::split(contents, "\nimage ");
+    
+    std::ostringstream logged;
+    
+    if (imageList[0].substr(0, 6) == "ersion")
+    {
+        std::string vString = imageList[0].substr(7, imageList[0].length() - 7);
+        float inputVersion = atof(vString.c_str());
+        
+        logged << "Autodetecting matrix list version: " << inputVersion << std::endl;
+        
+        version = inputVersion;
+    }
+    Logger::log(logged);
+    
     for (int i = 0; i < maxThreads; i++)
     {
         if (version == 1.0) // floating point comparison???
@@ -1011,7 +1012,7 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
                                                    &imageSubsets[i], i);
             threads.add_thread(thr);
         }
-        else if (version == 2.0)
+        else if (version > 1.99 && version < 2.99)
         {
             vector<MtzPtr> *chosenMtzs = areImages ? NULL : &mtzSubsets[i];
             vector<ImagePtr> *chosenImages = areImages ? &imageSubsets[i] : NULL;
@@ -1019,7 +1020,7 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
                                                    chosenImages, chosenMtzs, i, false, this);
             threads.add_thread(thr);
         }
-        else if (version == 3.0)
+        else if (version > 2.99 && version < 3.99)
         {
             boost::thread *thr = new boost::thread(readSingleImageV2, filename,
                                                    &imageSubsets[i], &mtzSubsets[i], i, true, this);
@@ -1098,6 +1099,9 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     {
         readFromHdf5(&images);
     }
+    
+    logged << "Summary\nImages: " << images.size() << "\nCrystals: " << mtzManagers.size() << std::endl;
+    sendLog();
 }
 
 void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset)
