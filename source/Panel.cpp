@@ -410,28 +410,6 @@ PanelPtr Panel::panelForSpot(Spot *spot)
     return panelForSpotCoord(coord);
 }
 
-PanelPtr Panel::panelForCoord(Coord coord)
-{
-    for (int i = 0; i < badPanels.size(); i++)
-    {
-        if (badPanels[i]->isCoordInPanel(coord))
-        {
-       //     Logger::mainLogger->addString("Hit bad mask", LogLevelDetailed);
-            return PanelPtr();
-        }
-    }
-    
-    for (int i = 0; i < panels.size(); i++)
-    {
-        if (panels[i]->isCoordInPanel(coord))
-        {
-            return panels[i];
-        }
-    }
-    
-    return PanelPtr();
-}
-
 double cartesian_to_distance(Coord dV)
 {
     double distance = sqrt(pow(dV.first, 2) + pow(dV.second, 2));
@@ -812,9 +790,6 @@ void Panel::findAllParameters()
     {
         return;
     }
-    /*
-    findShift(2, 0.4);
-    this->findAxisDependence(3);*/
     
     this->stepSearch();
 }

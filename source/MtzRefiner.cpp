@@ -1338,11 +1338,6 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     
     logged << "N: Images loaded from HDF5: " << newImages->size() << std::endl;;
     
-    if (mtzManagers.size() == 0)
-    {
-        
-    }
-    
     sendLog();
 }
 
