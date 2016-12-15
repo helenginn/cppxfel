@@ -227,6 +227,7 @@ void FileParser::generateFunctionList()
     parserMap["POLARISATION_FACTOR"] = simpleFloat;
     parserMap["REFINEMENT_INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["TRUST_INDEXING_SOLUTION"] = simpleBool;
+    parserMap["CUSTOM_AMBIGUITY"] = doubleVector;
     parserMap["REFINE_B_FACTOR"] = simpleBool;
     parserMap["INITIAL_GRID_SEARCH"] = simpleBool; // remove?
     parserMap["R_FACTOR_THRESHOLD"] = simpleFloat;
