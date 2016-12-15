@@ -308,6 +308,7 @@ void FileParser::generateFunctionList()
     parserMap["FAST_MERGE"] = simpleBool;
     parserMap["INDEX_STARTING_DATA"] = doubleVector;
     parserMap["CORRECTED_PARTIALITY_MODEL"] = simpleBool;
+    parserMap["REJECT_BELOW_SCALE"] = simpleFloat;
 
 	// Indexing parameters
 
