@@ -590,7 +590,7 @@ void MtzManager::getWavelengthFromHDF5()
             return;
         }
         
-        if (!Hdf5ManagerCheetahSacla::cheetahManagerCount())
+        if (!Hdf5ManagerCheetah::cheetahManagerCount())
         {
             return;
         }
