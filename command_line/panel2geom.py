@@ -20,6 +20,7 @@ max_ss = None
 def find_new_value_as_line(line, panel_num):
     global cpp_panels_lines, axisYY, axisYX, axisXX, axisXY
     global min_fs, min_ss, max_fs, max_ss
+    global beamX, beamY
     backslash_split = line.split("/")
     equal_split = backslash_split[1].split("=")
     variable = equal_split[0].strip()
@@ -61,7 +62,7 @@ def find_new_value_as_line(line, panel_num):
         sign_y = ""
         if dy > 0: sign_y = "+"
         
-        line_beginning += sign_x + str(dx) + "x " + sign_y + str(dy) + "y"
+        line_beginning += sign_x + '{0:.10f}'.format(dx) + "x " + sign_y + '{0:.10f}'.format(dy) + "y"
         return line_beginning
     
     imageWidth = max_fs - min_fs
@@ -89,9 +90,9 @@ def find_new_value_as_line(line, panel_num):
         newValue = 0
  
         if variable == "corner_x":
-            newValue = midX
+            newValue = midX - beamX
         elif variable == "corner_y":
-            newValue = midY
+            newValue = midY - beamY
   
         return line_beginning + str(newValue)
     
@@ -101,14 +102,18 @@ def find_new_value_as_line(line, panel_num):
 
 template_name = ""
 cpp_panels_name = ""
+beamX = 0
+beamY = 0
 
 new_geom = ""
 
 try:
     template_name = sys.argv[1]
     cpp_panels_name = sys.argv[2]
+    beamX = float(sys.argv[3])
+    beamY = float(sys.argv[4])
 except:
-    print "cppxfel.panel2geom <CrystFEL template> <cppxfel panels file>"
+    print "cppxfel.panel2geom <CrystFEL template> <cppxfel panels file> <beamX> <beamY>"
     exit()
 
 print "; Note: this geometry file been converted from cppxfel."
