@@ -89,6 +89,15 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     if (needsRSplit)
         rSplit = mtz->rSplit(0, 0);
     
+    
+    double scale = mtz->getScale();
+    double rejectBelow = FileParser::getKey("REJECT_BELOW_SCALE", 0.0);
+    
+    if (scale < rejectBelow)
+    {
+        return false;
+    }
+    
     if (refCorrelation < correlationThreshold)
     {
         Logger::mainLogger->addString("Rejecting " + mtz->getFilename() + " due to poor correlation with reference", LogLevelDetailed);
