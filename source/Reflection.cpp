@@ -168,7 +168,7 @@ MatrixPtr Reflection::matrixForAmbiguity(int i)
 
 int Reflection::ambiguityCount()
 {
-    int basicNum = 0;
+    int basicNum = 1;
     
     if (spgNum >= 75 && spgNum <= 80)
     {
