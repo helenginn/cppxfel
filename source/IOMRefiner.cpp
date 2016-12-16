@@ -1239,6 +1239,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
         bool refinedAlpha = !FileParser::getKey("REFINE_UNIT_CELL_ALPHA", false);
         bool refinedBeta = !FileParser::getKey("REFINE_UNIT_CELL_BETA", false);
         bool refinedGamma = !FileParser::getKey("REFINE_UNIT_CELL_GAMMA", false);
+        int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);;
         
         int count = 0;
         
