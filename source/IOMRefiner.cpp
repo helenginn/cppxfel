@@ -1248,7 +1248,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
             if (!refinedL)
             {
                 int oldSearchSize = searchSize;
-                const int bigSize = 6;
                 
                 if (searchSize < bigSize)
                 {
