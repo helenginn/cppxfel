@@ -426,7 +426,6 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 	}
 
 	int mtzCount = groupMillers(mergeMtz, unmergedMtz, start, end);
- //   std::cout << "N: Accepted " << total << " due to increase in CC half" << std::endl;
     
 	if (!unmergedMtz)
 	{
