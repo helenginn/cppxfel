@@ -319,7 +319,7 @@ void Hdf5Image::createSpotTable()
 
 void Hdf5Image::getWavelengthFromHdf5()
 {
-    bool useHdf5Wavelength = FileParser::getKey("USE_HDF5_WAVELENGTH", false);
+    bool useHdf5Wavelength = FileParser::getKey("USE_HDF5_WAVELENGTH", true);
     
     if (!useHdf5Wavelength)
     {

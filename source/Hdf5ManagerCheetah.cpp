@@ -21,9 +21,6 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
     if (cheetahManagers.size() > 0)
         return;
     
-    int laserInt = FileParser::getKey("FREE_ELECTRON_LASER", 1);
-    FreeElectronLaserType laser = (FreeElectronLaserType)laserInt;
-    
     std::vector<std::string> hdf5FileGlobs = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
     std::ostringstream logged;
     
@@ -37,6 +34,12 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
         {
             std::string aFilename = hdf5Files[j];
             Hdf5ManagerCheetahPtr cheetahPtr;
+            
+            int guessLCLS = (aFilename.find("cxi") != std::string::npos);
+            int guessLaser = (guessLCLS) ? 0 : 1;
+            
+            int laserInt = FileParser::getKey("FREE_ELECTRON_LASER", guessLaser);
+            FreeElectronLaserType laser = (FreeElectronLaserType)laserInt;
             
             switch (laser) {
                 case FreeElectronLaserTypeLCLS:

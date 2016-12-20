@@ -583,7 +583,7 @@ void MtzManager::getWavelengthFromHDF5()
 {
     if (!dropped)
     {
-        bool useHdf5Wavelength = FileParser::getKey("USE_HDF5_WAVELENGTH", false);
+        bool useHdf5Wavelength = FileParser::getKey("USE_HDF5_WAVELENGTH", true);
         
         if (!useHdf5Wavelength)
         {
