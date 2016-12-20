@@ -883,11 +883,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                             newImage->addMtz(newManager);
                             newMtzs->push_back(newManager);
                         }
-                        else
-                        {
-                            logged << "No reflections loaded for crystal " << currentCrystal << " for image " << imgNameOnly << " so removing this MTZ." << std::endl;
-                            Logger::log(logged);
-                        }
                     }
                     
                     unitCell = MatrixPtr();

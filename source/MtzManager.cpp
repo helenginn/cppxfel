@@ -637,6 +637,13 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         return;
     }
     
+    if (!FileReader::exists(filename))
+    {
+        logged << "Cannot find MTZ file for " << filename << std::endl;
+        sendLog();
+        return;
+    }
+    
     bool recalculateWavelengths = FileParser::getKey("RECALCULATE_WAVELENGTHS", false);
     
     std::string fullFilename = (dropped ? "tmp-" : "") + filename;
