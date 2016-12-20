@@ -20,6 +20,7 @@ class Spot : LoggableObject
 private:
 	vector<vector<double> > probe;
 	ImageWeakPtr parentImage;
+    PanelWeakPtr lastPanel;
     double angleDetectorPlane;
     bool setAngle;
     bool checked;
@@ -116,6 +117,16 @@ public:
 	{
 		this->parentImage = parentImage;
 	}
+    
+    PanelPtr getPanel()
+    {
+        return lastPanel.lock();
+    }
+    
+    void setPanel(PanelPtr newPanel)
+    {
+        lastPanel = newPanel;
+    }
     
     double getIntensity()
     {

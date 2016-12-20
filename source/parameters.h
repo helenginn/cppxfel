@@ -207,6 +207,7 @@ typedef boost::weak_ptr<Reflection> ReflectionWeakPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
 typedef boost::shared_ptr<Panel>PanelPtr;
+typedef boost::weak_ptr<Panel>PanelWeakPtr;
 typedef boost::shared_ptr<SolventMask> SolventMaskPtr;
 typedef boost::shared_ptr<MtzManager> MtzPtr;
 typedef boost::shared_ptr<Hdf5Crystal> Hdf5CrystalPtr;

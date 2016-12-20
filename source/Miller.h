@@ -87,6 +87,7 @@ private:
     
     BeamPtr beam;
     ImageWeakPtr image;
+    PanelWeakPtr lastPanel;
     IOMRefiner *indexer;
     ShoeboxPtr shoebox;
     unsigned char flipMatrix;
@@ -376,6 +377,16 @@ public:
     ImagePtr getImage()
     {
         return image.lock();
+    }
+    
+    PanelPtr getPanel()
+    {
+        return lastPanel.lock();
+    }
+    
+    void setPanel(PanelPtr newPanel)
+    {
+        lastPanel = newPanel;
     }
     
     void setCorrectingPolarisation(bool on)

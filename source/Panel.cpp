@@ -329,6 +329,10 @@ bool scoreComparisonDescending(std::pair<double, double> score1,
 
 PanelPtr Panel::panelForMiller(Miller *miller)
 {
+    PanelPtr currentPanel = miller->getPanel();
+    
+    if (currentPanel) return currentPanel;
+    
     for (int i = 0; i < badPanels.size(); i++)
     {
         if (badPanels[i]->isMillerInPanel(miller))
@@ -341,6 +345,8 @@ PanelPtr Panel::panelForMiller(Miller *miller)
     {
         if (panels[i]->isMillerInPanel(miller))
         {
+            miller->setPanel(panels[i]);
+            
             return panels[i];
         }
     }
@@ -407,9 +413,19 @@ PanelPtr Panel::panelForSpotCoord(Coord coord, PanelPtr *anyBadPanel)
 
 PanelPtr Panel::panelForSpot(Spot *spot)
 {
+    PanelPtr currentPanel = spot->getPanel();
+    
+    if (currentPanel)
+    {
+        return currentPanel;
+    }
+    
     Coord coord = spot->getRawXY();
     
-    return panelForSpotCoord(coord);
+    PanelPtr panel = panelForSpotCoord(coord);
+    spot->setPanel(panel);
+    
+    return panel;
 }
 
 double cartesian_to_distance(Coord dV)
