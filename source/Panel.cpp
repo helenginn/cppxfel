@@ -656,7 +656,8 @@ void Panel::plotVectors(int i, PlotType plotType)
         
         double aveIntensity = Miller::averageRawIntensity(resMillers);
         
-        std::cout << "Average intensity: " << aveIntensity << std::endl;
+        logged << "Average intensity: " << aveIntensity << std::endl;
+        sendLog();
         
         double minX = FLT_MAX; double minY = FLT_MAX; double maxX = -FLT_MAX; double maxY = -FLT_MAX;
         
