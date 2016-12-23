@@ -322,8 +322,6 @@ public:
 	void setDetectorDistance(double detectorDistance)
 	{
 		this->detectorDistance = detectorDistance;
-        
-        
 	}
 
 	double getWavelength() const

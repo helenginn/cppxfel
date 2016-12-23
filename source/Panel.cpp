@@ -893,7 +893,6 @@ double Panel::scoreWrapper(void *object)
 
 double Panel::stepScore()
 {
-    double intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", 12.0);
     std::vector<double> shiftXs;
     std::vector<double> shiftYs;
     int count = 0;
@@ -901,9 +900,6 @@ double Panel::stepScore()
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
-
-        if (miller->getRawIntensity() / miller->getRawCountingSigma() < intensityThreshold)
-            continue;
         
         int x, y;
         
@@ -921,9 +917,6 @@ double Panel::stepScore()
     double stdevX = standard_deviation(&shiftXs, NULL, 0);
     double stdevY = standard_deviation(&shiftYs, NULL, 0);
     double aScore = stdevX + stdevY;
-    
-//    logged << "Panel " << panelNum << " on st dev " << aScore << std::endl;
-//   sendLog();
     
     return aScore;
 }

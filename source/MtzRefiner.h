@@ -33,7 +33,6 @@ private:
     void readFromHdf5(std::vector<ImagePtr> *newImages);
     bool readRefinedMtzs;
 IndexManager *indexManager;
-    void applyParametersToImages();
     static int cycleNum;
     bool hasRefined;
     int maxThreads;
