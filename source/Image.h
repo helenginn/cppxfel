@@ -313,6 +313,11 @@ public:
 
 	double getDetectorDistance() const
 	{
+        if (detectorDistance == 0)
+        {
+            return globalDetectorDistance;
+        }
+        
 		return detectorDistance;
 	}
 
