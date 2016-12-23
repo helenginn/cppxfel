@@ -603,6 +603,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 {
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
+    
+    Image::setGlobalDetectorDistance(detectorDistance);
+    
     double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
     vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
@@ -717,13 +720,13 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         if (readFromHdf5)
         {
             Hdf5ImagePtr hdf5Image = Hdf5ImagePtr(new Hdf5Image(imgName, wavelength,
-                                                                detectorDistance));
+                                                                0));
             newImage = boost::static_pointer_cast<Image>(hdf5Image);
         }
         else
         {
             newImage = ImagePtr(new Image(imgName, wavelength,
-                                          detectorDistance));
+                                          0));
         }
         
         bool hasSpots = false;
@@ -786,7 +789,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 Logger::log(logged);
             }
             
-            if (components[0] == "distance" && detectorDistance == 0)
+            if (components[0] == "distance")
             {
                 double newDistance = detectorDistance;
                 
@@ -1196,7 +1199,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         
         
         ImagePtr newImage = ImagePtr(new Image(imgName, wavelength,
-                                               detectorDistance));
+                                               0));
         
         MatrixPtr newMat = MatrixPtr();
         

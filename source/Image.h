@@ -65,6 +65,7 @@ private:
 	double mmPerPixel;
     double detectorGain;
 
+    static double globalDetectorDistance;
 	double detectorDistance; // mm
 	double wavelength;
 	bool pinPoint;
@@ -213,6 +214,16 @@ public:
     void clusterCountWithSpotNumber(int spotNum);
 
     void addSpotIfNotMasked(SpotPtr newSpot);
+    
+    static void setGlobalDetectorDistance(double distance)
+    {
+        globalDetectorDistance = distance;
+    }
+    
+    double getGlobalDetectorDistance()
+    {
+        return globalDetectorDistance;
+    }
     
     void removeRefiner(int j)
     {

@@ -28,6 +28,8 @@
 #include "SpotFinderQuick.h"
 #include "SpotFinderCorrelation.h"
 
+double Image::globalDetectorDistance = 0;
+
 Image::Image(std::string filename, double wavelength,
              double distance)
 {
@@ -197,7 +199,7 @@ void Image::setImageData(vector<int> newData)
     
     memcpy(&data[0], &newData[0], newData.size() * sizeof(int));
     
-    logged << "Image with wavelength " << this->wavelength << ", distance " << detectorDistance << std::endl;
+    logged << "Image with wavelength " << this->wavelength << ", distance " << getDetectorDistance() << std::endl;
     sendLog();
 }
 
@@ -563,8 +565,8 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
 
 std::pair<double, double> Image::reciprocalCoordinatesToPixels(vec hkl)
 {
-    double x_mm = (hkl.k * detectorDistance / (1 / wavelength + hkl.l));
-    double y_mm = (hkl.h * detectorDistance / (1 / wavelength + hkl.l));
+    double x_mm = (hkl.k * getDetectorDistance() / (1 / wavelength + hkl.l));
+    double y_mm = (hkl.h * getDetectorDistance() / (1 / wavelength + hkl.l));
     
     double x_coord = beamX - x_mm / mmPerPixel;
     double y_coord = beamY - y_mm / mmPerPixel;
