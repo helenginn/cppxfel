@@ -564,7 +564,7 @@ void Spot::spotsAndVectorsToResolution(double lowRes, double highRes, std::vecto
 
 void Spot::addToMask(int *mask, int width)
 {
-    int padding = (backgroundPadding - 1) / 2;
+    int padding = (backgroundPadding - 1) / 2 + 2;
     
     for (int j = -padding; j < padding + 1; j++)
     {
