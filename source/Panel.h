@@ -72,9 +72,10 @@ private:
     Coord relativeToMidPointForMiller(Coord coord, bool isSpot = false);
     double angleForMiller(Miller *miller);
     double distanceFromMidPointForMiller(Miller *miller);
-    
+    void refreshMillerPositions();
+
     void score();
-    double stdevScore(double minRes, double maxRes);
+    static double globalScoreWrapper();
     vector<MillerPtr> millers;
 	int defaultShift;
     
@@ -103,6 +104,7 @@ public:
 	void plotVectors(int i, PlotType plotType);
 	static void plotAll(PlotType plotType);
     void stepSearch();
+    static void detectorStepSearch();
     double stepScore();
     static double scoreWrapper(void *object);
 

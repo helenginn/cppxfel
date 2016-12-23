@@ -61,7 +61,7 @@ public:
 	void refine();
 	void refineCycle(bool once = false);
 	void readMatricesAndMtzs();
-    void refineMetrology();
+    void refineMetrology(bool global);
     void initialMerge();
     void orientationPlot();
     void applyUnrefinedPartiality();

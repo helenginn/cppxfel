@@ -708,7 +708,7 @@ void Panel::plotVectors(int i, PlotType plotType)
             under = (miller->getRawIntensity() / miller->getCountingSigma() < 17);
             double strength = miller->getRawIntensity();// / miller->getCountingSigma();
             
-            bool isStrong = millers[i]->reachesThreshold();
+            bool isStrong = miller->reachesThreshold();
             
             if (isStrong)
             {
@@ -891,6 +891,21 @@ double Panel::scoreWrapper(void *object)
     return static_cast<Panel *>(object)->stepScore();
 }
 
+double Panel::globalScoreWrapper()
+{
+    double scoreTotal = 0;
+    
+    for (int i = 0; i < panels.size(); i++)
+    {
+        panels[i]->refreshMillerPositions();
+        scoreTotal += panels[i]->stepScore();
+    }
+    
+    scoreTotal /= (double)panels.size();
+    
+    return scoreTotal;
+}
+
 double Panel::stepScore()
 {
     std::vector<double> shiftXs;
@@ -957,3 +972,38 @@ void Panel::stepSearch()
     bottomRight.second -= bottomRightCorrectionY;
 }
 
+void Panel::refreshMillerPositions()
+{
+    for (int i = 0; i < millers.size(); i++)
+    {
+        int xTmp, yTmp;
+        millers[i]->positionOnDetector(NULL, &xTmp, &yTmp);
+    }
+}
+
+void Panel::detectorStepSearch()
+{
+    std::ostringstream logged;
+    
+    logged << "****************************" << std::endl;
+    logged << "*** Detector step search ***" << std::endl;
+    logged << "****************************" << std::endl;
+    
+    double defaultDistance = Image::getGlobalDetectorDistance();
+    double range = 2.0;
+    double intervals = 40;
+    double step = range / intervals;
+    
+    logged << std::endl << "Stepping from global distance " << defaultDistance - range << " to " << defaultDistance + range << std::endl;
+    logged << intervals << " steps of size " << step << std::endl << std::endl;
+    
+    Logger::log(logged);
+    
+    for (double dist = defaultDistance - range; dist <= defaultDistance + range; dist += step) // whatever
+    {
+        Image::setGlobalDetectorDistance(dist);
+        logged << "Distance: " << dist << " has score: " << globalScoreWrapper() << std::endl;
+        Logger::log(logged);
+        
+    }
+}

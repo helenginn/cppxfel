@@ -2157,7 +2157,7 @@ void MtzRefiner::plotIntensities()
     
 }
 
-void MtzRefiner::refineMetrology()
+void MtzRefiner::refineMetrology(bool global)
 {
     int count = 0;
     
@@ -2165,7 +2165,7 @@ void MtzRefiner::refineMetrology()
     {
         if (images[i]->IOMRefinerCount())
         {
-            images[i]->valueAt(100, 100);
+            images[i]->valueAt(100, 100); // trigger load into memory!
             count++;
         }
     }
@@ -2174,8 +2174,15 @@ void MtzRefiner::refineMetrology()
     logged << "Panel plots from before refinement:" << std::endl;
     sendLog();
     
-    Panel::plotAll(PlotTypeAbsolute);
-    Panel::printToFile("new_panels.txt");
+    if (global)
+    {
+        Panel::detectorStepSearch();
+    }
+    else
+    {
+        Panel::plotAll(PlotTypeAbsolute);
+        Panel::printToFile("new_panels.txt");
+    }
     
     logged << "Panel plots from after refinement:" << std::endl;
     sendLog();
