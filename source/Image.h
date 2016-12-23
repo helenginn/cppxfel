@@ -218,7 +218,7 @@ public:
         globalDetectorDistance = distance;
     }
     
-    double getGlobalDetectorDistance()
+    static double getGlobalDetectorDistance()
     {
         return globalDetectorDistance;
     }
@@ -309,7 +309,7 @@ public:
 		yDim = dim;
 	}
 
-	double getDetectorDistance() const
+	double getDetectorDistance()
 	{
         if (detectorDistance == 0)
         {

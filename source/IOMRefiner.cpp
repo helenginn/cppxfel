@@ -41,7 +41,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     initialStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
     
     testWavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
-    testDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     testBandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH",
                                        OVER_PRED_BANDWIDTH) / 2;
     testSpotSize = FileParser::getKey("OVER_PRED_RLP_SIZE",
@@ -343,9 +342,6 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     double maxD = 1 / maxResolution;
     if (maxResolution == 0)
         maxD = FLT_MAX;
-    
-    if (testDistance != 0)
-        getImage()->setDetectorDistance(testDistance);
     
     if (testWavelength != 0)
     {
@@ -1095,7 +1091,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     refinement = refinementType;
     this->calculateNearbyMillers(true);
     
-    testDistance = getImage()->getDetectorDistance();
     testWavelength = getImage()->getWavelength();
     
     vector<double> wavelengths;

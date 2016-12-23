@@ -62,7 +62,6 @@ private:
     double bestHRot;
     double bestKRot;
     double bestLRot;
-	double testDistance;
 	double testWavelength;
 	double testSpotSize;
 	double initialStep;
