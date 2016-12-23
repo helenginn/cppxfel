@@ -26,8 +26,6 @@
 #define ANGLE_TOLERANCE 0.0001
 #define SPOT_DISTANCE_TOLERANCE 5
 
-double IOMRefiner::intensityThreshold;
-bool IOMRefiner::absoluteIntensity = false;
 bool IOMRefiner::lowIntensityPenalty = false;
 
 IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
@@ -67,10 +65,8 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     lastTotal = 0;
     lastStdev = 0;
     expectedSpots = FileParser::getKey("EXPECTED_SPOTS", 30);
-    intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", INTENSITY_THRESHOLD);
     refinement = RefinementTypeOrientationMatrixEarly;
     image = newImage;
-    absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
     lowIntensityPenalty = FileParser::getKey("LOW_INTENSITY_PENALTY", false);
     this->matrix = matrix;
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
@@ -128,24 +124,6 @@ void IOMRefiner::dropMillers()
     vector<MillerPtr>().swap(nearbyMillers);
 }
 
-bool IOMRefiner::millerReachesThreshold(MillerPtr miller)
-{
-    double iSigI = miller->getRawIntensity() / miller->getCountingSigma();
-    
-    std::ostringstream logged;
-    
-  //  logged << "iSigI is " << iSigI << ", raw intensity is " << miller->getRawIntensity() << std::endl;
-    
-  //  Logger::mainLogger->addStream(&logged, LogLevelDebug);
-    
-    if (absoluteIntensity)
-    {
-        return (miller->getRawIntensity() > intensityThreshold);
-    }
-    
-    return (iSigI > intensityThreshold);
-}
-
 void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
                                      vector<int> &frequencies, LogLevel level, int whichAxis)
 {
@@ -187,12 +165,9 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
             if (ewald < i || ewald > i + interval)
                 continue;
             
-            bool strong = millerReachesThreshold(millers[j]);
+            bool strong = millers[j]->reachesThreshold();
             
             double weight = whichAxis == 0 ? 1 : millers[j]->getEwaldWeight(hRot, kRot, whichAxis == 1);
-            
-         //   if (resolutionWeights)
-         //       weight *= millers[j]->getResolution();
             
             total += weight;
             if (strong)
@@ -484,7 +459,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         this->millers.push_back(miller);
         
-        if (needsReintegrating && millerReachesThreshold(miller))
+        if (needsReintegrating && miller->reachesThreshold())
         {
             roughMillers.push_back(miller);
         }
@@ -621,7 +596,7 @@ int IOMRefiner::getTotalReflections()
     
     for (int i = 0; i < millers.size(); i++)
     {
-        if (millerReachesThreshold(millers[i]))
+        if (millers[i]->reachesThreshold())
             count++;
     }
     
@@ -647,7 +622,7 @@ int IOMRefiner::getTotalReflectionsWithinBandwidth()
         if (!millerWithinBandwidth(millers[i]))
             continue;
         
-        if (millerReachesThreshold(millers[i]))
+        if (millers[i]->reachesThreshold())
             count++;
     }
     
@@ -859,7 +834,7 @@ double IOMRefiner::score(int whichAxis, bool silent)
         
         for (int i = 0; i < millers.size(); i++)
         {
-            if (millerReachesThreshold(millers[i]))
+            if (millers[i]->reachesThreshold())
             {
                 std::pair<double, double> shift = millers[i]->getShift();
                 double shiftDistance = sqrt(pow(shift.first, 2) + pow(shift.second, 2));
@@ -925,7 +900,7 @@ double IOMRefiner::score(int whichAxis, bool silent)
         {
             MillerPtr miller = millers[i];
             
-            if (!millerReachesThreshold(miller))
+            if (!miller->reachesThreshold())
                 continue;
             
             double weight = miller->getRawestIntensity();
@@ -957,7 +932,7 @@ double IOMRefiner::score(int whichAxis, bool silent)
         
         for (int i = 0; i < millers.size(); i++)
         {
-            if (millerReachesThreshold(millers[i]) && millerWithinBandwidth(millers[i]))
+            if (millers[i]->reachesThreshold() && millerWithinBandwidth(millers[i]))
             {
                 wavelengths.push_back(millers[i]->getWavelength());
             }
@@ -1003,7 +978,7 @@ double IOMRefiner::score(int whichAxis, bool silent)
         
         for (int i = 0; i < millers.size(); i++)
         {
-            if (millerReachesThreshold(millers[i]))
+            if (millers[i]->reachesThreshold())
             {
                 wavelengths.push_back(millers[i]->getWavelength());
             }

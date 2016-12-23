@@ -69,8 +69,6 @@ private:
     double getTotalStandardDeviation();
 	int expectedSpots;
 	int searchSize;
-	static double intensityThreshold;
-    static bool absoluteIntensity;
     static bool lowIntensityPenalty;
 	double maxResolution;
 	MtzManager *reference;
@@ -100,7 +98,6 @@ public:
 			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
 	double score(int whichAxis = 0, bool silent = false);
 
-	static bool millerReachesThreshold(MillerPtr miller);
 	void findSpots();
 	static void duplicateSpots(vector<ImagePtr>images);
 	void writeDatFromSpots(std::string filename);
@@ -286,16 +283,6 @@ public:
 	void setSolutions(const vector<vector<double> >& solutions)
 	{
 		this->solutions = solutions;
-	}
-
-	double getIntensityThreshold() const
-	{
-		return intensityThreshold;
-	}
-
-	void setIntensityThreshold(double intensityThreshold)
-	{
-		this->intensityThreshold = intensityThreshold;
 	}
 
 	vector<double>& getUnitCell()

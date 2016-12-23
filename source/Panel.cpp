@@ -189,6 +189,9 @@ bool Panel::addMiller(MillerPtr miller)
 
 void Panel::addMillerToPanelArray(MillerPtr miller)
 {
+    if (!miller->reachesThreshold())
+        return;
+    
     for (int i = 0; i < panels.size(); i++)
     {
         if (panels[i]->addMiller(miller))
@@ -707,7 +710,7 @@ void Panel::plotVectors(int i, PlotType plotType)
             under = (miller->getRawIntensity() / miller->getCountingSigma() < 17);
             double strength = miller->getRawIntensity();// / miller->getCountingSigma();
             
-            bool isStrong = IOMRefiner::millerReachesThreshold(miller);
+            bool isStrong = millers[i]->reachesThreshold();
             
             if (isStrong)
             {

@@ -91,6 +91,8 @@ private:
     IOMRefiner *indexer;
     ShoeboxPtr shoebox;
     unsigned char flipMatrix;
+    static bool absoluteIntensity;
+    static double intensityThreshold;
 public:
     int getH();
     int getK();
@@ -187,6 +189,8 @@ public:
     RejectReason getRejectedReason();
 
     virtual ~Miller();
+    
+    bool reachesThreshold();
     
     void setBeam(BeamPtr newBeam)
     {

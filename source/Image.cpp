@@ -2548,7 +2548,7 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             Coord corrected = std::pair<double, double>(correctedX, correctedY);
             Coord shifted = panel->spotToMillerCoord(corrected);
             
-            bool strong = IOMRefiner::millerReachesThreshold(myMiller);
+            bool strong = myMiller->reachesThreshold();
             file->drawCircleAroundPixel(shifted.first, shifted.second, 14, (strong ? 1 : 0.5), red, green, blue, (strong ? 4 : 1));
             
             if (addShoebox)

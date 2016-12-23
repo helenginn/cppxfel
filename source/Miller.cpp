@@ -36,6 +36,8 @@ bool Miller::setupStatic = false;
 PartialityModel Miller::model = PartialityModelScaled;
 int Miller::peakSize = 0;
 bool Miller::correctedPartiality = false;
+bool Miller::absoluteIntensity = false;
+double Miller::intensityThreshold = 0;
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
@@ -58,6 +60,8 @@ void Miller::setupStaticVariables()
     maxSlices = FileParser::getKey("MAX_SLICES", 100);
     peakSize = FileParser::getKey("FOCUS_ON_PEAK_SIZE", 0);
     correctedPartiality = FileParser::getKey("CORRECTED_PARTIALITY_MODEL", false);
+    absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
+    intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", INTENSITY_THRESHOLD);
     
     setupStatic = true;
 }
@@ -1344,3 +1348,14 @@ double Miller::getRawestIntensity()
     return rawIntensity;
 }
 
+bool Miller::reachesThreshold()
+{
+    double iSigI = getRawIntensity() / getCountingSigma();
+    
+    if (absoluteIntensity)
+    {
+        return (getRawIntensity() > intensityThreshold);
+    }
+    
+    return (iSigI > intensityThreshold);
+}
