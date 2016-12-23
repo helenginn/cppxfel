@@ -253,7 +253,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                     continue;
                 
                 MillerPtr newMiller = MillerPtr(new Miller(NULL, h, k, l));
-                newMiller->setImageAndIOMRefiner(getImage(), this);
+                newMiller->setImageAndIOMRefiner(getImage(), shared_from_this());
                 
                 if (rough == false)
                 {

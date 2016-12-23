@@ -218,6 +218,7 @@ typedef boost::weak_ptr<Image>ImageWeakPtr;
 typedef boost::shared_ptr<Hdf5Image> Hdf5ImagePtr;
 typedef boost::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
+typedef boost::weak_ptr<IOMRefiner>IOMRefinerWeakPtr;
 typedef boost::shared_ptr<SpotVector> SpotVectorPtr;
 typedef boost::shared_ptr<IndexingSolution> IndexingSolutionPtr;
 typedef boost::shared_ptr<std::mutex> MutexPtr;

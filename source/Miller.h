@@ -88,7 +88,7 @@ private:
     BeamPtr beam;
     ImageWeakPtr image;
     PanelWeakPtr lastPanel;
-    IOMRefiner *indexer;
+    IOMRefinerWeakPtr refiner;
     ShoeboxPtr shoebox;
     unsigned char flipMatrix;
     static bool absoluteIntensity;
@@ -372,10 +372,15 @@ public:
 		this->shift = shift;
 	}
     
-    void setImageAndIOMRefiner(ImagePtr newImage, IOMRefiner *indexer)
+    void setImageAndIOMRefiner(ImagePtr newImage, IOMRefinerPtr indexer)
     {
         this->image = newImage;
-        this->indexer = indexer;
+        this->refiner = indexer;
+    }
+    
+    IOMRefinerPtr getIOMRefiner()
+    {
+        return refiner.lock();
     }
     
     ImagePtr getImage()
