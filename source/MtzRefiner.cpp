@@ -1224,7 +1224,6 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         newImage->setSpaceGroup(spg);
         newImage->setMaxResolution(maxIntegratedResolution);
         newImage->setSearchSize(metrologySearchSize);
-        newImage->setIntensityThreshold(intensityThreshold);
         newImage->setUnitCell(unitCell);
         newImage->setInitialStep(orientationStep);
         

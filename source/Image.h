@@ -197,7 +197,6 @@ public:
     void setSpaceGroup(CSym::CCP4SPG *spg);
     void setMaxResolution(double res);
     void setSearchSize(int searchSize);
-    void setIntensityThreshold(double threshold);
     void setUnitCell(vector<double> dims);
     void setInitialStep(double step);
     void setTestSpotSize(double spotSize);

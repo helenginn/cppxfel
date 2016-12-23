@@ -1086,14 +1086,6 @@ void Image::setSearchSize(int searchSize)
     }
 }
 
-void Image::setIntensityThreshold(double threshold)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setIntensityThreshold(threshold);
-    }
-}
-
 void Image::setUnitCell(vector<double> dims)
 {
     for (int i = 0; i < indexers.size(); i++)
