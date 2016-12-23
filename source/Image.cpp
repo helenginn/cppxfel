@@ -975,21 +975,6 @@ void Image::index()
     }
 }
 
-void Image::refineIndexing(MtzManager *reference)
-{
-    if (indexers.size() == 0)
-    {
-        logged << "No orientation matrices, cannot index/integrate." << std::endl;
-        sendLog();
-        return;
-    }
-    
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->refineDetectorAndWavelength(reference);
-    }
-}
-
 void Image::refineOrientations()
 {
     if (indexers.size() == 0)
@@ -1002,21 +987,6 @@ void Image::refineOrientations()
     for (int i = 0; i < indexers.size(); i++)
     {
         indexers[i]->refineOrientationMatrix();
-    }
-}
-
-void Image::refineDistances()
-{
-    if (indexers.size() == 0)
-    {
-        logged << "No orientation matrices, cannot refine distance." << std::endl;
-        sendLog();
-        return;
-    }
-    
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->refineDetectorAndWavelength();
     }
 }
 

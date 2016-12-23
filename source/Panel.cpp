@@ -644,8 +644,6 @@ void Panel::plotVectors(int i, PlotType plotType)
             maxD = bins[j + 1] == 0 ? FLT_MAX : 1 / bins[j + 1];
         }
         
-        std::cout << minD << ", " << maxD << std::endl;
-        
         for (int k = 0; k < millers.size(); k++)
         {
             MillerPtr miller = millers[k];
@@ -744,46 +742,6 @@ void Panel::plotVectors(int i, PlotType plotType)
         vector<MillerPtr>().swap(resMillers);
     
     }
-}
-
-double Panel::stdevScore(double minRes, double maxRes)
-{
-    vector<MillerPtr> resMillers;
-    
-    double minD, maxD;
-    
-    StatisticsManager::convertResolutions(minRes, maxRes, &minD, &maxD);
-    
-    for (int i = 0; i < millers.size(); i++)
-    {
-        MillerPtr miller = millers[i];
-        
-        if (miller->getResolution() > minD && miller->getResolution() < maxD)
-        {
-            resMillers.push_back(miller);
-        }
-    }
-    
-    double aveIntensity = Miller::averageRawIntensity(resMillers);
-    vector<double> xShifts, yShifts;
-    
-    for (int i = 0; i < resMillers.size(); i++)
-    {
-        MillerPtr miller = resMillers[i];
-        
-        if (miller->getRawIntensity() > aveIntensity)
-        {
-            Coord shift = miller->getShift();
-            
-            xShifts.push_back(shift.first);
-            yShifts.push_back(shift.second);
-        }
-    }
-    
-    double xStdev = standard_deviation(&xShifts);
-    double yStdev = standard_deviation(&yShifts);
-    
-    return xStdev + yStdev;
 }
 
 void Panel::fractionalCoordinates(Miller *miller, Coord *frac)
@@ -885,35 +843,6 @@ void Panel::findShift(double windowSize, double step, double x, double y)
     Logger::mainLogger->addStream(&logged);
     
     bestShift = scores[0].first;
-}
-
-double Panel::swivelShiftScoreWrapper(void *object)
-{
-    double threshold = 200;
-    
-    Panel *panel = static_cast<Panel *>(object);
-    
-    std::vector<double> shiftXs, shiftYs;
-    
-    for (int i = 0; i < panel->millers.size(); i++)
-    {
-        if (panel->millers[i]->getRawIntensity() > threshold)
-        {
-            MillerPtr miller = panel->millers[i];
-            
-            Coord shift = shiftForMiller(&*miller);
-            
-            shiftXs.push_back(shift.first);
-            shiftYs.push_back(shift.second);
-        }
-    }
-    
-    double stdevX = standard_deviation(&shiftXs);
-    double stdevY = standard_deviation(&shiftYs);
-    
-    double score = stdevX + stdevY;
-    
-    return score;
 }
 
 double Panel::detectorGain(double *error)

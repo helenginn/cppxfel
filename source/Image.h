@@ -135,7 +135,6 @@ public:
 	bool coveredBySpot(int x, int y);
 	static void applyMaskToImages(vector<ImagePtr> images, int startX,
 			int startY, int endX, int endY);
-    void refineDistances();
     std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
     void reset();
     void findSpots();

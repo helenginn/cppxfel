@@ -62,8 +62,6 @@ private:
     void centreWindowShift();
     void findAllParameters();
     void findShift(double windowSize, double step, double x = 0, double y = 0);
-    
-    static double swivelShiftScoreWrapper(void *object);
 
     std::map<boost::thread::id, vector<MillerPtr> > tempMillers;
     

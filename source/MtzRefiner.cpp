@@ -1643,8 +1643,6 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
 {
     int maxThreads = FileParser::getMaxThreads();
     
-    bool refineDistances = FileParser::getKey("REFINE_DISTANCES", false);
-    
     for (int i = offset; i < images.size(); i += maxThreads)
     {
         std::ostringstream logged;
@@ -1652,9 +1650,6 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
         Logger::mainLogger->addStream(&logged);
         
         images[i]->clearMtzs();
-        
-        if (refineDistances)
-            images[i]->refineDistances();
         
         if (orientation)
             images[i]->refineOrientations();
@@ -2304,17 +2299,6 @@ void MtzRefiner::applyUnrefinedPartiality()
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         mtzManagers[i]->applyUnrefinedPartiality();
-    }
-}
-
-void MtzRefiner::refineDistances()
-{
-    for (int i = 0; i < images.size(); i++)
-    {
-        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
-        {
-            images[i]->getIOMRefiner(j)->refineDetectorAndWavelength(&*reference);
-        }
     }
 }
 

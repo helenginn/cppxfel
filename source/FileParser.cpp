@@ -323,7 +323,6 @@ void FileParser::generateFunctionList()
 	parserMap["OVER_PRED_BANDWIDTH"] = simpleFloat;
 	parserMap["OVER_PRED_RLP_SIZE"] = simpleFloat;
     parserMap["REFINE_ORIENTATIONS"] = simpleBool;
-    parserMap["REFINE_DISTANCES"] = simpleBool;
     parserMap["INDEXING_ORIENTATION_TOLERANCE"] = simpleFloat;
     parserMap["LOW_INTENSITY_PENALTY"] = simpleBool;
 	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;

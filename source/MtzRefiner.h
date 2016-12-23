@@ -108,7 +108,6 @@ public:
     }
     
     void setupFreeMillers();
-    void refineDistances();
     void polarisationGraph();
     void displayIndexingHands();
     void findSteps();

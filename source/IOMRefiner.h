@@ -108,7 +108,6 @@ public:
 	void minimizeTwoParameters(double *meanStep1, double *meanStep2,
 			double *param1, double *param2);
 
-	void refineDetectorAndWavelength(MtzManager *reference = NULL);
 	void refineOrientationMatrix();
 	void refineOrientationMatrix(RefinementType refinementType);
 	
