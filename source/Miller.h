@@ -144,14 +144,16 @@ public:
     
 	void flip(void);
 
+    double differenceFromImageWavelength();
     bool isRejected();
     double getBFactorScale();
 	double intensity(bool withCutoff = true);
-	double getSigma(void);
+	double getSigma();
 	double getPartiality();
-	double getWavelength(void);
+	double getWavelength();
 	double getWavelength(double hRot, double kRot);
     double getWavelength(MatrixPtr transformedMatrix);
+    double recalculateWavelength();
 	double getWeight(bool cutoff = true, WeightType weighting = WeightTypePartialitySigma);
 	double resolution();
     double twoTheta(bool horizontal);

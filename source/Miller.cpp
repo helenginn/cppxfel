@@ -529,6 +529,22 @@ vec Miller::getTransformedHKL(double hRot, double kRot)
     return hkl;
 }
 
+double Miller::recalculateWavelength()
+{
+    double hRot = 0;
+    double kRot = 0;
+    
+    if (getMtzParent() != NULL)
+    {
+        hRot = getMtzParent()->getHRot();
+        kRot = getMtzParent()->getKRot();
+    }
+    
+    getWavelength(hRot, kRot);
+    
+    return getWavelength();
+}
+
 double Miller::getWavelength(double hRot, double kRot)
 {
     vec hkl = getTransformedHKL(hRot, kRot);
@@ -1366,4 +1382,12 @@ bool Miller::reachesThreshold()
     }
     
     return (iSigI > intensityThreshold);
+}
+
+double Miller::differenceFromImageWavelength()
+{
+    double imageWavelength = getImage()->getWavelength();
+    double myWavelength = getWavelength();
+    
+    return (myWavelength - imageWavelength);
 }
