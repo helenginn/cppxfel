@@ -251,6 +251,14 @@ double SpotVector::getMinDistanceTolerance()
     return minDistanceTolerance;
 }
 
+bool SpotVector::isIntraPanelVector()
+{
+    PanelPtr onePanel = firstSpot->getPanel();
+    PanelPtr twoPanel = secondSpot->getPanel();
+    
+    return (onePanel == twoPanel);
+}
+
 double SpotVector::getMinAngleTolerance()
 {
     if (minAngleTolerance != 0)

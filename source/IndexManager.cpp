@@ -698,7 +698,9 @@ void IndexManager::powderPattern()
     
     refineMetrology();
     
-    PowderHistogram frequencies = generatePowderHistogram();
+    PowderHistogram allFrequencies = generatePowderHistogram();
+    PowderHistogram intraFrequencies = generatePowderHistogram(1);
+    PowderHistogram interFrequencies = generatePowderHistogram(0);
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -769,17 +771,17 @@ void IndexManager::powderPattern()
     
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
 
-    CSV powder(3, "Distance", "Frequency", "Perfect frequency");
+    CSV powder(5, "Distance", "Frequency", "Perfect frequency", "Intra-panel", "Inter-panel");
     
-    for (PowderHistogram::iterator it = frequencies.begin(); it != frequencies.end(); it++)
+    for (PowderHistogram::iterator it = allFrequencies.begin(); it != allFrequencies.end(); it++)
     {
         double distance = it->first * step;
         double freq = it->second.first;
         double perfect = it->second.second;
+        double intrapanel = intraFrequencies[it->first].first;
+        double interpanel = interFrequencies[it->first].first;
         
-        powder.addEntry(0, distance, freq, perfect);
-        
-//        powderLog << distance << "," << freq << "," << perfect << std::endl;
+        powder.addEntry(0, distance, freq, perfect, intrapanel, interpanel);
     }
     
     powder.writeToFile("powder.csv");
@@ -1002,7 +1004,7 @@ void IndexManager::indexFromScratch()
     lattice.anglePattern(false);
 }
 
-PowderHistogram IndexManager::generatePowderHistogram()
+PowderHistogram IndexManager::generatePowderHistogram(int intraPanel)
 {
     PowderHistogram frequencies;
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
@@ -1033,7 +1035,20 @@ PowderHistogram IndexManager::generatePowderHistogram()
             double distance = spotVec->distance();
             int categoryNum = distance / step;
             
-            frequencies[categoryNum].first++;
+            bool isIntraPanel = spotVec->isIntraPanelVector();
+            
+            if (intraPanel == -1)
+            {
+                frequencies[categoryNum].first++;
+            }
+            else if (intraPanel == 0 && !isIntraPanel)
+            {
+                frequencies[categoryNum].first++;
+            }
+            else if (intraPanel == 1 && isIntraPanel)
+            {
+                frequencies[categoryNum].first++;
+            }
         }
     }
     

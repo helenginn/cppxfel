@@ -55,7 +55,7 @@ protected:
     double maxDistance;
     double smallestDistance;
     double minReciprocalDistance;
-    PowderHistogram generatePowderHistogram();
+    PowderHistogram generatePowderHistogram(int intraPanel = -1);
     std::vector<VectorDistance> vectorDistances;
     std::vector<IOMRefinerPtr> consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both);
 public:
