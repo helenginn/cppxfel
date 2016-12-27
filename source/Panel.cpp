@@ -978,7 +978,7 @@ void Panel::refreshMillerPositions()
     for (int i = 0; i < millers.size(); i++)
     {
         int xTmp, yTmp;
-        millers[i]->positionOnDetector(NULL, &xTmp, &yTmp);
+        millers[i]->positionOnDetector(MatrixPtr(), &xTmp, &yTmp, false);
     }
 }
 
