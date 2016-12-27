@@ -304,6 +304,8 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
     flipMatrix = 0;
+    lastPeakX = 0;
+    lastPeakY = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -967,7 +969,7 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
 }
 
 void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
-                                int *y)
+                                int *y, bool shouldSearch)
 {
     double x_coord = 0;
     double y_coord = 0;
@@ -1025,6 +1027,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         
         *x = intLastX;
         *y = intLastY;
+        
+        lastPeakX = intLastX;
+        lastPeakY = intLastY;
     }
     else
     {
@@ -1036,15 +1041,28 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             double shiftedX = lastX + bestShift.first;
             double shiftedY = lastY + bestShift.second;
             
-            int xInt = shiftedX;
-            int yInt = shiftedY;
+            int xInt, yInt;
             
-            getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+            if (shouldSearch || (lastPeakX == 0 && lastPeakY == 0))
+            {
+                xInt = shiftedX;
+                yInt = shiftedY;
+            
+                getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+            }
+            else
+            {
+                xInt = lastPeakX;
+                yInt = lastPeakY;
+            }
             
             shift = std::make_pair(xInt + 0.5 - shiftedX, yInt + 0.5 - shiftedY);
             
             *x = xInt;
             *y = yInt;
+            
+            lastPeakX = xInt;
+            lastPeakY = yInt;
         }
         else
         {
@@ -1052,8 +1070,8 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             
             getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
             
-            *x = intLastX;
-            *y = intLastY;
+            lastPeakX = intLastX;
+            lastPeakY = intLastY;
         }
     }
     

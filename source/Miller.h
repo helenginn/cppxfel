@@ -62,6 +62,8 @@ private:
 	float scale; // should be extracted from Mtz. Maybe?
 	float lastX;
 	float lastY;
+    float lastPeakX;
+    float lastPeakY;
     float correctedX;
     float correctedY;
     
@@ -156,7 +158,7 @@ public:
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
 	void positionOnDetector(MatrixPtr transformedMatrix, int *x,
-			int *y);
+			int *y, bool search = true);
     void recalculateBetterPartiality();
     
     void setHorizontalPolarisationFactor(double newFactor);
