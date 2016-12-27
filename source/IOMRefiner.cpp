@@ -1522,8 +1522,6 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
-        if (miller->getRawestIntensity() > 60000)
-            continue;
         
         miller->incrementOverlapMask();
         miller->setMtzParent(&*mtz);
