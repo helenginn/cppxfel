@@ -112,13 +112,11 @@ public:
 
 	Miller(MtzManager *parent, int _h = 0, int _k = 0, int _l = 0, bool calcFree = true);
 	MillerPtr copy(void);
-	void printHkl(void);
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
     void limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh, vec *inwards = NULL, vec *outwards = NULL);
     double slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double rlpSize, double mean, double sigma, double exponent);
     
     bool isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDelete = true);
-    double calculateDefaultNorm();
     void setPartialityModel(PartialityModel model);
 	void setData(double _intensity, double _sigma, double _partiality,
 			double _wavelength);
@@ -141,10 +139,7 @@ public:
     {
         free = newFree;
     }
-    
-	void flip(void);
 
-    double differenceFromImageWavelength();
     bool isRejected();
     double getBFactorScale();
 	double intensity(bool withCutoff = true);
@@ -157,7 +152,6 @@ public:
 	double getWeight(bool cutoff = true, WeightType weighting = WeightTypePartialitySigma);
 	double resolution();
     double twoTheta(bool horizontal);
-	double scatteringAngle(ImagePtr image);
 
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
@@ -435,10 +429,6 @@ public:
         return sigma;
     }
     
-    
-
-
-    static void rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
     static void rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
 
 protected:

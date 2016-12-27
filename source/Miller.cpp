@@ -377,11 +377,6 @@ void Miller::setData(double _intensity, double _sigma, double _partiality,
     wavelength = _wavelength;
 }
 
-void Miller::printHkl(void)
-{
-    std::cout << "h k l " << h << " " << k << " " << l << std::endl;
-}
-
 bool Miller::accepted(void)
 {
     if (this->model == PartialityModelNone)
@@ -609,13 +604,6 @@ double Miller::getWeight(bool cutoff, WeightType weighting)
     return weight;
 }
 
-void Miller::rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
-{
-    (*newMatrix) = oldMatrix->copy();
-    
-    (*newMatrix)->rotateABC(oldMatrix, aRot, bRot, cRot);
-}
-
 void Miller::rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
 {
     (*newMatrix) = oldMatrix->copy();
@@ -727,25 +715,6 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
     
     return thisPartiality;
     
-}
-
-double Miller::calculateDefaultNorm()
-{
-    double defaultSpotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
-    double wavelength = 1.75;
-    
-    double d = getResolution();
-    
-    double newH = 0;
-    double newK = sqrt((4 * pow(d, 2) - pow(d, 4) * pow(wavelength, 2)) / 4);
-    double newL = 0 - pow(d, 2) * wavelength / 2;
-    
-    vec newHKL = new_vector(newH, newK, newL);
-    
-    double normPartiality = partialityForHKL(newHKL, 0,
-                                             defaultSpotSize, wavelength, INITIAL_BANDWIDTH, INITIAL_EXPONENT);
-    
-    return normPartiality;
 }
 
 double Miller::calculateNormPartiality(MatrixPtr rotatedMatrix, double mosaicity,
@@ -949,31 +918,9 @@ MillerPtr Miller::copy(void)
     return newMiller;
 }
 
-void Miller::flip(void)
-{
-    int tmp = l;
-    l = k;
-    k = tmp;
-}
-
 void Miller::applyScaleFactor(double scaleFactor)
 {
     setScale(scale * scaleFactor);
-/*
-    if ((abs(h) == 9 && abs(k) == 9 && abs(l) == 16) ||
-        (abs(h) == 16 && abs(k) == 9 && abs(l) == 9))
-    {
-        logged << mtzParent->getFilename() << std::endl;
-        logged << h << "\t" << k << "\t" << l << std::endl;
-        logged << "Intensity: " << getRawestIntensity() << std::endl;
-        logged << "Scale: " << getScale() << std::endl;
-        logged << "Partiality: " << getPartiality() << std::endl;
-        logged << "getSigma: " << getSigma() << std::endl;
-        logged << "Sigma itself: " << sigma << std::endl;
-        
-        sendLog();
-    }*/
-    
 }
 
 void Miller::applyPolarisation(double wavelength)
@@ -1017,34 +964,6 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
     *positive = ((isym > 0) == 1);
     
     return isym != 0;
-}
-
-double Miller::scatteringAngle(ImagePtr image)
-{
-    double beamX = getImage()->getBeamX();
-    double beamY = getImage()->getBeamY();
-    
-    double distance_from_centre = sqrt(
-                                      pow(lastX - beamX, 2) + pow(lastY - beamY, 2));
-    double distance_pixels = distance_from_centre * getImage()->getMmPerPixel();
-    double detector_distance = getImage()->getDetectorDistance();
-    
-    double sinTwoTheta = sin(distance_pixels / detector_distance);
-    
-    return sinTwoTheta;
-}
-
-void flattenAngle(double *radians)
-{
-    while (*radians < 0)
-    {
-        *radians += M_PI;
-    }
-    
-    while (*radians > 2 * M_PI)
-    {
-        *radians -= M_PI;
-    }
 }
 
 void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
@@ -1382,12 +1301,4 @@ bool Miller::reachesThreshold()
     }
     
     return (iSigI > intensityThreshold);
-}
-
-double Miller::differenceFromImageWavelength()
-{
-    double imageWavelength = getImage()->getWavelength();
-    double myWavelength = getWavelength();
-    
-    return (myWavelength - imageWavelength);
 }
