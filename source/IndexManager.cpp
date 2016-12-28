@@ -646,8 +646,17 @@ double IndexManager::pseudoScore(void *object)
                     double oneIsLower = (fabs(realDistance - oneDistance)
                                        < fabs(realDistance - twoDistance));
                     double chosen = oneIsLower ? oneDistance : twoDistance;
+                    int chosenOne = oneIsLower ? k : k + 1;
                     
-                    score += fabs(realDistance - chosen);// * (twoDistance - oneDistance);
+                    if (chosenOne == 0 || chosenOne > me->lattice->orderedDistanceCount() - 2)
+                    {
+                        continue;
+                    }
+                    
+                    double potentialError = me->lattice->orderedDistance(chosenOne + 1) - me->lattice->orderedDistance(chosenOne - 1);
+                    potentialError = 0.1;
+                    
+                    score += fabs(realDistance - chosen) * potentialError * 10;
                 }
             }
         }
