@@ -1256,6 +1256,13 @@ void Image::findSpots()
     Spot::writeDatFromSpots(basename + "_spots.csv", spots);
     writeSpotsList("_" + basename + "_strong.list");
     
+    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
+
+    if (alwaysFilterSpots)
+    {
+        compileDistancesFromSpots(0, 0, alwaysFilterSpots);
+    }
+    
     return;
     
 }
