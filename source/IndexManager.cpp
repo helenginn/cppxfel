@@ -93,80 +93,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, unitCell[0], unitCell[1], unitCell[2],
                                            unitCell[3], unitCell[4], unitCell[5]);
-    /*
-    
-    for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
-    {
-        for (int j = -maxMillerIndexTrialK; j <= maxMillerIndexTrialK; j++)
-        {
-            for (int k = -maxMillerIndexTrialL; k <= maxMillerIndexTrialL; k++)
-            {
-                if (spaceGroupNum != 19 && spaceGroupNum != 178 && spaceGroupNum != 5)
-                {
-                    if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
-                    {
-                        continue;
-                    }
-                    
-                    if (spaceGroupNum == 5 && (i + j % 2 != 0))
-                        continue;
-                    
-              //      if (spaceGroupNum == 146 && ((-i + j + k) % 3 != 0))
-              //          continue;
 
-                }
-                
-             //   if (k != 0) continue;
-                
-                vec hkl = new_vector(i, j, k);
-                vec hkl_transformed = copy_vector(hkl);
-                
-                if (1 / length_of_vector(hkl) > resolution)
-                    continue;
-                
-                unitCellMatrix->multiplyVector(&hkl_transformed);
-                
-                logged << hkl.h << "\t" << hkl.k << "\t" << hkl.l << "\t" << hkl_transformed.h << "\t" << hkl_transformed.k << "\t" << hkl_transformed.l << std::endl;
-                sendLog(LogLevelDebug);
-                
-                
-                double distance = length_of_vector(hkl_transformed);
-                
-                if (distance > maxDistance)
-                    maxDistance = distance;
-                
-                vectorDistances.push_back(std::make_pair(hkl, distance));
-            }
-        }
-    }
-
-    maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
-    
-    smallestDistance = FLT_MAX;
-    
-    if (1 / unitCell[0] < smallestDistance)
-        smallestDistance = 1 / unitCell[0];
-    if (1 / unitCell[1] < smallestDistance)
-        smallestDistance = 1 / unitCell[1];
-    if (1 / unitCell[2] < smallestDistance)
-        smallestDistance = 1 / unitCell[2];
-    
-    smallestDistance *= 0.85;
-    
-    for (int i = 0; i < vectorDistances.size(); i++)
-    {
-        vec transformed = copy_vector(vectorDistances[i].first);
-        unitCellMatrix->multiplyVector(&transformed);
-        
-        logged << vectorDistances[i].first.h << "\t"
-         << vectorDistances[i].first.k << "\t"
-         << vectorDistances[i].first.l << "\t"
-         << transformed.h << "\t"
-         << transformed.k << "\t"
-         << transformed.l << "\t"
-        << vectorDistances[i].second << std::endl;
-    }*/
-    
     sendLog(LogLevelDebug);
 }
 
@@ -700,6 +627,11 @@ double IndexManager::pseudoScore(void *object)
                 continue;
             }
             
+            if (me->activeDetector && !vec->isOnlyFromDetector(me->activeDetector))
+            {
+                continue;
+            }
+            
             vec->calculateDistance();
             
             double realDistance = vec->distance();
@@ -715,7 +647,7 @@ double IndexManager::pseudoScore(void *object)
                                        < fabs(realDistance - twoDistance));
                     double chosen = oneIsLower ? oneDistance : twoDistance;
                     
-                    score += fabs(realDistance - chosen);
+                    score += fabs(realDistance - chosen);// * (twoDistance - oneDistance);
                 }
             }
         }
@@ -737,8 +669,6 @@ void IndexManager::powderPattern(std::string csvName, bool force)
             images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
         }
     }
-    
-    refineMetrology();
     
     PowderHistogram allFrequencies = generatePowderHistogram();
     PowderHistogram intraFrequencies = generatePowderHistogram(1);
@@ -1033,22 +963,6 @@ void IndexManager::index()
     }
 }
 
-void IndexManager::indexFromScratch()
-{
-    std::vector<double> startingData = FileParser::getKey("INDEX_STARTING_DATA", std::vector<double>());
-    
-    if (startingData.size() < 6)
-    {
-        std::cout << "INDEX_STARTING_DATA should be set to dist1, dist2, dist3, angle1, angle2, angle3" << std::endl;
-    }
-    
-    FreeLattice lattice = FreeLattice(startingData[0], startingData[1], startingData[2], startingData[3], startingData[4], startingData[5]);
-    lattice.addExpanded();
-//    lattice.addExpanded();
-    lattice.powderPattern();
-    lattice.anglePattern(false);
-}
-
 PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfectPadding)
 {
     PowderHistogram frequencies;
@@ -1063,9 +977,9 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
     }
     
     
-    for (int i = 0; i < vectorDistances.size(); i++)
+    for (int i = 0; i < lattice->standardVectorCount(); i++)
     {
-        double distance = vectorDistances[i].second;
+        double distance = lattice->standardVector(i)->distance();
         int categoryNum = distance / step;
         
         for (int i = categoryNum - perfectPadding; i <= categoryNum + perfectPadding; i++)
@@ -1103,100 +1017,12 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
     return frequencies;
 }
 
-
-double IndexManager::metrologyTarget(void *object)
-{
-    static_cast<IndexManager *>(object)->updateAllSpots();
-    PowderHistogram histogram = static_cast<IndexManager *>(object)->generatePowderHistogram();
-    double highPercentage = 0.0524;
-    std::vector<double> frequencies;
-    
-    for (PowderHistogram::iterator it = histogram.begin(); it != histogram.end(); it++)
-    {
-        frequencies.push_back(it->second.first);
-    }
-    
-    std::sort(frequencies.begin(), frequencies.end(), std::greater<double>());
-    
-    int maxCap = highPercentage * frequencies.size();
-    int maxSum = 0;
-    int minSum = 0;
-    int maxCount = 0;
-    int minCount = 0;
-    
-    for (int i = 0; i < frequencies.size(); i++)
-    {
-        if (i <= maxCap)
-        {
-            maxSum += frequencies[i];
-            maxCount++;
-        }
-        else
-        {
-            minSum += frequencies[i];
-            minCount++;
-        }
-    }
-    
-    double result = -maxSum;
-    
-    static_cast<IndexManager *>(object)->logged << "Metrology target result: " << result << std::endl;
-    static_cast<IndexManager *>(object)->sendLog();
-    
-    return result;
-}
-
 void IndexManager::updateAllSpots()
 {
     for (int i = 0; i < images.size(); i++)
     {
         images[i]->updateAllSpots();
     }
-}
-
-void IndexManager::refineMetrology()
-{
-    return;
-    
-    Panel::setUsePanelInfo(true);
-    
-    std::map<int, std::pair<double, double> > steps;
-    
-    for (int i = 0; i < Panel::panelCount(); i++)
-    {
-        steps[i] = std::make_pair(2, 2);
-    }
-    
-    logged << "Panel count: " << Panel::panelCount() << std::endl;
-    sendLog();
-    
-    bool converged = false;
-    double convergeValue = 0.5;
-    
-    while (!converged)
-    {
-        converged = true;
-        
-        for (int i = 0; i < Panel::panelCount(); i++)
-        {
-            PanelPtr panel = Panel::getPanel(i);
-            
-            double *xShiftPtr = panel->pointerToBestShiftX();
-            double *yShiftPtr = panel->pointerToBestShiftY();
-            
-            minimizeParameter(steps[i].first, xShiftPtr, metrologyTarget, this);
-            minimizeParameter(steps[i].second, yShiftPtr, metrologyTarget, this);
-            
-            if (steps[i].first > convergeValue || steps[i].second > convergeValue)
-            {
-                converged = false;
-            }
-        }
-        
-    }
-    
-    logged << Panel::printAll() << std::endl;
-    sendLog();
 }
 
 void IndexManager::indexingParameterAnalysis()

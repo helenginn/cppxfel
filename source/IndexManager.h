@@ -36,6 +36,7 @@ protected:
     MatrixPtr unitCellMatrixInverse;
     Reflection *newReflection;
     CSym::CCP4SPG *spaceGroup;
+    DetectorPtr activeDetector;
     int spaceGroupNum;
     std::vector<MtzPtr> mtzs;
     double minimumTrustDistance;
@@ -48,7 +49,6 @@ protected:
     bool modifyParameters();
     
     void updateAllSpots();
-    static double metrologyTarget(void *object);
     bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
     int indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset);
     double maxMillerIndexTrial;
@@ -74,12 +74,15 @@ public:
         mergeImages = otherImages;
     }
     
+    void setActiveDetector(DetectorPtr detector)
+    {
+        activeDetector = detector;
+    }
+    
     void combineLists();
     void indexingParameterAnalysis();
-    void refineMetrology();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
-    void indexFromScratch();
     void powderPattern(std::string csvName = "powder.csv", bool force = false);
     void refineUnitCell();
     static double pseudoScore(void *object);
