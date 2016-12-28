@@ -56,6 +56,8 @@ source = [
 'source/FileReader.cpp',
 'source/FreeLattice.cpp',
 'source/FreeMillerLibrary.cpp',
+'source/GeometryParser.cpp',
+'source/GeometryRefiner.cpp',
 'source/GraphDrawer.cpp',
 'source/Hdf5Crystal.cpp',
 'source/Hdf5Image.cpp',
