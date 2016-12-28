@@ -55,7 +55,7 @@ protected:
     double maxDistance;
     double smallestDistance;
     double minReciprocalDistance;
-    PowderHistogram generatePowderHistogram(int intraPanel = -1);
+    PowderHistogram generatePowderHistogram(int intraPanel = -1, int perfectPadding = 0);
     std::vector<VectorDistance> vectorDistances;
     std::vector<IOMRefinerPtr> consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both);
 public:
@@ -80,8 +80,9 @@ public:
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
     void indexFromScratch();
-    void powderPattern();
+    void powderPattern(std::string csvName = "powder.csv", bool force = false);
     void refineUnitCell();
+    static double pseudoScore(void *object);
     IndexManager(std::vector<ImagePtr>images);
 };
 

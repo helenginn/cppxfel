@@ -66,6 +66,7 @@ private:
     float lastPeakY;
     float correctedX;
     float correctedY;
+    vec shiftedRay;
     
     float bFactorScale; // should be extracted from Mtz.
     
@@ -429,6 +430,11 @@ public:
     double getRawSigma()
     {
         return sigma;
+    }
+    
+    vec getShiftedRay()
+    {
+        return shiftedRay;
     }
     
     static void rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);

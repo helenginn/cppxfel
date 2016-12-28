@@ -93,10 +93,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, unitCell[0], unitCell[1], unitCell[2],
                                            unitCell[3], unitCell[4], unitCell[5]);
-    
-    logged << "Calculating distances of unit cell " << spaceGroupNum << std::endl;
-    sendLog();
-    
+    /*
     
     for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
     {
@@ -168,7 +165,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
          << transformed.k << "\t"
          << transformed.l << "\t"
         << vectorDistances[i].second << std::endl;
-    }
+    }*/
     
     sendLog(LogLevelDebug);
 }
@@ -677,7 +674,8 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                 finished = true;
         }
         
-        logged << "N: Finished image " << image->getFilename() << " on " << image->IOMRefinerCount() << " crystals and " << image->spotCount() << " spots." << std::endl;
+        logged << "N: Finished image " << image->getFilename() << " on "
+        << image->IOMRefinerCount() << " crystals and " << image->spotCount() << " spots." << std::endl;
         Logger::mainLogger->addStream(&logged); logged.str("");
 
         image->writeSpotsList();
@@ -685,7 +683,48 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     }
 }
 
-void IndexManager::powderPattern()
+double IndexManager::pseudoScore(void *object)
+{
+    IndexManager *me = static_cast<IndexManager *>(object);
+    
+    double score = 0;
+    
+    for (int i = 0; i < me->images.size(); i++)
+    {
+        for (int j = 0; j < me->images[i]->spotVectorCount(); j++)
+        {
+            SpotVectorPtr vec = me->images[i]->spotVector(j);
+            
+            if (!vec->isIntraPanelVector())
+            {
+                continue;
+            }
+            
+            vec->calculateDistance();
+            
+            double realDistance = vec->distance();
+            
+            for (int k = 0; k < me->lattice->orderedDistanceCount() - 1; k++)
+            {
+                double oneDistance = me->lattice->orderedDistance(k);
+                double twoDistance = me->lattice->orderedDistance(k + 1);
+                
+                if (realDistance > oneDistance && realDistance < twoDistance)
+                {
+                    double oneIsLower = (fabs(realDistance - oneDistance)
+                                       < fabs(realDistance - twoDistance));
+                    double chosen = oneIsLower ? oneDistance : twoDistance;
+                    
+                    score += fabs(realDistance - chosen);
+                }
+            }
+        }
+    }
+    
+    return score;
+}
+
+void IndexManager::powderPattern(std::string csvName, bool force)
 {
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     
@@ -693,7 +732,10 @@ void IndexManager::powderPattern()
     
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
+        if (force || (images[i]->spotVectorCount() == 0 && images[i]->acceptableSpotCount()))
+        {
+            images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
+        }
     }
     
     refineMetrology();
@@ -784,9 +826,12 @@ void IndexManager::powderPattern()
         powder.addEntry(0, distance, freq, perfect, intrapanel, interpanel);
     }
     
-    powder.writeToFile("powder.csv");
-    logged << powder.plotColumns(0, 1) << std::endl;
-    sendLog();
+    powder.writeToFile(csvName);
+    
+    if (csvName == "powder.csv")
+    {
+        powder.plotColumns(0, 1);
+    }
     
     lattice->powderPattern(false, "unitCellLatticePowder.csv");
     
@@ -1004,7 +1049,7 @@ void IndexManager::indexFromScratch()
     lattice.anglePattern(false);
 }
 
-PowderHistogram IndexManager::generatePowderHistogram(int intraPanel)
+PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfectPadding)
 {
     PowderHistogram frequencies;
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
@@ -1023,7 +1068,10 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel)
         double distance = vectorDistances[i].second;
         int categoryNum = distance / step;
         
-        frequencies[categoryNum].second++;
+        for (int i = categoryNum - perfectPadding; i <= categoryNum + perfectPadding; i++)
+        {
+            frequencies[i].second++;
+        }
     }
     
     for (int i = 0; i < images.size(); i++)

@@ -76,7 +76,8 @@ double standard_deviation(vector<double> *values, vector<double> *weights = NULL
 double r_factor_between_vectors(vector<double> *vec1,
 		vector<double> *vec2, vector<double> *weights, double scale);
 double standard_deviation(vector<double> *values, vector<double> *weights, double mean);
-void desc(vec hkl);
+void printDesc(vec hkl);
+std::string desc(vec hkl);
 
 double cartesian_to_distance(double x, double y);
 double cartesian_to_angle(double x, double y);

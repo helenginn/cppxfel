@@ -28,6 +28,9 @@
 #include "MtzGrouper.h"
 #include "MtzMerger.h"
 #include "Hdf5ManagerProcessing.h"
+#include "Detector.h"
+#include "GeometryParser.h"
+#include "GeometryRefiner.h"
 
 bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
@@ -535,7 +538,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     
-    Image::setGlobalDetectorDistance(detectorDistance);
+    Image::setGlobalDetectorDistance(NULL, detectorDistance);
     
     double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
     vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
@@ -549,7 +552,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
     if (givenUnitCell.size() > 0 && tolerance > 0.0)
         checkingUnitCell = true;
-    
+    /*
     if (wavelength == 0 && newImages != NULL)
     {
         std::cout << "No integration wavelength provided. If this is not deliberate, please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH" << std::endl;
@@ -559,7 +562,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     {
         std::cout << "No detector distance provided. If this is not deliberate, please provide detector distance for integration under keyword DETECTOR_DISTANCE" << std::endl;
         
-    }
+    }*/
     
     bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
@@ -931,11 +934,12 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
         
         version = inputVersion;
     }
+    
     Logger::log(logged);
     
     for (int i = 0; i < maxThreads; i++)
     {
-        if (version == 1.0) // floating point comparison???
+        if (version <= 1.1) // floating point comparison???
         {
             boost::thread *thr = new boost::thread(singleLoadImages, filename,
                                                    &imageSubsets[i], i);
@@ -1077,7 +1081,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         logged
         << "Please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH"
         << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal);
     }
     
     if (detectorDistance == 0)
@@ -1085,7 +1089,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         logged
         << "Please provide detector distance for integration under keyword DETECTOR_DISTANCE"
         << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal);
     }
     
     vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
@@ -1095,7 +1099,9 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         logged
         << "Please provide unit cell dimensions under keyword UNIT_CELL"
         << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal);
+        
+        fixUnitCell = false;
     }
     
     int maxThreads = FileParser::getMaxThreads();
@@ -1784,8 +1790,24 @@ void MtzRefiner::loadPanels(bool mustFail)
     }
     else if (Panel::panelCount() > 0)
     {
-        std::cout << "Panels already present" << std::endl;
+        logged <<  "Panels already present" << std::endl;
+        sendLog();
+        return;
     }
+    
+    bool useNewDetectorFormat = Detector::isActive();
+    
+    if (!useNewDetectorFormat || Detector::getMaster())
+    {
+        return;
+    }
+    
+    logged << "Trying out new detector format..." << std::endl;
+    sendLog();
+    
+    GeometryParser geomParser = GeometryParser("test.cppxfel_geom", GeometryFormatCppxfel);
+    geomParser.parse();
+
 }
 
 void MtzRefiner::findSteps()
@@ -2159,35 +2181,57 @@ void MtzRefiner::plotIntensities()
 
 void MtzRefiner::refineMetrology(bool global)
 {
-    int count = 0;
-    
-    for (int i = 0; i < images.size(); i++)
+    if (Detector::isActive())
     {
-        if (images[i]->IOMRefinerCount())
+        GeometryRefiner refiner = GeometryRefiner();
+        refiner.setImages(images);
+        refiner.refineGeometry();
+        
+        return;
+    }
+    
+    int count = 0;
+    bool againstPseudo = FileParser::getKey("REFINE_AGAINST_PSEUDO", false);
+    
+    if (againstPseudo)
+    {
+        powderPattern();
+    }
+    
+    else
+    {
+        for (int i = 0; i < images.size(); i++)
         {
-            images[i]->valueAt(100, 100); // trigger load into memory!
-            count++;
+            if (images[i]->IOMRefinerCount())
+            {
+                images[i]->valueAt(100, 100); // trigger load into memory!
+                count++;
+            }
         }
     }
     
     logged << "Loaded " << count << " images into memory! Now refining..." << std::endl;
-    logged << "Panel plots from before refinement:" << std::endl;
-    sendLog();
     
     if (global)
     {
-        Panel::detectorStepSearch();
+        
+        Panel::detectorStepSearch(againstPseudo, images);
     }
     else
     {
+        logged << "Panel plots from before refinement:" << std::endl;
+        sendLog();
         Panel::plotAll(PlotTypeAbsolute);
         Panel::printToFile("new_panels.txt");
     }
     
-    logged << "Panel plots from after refinement:" << std::endl;
-    sendLog();
-    
-    Panel::plotAll(PlotTypeAbsolute);
+    if ((global && !againstPseudo) || !global)
+    {
+        logged << "Panel plots from after refinement:" << std::endl;
+        sendLog();
+        
+        Panel::plotAll(PlotTypeAbsolute);
+    }
 }
 
 MtzRefiner::~MtzRefiner()

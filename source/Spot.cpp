@@ -16,6 +16,7 @@
 #include "FileParser.h"
 #include "CSV.h"
 #include "Shoebox.h"
+#include "Detector.h"
 
 double Spot::maxResolution = 0;
 double Spot::minIntensity = 0;
@@ -341,6 +342,14 @@ void Spot::setUpdate()
 
 Coord Spot::getXY()
 {
+    if (Detector::isActive())
+    {
+        vec arrangedPos;
+        Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+        
+        return std::make_pair(arrangedPos.h, arrangedPos.k);
+    }
+    
     Coord shift = Panel::translationShiftForSpot(this);
     Coord swivelShift = Panel::swivelShiftForSpot(this);
     
@@ -469,9 +478,30 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
 
 vec Spot::estimatedVector()
 {
-    vec estimated = getParentImage()->pixelsToReciprocalCoordinates(getX(), getY());
-    
-    return estimated;
+    if (Detector::isActive())
+    {
+        vec arrangedPos;
+        DetectorPtr detector = Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(x, y, &arrangedPos);
+        
+        if (detector)
+        {
+            double wavelength = getParentImage()->getWavelength();
+            arrangedPos.k *= -1;
+            scale_vector_to_distance(&arrangedPos, 1 / wavelength);
+            arrangedPos.l -= 1 / wavelength;
+
+            return arrangedPos;
+        }
+        else
+        {
+            return new_vector(0, 0, 0);
+        }
+    }
+    else
+    {
+        vec estimated = getParentImage()->pixelsToReciprocalCoordinates(getX(), getY());
+        return estimated;
+    }
 }
 
 double Spot::integrate()

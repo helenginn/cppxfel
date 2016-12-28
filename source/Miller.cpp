@@ -25,6 +25,7 @@
 #include "Spot.h"
 #include "FreeMillerLibrary.h"
 #include "polyfit.hpp"
+#include "Detector.h"
 
 bool Miller::normalised = true;
 bool Miller::correctingPolarisation = false;
@@ -318,6 +319,7 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
         free = FreeMillerLibrary::isMillerFree(this);
     }
     
+    shiftedRay = new_vector(0, 0, 0);
     mtzParent = parent;
     matrix = MatrixPtr();
 }
@@ -984,21 +986,19 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     
     vec hkl = new_vector(h, k, l);
     transformedMatrix->multiplyVector(&hkl);
+    double tmp = hkl.k;
+    hkl.k = hkl.h;
+    hkl.h = -tmp;
     
     std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl);
     
     lastX = int(coord.first);
     lastY = int(coord.second);
     
-    PanelPtr panel = Panel::panelForMiller(this);
+    *x = -INT_MAX;
+    *y = -INT_MAX;
     
-    if (!panel)
-    {
-        *x = -INT_MAX;
-        *y = -INT_MAX;
-        
-        return;
-    }
+    PanelPtr panel = Panel::panelForMiller(this);
     
     x_coord = coord.first;
     y_coord = coord.second;
@@ -1018,8 +1018,52 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     lastX = x_coord;
     lastY = y_coord;
     
-    if (!Panel::shouldUsePanelInfo())
+    if (Detector::isActive())
     {
+        double imageWavelength = getImage()->getWavelength();
+        hkl.k *= -1;
+        hkl.l += 1 / imageWavelength;
+        double xSpot, ySpot;
+        
+        DetectorPtr detector = Detector::getMaster()->spotCoordForRayIntersection(hkl, &xSpot, &ySpot);
+        
+        if (!detector)
+        {
+            return;
+        }
+        
+        lastX = xSpot + 0.5;
+        lastY = ySpot + 0.5;
+        
+        int xInt = xSpot;
+        int yInt = ySpot;
+        
+        if (shouldSearch || (lastPeakX == 0 && lastPeakY == 0))
+        {
+            int search = getIOMRefiner()->getSearchSize();
+            getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+        }
+        else
+        {
+            xInt = lastPeakX;
+            yInt = lastPeakY;
+        }
+        
+        shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
+        
+        detector->spotCoordToAbsoluteVec(xInt + 0.5, yInt + 0.5, &shiftedRay);
+        
+        lastPeakX = xInt;
+        lastPeakY = yInt;
+        
+        *x = xInt;
+        *y = yInt;
+    }
+    else if (!Panel::shouldUsePanelInfo())
+    {
+        if (!panel)
+            return;
+        
         int search = getIOMRefiner()->getSearchSize();
         getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
         

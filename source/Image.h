@@ -66,6 +66,9 @@ private:
     double detectorGain;
 
     static double globalDetectorDistance;
+    static double globalBeamX;
+    static double globalBeamY;
+    
 	double detectorDistance; // mm
 	double wavelength;
 	bool pinPoint;
@@ -210,17 +213,38 @@ public:
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     void updateAllSpots();
     void clusterCountWithSpotNumber(int spotNum);
+    bool acceptableSpotCount();
 
     void addSpotIfNotMasked(SpotPtr newSpot);
     
-    static void setGlobalDetectorDistance(double distance)
+    static void setGlobalDetectorDistance(void *object, double distance)
     {
         globalDetectorDistance = distance;
     }
     
-    static double getGlobalDetectorDistance()
+    static double getGlobalDetectorDistance(void *object)
     {
         return globalDetectorDistance;
+    }
+    
+    static double getGlobalBeamX(void *object)
+    {
+        return globalBeamX;
+    }
+    
+    static void setGlobalBeamX(void *object, double newX)
+    {
+        globalBeamX = newX;
+    }
+    
+    static double getGlobalBeamY(void *object)
+    {
+        return globalBeamY;
+    }
+    
+    static void setGlobalBeamY(void *object, double newY)
+    {
+        globalBeamY = newY;
     }
     
     void removeRefiner(int j)
@@ -334,22 +358,32 @@ public:
 		this->wavelength = wavelength;
 	}
 
-	int getBeamX() const
+	double getBeamX() const
 	{
+        if (beamX == INT_MAX)
+        {
+            return globalBeamX;
+        }
+        
 		return beamX;
 	}
 
-	void setBeamX(int beamX)
+	void setBeamX(double beamX)
 	{
 		this->beamX = beamX;
 	}
 
-	int getBeamY() const
+	double getBeamY() const
 	{
+        if (beamY == INT_MAX)
+        {
+            return globalBeamY;
+        }
+        
 		return beamY;
 	}
 
-	void setBeamY(int beamY)
+	void setBeamY(double beamY)
 	{
 		this->beamY = beamY;
 	}

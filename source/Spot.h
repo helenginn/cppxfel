@@ -15,12 +15,12 @@
 #include "Vector.h"
 #include "LoggableObject.h"
 
-class Spot : LoggableObject
+class Spot : LoggableObject, public boost::enable_shared_from_this<Spot>
 {
 private:
 	vector<vector<double> > probe;
 	ImageWeakPtr parentImage;
-    PanelWeakPtr lastPanel;
+    DetectorWeakPtr lastDetector;
     double angleDetectorPlane;
     bool setAngle;
     bool checked;
@@ -36,6 +36,7 @@ private:
     static double maxResolution;
     static double minIntensity;
     static double minCorrelation;
+    static int useNewDetectorFormat;
     
 public:
 	Spot(ImagePtr image);
@@ -118,14 +119,14 @@ public:
 		this->parentImage = parentImage;
 	}
     
-    PanelPtr getPanel()
+    DetectorPtr getDetector()
     {
-        return lastPanel.lock();
+        return lastDetector.lock();
     }
     
-    void setPanel(PanelPtr newPanel)
+    void setDetector(DetectorPtr newD)
     {
-        lastPanel = newPanel;
+        lastDetector = newD;
     }
     
     double getIntensity()

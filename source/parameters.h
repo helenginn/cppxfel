@@ -170,10 +170,18 @@ typedef enum
     ScalingTypeResolutionShells = 5
 } ScalingType;
 
+typedef enum
+{
+    GeometryFormatCppxfel = 0,
+    GeometryFormatCrystFEL = 1,
+} GeometryFormat;
+
 class Panel;
+class Detector;
 class SolventMask;
 class Logger;
 class Image;
+class IndexManager;
 class Hdf5Image;
 class Shoebox;
 class Matrix;
@@ -207,6 +215,8 @@ typedef boost::weak_ptr<Reflection> ReflectionWeakPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
 typedef boost::shared_ptr<Panel>PanelPtr;
+typedef boost::shared_ptr<Detector>DetectorPtr;
+typedef boost::weak_ptr<Detector>DetectorWeakPtr;
 typedef boost::weak_ptr<Panel>PanelWeakPtr;
 typedef boost::shared_ptr<SolventMask> SolventMaskPtr;
 typedef boost::shared_ptr<MtzManager> MtzPtr;
@@ -220,6 +230,7 @@ typedef boost::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
 typedef boost::weak_ptr<IOMRefiner>IOMRefinerWeakPtr;
 typedef boost::shared_ptr<SpotVector> SpotVectorPtr;
+typedef boost::shared_ptr<IndexManager> IndexManagerPtr;
 typedef boost::shared_ptr<IndexingSolution> IndexingSolutionPtr;
 typedef boost::shared_ptr<std::mutex> MutexPtr;
 typedef boost::shared_ptr<UnitCellLattice> UnitCellLatticePtr;
