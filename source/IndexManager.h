@@ -83,7 +83,7 @@ public:
     void indexingParameterAnalysis();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
-    void powderPattern(std::string csvName = "powder.csv", bool force = false);
+    void powderPattern(std::string csvName = "powder.csv", bool force = true);
     void refineUnitCell();
     static double pseudoScore(void *object);
     IndexManager(std::vector<ImagePtr>images);

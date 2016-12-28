@@ -671,9 +671,9 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     
     std::ostringstream pdbLog;
     
-    for (int i = 0; i < images.size(); i++)
+    if (force)
     {
-        if (force || (images[i]->spotVectorCount() == 0 && images[i]->acceptableSpotCount()))
+        for (int i = 0; i < images.size(); i++)
         {
             images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
         }
@@ -767,7 +767,7 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     
     powder.writeToFile(csvName);
     
-    if (csvName == "powder.csv")
+    if (force)
     {
         powder.plotColumns(0, 1);
     }
