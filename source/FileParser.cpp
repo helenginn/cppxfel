@@ -352,6 +352,7 @@ void FileParser::generateFunctionList()
     parserMap["SIGMA_RESOLUTION_CUTOFF"] = simpleFloat;
     parserMap["PIXEL_COUNT_CUTOFF"] = simpleInt;
     parserMap["EXPECTED_SPOTS"] = simpleInt;
+    parserMap["REFINE_AGAINST_PSEUDO"] = simpleBool;
     parserMap["INDEXING_SLICE_ANGLE"] = simpleFloat;
     parserMap["REFINE_UNIT_CELL_A"] = simpleBool;
     parserMap["REFINE_UNIT_CELL_B"] = simpleBool;
@@ -445,7 +446,10 @@ void FileParser::generateFunctionList()
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
     
 	parserMap["PANEL_LIST"] = simpleString;
+    parserMap["DETECTOR_LIST"] = simpleString;
+    parserMap["USE_NEW_DETECTOR_FORMAT"] = simpleBool;
     parserMap["SKIP_LINES"] = simpleInt;
+
     
     parserMap["MILLER_INDEX"] = intVector;
 }
