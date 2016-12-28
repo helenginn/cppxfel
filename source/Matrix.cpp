@@ -269,7 +269,7 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
         }
     }
     
-    Logger::log(logged);
+    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
 }
 
 void Matrix::printDescription(bool detailed)
@@ -572,6 +572,7 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
 }
 
+// Order = b * this
 Matrix Matrix::operator*=(Matrix &b)
 {
     Matrix newMat;
@@ -654,6 +655,7 @@ void Matrix::multiply(Matrix &b)
     (*this) *= b;
 }
 
+// Order = this * b (I think)
 void Matrix::preMultiply(Matrix &b)
 {
     Matrix newMat = b * (*this);
