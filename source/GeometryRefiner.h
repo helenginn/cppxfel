@@ -19,8 +19,10 @@ private:
     std::vector<ImagePtr> images;
     IndexManagerPtr manager;
     int refinementEvent;
+    int cycleNum;
     void refineDetector(DetectorPtr detector);
     static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset);
+    void refineGeometryCycle();
     
 public:
     GeometryRefiner();

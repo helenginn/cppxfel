@@ -16,9 +16,18 @@
 GeometryRefiner::GeometryRefiner()
 {
     refinementEvent = 0;
+    cycleNum = 0;
 }
 
 void GeometryRefiner::refineGeometry()
+{
+    for (int i = 0; i < 3; i++)
+    {
+        refineGeometryCycle();
+    }
+}
+
+void GeometryRefiner::refineGeometryCycle()
 {
     std::vector<DetectorPtr> sameLevelDetectors;
     std::vector<DetectorPtr> nextLevelDetectors;
@@ -26,11 +35,32 @@ void GeometryRefiner::refineGeometry()
     DetectorPtr master = Detector::getMaster();
     nextLevelDetectors.push_back(master);
     
+    cycleNum++;
+    
     while (nextLevelDetectors.size())
     {
         sameLevelDetectors = nextLevelDetectors;
         nextLevelDetectors.clear();
-        /*
+        
+        std::ostringstream detectorList;
+        
+        for (int i = 0; i < sameLevelDetectors.size(); i++)
+        {
+            detectorList << sameLevelDetectors[i]->getTag() << " ";
+            
+            for (int j = 0; j < sameLevelDetectors[i]->childrenCount(); j++)
+            {
+                nextLevelDetectors.push_back(sameLevelDetectors[i]->getChild(j));
+            }
+        }
+        
+        logged << "***************************************************" << std::endl;
+        logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
+        logged << "  Refining detector" << (sameLevelDetectors.size() == 1 ? "" : "s") << ": " << detectorList.str() << std::endl;
+        logged << "***************************************************" << std::endl << std::endl;
+        
+        sendLog();
+        
         double maxThreads = FileParser::getMaxThreads();
         boost::thread_group threads;
         
@@ -41,23 +71,10 @@ void GeometryRefiner::refineGeometry()
         }
         
         threads.join_all();
-        */
         
-        
-        for (int i = 0; i < sameLevelDetectors.size(); i++)
-        {
-            refineDetector(sameLevelDetectors[i]);
-            
-            for (int j = 0; j < sameLevelDetectors[i]->childrenCount(); j++)
-            {
-                nextLevelDetectors.push_back(sameLevelDetectors[i]->getChild(j));
-            }
-        }
-
         refinementEvent++;
         
-        manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv");
-
+        manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
     }
     
     GeometryParser geomParser = GeometryParser("test.cppxfel_geom", GeometryFormatCppxfel);
@@ -66,7 +83,7 @@ void GeometryRefiner::refineGeometry()
 
 void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset)
 {
-    int maxThreads = 1;//FileParser::getMaxThreads();
+    int maxThreads = FileParser::getMaxThreads();
     
     for (int i = offset; i < detectors.size(); i += maxThreads)
     {
@@ -76,13 +93,11 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<Det
 
 void GeometryRefiner::refineDetector(DetectorPtr detector)
 {
-    logged << "*********************************" << std::endl;
-    logged << "  Refining detector: " << detector->getTag() << std::endl;
-    logged << "*********************************" << std::endl << std::endl;
-    
     Logger::log(logged);
 
     GetterSetterMapPtr beamRefinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    
+    double zMovement = detector->isLUCA() ? 2.0 : 0.4;
     
     beamRefinementMap->setJobName("Detector " + detector->getTag());
     beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointX,
@@ -90,11 +105,12 @@ void GeometryRefiner::refineDetector(DetectorPtr detector)
     beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointY,
                                     Detector::setArrangedMidPointY, 2.0, 0.02, "midPointY");
     beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
-                                    Detector::setArrangedMidPointZ, 2.0, 0.02, "midPointZ");
+                                    Detector::setArrangedMidPointZ, 0.4, 0.02, "midPointZ");
     
     beamRefinementMap->setVerbose(true);
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
+    aManager->setActiveDetector(detector);
     
     beamRefinementMap->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
     
@@ -104,22 +120,22 @@ void GeometryRefiner::refineDetector(DetectorPtr detector)
     
     beamRefinementMap->clearParameters();
     
-    beamRefinementMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.005, 0.0002, "alpha");
-    beamRefinementMap->addParameter(&*detector, Detector::getBeta, Detector::setBeta, 0.005, 0.0002, "beta");
+    beamRefinementMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.005, 0.00001, "alpha");
+    beamRefinementMap->addParameter(&*detector, Detector::getBeta, Detector::setBeta, 0.005, 0.00001, "beta");
     
     if (!detector->isLUCA())
     {
-        beamRefinementMap->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.005, 0.0002, "gamma");
+        beamRefinementMap->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.005, 0.00001, "gamma");
     }
     
-    double zMovement = detector->isLUCA() ? 0.5 : 0.1;
+    zMovement = detector->isLUCA() ? 0.5 : 0.1;
     
     beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointX,
-                                    Detector::setArrangedMidPointX, 0.2, 0.1, "midPointX");
+                                    Detector::setArrangedMidPointX, 0.2, 0.01, "midPointX");
     beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointY,
-                                    Detector::setArrangedMidPointY, 0.2, 0.1, "midPointY");
+                                    Detector::setArrangedMidPointY, 0.2, 0.01, "midPointY");
     beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
-                                    Detector::setArrangedMidPointZ, zMovement, 0.1, "midPointZ");
+                                    Detector::setArrangedMidPointZ, zMovement, 0.01, "midPointZ");
     
     beamRefinementMap->refine(GetterSetterStepSearch);
     
@@ -129,6 +145,6 @@ void GeometryRefiner::setImages(std::vector<ImagePtr> newImages)
 {
     images = newImages;
     manager = IndexManagerPtr(new IndexManager(images));
-    manager->powderPattern("geom_refinement_event_0_start.csv");
+    manager->powderPattern("geom_refinement_event_0_start.csv", false);
     
 }
