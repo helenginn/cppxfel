@@ -87,6 +87,11 @@ void Panel::init(vector<double> dimensions, PanelTag newTag)
     {
         gainScale = dimensions[9];
     }
+    
+    Coord origTopLeft = millerToSpotCoord(topLeft);
+    logged << "Original top left coord: " << origTopLeft.first << ", " << origTopLeft.second << std::endl;
+    sendLog();
+    
 }
 
 void Panel::setupPanel(PanelPtr panel)
