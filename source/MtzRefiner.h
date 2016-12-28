@@ -47,7 +47,6 @@ public:
 	virtual ~MtzRefiner();
 
     void index();
-    void indexFromScratch();
     void powderPattern();
     void hitAnalysis();
 	bool loadInitialMtz(bool force = false);
