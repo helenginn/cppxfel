@@ -251,6 +251,14 @@ typedef std::map<int, std::pair<int, int> > PowderHistogram;
 
 typedef enum
 {
+    LogLevelNormal = 0,
+    LogLevelDetailed = 1,
+    LogLevelDebug = 2
+} LogLevel;
+
+
+typedef enum
+{
 	WeightTypeAverage,
 	WeightTypePartiality,
 	WeightTypePartialitySigma,

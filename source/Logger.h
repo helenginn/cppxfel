@@ -19,13 +19,6 @@
 #include <mutex>
 #include <condition_variable>
 
-typedef enum
-{
-    LogLevelNormal = 0,
-    LogLevelDetailed = 1,
-    LogLevelDebug = 2
-} LogLevel;
-
 typedef std::pair<StreamPtr, LogLevel> LogAndLevel;
 
 typedef std::map<boost::thread::id, vector<LogAndLevel> > StringMap;
