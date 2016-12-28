@@ -17,6 +17,13 @@
 GeometryParser::GeometryParser(std::string aFilename, GeometryFormat aFormat)
 {
     filename = aFilename;
+    
+    if (!FileReader::exists(filename))
+    {
+        logged << "File " << filename << " does not exist." << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+    }
+    
     format = aFormat;
 }
 
