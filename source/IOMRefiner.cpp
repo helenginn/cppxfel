@@ -389,9 +389,6 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         vec hkl = new_vector(miller->getH(), miller->getK(), miller->getL());
         matrix->multiplyVector(&hkl);
         
-    //    int roughX = 0;
-    //    int roughY = 0;
-        
         miller->setMatrix(matrix);
         
         double d = length_of_vector(hkl);
@@ -402,9 +399,6 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         }
         
         miller->crossesBeamRoughly(newMatrix, 0.0, testSpotSize, wavelength, bandwidth);
-        
-      //  miller->recalculatePartiality(newMatrix, 0.0, testSpotSize,
-       //                               wavelength, bandwidth, 1.5, true);
         
         if (i == 0)
         {
