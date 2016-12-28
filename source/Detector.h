@@ -109,7 +109,7 @@ public:
     {
         if (detectorActive == -1)
         {
-            detectorActive = FileParser::getKey("USE_NEW_DETECTOR_FORMAT", false);
+            detectorActive = FileParser::hasKey("DETECTOR_LIST");
         }
         
         return detectorActive;

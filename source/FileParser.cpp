@@ -447,7 +447,6 @@ void FileParser::generateFunctionList()
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["DETECTOR_LIST"] = simpleString;
-    parserMap["USE_NEW_DETECTOR_FORMAT"] = simpleBool;
     parserMap["SKIP_LINES"] = simpleInt;
 
     
