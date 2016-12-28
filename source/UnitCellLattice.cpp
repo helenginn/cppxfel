@@ -11,6 +11,7 @@
 #include "FileParser.h"
 #include "SpotVector.h"
 #include "Logger.h"
+#include <algorithm>
 
 std::vector<MatrixPtr> UnitCellLattice::symOperators;
 
@@ -123,6 +124,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 if (asym)
                 {
                     uniqueSymVectors.push_back(newStandardVector);
+                    orderedDistances.push_back(newStandardVector->distance());
                 }
                 
                 count++;
@@ -130,9 +132,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
         }
     }
     
-    std::ostringstream logged;
-    logged << "Added " << count << " test vectors from space group / unit cell." << std::endl;
-    Logger::mainLogger->addStream(&logged);
+    std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
     
     minDistance = FLT_MAX;
     

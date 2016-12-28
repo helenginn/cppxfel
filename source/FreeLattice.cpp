@@ -97,7 +97,7 @@ void FreeLattice::powderPattern(bool originOnly, std::string filename)
     std::map<double, int> map = histogram(allDistances, powderPatternStep);
     CSV csv = CSV(2, "distance", "frequency");
     csv.histogram(map);
-    csv.plotColumns(0, 1);
+//    csv.plotColumns(0, 1);
     csv.writeToFile(filename);
 }
 
