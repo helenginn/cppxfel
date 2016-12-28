@@ -1627,7 +1627,7 @@ void Image::filterSpotVectors()
     
     std::vector<double> scoresOnly;
     std::map<SpotVectorPtr, double> spotVectorMap;
-    double reciprocalTolerance = FileParser::getKey("RECIPROCAL_TOLERANCE", 0.0015);
+    double reciprocalTolerance = FileParser::getKey("INITIAL_RLP_SIZE", 0.0015);
     
     int totalSpots = spotCount();
     double expectedLatticesFraction = (double)totalSpots / (double)spotsPerLattice;
