@@ -2018,8 +2018,6 @@ void Image::findIndexingSolutions()
         processSpotList();
     }
 
-    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
-    
     std::vector<IndexingSolutionPtr> solutions;
     
     int maxSearch = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 1000);
@@ -2042,6 +2040,7 @@ void Image::findIndexingSolutions()
         sendLog();
     }
     
+    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     compileDistancesFromSpots(0, 0, alwaysFilterSpots);
     if (spotVectors.size() == 0)
         return;
