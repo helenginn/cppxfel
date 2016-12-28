@@ -61,21 +61,22 @@ private:
 
     void centreWindowShift();
     void findAllParameters();
-    void findShift(double windowSize, double step, double x = 0, double y = 0);
-
+    
     std::map<boost::thread::id, vector<MillerPtr> > tempMillers;
     
     static void calculateMetrologyThread(int offset);
     static std::string printAllThreaded();
     double detectorGain(double *error);
 
+    Coord relativeToCoordForMiller(Coord coord, Coord relative, bool isSpot);
+    Coord relativeToTopLeftForMiller(Coord coord, bool isSpot = false);
     Coord relativeToMidPointForMiller(Coord coord, bool isSpot = false);
     double angleForMiller(Miller *miller);
-    double distanceFromMidPointForMiller(Miller *miller);
     void refreshMillerPositions();
 
     void score();
-    static double globalScoreWrapper();
+    static double globalScoreWrapper(void *object);
+    static double globalPseudoScoreWrapper(void *object);
     vector<MillerPtr> millers;
 	int defaultShift;
     
@@ -100,11 +101,10 @@ public:
     static PanelPtr spotCoordFallsInMask(Coord shifted);
     Coord spotToMillerCoord(Coord xy);
     static void setupPanel(PanelPtr panel);
-    static void removePanel(PanelPtr panel);
-	void plotVectors(int i, PlotType plotType);
+    void plotVectors(int i, PlotType plotType);
 	static void plotAll(PlotType plotType);
     void stepSearch();
-    static void detectorStepSearch();
+    static void detectorStepSearch(bool pseudo = false, std::vector<ImagePtr> images = std::vector<ImagePtr>());
     double stepScore();
     static double scoreWrapper(void *object);
 
@@ -114,12 +114,10 @@ public:
     Coord realCoordsForImageCoord(Coord xy);
     static Coord translationShiftForSpot(Spot *spot);
     static Coord swivelShiftForSpot(Spot *spot);
-    static double scaleForMiller(Miller *miller);
-	void print(std::ostringstream *stream);
+    void print(std::ostringstream *stream);
 	static void printToFile(std::string filename);
 	static std::string printAll();
     
-    static bool hasMillers();
     static int panelCount();
     static void clearAllMillers();
     void clearMillers();
