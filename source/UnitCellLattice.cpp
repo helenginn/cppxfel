@@ -75,6 +75,8 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     int count = 0;
     
+    orderedDistances.push_back(0);
+    
     for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
     {
         for (int j = -maxMillerIndexTrialK; j <= maxMillerIndexTrialK; j++)
