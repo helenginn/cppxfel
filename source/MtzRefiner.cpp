@@ -1772,6 +1772,26 @@ void MtzRefiner::integrationSummary()
 
 void MtzRefiner::loadPanels(bool mustFail)
 {
+    bool useNewDetectorFormat = Detector::isActive();
+    
+    if (useNewDetectorFormat)
+    {
+        if (Detector::getMaster())
+        {
+            return;
+        }
+        
+        std::string detectorList = FileParser::getKey("DETECTOR_LIST", std::string(""));
+        
+        logged << "Loading new detector format from " << detectorList << "." << std::endl;
+        sendLog();
+        
+        GeometryParser geomParser = GeometryParser(detectorList, GeometryFormatCppxfel);
+        geomParser.parse();
+        
+        return;
+    }
+    
     std::string panelList = FileParser::getKey("PANEL_LIST", std::string(""));
     
     panelParser = new PanelParser(panelList);
@@ -1795,19 +1815,7 @@ void MtzRefiner::loadPanels(bool mustFail)
         return;
     }
     
-    bool useNewDetectorFormat = Detector::isActive();
     
-    if (!useNewDetectorFormat || Detector::getMaster())
-    {
-        return;
-    }
-    
-    logged << "Trying out new detector format..." << std::endl;
-    sendLog();
-    
-    GeometryParser geomParser = GeometryParser("test.cppxfel_geom", GeometryFormatCppxfel);
-    geomParser.parse();
-
 }
 
 void MtzRefiner::findSteps()
