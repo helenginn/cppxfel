@@ -1411,7 +1411,7 @@ void Image::processSpotList()
             << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
             sendLog(LogLevelDebug);
             
-            if (Panel::panelForSpot(&*newSpot) == PanelPtr())
+            if (!Detector::isActive() && Panel::panelForSpot(&*newSpot) == PanelPtr())
             {
                 add = false;
             }
