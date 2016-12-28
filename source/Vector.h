@@ -29,6 +29,7 @@ vec copy_vector(vec old_vec);
 void add_vector_to_vector(vec *vec1, vec vec2);
 vec vector_between_vectors(vec vec1, vec vec2);
 void take_vector_away_from_vector(vec vec1, vec *vec2);
+void multiply_vector(vec *vec, double mult);
 void scale_vector_to_distance(vec *vec, double new_distance);
 vec perpendicular_for_vectors(vec vec1, vec vec2);
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2);

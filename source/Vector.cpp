@@ -369,6 +369,13 @@ vec new_vector(double h, double k, double l)
 	return vec;
 }
 
+void multiply_vector(vec *vec, double mult)
+{
+    vec->h *= mult;
+    vec->k *= mult;
+    vec->l *= mult;
+}
+
 void scale_vector_to_distance(vec *vector, double new_distance)
 {
 	double distance = sqrt(
@@ -376,9 +383,7 @@ void scale_vector_to_distance(vec *vector, double new_distance)
 
 	double scale = new_distance / distance;
 
-	(*vector).h *= scale;
-	(*vector).k *= scale;
-	(*vector).l *= scale;
+    multiply_vector(vector, scale);
 }
 
 double getEwaldSphereNoMatrix(vec index)
