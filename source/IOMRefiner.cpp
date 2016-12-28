@@ -92,21 +92,17 @@ double IOMRefiner::getWavelength()
 void IOMRefiner::setComplexMatrix()
 {
     complexUnitCell = true;
-
+    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
+    
     if (unitCell.size() == 0)
     {
         vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
         
         if (unitCell.size() == 0)
         {
-            std::cout
-            << "Please provide unit cell dimensions under keyword UNIT_CELL"
-            << std::endl;
-            exit(1);
+            fixUnitCell = false;
         }
     }
-    
-    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
     
     if (fixUnitCell)
     {
