@@ -485,3 +485,21 @@ std::string Detector::writeGeometryFile(int indentCount)
     
     return output.str();
 }
+
+bool Detector::isAncestorOf(DetectorPtr detector)
+{
+    if (shared_from_this() == detector)
+    {
+        return true;
+    }
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        if (getChild(i)->isAncestorOf(detector))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

@@ -236,6 +236,8 @@ public:
         return (childrenCount() > 0);
     }
     
+    bool isAncestorOf(DetectorPtr detector);
+    
     DetectorPtr getChild(int i)
     {
         return children[i];
