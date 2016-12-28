@@ -10,6 +10,7 @@
 #include "Matrix.h"
 #include "misc.h"
 #include "FileParser.h"
+#include "Detector.h"
 
 double SpotVector::trustComparedToStandardVector(SpotVectorPtr standardVector)
 {
@@ -260,6 +261,14 @@ bool SpotVector::isIntraPanelVector()
         return false;
     
     return (onePanel == twoPanel);
+}
+
+bool SpotVector::isOnlyFromDetector(DetectorPtr detector)
+{
+    DetectorPtr onePanel = firstSpot->getDetector();
+    DetectorPtr twoPanel = secondSpot->getDetector();
+    
+    return (detector->isAncestorOf(onePanel) && detector->isAncestorOf(twoPanel));
 }
 
 double SpotVector::getMinAngleTolerance()

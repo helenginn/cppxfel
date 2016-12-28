@@ -64,6 +64,8 @@ public:
         return sameLengthStandardVectors;
     }
     
+    bool isOnlyFromDetector(DetectorPtr detector);
+    
     vec getHKL()
     {
         return hkl;
