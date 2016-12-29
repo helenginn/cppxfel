@@ -414,6 +414,9 @@ void Spot::recentreInWindow(int windowPadding)
             int myY = xy.second + j;
             int pixelIntensity = thisImage->valueAt(myX, myY);
             
+            if (pixelIntensity <= 10)
+                continue;
+            
             xPositions.push_back(myX);
             yPositions.push_back(myY);
             weights.push_back(pixelIntensity);
@@ -423,7 +426,10 @@ void Spot::recentreInWindow(int windowPadding)
     double newX = weighted_mean(&xPositions, &weights);
     double newY = weighted_mean(&yPositions, &weights);
     
-    setXY(newX, newY);
+    if (weights.size() > 0)
+    {
+        setXY(newX, newY);
+    }
 }
 
 bool Spot::isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees)

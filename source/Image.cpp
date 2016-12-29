@@ -1439,6 +1439,8 @@ void Image::processSpotList()
         {
             spots[i]->recentreInWindow();
         }
+        
+        writeSpotsList("_" + getBasename() + "_strong.list");
     }
     
     loadedSpots = true;
