@@ -2571,7 +2571,7 @@ void Image::drawCrystalsOnPNG(int crystalNum)
     std::string crystNumString = (crystalNum > 0 ? i_to_str(crystalNum) : "all" + i_to_str(count));
     
     std::string filename = getBasename() + "_" + crystNumString + ".png";
-    int height = FileParser::getKey("PNG_HEIGHT", 4800);
+    int height = FileParser::getKey("PNG_HEIGHT", 2400);
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename, 2400, height));
     writePNG(file);
     
