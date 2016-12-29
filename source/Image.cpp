@@ -1275,8 +1275,6 @@ void Image::processSpotList()
     if (!spotsFile.length() && !forceSpotFinding)
     {
         spotsFile = "_" + getBasename() + "_strong.list";
-        logged << "Guessing name of spots file as " << spotsFile << std::endl;
-        sendLog();
     }
     
     if (spotsFile == "find" || forceSpotFinding)
@@ -1499,7 +1497,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     {
         if (spotCount() > maxSpots)
         {
-            logged << "N: Aborting image " << getFilename() << " due to too many spots." << std::endl;
+            logged << "(" << getFilename() << ") Aborting image due to too many spots." << std::endl;
             sendLog();
             spotVectors.clear();
             std::vector<SpotVectorPtr>().swap(spotVectors);
@@ -1509,7 +1507,8 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     
     if (spotCount() < minSpots)
     {
-        logged << "N: Aborting image " << getFilename() << " due to too few spots." << std::endl;
+        logged << "(" << getFilename() << ") Aborting image due to too few spots." << std::endl;
+        sendLog();
         
         if (IOMRefinerCount() == 0)
         {
