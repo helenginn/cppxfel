@@ -1077,6 +1077,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     }
     else
     {
+        if (!panel)
+            return;
+
         int search = getIOMRefiner()->getSearchSize();
         Coord bestShift = panel->shiftForMiller(this);
         
