@@ -420,7 +420,9 @@ DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
 {
     vec hkl = miller->getTransformedHKL();
     double imageWavelength = miller->getImage()->getWavelength();
-    hkl.k *= -1;
+    double tmp = hkl.k;
+    hkl.k = -hkl.h;
+    hkl.k = tmp;
     hkl.l += 1 / imageWavelength;
     
     DetectorPtr probe = miller->getDetector();
