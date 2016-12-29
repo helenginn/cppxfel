@@ -17,14 +17,47 @@ GeometryRefiner::GeometryRefiner()
 {
     refinementEvent = 0;
     cycleNum = 0;
+    lastIntraScore = 0;
+    lastInterScore = 0;
 }
 
 void GeometryRefiner::refineGeometry()
 {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 1; i++)
     {
         refineGeometryCycle();
     }
+    
+    GeometryParser geomParser = GeometryParser("test.cppxfel_geom", GeometryFormatCppxfel);
+    geomParser.writeToFile("new.cppxfel_geom");
+}
+
+void GeometryRefiner::reportProgress()
+{
+    double intraScore = IndexManager::pseudoScore(&*manager);
+    manager->setPseudoScoreType(PseudoScoreTypeInterPanel);
+    double interScore = IndexManager::pseudoScore(&*manager);
+    manager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
+    
+    double intraIncrease = 100;
+    double interIncrease = 100;
+    
+    interIncrease = 100 * (interScore - lastInterScore) / interScore;
+    intraIncrease = 100 * (intraScore - lastIntraScore) / intraScore;
+    
+    lastInterScore = interScore;
+    lastIntraScore = intraScore;
+    
+    if (refinementEvent > 0 && fabs(interIncrease) < 0.00001 && fabs(intraIncrease)  < 0.00001)
+    {
+        return;
+    }
+    
+    logged << "N: Progress score (event " << refinementEvent << ", intra-panel): " << intraScore
+    << " (" << (intraIncrease > 0 ? "+" : "") << intraIncrease << "% from last round) " << std::endl;
+    logged << "N: Progress score (event " << refinementEvent << ", inter-panel): " << interScore
+    << " (" << (interIncrease > 0 ? "+" : "") << interIncrease << "% from last round)" << std::endl;
+    sendLog();
 }
 
 void GeometryRefiner::refineGeometryCycle()
@@ -35,6 +68,7 @@ void GeometryRefiner::refineGeometryCycle()
     DetectorPtr master = Detector::getMaster();
     nextLevelDetectors.push_back(master);
     
+    reportProgress();
     cycleNum++;
     
     while (nextLevelDetectors.size())
@@ -54,6 +88,8 @@ void GeometryRefiner::refineGeometryCycle()
             }
         }
         
+        refinementEvent++;
+
         logged << "***************************************************" << std::endl;
         logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
         logged << "  Refining detector" << (sameLevelDetectors.size() == 1 ? "" : "s") << ": " << detectorList.str() << std::endl;
@@ -71,14 +107,10 @@ void GeometryRefiner::refineGeometryCycle()
         }
         
         threads.join_all();
-        
-        refinementEvent++;
-        
+        reportProgress();
         manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
     }
     
-    GeometryParser geomParser = GeometryParser("test.cppxfel_geom", GeometryFormatCppxfel);
-    geomParser.writeToFile("new.cppxfel_geom");
 }
 
 void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset)
