@@ -106,6 +106,9 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 
                 double distance = length_of_vector(hkl_transformed);
                 
+                if (distance > resolution)
+                    continue;
+                
                 if (distance > maxDistance)
                     maxDistance = distance;
                 
