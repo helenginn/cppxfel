@@ -194,7 +194,7 @@ class UnitCellLattice;
 class Beam;
 class GaussianBeam;
 class SpectrumBeam;
-class GetterSetterMap;
+class RefinementStepSearch;
 class Hdf5ManagerProcessing;
 class Hdf5ManagerCheetahLCLS;
 class Hdf5ManagerCheetahSacla;
@@ -206,7 +206,7 @@ class SpotFinder;
 class Reflection;
 
 typedef boost::shared_ptr<SpectrumBeam> SpectrumBeamPtr;
-typedef boost::shared_ptr<GetterSetterMap> GetterSetterMapPtr;
+typedef boost::shared_ptr<RefinementStepSearch> RefinementStepSearchPtr;
 typedef boost::shared_ptr<Beam> BeamPtr;
 typedef boost::shared_ptr<GaussianBeam> GaussianBeamPtr;
 typedef boost::shared_ptr<Miller> MillerPtr;
