@@ -6,8 +6,8 @@
 //  Copyright (c) 2016 Division of Structural Biology Oxford. All rights reserved.
 //
 
-#include "misc.h"
 #include "RefinementStepSearch.h"
+#include "misc.h"
 #include <float.h>
 #include "MtzManager.h"
 
@@ -73,52 +73,22 @@ double RefinementStepSearch::minimizeParameter(int whichParam, double *bestScore
     return 0;
 }
 
-
 void RefinementStepSearch::refine()
 {
+    RefinementStrategy::refine();
+    
     double bestScore = FLT_MAX;
 
-    if (!jobName.length())
-    {
-        jobName = "Refinement procedure for " + i_to_str((int)objects.size()) + " objects";
-    }
-    
-    logged << "--- " << jobName << " ---";
-    
-    if (tags.size() == 0)
-    {
-        logged << " No parameters to refine! Exiting." << std::endl;
-        sendLog();
-        return;
-    }
-    
-    logged << " Refining ";
-    
-    for (int i = 0; i < tags.size() - 1; i++)
-    {
-        logged << tags[i] << ", ";
-    }
-    
-    logged << tags[tags.size() - 1] << " --- " << std::endl;
-    
     for (int i = 0; i < maxCycles; i++)
     {
-        logged << "Cycle " << i << "\t";
-        
         bool allFinished = true;
         
         for (int j = 0; j < objects.size(); j++)
         {
             allFinished *= minimizeParameter(j, &bestScore);
-            
-            logged << (*getters[j])(objects[j]) << "\t";
         }
         
-        logged << " - score: ";
-        
-        double score = (*evaluationFunction)(evaluateObject);
-        
-        logged << score << std::endl;
+        reportProgress(bestScore);
         
         if (allFinished)
         {
@@ -126,7 +96,5 @@ void RefinementStepSearch::refine()
         }
     }
     
-    Logger::mainLogger->addStream(&logged, priority);
-    logged.clear();
-    logged.str("");
+    finish();
 }

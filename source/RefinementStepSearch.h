@@ -24,7 +24,7 @@ public:
         
     };
     
-    void refine();
+    virtual void refine();
     
 };
 

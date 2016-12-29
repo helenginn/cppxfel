@@ -600,39 +600,71 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
     }
     else if (method == MinimizationMethodNelderMead)
     {
-        std::vector<double *>paramPtrs;
-        paramPtrs.resize(PARAM_NUM);
-        
         if (this->wavelength == 0)
             this->wavelength = wavelength;
         
+        double stepSizeUnitCellA = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
+        double stepSizeUnitCellB = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
+        double stepSizeUnitCellC = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
         
         bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
         bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
         bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
         
-        paramPtrs[PARAM_HROT] = optimisingOrientation && (rotationMode != RotationModeUnitCellABC) ? &this->hRot : NULL;
-        paramPtrs[PARAM_KROT] = optimisingOrientation && (rotationMode != RotationModeUnitCellABC) ? &this->kRot : NULL;
+        int maxCycles = FileParser::getKey("NELDER_MEAD_CYCLES", 30);
         
-        paramPtrs[PARAM_MOS] = optimisingMosaicity ? &this->mosaicity : NULL;
-        paramPtrs[PARAM_SPOT_SIZE] = optimisingRlpSize ? &this->spotSize : NULL;
-        paramPtrs[PARAM_WAVELENGTH] = optimisingWavelength ? &this->wavelength : NULL;
-        paramPtrs[PARAM_BANDWIDTH] = optimisingBandwidth ? &this->bandwidth : NULL;
-        paramPtrs[PARAM_B_FACTOR] = NULL;
-        paramPtrs[PARAM_SCALE_FACTOR] = NULL;
-        paramPtrs[PARAM_EXPONENT] = optimisingExponent ? &this->exponent : NULL;
-        paramPtrs[PARAM_UNIT_CELL_A] = optimisingUnitCellA ? &this->cellDim[0] : NULL;
-        paramPtrs[PARAM_UNIT_CELL_B] = optimisingUnitCellB ? &this->cellDim[1] : NULL;
-        paramPtrs[PARAM_UNIT_CELL_C] = optimisingUnitCellC ? &this->cellDim[2] : NULL;
+        NelderMead refiner = NelderMead();
         
-        std::vector<double> ranges;
-        ranges.resize(PARAM_NUM);
+        refiner.setCycles(maxCycles);
+        refiner.setEvaluationFunction(scoreNelderMead, this);
         
-        double *firstRange = &(*ranges.begin());
-        getSteps(&firstRange);
+        if (optimisingOrientation)
+        {
+            refiner.addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, 0);
+            refiner.addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, 0);
+        }
         
-        NelderMead refiner(paramPtrs, ranges, this, &this->scoreNelderMead);
-        refiner.process();
+        if (optimisingMosaicity)
+        {
+            refiner.addParameter(this, getMosaicityStatic, setMosaicityStatic, stepSizeMosaicity, 0);
+        }
+
+        if (optimisingRlpSize)
+        {
+            refiner.addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, 0);
+        }
+        
+        if (optimisingWavelength)
+        {
+            refiner.addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, 0);
+        }
+        
+        if (optimisingBandwidth)
+        {
+            refiner.addParameter(this, getBandwidthStatic, setBandwidthStatic, stepSizeBandwidth, 0);
+        }
+        
+        if (optimisingExponent)
+        {
+            refiner.addParameter(this, getExponentStatic, setExponentStatic, stepSizeExponent, 0);
+        }
+        
+        if (optimisingUnitCellA)
+        {
+            refiner.addParameter(this, getUnitCellAStatic, setUnitCellAStatic, stepSizeUnitCellA, 0);
+        }
+        
+        if (optimisingUnitCellB)
+        {
+            refiner.addParameter(this, getUnitCellBStatic, setUnitCellBStatic, stepSizeUnitCellB, 0);
+        }
+        
+        if (optimisingUnitCellC)
+        {
+            refiner.addParameter(this, getUnitCellCStatic, setUnitCellCStatic, stepSizeUnitCellC, 0);
+        }
+        
+        refiner.refine();
     }
     
     if (scoreType == ScoreTypeSymmetry)

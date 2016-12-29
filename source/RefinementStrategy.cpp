@@ -24,3 +24,49 @@ void RefinementStrategy::addParameter(void *object, Getter getter, Setter setter
     
     tags.push_back(tag);
 }
+
+void RefinementStrategy::refine()
+{
+    if (!jobName.length())
+    {
+        jobName = "Refinement procedure for " + i_to_str((int)objects.size()) + " objects";
+    }
+    
+    logged << "--- " << jobName << " ---";
+    
+    if (tags.size() == 0)
+    {
+        logged << " No parameters to refine! Exiting." << std::endl;
+        sendLog();
+        return;
+    }
+    
+    logged << " Refining ";
+    
+    for (int i = 0; i < tags.size() - 1; i++)
+    {
+        logged << tags[i] << ", ";
+    }
+    
+    logged << tags[tags.size() - 1] << " --- " << std::endl;
+}
+
+void RefinementStrategy::reportProgress(double score)
+{
+    cycleNum++;
+    logged << "Cycle " << cycleNum << "\t";
+    
+    for (int i = 0; i < objects.size(); i++)
+    {
+        logged << (*getters[i])(objects[i]) << "\t";
+        logged << " - score: ";
+        logged << score << std::endl;
+    }
+}
+
+void RefinementStrategy::finish()
+{
+    Logger::mainLogger->addStream(&logged, priority);
+    logged.clear();
+    logged.str("");
+}

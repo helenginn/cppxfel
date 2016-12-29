@@ -27,6 +27,7 @@ private:
     double lastIntraScore;
     void refineMasterDetector();
     
+    RefinementStrategyPtr makeRefiner();
     void reportProgress();
     
 public:

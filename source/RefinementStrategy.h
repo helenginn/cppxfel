@@ -21,6 +21,7 @@ protected:
     void *evaluateObject;
     LogLevel priority;
     std::string jobName;
+    int cycleNum;
     
     std::vector<void *> objects;
     std::vector<Getter> getters;
@@ -28,15 +29,19 @@ protected:
     std::vector<double> stepSizes;
     std::vector<double> stepConvergences;
     std::vector<std::string> tags;
+    
+    void reportProgress(double score);
+    void finish();
 public:
     RefinementStrategy()
     {
         evaluationFunction = NULL;
         maxCycles = 30;
         priority = LogLevelDebug;
+        cycleNum = 0;
     };
     
-    virtual void refine() {};
+    virtual void refine();
     
     void addParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag = "");
     
@@ -64,7 +69,7 @@ public:
         jobName = job;
     }
     
-    void clearParameters()
+    virtual void clearParameters()
     {
         getters.clear();
         setters.clear();

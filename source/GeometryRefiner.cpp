@@ -10,8 +10,29 @@
 #include "GeometryParser.h"
 #include "Detector.h"
 #include "RefinementStepSearch.h"
+#include "NelderMead.h"
 #include "IndexManager.h"
 #include "misc.h"
+
+RefinementStrategyPtr GeometryRefiner::makeRefiner()
+{
+    RefinementStrategyPtr strategy;
+    
+    int methodInt = FileParser::getKey("MINIMIZATION_METHOD", 0);
+    
+    if (methodInt == 0)
+    {
+        RefinementStepSearchPtr stepSearch = RefinementStepSearchPtr(new RefinementStepSearch());
+        strategy = boost::static_pointer_cast<RefinementStrategy>(stepSearch);
+    }
+    else
+    {
+        NelderMeadPtr nelderMead = NelderMeadPtr(new NelderMead());
+        strategy = boost::static_pointer_cast<RefinementStrategy>(nelderMead);
+    }
+    
+    return strategy;
+}
 
 GeometryRefiner::GeometryRefiner()
 {
@@ -129,7 +150,7 @@ void GeometryRefiner::refineMasterDetector()
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
     aManager->setActiveDetector(detector);
     
-    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
+    RefinementStrategyPtr refinementMap = makeRefiner();
     refinementMap->setVerbose(true);
     refinementMap->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
     refinementMap->setCycles(30);
@@ -142,7 +163,7 @@ void GeometryRefiner::refineMasterDetector()
     
     refinementMap->refine();
     refinementMap->clearParameters();
-
+    
     reportProgress();
     refinementMap->setCycles(20);
 
@@ -177,7 +198,7 @@ void GeometryRefiner::refineDetector(DetectorPtr detector)
         return;
     }
     
-    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
+    RefinementStrategyPtr refinementMap = makeRefiner();
     
     refinementMap->setVerbose(true);
     

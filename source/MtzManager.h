@@ -702,7 +702,6 @@ public:
     static void setHRotStatic(void *object, double newHRot)
     {
         static_cast<MtzManager *>(object)->setHRot(newHRot);
- //       static_cast<MtzManager *>(object)->updateLatestMatrix();
     }
     
     static double getKRotStatic(void *object)
@@ -713,7 +712,6 @@ public:
     static void setKRotStatic(void *object, double newKRot)
     {
         static_cast<MtzManager *>(object)->setKRot(newKRot);
-  //      static_cast<MtzManager *>(object)->updateLatestMatrix();
     }
 
     static double getWavelengthStatic(void *object)
@@ -725,6 +723,57 @@ public:
     {
         static_cast<MtzManager *>(object)->setWavelength(newWavelength);
     }
+    
+    static double getBandwidthStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getBandwidth();
+    }
+    
+    static void setBandwidthStatic(void *object, double newBandwidth)
+    {
+        static_cast<MtzManager *>(object)->setBandwidth(newBandwidth);
+    }
+    
+    static double getExponentStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getExponent();
+    }
+    
+    static void setExponentStatic(void *object, double newExponent)
+    {
+        static_cast<MtzManager *>(object)->setExponent(newExponent);
+    }
+    
+    static double getUnitCellAStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getUnitCell()[0];
+    }
+    
+    static void setUnitCellAStatic(void *object, double newDim)
+    {
+        static_cast<MtzManager *>(object)->getUnitCell()[0] = newDim;
+    }
+    
+    static double getUnitCellBStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getUnitCell()[1];
+    }
+    
+    static void setUnitCellBStatic(void *object, double newDim)
+    {
+        static_cast<MtzManager *>(object)->getUnitCell()[1] = newDim;
+    }
+
+    static double getUnitCellCStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getUnitCell()[2];
+    }
+    
+    static void setUnitCellCStatic(void *object, double newDim)
+    {
+        static_cast<MtzManager *>(object)->getUnitCell()[2] = newDim;
+    }
+
 
     ImagePtr getImagePtr()
     {
