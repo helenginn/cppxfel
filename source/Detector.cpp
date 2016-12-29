@@ -121,13 +121,18 @@ bool Detector::directionSanityCheck()
 
 void Detector::updateCurrentRotation()
 {
-    // FIXME: avoid use of new Matrix if already existing
     MatrixPtr myRotation = MatrixPtr(new Matrix());
     myRotation->rotate(rotationAngles.h, rotationAngles.k, rotationAngles.l);
     MatrixPtr parentRot = (!isLUCA() ? getParent()->getRotation() : MatrixPtr(new Matrix()));
     
     rotMat = myRotation;
     rotMat->preMultiply(*parentRot);
+    
+    slowRotated = copy_vector(slowDirection);
+    fastRotated = copy_vector(fastDirection);
+    
+    rotMat->multiplyVector(&slowRotated);
+    rotMat->multiplyVector(&fastRotated);
     
     vec rotatedSlow = getRotatedSlowDirection();
     vec rotatedFast = getRotatedFastDirection();
@@ -148,23 +153,14 @@ void Detector::updateCurrentRotation()
 
 // Housekeeping calculations
 
-void Detector::rotateDirection(vec *direction)
-{
-    rotMat->multiplyVector(direction);
-}
-
 vec Detector::getRotatedSlowDirection()
 {
-    vec direction = copy_vector(slowDirection);
-    rotateDirection(&direction);
-    return direction;
+    return slowRotated;
 }
 
 vec Detector::getRotatedFastDirection()
 {
-    vec direction = copy_vector(fastDirection);
-    rotateDirection(&direction);
-    return direction;
+    return fastRotated;
 }
 
 vec Detector::midPointOffsetFromParent()
@@ -174,20 +170,18 @@ vec Detector::midPointOffsetFromParent()
         return arrangedMidPoint;
     }
     
-    vec midPointOffset = copy_vector(arrangedMidPoint);
     vec parentMidPoint = getParent()->midPointOffsetFromParent();
-    
     
     vec slow = getParent()->getRotatedSlowDirection();
     vec fast = getParent()->getRotatedFastDirection();
     
-    multiply_vector(&slow, midPointOffset.k);
-    multiply_vector(&fast, midPointOffset.h);
+    multiply_vector(&slow, arrangedMidPoint.k);
+    multiply_vector(&fast, arrangedMidPoint.h);
     
     vec modOffset = parentMidPoint;
     add_vector_to_vector(&modOffset, slow);
     add_vector_to_vector(&modOffset, fast);
-    modOffset.l += midPointOffset.l;
+    modOffset.l += arrangedMidPoint.l;
     
     return modOffset;
 }

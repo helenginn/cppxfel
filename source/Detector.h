@@ -52,10 +52,12 @@ private:
     /* This is the basis vectors corresponding to mapped slow-speed axis */
     /* Think: s -> y or vertical */
     vec slowDirection;
+    vec slowRotated;
     
     /* This is the basis vectors corresponding to mapped fast-speed axis */
     /* Think: f -> x or horizontal */
     vec fastDirection;
+    vec fastRotated;
     
     /* This is stored for convenience */
     vec cross;
@@ -187,7 +189,6 @@ public:
     
     // MARK: Higher level getters and setters
     
-    void rotateDirection(vec *direction);
     vec getRotatedSlowDirection();
     vec getRotatedFastDirection();
     
