@@ -279,6 +279,13 @@ typedef enum
 
 typedef enum
 {
+    PseudoScoreTypeAll,
+    PseudoScoreTypeIntraPanel,
+    PseudoScoreTypeInterPanel,
+} PseudoScoreType;
+
+typedef enum
+{
 	PartialityModelNone, PartialityModelSimple, PartialityModelScaled, PartialityModelFixed, PartialityModelBinary
 } PartialityModel;
 
