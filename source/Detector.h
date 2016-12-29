@@ -73,7 +73,7 @@ private:
     DetectorWeakPtr parent;
     MatrixPtr rotMat;
     MatrixPtr changeOfBasisMat;
-    std::vector<MillerPtr> millers;
+    std::vector<MillerWeakPtr> millers;
     std::mutex millerMutex;
     
     // MARK: private housekeeping
@@ -294,6 +294,8 @@ public:
     DetectorPtr detectorForRayIntersection(vec ray, vec *intersection);
     void intersectionWithRay(vec ray, vec *intersection);
     DetectorPtr spotCoordForRayIntersection(vec ray, double *xSpot, double *ySpot);
+    DetectorPtr spotCoordForMiller(MillerPtr miller, double *xSpot, double *ySpot);
+    DetectorPtr intersectionForMiller(MillerPtr miller, vec *intersection);
     
     /* Keeping track of all Millers */
     
@@ -306,7 +308,7 @@ public:
     
     MillerPtr miller(int i)
     {
-        return millers[i];
+        return millers[i].lock();
     }
     
     /* Write geometry file */

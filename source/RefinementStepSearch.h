@@ -17,7 +17,7 @@ class RefinementStepSearch : public RefinementStrategy
 {
 private:
     double minimizeParameter(int i, double *bestScore);
-
+    double minimizeTwoParameters(int whichParam1, int whichParam2, double *bestScore);
 public:
     RefinementStepSearch() : RefinementStrategy()
     {

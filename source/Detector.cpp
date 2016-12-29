@@ -8,6 +8,7 @@
 
 #include "Detector.h"
 #include "Matrix.h"
+#include "Miller.h"
 #include "FileParser.h"
 #include "Vector.h"
 #include "Spot.h"
@@ -206,6 +207,23 @@ double Detector::halfFast()
     return (unarrangedBottomRightX - unarrangedTopLeftX) / 2;
 }
 
+bool Detector::isAncestorOf(DetectorPtr detector)
+{
+    if (shared_from_this() == detector)
+    {
+        return true;
+    }
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        if (getChild(i)->isAncestorOf(detector))
+        {
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 // MARK: Spot to physical position where X-rays hit the detector
 
@@ -398,6 +416,41 @@ DetectorPtr Detector::detectorForRayIntersection(vec ray, vec *intersection)
     }
 }
 
+DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
+{
+    vec hkl = miller->getTransformedHKL();
+    double imageWavelength = miller->getImage()->getWavelength();
+    hkl.k *= -1;
+    hkl.l += 1 / imageWavelength;
+    
+    DetectorPtr probe = miller->getDetector();
+    
+    if (!probe)
+    {
+        probe = detectorForRayIntersection(hkl, intersection);
+        miller->setDetector(probe);
+    }
+    else
+    {
+        probe->intersectionWithRay(hkl, intersection);
+    }
+    
+    return probe;
+}
+
+DetectorPtr Detector::spotCoordForMiller(MillerPtr miller, double *xSpot, double *ySpot)
+{
+    vec intersection;
+    DetectorPtr probe = intersectionForMiller(miller, &intersection);
+    
+    if (probe)
+    {
+        probe->intersectionToSpotCoord(intersection, xSpot, ySpot);
+    }
+    
+    return probe;
+}
+
 DetectorPtr Detector::spotCoordForRayIntersection(vec ray, double *xSpot, double *ySpot)
 {
     vec intersection;
@@ -416,11 +469,16 @@ DetectorPtr Detector::spotCoordForRayIntersection(vec ray, double *xSpot, double
 
 void Detector::addMillerCarefully(MillerPtr miller)
 {
+    if (!miller->reachesThreshold())
+        return;
+    
     millerMutex.lock();
     
     millers.push_back(miller);
     
     millerMutex.unlock();
+    
+    getParent()->addMillerCarefully(miller);
 }
 
 // MARK: read/write detector files
@@ -480,20 +538,5 @@ std::string Detector::writeGeometryFile(int indentCount)
     return output.str();
 }
 
-bool Detector::isAncestorOf(DetectorPtr detector)
-{
-    if (shared_from_this() == detector)
-    {
-        return true;
-    }
-    
-    for (int i = 0; i < childrenCount(); i++)
-    {
-        if (getChild(i)->isAncestorOf(detector))
-        {
-            return true;
-        }
-    }
+// Scoring functions
 
-    return false;
-}

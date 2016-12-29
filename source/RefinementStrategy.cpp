@@ -23,6 +23,17 @@ void RefinementStrategy::addParameter(void *object, Getter getter, Setter setter
     }
     
     tags.push_back(tag);
+<<<<<<< Updated upstream
+=======
+    couplings.push_back(1);
+}
+
+void RefinementStrategy::addCoupledParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag)
+{
+    couplings.at(couplings.size() - 1)++;
+    addParameter(object, getter, setter, stepSize, stepConvergence);
+    couplings.at(couplings.size() - 1)++;
+>>>>>>> Stashed changes
 }
 
 void RefinementStrategy::refine()
@@ -59,9 +70,16 @@ void RefinementStrategy::reportProgress(double score)
     for (int i = 0; i < objects.size(); i++)
     {
         logged << (*getters[i])(objects[i]) << "\t";
+<<<<<<< Updated upstream
         logged << " - score: ";
         logged << score << std::endl;
     }
+=======
+    }
+
+    logged << " - score: ";
+    logged << score << std::endl;
+>>>>>>> Stashed changes
 }
 
 void RefinementStrategy::finish()
@@ -69,4 +87,9 @@ void RefinementStrategy::finish()
     Logger::mainLogger->addStream(&logged, priority);
     logged.clear();
     logged.str("");
+<<<<<<< Updated upstream
+=======
+    
+    cycleNum = 0;
+>>>>>>> Stashed changes
 }

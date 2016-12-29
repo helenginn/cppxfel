@@ -44,7 +44,7 @@ GeometryRefiner::GeometryRefiner()
 
 void GeometryRefiner::refineGeometry()
 {
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 5; i++)
     {
         refineGeometryCycle();
     }
@@ -153,7 +153,7 @@ void GeometryRefiner::refineMasterDetector()
     RefinementStrategyPtr refinementMap = makeRefiner();
     refinementMap->setVerbose(true);
     refinementMap->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
-    refinementMap->setCycles(30);
+    refinementMap->setCycles(10);
     refinementMap->setJobName("Detector master");
     
     
@@ -165,23 +165,25 @@ void GeometryRefiner::refineMasterDetector()
     refinementMap->clearParameters();
     
     reportProgress();
-    refinementMap->setCycles(20);
+
+    refinementMap->setCycles(15);
 
     refinementMap->addParameter(&*detector, Detector::getArrangedMidPointX,
-                                Detector::setArrangedMidPointX, 0.1, 0.01, "midPointX");
+                                Detector::setArrangedMidPointX, 0.5, 0.01, "midPointX");
     refinementMap->addParameter(&*detector, Detector::getArrangedMidPointY,
-                                Detector::setArrangedMidPointY, 0.1, 0.01, "midPointY");
-    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
-                                Detector::setArrangedMidPointZ, 0.1, 0.01, "midPointZ");
-    
+                                Detector::setArrangedMidPointY, 0.5, 0.01, "midPointY");
+  /*  refinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
+                                Detector::setArrangedMidPointZ, 0.5, 0.01, "midPointZ");
+    */
+
     refinementMap->refine();
     
     refinementMap->clearParameters();
     
     reportProgress();
 
-    refinementMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.0001, 0.000001, "alpha");
-    refinementMap->addParameter(&*detector, Detector::getBeta, Detector::setBeta, 0.0001, 0.000001, "beta");
+//    refinementMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.00005, 0.000001, "alpha");
+//    refinementMap->addParameter(&*detector, Detector::getBeta, Detector::setBeta, 0.00005, 0.000001, "beta");
     
     refinementMap->refine();
 
@@ -210,9 +212,12 @@ void GeometryRefiner::refineDetector(DetectorPtr detector)
     refinementMap->setCycles(5);
     refinementMap->setJobName("Detector " + detector->getTag());
     
- //   refinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
- //                               Detector::setArrangedMidPointZ, 0.05, 0.001, "midPointZ");
-    
+/*
+    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
+                               Detector::setArrangedMidPointZ, 0.05, 0.001, "midPointZ");
+    refinementMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.00005, 0.000001, "alpha");
+    refinementMap->addParameter(&*detector, Detector::getBeta, Detector::setBeta, 0.00005, 0.000001, "beta");
+*/
     
     refinementMap->refine();
     
