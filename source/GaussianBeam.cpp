@@ -9,7 +9,7 @@
 #include "GaussianBeam.h"
 #include "Vector.h"
 #include <math.h>
-#include "GetterSetterMap.h"
+#include "RefinementStepSearch.h"
 #include "FileParser.h"
 #include <cmath>
 
@@ -160,7 +160,7 @@ double GaussianBeam::getNominalWavelength()
     return sum;
 }
 
-void GaussianBeam::addParameters(GetterSetterMapPtr map)
+void GaussianBeam::addParameters(RefinementStepSearchPtr map)
 {
     if (optimisingWavelength)
     {

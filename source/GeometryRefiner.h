@@ -23,6 +23,11 @@ private:
     void refineDetector(DetectorPtr detector);
     static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset);
     void refineGeometryCycle();
+    double lastInterScore;
+    double lastIntraScore;
+    void refineMasterDetector();
+    
+    void reportProgress();
     
 public:
     GeometryRefiner();

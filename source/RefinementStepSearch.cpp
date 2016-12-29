@@ -74,7 +74,7 @@ double RefinementStepSearch::minimizeParameter(int whichParam, double *bestScore
 }
 
 
-void RefinementStepSearch::refine(GetterSetterRefinementType type)
+void RefinementStepSearch::refine()
 {
     double bestScore = FLT_MAX;
 

@@ -9,7 +9,7 @@
 #include "GeometryRefiner.h"
 #include "GeometryParser.h"
 #include "Detector.h"
-#include "GetterSetterMap.h"
+#include "RefinementStepSearch.h"
 #include "IndexManager.h"
 #include "misc.h"
 
@@ -91,53 +91,77 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<Det
     }
 }
 
+void GeometryRefiner::refineMasterDetector()
+{
+    DetectorPtr detector = Detector::getMaster();
+    IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
+    aManager->setActiveDetector(detector);
+    
+    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
+    refinementMap->setVerbose(true);
+    refinementMap->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
+    refinementMap->setCycles(30);
+    refinementMap->setJobName("Detector master");
+    
+    
+    
+    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
+                                Detector::setArrangedMidPointZ, 0.4, 0.02, "midPointZ");
+    
+    refinementMap->refine();
+    refinementMap->clearParameters();
+
+    reportProgress();
+    refinementMap->setCycles(20);
+
+    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointX,
+                                Detector::setArrangedMidPointX, 0.1, 0.01, "midPointX");
+    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointY,
+                                Detector::setArrangedMidPointY, 0.1, 0.01, "midPointY");
+    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
+                                Detector::setArrangedMidPointZ, 0.1, 0.01, "midPointZ");
+    
+    refinementMap->refine();
+    
+    refinementMap->clearParameters();
+    
+    reportProgress();
+
+    refinementMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.0001, 0.000001, "alpha");
+    refinementMap->addParameter(&*detector, Detector::getBeta, Detector::setBeta, 0.0001, 0.000001, "beta");
+    
+    refinementMap->refine();
+
+    reportProgress();
+
+    refinementMap->clearParameters();
+}
+
 void GeometryRefiner::refineDetector(DetectorPtr detector)
 {
-    Logger::log(logged);
-
-    GetterSetterMapPtr beamRefinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    if (detector->isLUCA())
+    {
+        refineMasterDetector();
+        return;
+    }
     
-    double zMovement = detector->isLUCA() ? 2.0 : 0.4;
+    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
     
-    beamRefinementMap->setJobName("Detector " + detector->getTag());
-    beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointX,
-                                    Detector::setArrangedMidPointX, 2.0, 0.02, "midPointX");
-    beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointY,
-                                    Detector::setArrangedMidPointY, 2.0, 0.02, "midPointY");
-    beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
-                                    Detector::setArrangedMidPointZ, 0.4, 0.02, "midPointZ");
-    
-    beamRefinementMap->setVerbose(true);
+    refinementMap->setVerbose(true);
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
     aManager->setActiveDetector(detector);
     
-    beamRefinementMap->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
+    refinementMap->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
     
-    beamRefinementMap->setCycles(15);
+    refinementMap->setCycles(5);
+    refinementMap->setJobName("Detector " + detector->getTag());
     
-    beamRefinementMap->refine(GetterSetterStepSearch);
+ //   refinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
+ //                               Detector::setArrangedMidPointZ, 0.05, 0.001, "midPointZ");
     
-    beamRefinementMap->clearParameters();
     
-    beamRefinementMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.005, 0.00001, "alpha");
-    beamRefinementMap->addParameter(&*detector, Detector::getBeta, Detector::setBeta, 0.005, 0.00001, "beta");
-    
-    if (!detector->isLUCA())
-    {
-        beamRefinementMap->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.005, 0.00001, "gamma");
-    }
-    
-    zMovement = detector->isLUCA() ? 0.5 : 0.1;
-    
-    beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointX,
-                                    Detector::setArrangedMidPointX, 0.2, 0.01, "midPointX");
-    beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointY,
-                                    Detector::setArrangedMidPointY, 0.2, 0.01, "midPointY");
-    beamRefinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
-                                    Detector::setArrangedMidPointZ, zMovement, 0.01, "midPointZ");
-    
-    beamRefinementMap->refine(GetterSetterStepSearch);
+    refinementMap->refine();
     
 }
 

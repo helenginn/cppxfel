@@ -17,7 +17,7 @@
 #include "Spot.h"
 #include "CSV.h"
 #include <complex>
-#include "GetterSetterMap.h"
+#include "RefinementStepSearch.h"
 #include "FileReader.h"
 
 vector<PanelPtr> Panel::panels;
@@ -802,7 +802,7 @@ void Panel::stepSearch()
     
     Coord origTopLeft = millerToSpotCoord(topLeft);
     
-    GetterSetterMapPtr refinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
     
     refinementMap->addParameter(this, getBestShiftX, setBestShiftX, 2.0, 0.08);
     refinementMap->addParameter(this, getBestShiftY, setBestShiftY, 2.0, 0.08);
@@ -812,7 +812,7 @@ void Panel::stepSearch()
     refinementMap->setEvaluationFunction(scoreWrapper, this);
     refinementMap->setCycles(30);
     
-    refinementMap->refine(GetterSetterStepSearch);
+    refinementMap->refine();
     
     Coord newTopLeft = spotToMillerCoord(origTopLeft);
     Coord newBottomRight = spotToMillerCoord(origBottomRight);
@@ -855,7 +855,7 @@ void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
     
     Logger::log(logged);
     
-    GetterSetterMapPtr beamRefinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    RefinementStepSearchPtr beamRefinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
     
     beamRefinementMap->addParameter(NULL, Image::getGlobalBeamX, Image::setGlobalBeamX, 2.0, 0.05);
     beamRefinementMap->addParameter(NULL, Image::getGlobalBeamY, Image::setGlobalBeamY, 2.0, 0.05);
@@ -865,7 +865,7 @@ void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
     
     beamRefinementMap->setCycles(30);
     
-    beamRefinementMap->refine(GetterSetterStepSearch);
+    beamRefinementMap->refine();
     
     if (pseudo)
     {
@@ -880,7 +880,7 @@ void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
         
         Logger::log(logged);
         
-        GetterSetterMapPtr distRefinementMap = GetterSetterMapPtr(new GetterSetterMap());
+        RefinementStepSearchPtr distRefinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
         
         distRefinementMap->addParameter(NULL, Image::getGlobalDetectorDistance, Image::setGlobalDetectorDistance, 5.0, 0.01);
         distRefinementMap->setVerbose(true);
@@ -889,7 +889,7 @@ void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
         
         distRefinementMap->setCycles(30);
         
-        distRefinementMap->refine(GetterSetterStepSearch);
+        distRefinementMap->refine();
         
     }
     
@@ -902,7 +902,7 @@ void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
     Logger::log(logged);
     
     
-    GetterSetterMapPtr totalRefinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    RefinementStepSearchPtr totalRefinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
     
     totalRefinementMap->addParameter(NULL, Image::getGlobalBeamX, Image::setGlobalBeamX, 1.0, 0.01);
     totalRefinementMap->addParameter(NULL, Image::getGlobalBeamY, Image::setGlobalBeamY, 1.0, 0.01);
@@ -912,7 +912,7 @@ void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
     totalRefinementMap->setEvaluationFunction(getter, object);
     totalRefinementMap->setCycles(30);
     
-    totalRefinementMap->refine(GetterSetterStepSearch);
+    totalRefinementMap->refine();
     
     if (pseudo)
     {

@@ -660,7 +660,7 @@ public:
 	}
     
     MatrixPtr getLatestMatrix();
-    void addParameters(GetterSetterMapPtr map);
+    void addParameters(RefinementStepSearchPtr map);
     static double refineParameterScore(void *object);
     
     static double getSpotSizeStatic(void *object)
@@ -673,7 +673,7 @@ public:
         static_cast<MtzManager *>(object)->setSpotSize(newSize);
     }
 
-    void refineParametersStepSearch(GetterSetterMap &map);
+    void refineParametersStepSearch(RefinementStepSearch &map);
     
     static double getMosaicityStatic(void *object)
     {

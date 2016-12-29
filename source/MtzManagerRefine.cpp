@@ -13,7 +13,7 @@
 #include "FileParser.h"
 #include "GaussianBeam.h"
 #include "SpectrumBeam.h"
-#include "GetterSetterMap.h"
+#include "RefinementStepSearch.h"
 #include "Reflection.h"
 #include "Miller.h"
 
@@ -96,7 +96,7 @@ void MtzManager::getSteps(double *ranges[], int paramCount)
     
 }
 
-void MtzManager::addParameters(GetterSetterMapPtr map)
+void MtzManager::addParameters(RefinementStepSearchPtr map)
 {
     if (optimisingOrientation)
     {
@@ -123,7 +123,7 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
     
     this->setActiveAmbiguity(ambiguity);
     
-    GetterSetterMapPtr refinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
     
     wavelength = bestWavelength();
     
@@ -150,7 +150,7 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
     refinementMap->setEvaluationFunction(refineParameterScore, this);
     refinementMap->setCycles(cycles);
     
-    refinementMap->refine(GetterSetterStepSearch);
+    refinementMap->refine();
     
     return correlation();
 }
