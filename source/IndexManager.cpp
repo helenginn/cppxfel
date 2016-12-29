@@ -676,14 +676,22 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     
     std::ostringstream pdbLog;
-    
-    if (force)
+
+
+    for (int i = 0; i < images.size(); i++)
     {
-        for (int i = 0; i < images.size(); i++)
+        if (force)
         {
             images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
         }
+        
+        for (int j = 0; j < images[i]->spotVectorCount(); j++)
+        {
+            SpotVectorPtr spotVec = images[i]->spotVector(j);
+            spotVec->calculateDistance();
+        }
     }
+
     
     PowderHistogram allFrequencies = generatePowderHistogram();
     PowderHistogram intraFrequencies = generatePowderHistogram(1);
