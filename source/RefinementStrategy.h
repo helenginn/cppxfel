@@ -23,10 +23,7 @@ protected:
     std::string jobName;
     int cycleNum;
     
-<<<<<<< Updated upstream
-=======
     std::vector<int> couplings;
->>>>>>> Stashed changes
     std::vector<void *> objects;
     std::vector<Getter> getters;
     std::vector<Setter> setters;
@@ -48,10 +45,7 @@ public:
     virtual void refine();
     
     void addParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag = "");
-<<<<<<< Updated upstream
-=======
     void addCoupledParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag = "");
->>>>>>> Stashed changes
     
     void setEvaluationFunction(Getter function, void *evaluatedObject)
     {

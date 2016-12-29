@@ -446,6 +446,11 @@ void MtzManager::addMiller(MillerPtr miller)
     
     double unitCell[6] = {cellDim[0], cellDim[1], cellDim[2], cellAngles[0], cellAngles[1], cellAngles[2]};
     
+    if (getImagePtr())
+    {
+        miller->setImageAndIOMRefiner(getImagePtr(), IOMRefinerPtr());
+    }
+    
     if (prevReflection != NULL)
     {
         prevReflection->addMiller(miller); // TODO
@@ -840,8 +845,8 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         }
        */
         miller->setPhase(phase);
-        miller->setLastX(shiftX);
-        miller->setLastY(shiftY);
+        miller->setCorrectedX(shiftX);
+        miller->setCorrectedY(shiftY);
         miller->setRejected(rejectFlags);
         miller->matrix = this->matrix;
         miller->setScale(scale);
@@ -849,7 +854,8 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         ReflectionPtr prevReflection;
         
         this->findReflectionWithId(reflection_reflection_index, &prevReflection);
-        
+        miller->setImageAndIOMRefiner(getImagePtr(), IOMRefinerPtr());
+
         if (prevReflection)
         {
             /** Exclude unobserved reflections by checking for nan */
@@ -1444,8 +1450,8 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
             fdata[4] = sigma;
             fdata[5] = partiality;
             fdata[6] = reflections[i]->miller(j)->getWavelength();
-            fdata[7] = /*reflections[i]->miller(j)->getShift().first +*/ reflections[i]->miller(j)->getLastX();
-            fdata[8] = /*reflections[i]->miller(j)->getShift().second +*/ reflections[i]->miller(j)->getLastY();
+            fdata[7] = reflections[i]->miller(j)->getCorrectedX();
+            fdata[8] = reflections[i]->miller(j)->getCorrectedY();
             fdata[9] = countingSigma;
             fdata[10] = rejectFlags;
 

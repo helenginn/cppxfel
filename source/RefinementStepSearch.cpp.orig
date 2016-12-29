@@ -11,6 +11,21 @@
 #include <float.h>
 #include "MtzManager.h"
 
+<<<<<<< Updated upstream:source/RefinementStepSearch.cpp
+double RefinementStepSearch::minimizeParameter(int whichParam, double *bestScore)
+=======
+<<<<<<< Updated upstream:source/GetterSetterMap.cpp
+void GetterSetterMap::addParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence)
+{
+    objects.push_back(object);
+    getters.push_back(getter);
+    setters.push_back(setter);
+    stepSizes.push_back(stepSize);
+    stepConvergences.push_back(stepConvergence);
+}
+
+double GetterSetterMap::minimizeParameter(int whichParam)
+=======
 double RefinementStepSearch::minimizeTwoParameters(int whichParam1, int whichParam2, double *bestScore)
 {
     double param_trials1[9];
@@ -80,6 +95,8 @@ double RefinementStepSearch::minimizeTwoParameters(int whichParam1, int whichPar
 }
 
 double RefinementStepSearch::minimizeParameter(int whichParam, double *bestScore)
+>>>>>>> Stashed changes:source/RefinementStepSearch.cpp
+>>>>>>> Stashed changes:source/GetterSetterMap.cpp
 {
     double param_trials[3];
     double param_scores[3];
@@ -153,8 +170,14 @@ void RefinementStepSearch::refine()
         
         for (int j = 0; j < objects.size(); j++)
         {
-            minimizeParameter(j, &bestScore);
+<<<<<<< Updated upstream:source/RefinementStepSearch.cpp
+            allFinished *= minimizeParameter(j, &bestScore);
+=======
+<<<<<<< Updated upstream:source/GetterSetterMap.cpp
+            minimizeParameter(j);
             
+       //     logged << (*getters[j])(objects[j]) << "\t";
+=======
             bool coupled = (couplings[j] > 1);
             
             if (!coupled)
@@ -166,6 +189,8 @@ void RefinementStepSearch::refine()
                 allFinished *= minimizeTwoParameters(j, j + 1, &bestScore);
                 j++;
             }
+>>>>>>> Stashed changes:source/RefinementStepSearch.cpp
+>>>>>>> Stashed changes:source/GetterSetterMap.cpp
         }
         
         reportProgress(bestScore);

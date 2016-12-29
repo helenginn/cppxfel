@@ -829,14 +829,9 @@ void Panel::stepSearch()
     bottomRight.first -= bottomRightCorrectionX;
     bottomRight.second -= bottomRightCorrectionY;
 }
-
 void Panel::refreshMillerPositions()
 {
-    for (int i = 0; i < millers.size(); i++)
-    {
-        int xTmp, yTmp;
-        millers[i]->positionOnDetector(MatrixPtr(), &xTmp, &yTmp, false);
-    }
+    Miller::refreshMillerPositions(millers);
 }
 
 void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
@@ -923,5 +918,4 @@ void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
     logged << "DETECTOR_DISTANCE " << Image::getGlobalDetectorDistance(NULL) << std::endl;
     logged << "BEAM_CENTRE " << Image::getGlobalBeamX(NULL) << " " << Image::getGlobalBeamY(NULL) << std::endl << std::endl;
     Logger::log(logged);
-    
 }

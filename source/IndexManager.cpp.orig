@@ -611,6 +611,12 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     }
 }
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+void IndexManager::powderPattern()
+=======
+>>>>>>> Stashed changes
 double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
@@ -662,7 +668,11 @@ double IndexManager::pseudoScore(void *object)
                     double potentialError = me->lattice->orderedDistance(chosenOne + 1) - me->lattice->orderedDistance(chosenOne - 1);
                     potentialError = 0.1;
                     
+<<<<<<< Updated upstream
                     score += fabs(realDistance - chosen) * potentialError * 10;
+=======
+                    score += pow(realDistance - chosen, 2) * 1000;
+>>>>>>> Stashed changes
                 }
             }
         }
@@ -672,6 +682,10 @@ double IndexManager::pseudoScore(void *object)
 }
 
 void IndexManager::powderPattern(std::string csvName, bool force)
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 {
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     
@@ -1005,13 +1019,23 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
         double distance = lattice->standardVector(i)->distance();
         int categoryNum = distance / step;
         
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+        frequencies[categoryNum].second++;
+=======
         if (categoryNum > maxCategory)
             continue;
         
+>>>>>>> Stashed changes
         for (int i = categoryNum - perfectPadding; i <= categoryNum + perfectPadding; i++)
         {
             frequencies[i].second++;
         }
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
     }
     
     for (int i = 0; i < images.size(); i++)
@@ -1023,9 +1047,15 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
             double distance = spotVec->distance();
             int categoryNum = distance / step;
             
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+            frequencies[categoryNum].first++;
+=======
             if (categoryNum > maxCategory)
                 continue;
 
+>>>>>>> Stashed changes
             bool isIntraPanel = spotVec->isIntraPanelVector();
             
             if (intraPanel == -1)
@@ -1040,6 +1070,10 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
             {
                 frequencies[categoryNum].first++;
             }
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
         }
     }
     

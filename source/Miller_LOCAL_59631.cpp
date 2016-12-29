@@ -305,8 +305,8 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
     flipMatrix = 0;
-    correctedX = 0;
-    correctedY = 0;
+    lastPeakX = 0;
+    lastPeakY = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -340,7 +340,6 @@ vec Miller::hklVector(bool shouldFlip)
     
     return newVec;
 }
-
 
 int Miller::getH()
 {
@@ -511,14 +510,11 @@ double Miller::getWavelength()
     return wavelength;
 }
 
-vec Miller::getTransformedHKL(MatrixPtr myMatrix)
+vec Miller::getTransformedHKL(MatrixPtr matrix)
 {
-    if (!myMatrix)
-        myMatrix = getMatrix();
-    
     vec hkl = new_vector(h, k, l);
     
-    myMatrix->multiplyVector(&hkl);
+    matrix->multiplyVector(&hkl);
     
     return hkl;
 }
@@ -1007,6 +1003,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     x_coord = coord.first;
     y_coord = coord.second;
     
+    
     bool even = shoebox->isEven();
 
     int intLastX = int(x_coord);
@@ -1023,8 +1020,12 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     
     if (Detector::isActive())
     {
+        double imageWavelength = getImage()->getWavelength();
+        hkl.k *= -1;
+        hkl.l += 1 / imageWavelength;
         double xSpot, ySpot;
-        DetectorPtr detector = Detector::getMaster()->spotCoordForMiller(shared_from_this(), &xSpot, &ySpot);
+        
+        DetectorPtr detector = Detector::getMaster()->spotCoordForRayIntersection(hkl, &xSpot, &ySpot);
         
         if (!detector)
         {
@@ -1037,21 +1038,23 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         int xInt = xSpot;
         int yInt = ySpot;
         
-        if (shouldSearch || (correctedX == 0 && correctedY == 0))
+        if (shouldSearch || (lastPeakX == 0 && lastPeakY == 0))
         {
             int search = getIOMRefiner()->getSearchSize();
             getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
         }
         else
         {
-            xInt = correctedX;
-            yInt = correctedY;
+            xInt = lastPeakX;
+            yInt = lastPeakY;
         }
         
         shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
         
-        correctedX = xInt;
-        correctedY = yInt;
+        detector->spotCoordToAbsoluteVec(xInt + 0.5, yInt + 0.5, &shiftedRay);
+        
+        lastPeakX = xInt;
+        lastPeakY = yInt;
         
         *x = xInt;
         *y = yInt;
@@ -1087,7 +1090,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             
             int xInt, yInt;
             
-            if (shouldSearch || (correctedX == 0 && correctedY == 0))
+            if (shouldSearch || (lastPeakX == 0 && lastPeakY == 0))
             {
                 xInt = shiftedX;
                 yInt = shiftedY;
@@ -1096,8 +1099,8 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             }
             else
             {
-                xInt = correctedX;
-                yInt = correctedY;
+                xInt = lastPeakX;
+                yInt = lastPeakY;
             }
             
             shift = std::make_pair(xInt + 0.5 - shiftedX, yInt + 0.5 - shiftedY);
@@ -1114,24 +1117,13 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             
             getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
             
-            *x = intLastX;
-            *y = intLastY;
+            lastPeakX = intLastX;
+            lastPeakY = intLastY;
         }
     }
     
     correctedX = *x;
     correctedY = *y;
-}
-
-vec Miller::getShiftedRay()
-{
-    // if unassigned, should be genuine zeros
-    if (length_of_vector(shiftedRay) < 0.1)
-    {
-        Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
-    }
-    
-    return shiftedRay;
 }
 
 void Miller::makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize)

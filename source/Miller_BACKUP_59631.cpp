@@ -305,8 +305,16 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
     flipMatrix = 0;
+<<<<<<< Updated upstream
+    lastPeakX = 0;
+    lastPeakY = 0;
+=======
+<<<<<<< Updated upstream
+=======
     correctedX = 0;
     correctedY = 0;
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -1007,6 +1015,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     x_coord = coord.first;
     y_coord = coord.second;
     
+    
     bool even = shoebox->isEven();
 
     int intLastX = int(x_coord);
@@ -1023,8 +1032,20 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     
     if (Detector::isActive())
     {
+<<<<<<< Updated upstream
+        double imageWavelength = getImage()->getWavelength();
+        hkl.k *= -1;
+        hkl.l += 1 / imageWavelength;
+        double xSpot, ySpot;
+        
+        DetectorPtr detector = Detector::getMaster()->spotCoordForRayIntersection(hkl, &xSpot, &ySpot);
+=======
+<<<<<<< Updated upstream
+        int search = indexer->getSearchSize();
+=======
         double xSpot, ySpot;
         DetectorPtr detector = Detector::getMaster()->spotCoordForMiller(shared_from_this(), &xSpot, &ySpot);
+>>>>>>> Stashed changes
         
         if (!detector)
         {
@@ -1037,21 +1058,37 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         int xInt = xSpot;
         int yInt = ySpot;
         
+<<<<<<< Updated upstream
+        if (shouldSearch || (lastPeakX == 0 && lastPeakY == 0))
+=======
         if (shouldSearch || (correctedX == 0 && correctedY == 0))
+>>>>>>> Stashed changes
         {
             int search = getIOMRefiner()->getSearchSize();
             getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
         }
         else
         {
+<<<<<<< Updated upstream
+            xInt = lastPeakX;
+            yInt = lastPeakY;
+=======
             xInt = correctedX;
             yInt = correctedY;
+>>>>>>> Stashed changes
         }
         
         shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
         
+<<<<<<< Updated upstream
+        detector->spotCoordToAbsoluteVec(xInt + 0.5, yInt + 0.5, &shiftedRay);
+        
+        lastPeakX = xInt;
+        lastPeakY = yInt;
+=======
         correctedX = xInt;
         correctedY = yInt;
+>>>>>>> Stashed changes
         
         *x = xInt;
         *y = yInt;
@@ -1062,6 +1099,10 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             return;
         
         int search = getIOMRefiner()->getSearchSize();
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
         getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
         
         shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
@@ -1085,9 +1126,21 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             double shiftedX = lastX + bestShift.first;
             double shiftedY = lastY + bestShift.second;
             
+<<<<<<< Updated upstream
+            int xInt, yInt;
+            
+            if (shouldSearch || (lastPeakX == 0 && lastPeakY == 0))
+=======
+<<<<<<< Updated upstream
+            int xInt = shiftedX;
+            int yInt = shiftedY;
+            
+            getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+=======
             int xInt, yInt;
             
             if (shouldSearch || (correctedX == 0 && correctedY == 0))
+>>>>>>> Stashed changes
             {
                 xInt = shiftedX;
                 yInt = shiftedY;
@@ -1096,9 +1149,16 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             }
             else
             {
+<<<<<<< Updated upstream
+                xInt = lastPeakX;
+                yInt = lastPeakY;
+            }
+=======
                 xInt = correctedX;
                 yInt = correctedY;
             }
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
             
             shift = std::make_pair(xInt + 0.5 - shiftedX, yInt + 0.5 - shiftedY);
             
@@ -1114,8 +1174,19 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             
             getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
             
+<<<<<<< Updated upstream
+            lastPeakX = intLastX;
+            lastPeakY = intLastY;
+=======
             *x = intLastX;
             *y = intLastY;
+<<<<<<< Updated upstream
+=======
+            
+            correctedX = intLastX;
+            correctedY = intLastY;
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
         }
     }
     
@@ -1364,6 +1435,11 @@ double Miller::getRawestIntensity()
     return rawIntensity;
 }
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 bool Miller::reachesThreshold()
 {
     double iSigI = getRawIntensity() / getCountingSigma();
@@ -1375,3 +1451,16 @@ bool Miller::reachesThreshold()
     
     return (iSigI > intensityThreshold);
 }
+<<<<<<< Updated upstream
+=======
+
+void Miller::refreshMillerPositions(std::vector<MillerPtr> millers)
+{
+    for (int i = 0; i < millers.size(); i++)
+    {
+        int xTmp, yTmp;
+        millers[i]->positionOnDetector(MatrixPtr(), &xTmp, &yTmp, false);
+    }
+}
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes

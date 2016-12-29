@@ -522,14 +522,12 @@ void new_main(int argc, char *argv[])
     std::ostringstream logged;
     logged << "N: Total time: " << minutes << " minutes, "
     << finalSeconds << " seconds (" << seconds << " seconds)." << std::endl;
-
-	logged << "Done" << std::endl;
-    Logger::mainLogger->addStream(&logged);
     
     if (strcmp(argv[1], "-i") == 0)
         finishJobNotification(argc, argv, minutes);
     
     Hdf5ManagerCheetahSacla::closeHdf5Files();
     
-    sleep(2);
+    logged << "Done" << std::endl;
+    Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
 }

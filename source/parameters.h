@@ -214,6 +214,7 @@ typedef boost::shared_ptr<NelderMead> NelderMeadPtr;
 typedef boost::shared_ptr<Beam> BeamPtr;
 typedef boost::shared_ptr<GaussianBeam> GaussianBeamPtr;
 typedef boost::shared_ptr<Miller> MillerPtr;
+typedef boost::weak_ptr<Miller> MillerWeakPtr;
 typedef boost::shared_ptr<Reflection> ReflectionPtr;
 typedef boost::weak_ptr<Reflection> ReflectionWeakPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;

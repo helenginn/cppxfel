@@ -13,6 +13,7 @@
 #include "Miller.h"
 
 #include "NelderMead.h"
+#include "RefinementStepSearch.h"
 
 #define DEFAULT_RESOLUTION 3.4
 typedef boost::tuple<double, double, double, double, double> ResultTuple;
@@ -524,13 +525,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
             
             if (expoStep < toleranceExponent)
                 optimisedExponent = true;
-            
-          //  if (scoreType == ScoreTypeStandardDeviation)
-      /*      {
-                double aScore = (*score)(object, minResolution, maxResolutionAll);
-                logged << params[PARAM_WAVELENGTH] << "\t" << params[PARAM_SPOT_SIZE] << "\t" << params[PARAM_HROT] << "\t" << params[PARAM_KROT] << "\t" << aScore << std::endl;
-                sendLog();
-            }*/
         }
         
         bool refineB = FileParser::getKey("REFINE_B_FACTOR", false);
@@ -618,6 +612,11 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         refiner.setCycles(maxCycles);
         refiner.setEvaluationFunction(scoreNelderMead, this);
         
+        if (optimisingWavelength)
+        {
+            refiner.addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, 0);
+        }
+        
         if (optimisingOrientation)
         {
             refiner.addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, 0);
@@ -632,11 +631,6 @@ double MtzManager::minimize(double (*score)(void *object, double lowRes, double 
         if (optimisingRlpSize)
         {
             refiner.addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, 0);
-        }
-        
-        if (optimisingWavelength)
-        {
-            refiner.addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, 0);
         }
         
         if (optimisingBandwidth)

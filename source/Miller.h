@@ -91,6 +91,7 @@ private:
     BeamPtr beam;
     ImageWeakPtr image;
     PanelWeakPtr lastPanel;
+    DetectorWeakPtr lastDetector;
     IOMRefinerWeakPtr refiner;
     ShoeboxPtr shoebox;
     unsigned char flipMatrix;
@@ -176,8 +177,19 @@ public:
     double observedPartiality(double reference);
     double observedPartiality(MtzManager *reference);
     
-    vec getTransformedHKL(MatrixPtr matrix);
+    static void refreshMillerPositions(std::vector<MillerPtr> millers);
+    vec getTransformedHKL(MatrixPtr matrix = MatrixPtr());
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
+    
+    DetectorPtr getDetector()
+    {
+        return lastDetector.lock();
+    }
+    
+    void setDetector(DetectorPtr newD)
+    {
+        lastDetector = newD;
+    }
     
     ShoeboxPtr getShoebox()
     {
@@ -307,6 +319,16 @@ public:
         return std::make_pair(lastX, lastY);
     }
 
+    void setCorrectedX(double lastX)
+    {
+        this->correctedX = lastX;
+    }
+    
+    void setCorrectedY(double lastY)
+    {
+        this->correctedY = lastY;
+    }
+    
 	void setLastX(double lastX)
 	{
 		this->lastX = lastX;
@@ -373,8 +395,8 @@ public:
     
     void setImageAndIOMRefiner(ImagePtr newImage, IOMRefinerPtr indexer)
     {
-        this->image = newImage;
-        this->refiner = indexer;
+        if (newImage) this->image = newImage;
+        if (indexer) this->refiner = indexer;
     }
     
     IOMRefinerPtr getIOMRefiner()
@@ -432,10 +454,7 @@ public:
         return sigma;
     }
     
-    vec getShiftedRay()
-    {
-        return shiftedRay;
-    }
+    vec getShiftedRay();
     
     static void rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
 
