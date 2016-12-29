@@ -87,10 +87,8 @@ source = [
 'source/PNGFile.cpp',
 'source/PythonExt.cpp',
 'source/Reflection.cpp',
-'source/ReflectionManager.cpp',
 'source/RefinementStrategy.cpp',
 'source/RefinementStepSearch.cpp',
-'source/ScalingManager.cpp',
 'source/Shoebox.cpp',
 'source/Spot.cpp',
 'source/SpotVector.cpp',
@@ -102,7 +100,6 @@ source = [
 'source/UnitCellLattice.cpp',
 'source/Vector.cpp',
 'source/Wiki.cpp',
-'source/lbfgs_scaling.cpp',
 'source/main.cpp',
 'source/misc.cpp']
 

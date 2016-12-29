@@ -295,20 +295,6 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 		mtzManagers[i]->applyScaleFactor(scale);
 	}
 
-	if (scalingType == ScalingTypeMinimizeRMerge)
-	{
-        vector<MtzPtr> acceptedMtzs;
-        
-        for (int i = 0; i < mtzManagers.size(); i++)
-        {
-            if (isMtzAccepted(mtzManagers[i]))
-                acceptedMtzs.push_back(mtzManagers[i]);
-        }
-        
-		Lbfgs_Scaling scaling = Lbfgs_Scaling(acceptedMtzs);
-		scaling.run();
-	}
-
 	logged << "Altered scales." << std::endl;
 
 	MtzPtr idxMerge;
