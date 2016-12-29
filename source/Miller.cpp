@@ -1375,3 +1375,12 @@ bool Miller::reachesThreshold()
     
     return (iSigI > intensityThreshold);
 }
+
+void Miller::refreshMillerPositions(std::vector<MillerPtr> millers)
+{
+    for (int i = 0; i < millers.size(); i++)
+    {
+        int x, y;
+        millers[i]->positionOnDetector(NULL, &x, &y, false);
+    }
+}
