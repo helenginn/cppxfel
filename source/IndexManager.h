@@ -47,6 +47,7 @@ protected:
     int nextImage;
     std::mutex indexMutex;
     bool modifyParameters();
+    PseudoScoreType scoreType;
     
     void updateAllSpots();
     bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
@@ -77,6 +78,16 @@ public:
     void setActiveDetector(DetectorPtr detector)
     {
         activeDetector = detector;
+    }
+    
+    void setPseudoScoreType(PseudoScoreType type)
+    {
+        scoreType = type;
+    }
+    
+    PseudoScoreType getPseudoScoreType()
+    {
+        return scoreType;
     }
     
     void combineLists();

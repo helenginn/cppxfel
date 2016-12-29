@@ -25,6 +25,7 @@
 IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
     images = newImages;
+    scoreType = PseudoScoreTypeIntraPanel;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -622,7 +623,12 @@ double IndexManager::pseudoScore(void *object)
         {
             SpotVectorPtr vec = me->images[i]->spotVector(j);
             
-            if (!vec->isIntraPanelVector())
+            if (me->scoreType == PseudoScoreTypeIntraPanel && !vec->isIntraPanelVector())
+            {
+                continue;
+            }
+            
+            if (me->scoreType == PseudoScoreTypeInterPanel && vec->isIntraPanelVector())
             {
                 continue;
             }
