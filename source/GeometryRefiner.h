@@ -13,10 +13,19 @@
 #include "parameters.h"
 #include <stdio.h>
 
+typedef enum
+{
+    GeometryScoreTypeMiller,
+    GeometryScoreTypeIntrapanel,
+    GeometryScoreTypeInterpanel,
+    
+} GeometryScoreType;
+
 class GeometryRefiner : public LoggableObject
 {
 private:
     std::vector<ImagePtr> images;
+    std::vector<IndexManagerPtr> indexManagers;
     IndexManagerPtr manager;
     int refinementEvent;
     int cycleNum;
@@ -27,8 +36,11 @@ private:
     double lastIntraScore;
     void refineMasterDetector();
     
-    RefinementStrategyPtr makeRefiner();
+    RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
     void reportProgress();
+    void refineMidPointXY(DetectorPtr detector, GeometryScoreType type);
+    void refineMidPointZ(DetectorPtr detector, GeometryScoreType type);
+    void refineTiltXY(DetectorPtr detector, GeometryScoreType type);
     
 public:
     GeometryRefiner();
