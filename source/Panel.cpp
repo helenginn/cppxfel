@@ -829,6 +829,7 @@ void Panel::stepSearch()
     bottomRight.first -= bottomRightCorrectionX;
     bottomRight.second -= bottomRightCorrectionY;
 }
+
 void Panel::refreshMillerPositions()
 {
     Miller::refreshMillerPositions(millers);
