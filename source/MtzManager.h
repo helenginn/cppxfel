@@ -279,8 +279,8 @@ public:
     static double bFactorScoreWrapper(void *object);
     static double scoreNelderMead(void *object);
 	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
-    double leastSquaresPartiality(ScoreType typeOfScore);
-    double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
+    double leastSquaresPartiality(double low = 0, double high = 0, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
+    double partialityFunction(double low = 0, double high = 0);
 	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high, bool withCutoff = false, bool set = false);
 	std::string describeScoreType();
@@ -304,8 +304,6 @@ public:
     void findSteps(int param1, int param2, std::string csvName);
 	void gridSearch(bool silent = false);
 	double minimize();
-	double minimize(double (*score)(void *object, double lowRes, double highRes),
-			void *object);
 	double minimizeTwoParameters(double *meanStep1, double *meanStep2,
 			double **params, int paramNum1, int paramNum2,
 			double (*score)(void *object, double lowRes, double highRes),
