@@ -855,6 +855,12 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         this->findReflectionWithId(reflection_reflection_index, &prevReflection);
         miller->setImageAndIOMRefiner(getImagePtr(), IOMRefinerPtr());
+        
+        if (getImagePtr())
+        {
+            int x, y;
+            miller->positionOnDetector(MatrixPtr(), &x, &y, false);
+        }
 
         if (prevReflection)
         {
