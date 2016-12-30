@@ -937,6 +937,11 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
     
     Logger::log(logged);
     
+    if (version > 2.99 && version < 3.99)
+    {
+        loadPanels();
+    }
+
     for (int i = 0; i < maxThreads; i++)
     {
         if (version <= 1.1) // floating point comparison???
