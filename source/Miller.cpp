@@ -977,49 +977,10 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
 void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
                                 int *y, bool shouldSearch)
 {
-    double x_coord = 0;
-    double y_coord = 0;
     
-    if (!transformedMatrix)
-    {
-        if (!getIOMRefiner())
-            throw 1;
-        
-        transformedMatrix = getIOMRefiner()->getMatrix();
-    }
-    
-    vec hkl = new_vector(h, k, l);
-    transformedMatrix->multiplyVector(&hkl);
-    double tmp = hkl.k;
-    hkl.k = hkl.h;
-    hkl.h = -tmp;
-    
-    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl);
-    
-    lastX = int(coord.first);
-    lastY = int(coord.second);
-    
-    *x = -INT_MAX;
-    *y = -INT_MAX;
-    
-    PanelPtr panel = Panel::panelForMiller(this);
-    
-    x_coord = coord.first;
-    y_coord = coord.second;
-    
-    bool even = shoebox->isEven();
-
-    int intLastX = int(x_coord);
-    int intLastY = int(y_coord);
-    
-    if (even)
-    {
-        intLastX = round(x_coord);
-        intLastY = round(y_coord);
-    }
-    
-    lastX = x_coord;
-    lastY = y_coord;
+    bool even = false;
+    if (shoebox)
+        even = shoebox->isEven();
     
     if (Detector::isActive())
     {
@@ -1055,8 +1016,45 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         
         *x = xInt;
         *y = yInt;
+        
+        return;
     }
-    else if (!Panel::shouldUsePanelInfo())
+    
+    if (!transformedMatrix)
+    {
+        transformedMatrix = getMatrix();
+    }
+
+    vec hkl = new_vector(h, k, l);
+    transformedMatrix->multiplyVector(&hkl);
+    double tmp = hkl.k;
+    hkl.k = hkl.h;
+    hkl.h = -tmp;
+
+    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl);
+    
+    lastX = int(coord.first);
+    lastY = int(coord.second);
+    
+    *x = -INT_MAX;
+    *y = -INT_MAX;
+    
+    PanelPtr panel = Panel::panelForMiller(this);
+    
+    
+    int intLastX = int(coord.first);
+    int intLastY = int(coord.second);
+    
+    if (even)
+    {
+        intLastX = round(coord.first);
+        intLastY = round(coord.second);
+    }
+    
+    lastX = coord.first;
+    lastY = coord.second;
+
+    if (!Panel::shouldUsePanelInfo())
     {
         if (!panel)
             return;
@@ -1064,7 +1062,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         int search = getIOMRefiner()->getSearchSize();
         getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
         
-        shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
+        shift = std::make_pair(intLastX + 0.5 - coord.first, intLastY + 0.5 - coord.second);
         
         *x = intLastX;
         *y = intLastY;
