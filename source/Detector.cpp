@@ -12,6 +12,7 @@
 #include "FileParser.h"
 #include "Vector.h"
 #include "Spot.h"
+#include "CSV.h"
 
 double Detector::mmPerPixel = 0;
 DetectorPtr Detector::masterPanel = DetectorPtr();
@@ -430,7 +431,11 @@ DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
     if (!probe)
     {
         probe = detectorForRayIntersection(hkl, intersection);
-        miller->setDetector(probe);
+        
+        if (probe)
+        {
+            miller->setDetector(probe);
+        }
     }
     else
     {
@@ -471,16 +476,16 @@ DetectorPtr Detector::spotCoordForRayIntersection(vec ray, double *xSpot, double
 
 void Detector::addMillerCarefully(MillerPtr miller)
 {
-    if (!miller->reachesThreshold())
-        return;
-    
     millerMutex.lock();
     
     millers.push_back(miller);
     
     millerMutex.unlock();
     
-    getParent()->addMillerCarefully(miller);
+    if (!isLUCA())
+    {
+        getParent()->addMillerCarefully(miller);
+    }
 }
 
 // MARK: read/write detector files
