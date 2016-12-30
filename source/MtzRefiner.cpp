@@ -1690,6 +1690,11 @@ void MtzRefiner::integrate()
     
     mtzManagers.clear();
     
+    for (int i = 0; i < images.size(); i++)
+    {
+        images[i]->clearMtzs();
+    }
+    
     int maxThreads = FileParser::getMaxThreads();
     
     boost::thread_group threads;
