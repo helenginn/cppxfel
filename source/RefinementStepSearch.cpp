@@ -20,6 +20,10 @@ double RefinementStepSearch::minimizeTwoParameters(int whichParam1, int whichPar
     double *meanStep1 = &stepSizes[whichParam1];
     double *meanStep2 = &stepSizes[whichParam2];
     
+    if (*meanStep1 < stepConvergences[whichParam1] &&
+        *meanStep2 < stepConvergences[whichParam2])
+        return 1;
+
     int j = 0;
     double param_min_score = *bestScore;
     int param_min_num = 4;
@@ -153,8 +157,6 @@ void RefinementStepSearch::refine()
         
         for (int j = 0; j < objects.size(); j++)
         {
-            minimizeParameter(j, &bestScore);
-            
             bool coupled = (couplings[j] > 1);
             
             if (!coupled)

@@ -29,7 +29,7 @@ void RefinementStrategy::addParameter(void *object, Getter getter, Setter setter
 void RefinementStrategy::addCoupledParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag)
 {
     couplings.at(couplings.size() - 1)++;
-    addParameter(object, getter, setter, stepSize, stepConvergence);
+    addParameter(object, getter, setter, stepSize, stepConvergence, tag);
     couplings.at(couplings.size() - 1)++;
 }
 
@@ -57,11 +57,12 @@ void RefinementStrategy::refine()
     }
     
     logged << tags[tags.size() - 1] << " --- " << std::endl;
+    
+    reportProgress((*evaluationFunction)(evaluateObject));
 }
 
 void RefinementStrategy::reportProgress(double score)
 {
-    cycleNum++;
     logged << "Cycle " << cycleNum << "\t";
     
     for (int i = 0; i < objects.size(); i++)
@@ -71,6 +72,7 @@ void RefinementStrategy::reportProgress(double score)
 
     logged << " - score: ";
     logged << score << std::endl;
+    cycleNum++;
 }
 
 void RefinementStrategy::finish()
