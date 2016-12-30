@@ -545,5 +545,74 @@ std::string Detector::writeGeometryFile(int indentCount)
     return output.str();
 }
 
-// Scoring functions
+// MARK: Scoring functions
+
+double Detector::millerScoreWrapper(void *object)
+{
+    return static_cast<Detector *>(object)->millerScore();
+}
+
+double Detector::millerScore(bool ascii)
+{
+    if (!millers.size())
+    {
+        logged << "No integrated images so cannot use reflection predictions as a scoring function." << std::endl;
+        sendLog();
+        
+        return 0;
+    }
+    
+    Miller::refreshMillerPositions(millers);
+    
+    if (!xShifts.size())
+    {
+        yShifts.clear();
+        
+        for (int i = 0; i < millerCount(); i++)
+        {
+            MillerPtr myMiller = miller(i);
+            
+            if (!myMiller || !myMiller->reachesThreshold())
+                continue;
+            
+            float *shiftX = myMiller->getXShiftPointer();
+            float *shiftY = myMiller->getYShiftPointer();
+            
+            xShifts.push_back(shiftX);
+            yShifts.push_back(shiftY);
+        }
+    }
+
+    std::vector<double> xs, ys;
+    
+    CSV *csv;
+    
+    if (ascii)
+    {
+        csv = new CSV(2, "x", "y");
+    }
+    
+    for (int i = 0; i < xShifts.size(); i++)
+    {
+        xs.push_back(*xShifts[i]);
+        ys.push_back(*yShifts[i]);
+        
+        if (ascii)
+        {
+            csv->addEntry(0, xs[i], ys[i]);
+        }
+    }
+
+    if (ascii)
+    {
+        csv->plotColumns(0, 1);
+        delete csv;
+    }
+    
+    double stdevX = standard_deviation(&xs, NULL, 0);
+    double stdevY = standard_deviation(&ys, NULL, 0);
+    double aScore = stdevX + stdevY;
+    
+    return aScore;
+}
 

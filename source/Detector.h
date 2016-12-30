@@ -73,8 +73,15 @@ private:
     DetectorWeakPtr parent;
     MatrixPtr rotMat;
     MatrixPtr changeOfBasisMat;
+    
+    // MARK: keeping track of millers, etc.
     std::vector<MillerWeakPtr> millers;
     std::mutex millerMutex;
+    
+    /* These keep track of the pointers to the Miller index shifts for easy access */
+    std::vector<float *> xShifts;
+    std::vector<float *> yShifts;
+    std::vector<double *> intensities;
     
     // MARK: private housekeeping
     
@@ -379,7 +386,11 @@ public:
     {
         return static_cast<Detector *>(object)->rotationAngles.l;
     }
-
+    
+    /* Scoring functions */
+    
+    double millerScore(bool ascii = false);
+    static double millerScoreWrapper(void *object);
 };
 
 #endif /* defined(__cppxfel__Detector__) */
