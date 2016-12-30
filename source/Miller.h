@@ -102,6 +102,11 @@ public:
     int getK();
     int getL();
     
+    bool is(int _h, int _k, int _l)
+    {
+        return (h == _h && k == _k && l == _l);
+    }
+    
     static void setupStaticVariables();
     vec hklVector(bool shouldFlip = true);
     void setFlipMatrix(int i);
@@ -177,6 +182,7 @@ public:
     double observedPartiality(double reference);
     double observedPartiality(MtzManager *reference);
     
+    static void refreshMillerPositions(std::vector<MillerWeakPtr> millers);
     static void refreshMillerPositions(std::vector<MillerPtr> millers);
     vec getTransformedHKL(MatrixPtr matrix = MatrixPtr());
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
@@ -186,10 +192,7 @@ public:
         return lastDetector.lock();
     }
     
-    void setDetector(DetectorPtr newD)
-    {
-        lastDetector = newD;
-    }
+    void setDetector(DetectorPtr newD);
     
     ShoeboxPtr getShoebox()
     {
@@ -387,6 +390,16 @@ public:
 	{
 		return shift;
 	}
+    
+    float *getXShiftPointer()
+    {
+        return &(shift.first);
+    }
+    
+    float *getYShiftPointer()
+    {
+        return &(shift.second);
+    }
 
 	void setShift(const std::pair<int, int>& shift)
 	{

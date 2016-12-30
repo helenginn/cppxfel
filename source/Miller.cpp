@@ -1382,3 +1382,26 @@ void Miller::refreshMillerPositions(std::vector<MillerPtr> millers)
         millers[i]->positionOnDetector(MatrixPtr(), &x, &y, false);
     }
 }
+
+void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers)
+{
+    for (int i = 0; i < millers.size(); i++)
+    {
+        int x, y;
+        MillerPtr miller = millers[i].lock();
+        if (miller)
+        {
+            miller->positionOnDetector(MatrixPtr(), &x, &y, false);
+        }
+    }
+}
+
+void Miller::setDetector(DetectorPtr newD)
+{
+    if (!(lastDetector.lock() == newD))
+    {
+        newD->addMillerCarefully(shared_from_this());
+    }
+    
+    lastDetector = newD;
+}
