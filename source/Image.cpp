@@ -1238,6 +1238,10 @@ void Image::findSpots()
     {
         spotFinder = SpotFinderPtr(new SpotFinderCorrelation(shared_from_this()));
     }
+    else
+    {
+        return;
+    }
     
     tempSpots = spotFinder->findSpots();
     
