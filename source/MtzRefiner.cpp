@@ -552,17 +552,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
     if (givenUnitCell.size() > 0 && tolerance > 0.0)
         checkingUnitCell = true;
-    /*
-    if (wavelength == 0 && newImages != NULL)
-    {
-        std::cout << "No integration wavelength provided. If this is not deliberate, please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH" << std::endl;
-    }
-    
-    if (detectorDistance == 0 && newImages != NULL)
-    {
-        std::cout << "No detector distance provided. If this is not deliberate, please provide detector distance for integration under keyword DETECTOR_DISTANCE" << std::endl;
-        
-    }*/
     
     bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
