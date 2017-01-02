@@ -20,7 +20,8 @@ protected:
     FileParser(void);
 	ParserMap parserMap;
 	static ParametersMap parameters;
-
+    static std::map<std::string, std::string> deprecatedList;
+    
 	static void simpleFloat(ParametersMap *map, std::string command,
 			std::string rest);
 	static void simpleBool(ParametersMap *map, std::string command,
@@ -42,6 +43,7 @@ protected:
     static int threadsFound;
 	std::string filename;
 	void generateFunctionList();
+    void generateDeprecatedList();
 	ParserFunction splitLine(std::string line, std::string &command, std::string &rest);
 	bool checkSpaces(std::string line);
     static std::ostringstream log;

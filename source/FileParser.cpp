@@ -25,6 +25,7 @@ std::ostringstream FileParser::log;
 int FileParser::threadsFound = 0;
 char FileParser::splitCharMajor = ' ';
 char FileParser::splitCharMinor = ' ';
+std::map<std::string, std::string> FileParser::deprecatedList;
 
 int FileParser::getMaxThreads()
 {
@@ -174,6 +175,12 @@ void FileParser::intVector(ParametersMap *map, std::string command,
 	log << std::endl;
 
 	(*map)[command] = intVector;
+}
+
+void FileParser::generateDeprecatedList()
+{
+    deprecatedList["MAX_MILLER_INDEX_TRIAL"] = "This command is no longer supported. Please specify your maximum reciprocal distance using MAX_RECIPROCAL_DISTANCE.";
+    
 }
 
 void FileParser::generateFunctionList()
@@ -383,7 +390,6 @@ void FileParser::generateFunctionList()
     parserMap["THOROUGH_SOLUTION_SEARCHING"] = simpleBool;
     parserMap["MAX_SEARCH_NUMBER_MATCHES"] = simpleInt;
     parserMap["MAX_SEARCH_NUMBER_SOLUTIONS"] = simpleInt;
-    parserMap["MAX_MILLER_INDEX_TRIAL"] = simpleInt;
     parserMap["ACCEPT_ALL_SOLUTIONS"] = simpleBool;
     parserMap["INDEXING_MIN_RESOLUTION"] = simpleFloat;
     parserMap["SPOTS_PER_LATTICE"] = simpleInt;
@@ -511,6 +517,7 @@ FileParser::FileParser(std::string name, std::vector<std::string> someExtras)
 {
 	this->filename = name;
 	generateFunctionList();
+    generateDeprecatedList();
     
     extras = someExtras;
 }
