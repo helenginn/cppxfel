@@ -1059,6 +1059,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         if (!panel)
             return;
         
+        if (!getIOMRefiner())
+            return;
+
         int search = getIOMRefiner()->getSearchSize();
         getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
         
@@ -1075,6 +1078,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         if (!panel)
             return;
 
+        if (!getIOMRefiner())
+            return;
+        
         int search = getIOMRefiner()->getSearchSize();
         Coord bestShift = panel->shiftForMiller(this);
         
@@ -1108,6 +1114,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         }
         else
         {
+            if (!getIOMRefiner())
+                return;
+
             int search = getIOMRefiner()->getSearchSize();
             
             getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
