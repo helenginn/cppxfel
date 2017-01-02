@@ -11,10 +11,10 @@
 #include <string>
 #include "parameters.h"
 #include <iostream>
-
+#include "LoggableObject.h"
 class MtzRefiner;
 
-class FileParser
+class FileParser: public LoggableObject
 {
 protected:
     FileParser(void);

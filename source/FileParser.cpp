@@ -483,11 +483,19 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
 
 	rest = line.substr(space_index + 1, std::string::npos);
 
-    // make a list of permitted words soon
-    if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL" && upperCommand != "MASK" && upperCommand != "SOLVENT_MASK")
+    if (deprecatedList.count(command) > 0)
     {
-        std::cout << "Error: do not understand command " << upperCommand << std::endl;
-        exit(1);
+        logged << "Deprecated command: " << command << std::endl;
+        sendLog();
+        logged << deprecatedList[command] << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+    }
+    
+    // make a list of permitted words soon
+    else if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL" && upperCommand != "MASK" && upperCommand != "SOLVENT_MASK")
+    {
+        logged << "Error: do not understand command " << upperCommand << std::endl;
+        sendLog();
     }
     
     ParserFunction function = parserMap[upperCommand];

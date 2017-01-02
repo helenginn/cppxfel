@@ -12,9 +12,9 @@
 #include "FileParser.h"
 //#include <boost/python.hpp>
 #include "MtzRefiner.h"
-#include "LoggableObject.h"
 
-class InputFileParser : public FileParser, public LoggableObject
+
+class InputFileParser : public FileParser
 {
 private:
     boost::shared_ptr<MtzRefiner> refiner;

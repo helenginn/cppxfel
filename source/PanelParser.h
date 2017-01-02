@@ -9,9 +9,8 @@
 #define PANELPARSER_H_
 
 #include "FileParser.h"
-#include "LoggableObject.h"
 
-class PanelParser : public FileParser, public LoggableObject
+class PanelParser : public FileParser
 {
 private:
 	vector<PanelPtr> panels;

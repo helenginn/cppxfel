@@ -77,13 +77,6 @@ int InputFileParser::processOptions(std::vector<std::string> lines)
         
         ParserFunction function = this->splitLine(line, command, rest);
         
-        if (deprecatedList.count(command) > 0)
-        {
-            logged << "Deprecated command: " << command << std::endl;
-            logged << deprecatedList[command] << std::endl;
-            Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
-        }
-        
         if (parserMap.count(command) == 0)
         {
             std::cout << "Warning: Line \"" << line << "\" not recognised."
