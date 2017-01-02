@@ -269,6 +269,13 @@ void Image::loadImage()
     {
         Logger::mainLogger->addString("Unable to open file " + getFilename());
     }
+    
+    bool fromTiffs = FileParser::getKey("FROM_TIFFS", false);
+    
+    if (fromTiffs)
+    {
+        shortData.erase(shortData.begin(), shortData.begin() + 4);
+    }
 }
 
 void Image::dropImage()

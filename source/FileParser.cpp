@@ -438,6 +438,7 @@ void FileParser::generateFunctionList()
     parserMap["SPOTS_ARE_RECIPROCAL_COORDINATES"] = simpleBool;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
+    parserMap["FROM_TIFFS"] = simpleBool;
     
     parserMap["PIXEL_TOLERANCE"] = simpleFloat;
     parserMap["MINIMUM_CIRCLE_SPOTS"] = simpleInt;
