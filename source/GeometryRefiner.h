@@ -16,6 +16,7 @@
 typedef enum
 {
     GeometryScoreTypeMiller,
+    GeometryScoreTypeMillerStdev,
     GeometryScoreTypeIntrapanel,
     GeometryScoreTypeInterpanel,
     
@@ -29,8 +30,10 @@ private:
     IndexManagerPtr manager;
     int refinementEvent;
     int cycleNum;
-    void refineDetector(DetectorPtr detector);
-    static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset);
+    void refineDetectorStrategyOne(DetectorPtr detector);
+    void refineDetectorStrategyTwo(DetectorPtr detector);
+    void refineDetectorStrategyThree(DetectorPtr detector);
+    static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy);
     void refineGeometryCycle();
     double lastInterScore;
     double lastIntraScore;
@@ -41,6 +44,8 @@ private:
     void refineMidPointXY(DetectorPtr detector, GeometryScoreType type);
     void refineMidPointZ(DetectorPtr detector, GeometryScoreType type);
     void refineTiltXY(DetectorPtr detector, GeometryScoreType type);
+    void refineTiltZ(DetectorPtr detector, GeometryScoreType type);
+    void refineVarious(DetectorPtr detector, GeometryScoreType type);
     
 public:
     GeometryRefiner();
