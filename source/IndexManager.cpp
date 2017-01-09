@@ -757,6 +757,8 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     }
     
     powder.writeToFile(csvName);
+    logged << "Written to " << csvName << std::endl;
+    sendLog();
     
     if (force)
     {
