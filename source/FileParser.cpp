@@ -179,8 +179,19 @@ void FileParser::intVector(ParametersMap *map, std::string command,
 
 void FileParser::generateDeprecatedList()
 {
-    deprecatedList["MAX_MILLER_INDEX_TRIAL"] = "This command is no longer supported. Please specify your maximum reciprocal distance using MAX_RECIPROCAL_DISTANCE.";
-    
+    deprecatedList["MAX_MILLER_INDEX_TRIAL"] = "Please specify your maximum reciprocal distance using MAX_RECIPROCAL_DISTANCE.";
+    deprecatedList["MINIMUM_TRUST_DISTANCE"] = "This value is automatically calculated from INITIAL_RLP_SIZE. Please use this instead.";
+    deprecatedList["RECIPROCAL_TOLERANCE"] = "This value is now provided by INITIAL_RLP_SIZE. Please use this instead.";
+    deprecatedList["ROTATION_MODE"] = "This option has been removed as it provided no benefit.";
+    deprecatedList["INITIAL_GRID_SEARCH"] = "This option has been removed as it provided no benefit.";
+    deprecatedList["LANDSCAPE_DIVISIONS"] = "This option has been removed as it provided no benefit.";
+    deprecatedList["PENALTY_WEIGHT"] = "This option has been removed as it provided no benefit.";
+    deprecatedList["PENALTY_RESOLUTION"] = "This option has been removed as it provided no benefit.";
+    deprecatedList["MAX_RESOLUTION_ALL"] = "This option has been renamed to MAX_REFINED_RESOLUTION.";
+    deprecatedList["MAX_RESOLUTION_RLP_SIZE"] = "This option has been removed as it provided no benefit.";
+    deprecatedList["REFINE_B_FACTOR"] = "This option has been replaced by assigning SCALING_STRATEGY 4. For now.";
+    deprecatedList["HDF5_OUTPUT_FILE"] = "This option is not supported yet.";
+
 }
 
 void FileParser::generateFunctionList()
@@ -191,8 +202,6 @@ void FileParser::generateFunctionList()
     parserMap["MAX_THREADS"] = simpleInt;
     
 	// Refinement parameters
-	parserMap["REMOVE_WEDGE"] = simpleFloat;
-
     parserMap["MINIMUM_CYCLES"] = simpleInt;
     parserMap["MAXIMUM_CYCLES"] = simpleInt;
     parserMap["STOP_REFINEMENT"] = simpleBool;
@@ -208,7 +217,6 @@ void FileParser::generateFunctionList()
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
     parserMap["WAVELENGTH_FROM_REF_COUNT"] = simpleInt;
-    parserMap["LANDSCAPE_DIVISIONS"] = simpleInt;
     parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
     parserMap["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = simpleFloat;
     parserMap["ALLOW_TRUST"] = simpleBool;
@@ -216,12 +224,10 @@ void FileParser::generateFunctionList()
     parserMap["PARTIALITY_CUTOFF"] = simpleFloat;
 	parserMap["DEFAULT_TARGET_FUNCTION"] = simpleInt;
     parserMap["TARGET_FUNCTIONS"] = intVector;
-    parserMap["USE_PARTIALITY_FUNCTION"] = simpleBool;
     parserMap["RLP_MODEL"] = simpleInt;
 	parserMap["CORRELATION_THRESHOLD"] = simpleFloat;
     parserMap["PARTIALITY_CORRELATION_THRESHOLD"] = simpleFloat;
-	parserMap["MAX_RESOLUTION_ALL"] = simpleFloat;
-	parserMap["MAX_RESOLUTION_RLP_SIZE"] = simpleFloat;
+	parserMap["MAX_REFINED_RESOLUTION"] = simpleFloat;
     parserMap["MERGE_TO_RESOLUTION"] = simpleFloat;
     parserMap["MIN_REFINED_RESOLUTION"] = simpleFloat;
     parserMap["INITIAL_CORRELATION_THRESHOLD"] = simpleFloat;
@@ -235,12 +241,8 @@ void FileParser::generateFunctionList()
     parserMap["REFINEMENT_INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["TRUST_INDEXING_SOLUTION"] = simpleBool;
     parserMap["CUSTOM_AMBIGUITY"] = doubleVector;
-    parserMap["REFINE_B_FACTOR"] = simpleBool;
-    parserMap["INITIAL_GRID_SEARCH"] = simpleBool; // remove?
     parserMap["R_FACTOR_THRESHOLD"] = simpleFloat;
     parserMap["REINITIALISE_WAVELENGTH"] = simpleBool;
-    parserMap["PENALTY_WEIGHT"] = simpleFloat;
-    parserMap["PENALTY_RESOLUTION"] = simpleFloat;
     parserMap["PARTIALITY_SLICES"] = simpleInt;
     parserMap["MAX_SLICES"] = simpleInt;
     parserMap["CAREFUL_RESOLUTION"] = simpleFloat;
@@ -306,14 +308,10 @@ void FileParser::generateFunctionList()
     parserMap["RECALCULATE_WAVELENGTHS"] = simpleBool;
     parserMap["RECALCULATE_SIGMA"] = simpleBool;
     parserMap["MERGE_ANOMALOUS"] = simpleBool;
-    parserMap["FAKE_ANOMALOUS"] = simpleBool;
     parserMap["SCALING_STRATEGY"] = simpleInt;
 	parserMap["MINIMUM_REFLECTION_CUTOFF"] = simpleInt;
-    parserMap["APPLY_INFLATION"] = simpleBool;
     parserMap["MINIMUM_MULTIPLICITY"] = simpleInt;
-    parserMap["THREADED_MERGE"] = simpleBool;
     parserMap["FAST_MERGE"] = simpleBool;
-    parserMap["INDEX_STARTING_DATA"] = doubleVector;
     parserMap["CORRECTED_PARTIALITY_MODEL"] = simpleBool;
     parserMap["REJECT_BELOW_SCALE"] = simpleFloat;
 
@@ -342,13 +340,13 @@ void FileParser::generateFunctionList()
 	parserMap["SHOEBOX_NEITHER_PADDING"] = simpleInt;
 	parserMap["SHOEBOX_BACKGROUND_PADDING"] = simpleInt;
     parserMap["SHOEBOX_MAKE_EVEN"] = simpleBool;
-    parserMap["COMPLEX_SHOEBOX"] = simpleBool;
     parserMap["MIN_INTEGRATED_RESOLUTION"] = simpleFloat;
     parserMap["MAX_INTEGRATED_RESOLUTION"] = simpleFloat;
 	parserMap["UNIT_CELL"] = doubleVector;
     parserMap["FIX_UNIT_CELL"] = simpleBool;
     parserMap["ADD_MASK"] = intVector;
     parserMap["INITIAL_ORIENTATION_STEP"] = simpleFloat;
+    parserMap["COMPLEX_SHOEBOX"] = simpleBool;
     parserMap["SHOEBOX_BANDWIDTH_MULTIPLIER"] = simpleFloat;
     parserMap["PIXEL_LEAK"] = simpleFloat;
     parserMap["ORIENTATION_SCORE"] = simpleInt;
@@ -376,7 +374,6 @@ void FileParser::generateFunctionList()
     parserMap["FROM_DIALS"] = simpleBool;
     parserMap["DO_NOT_REJECT_REFLECTIONS"] = simpleBool;
     parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;
-    parserMap["ROTATION_MODE"] = simpleInt;
     parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
     parserMap["SKIP_BAD_PIXELS"] = simpleBool;
     parserMap["ROUGH_CALCULATION"] = simpleBool;
@@ -384,7 +381,6 @@ void FileParser::generateFunctionList()
 
     parserMap["MINIMUM_SPOTS_EXPLAINED"] = simpleInt;
     parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
-    parserMap["MINIMUM_TRUST_DISTANCE"] = simpleFloat;
     parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;
     parserMap["REJECT_CLOSE_SPOTS"] = simpleBool;
     parserMap["THOROUGH_SOLUTION_SEARCHING"] = simpleBool;
