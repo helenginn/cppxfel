@@ -998,7 +998,7 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         int xInt = xSpot;
         int yInt = ySpot;
         
-        if (shouldSearch || (correctedX == 0 && correctedY == 0))
+        if ((shouldSearch || (correctedX == 0 && correctedY == 0)) && getIOMRefiner())
         {
             int search = getIOMRefiner()->getSearchSize();
             getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
