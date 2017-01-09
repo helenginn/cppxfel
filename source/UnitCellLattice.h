@@ -32,11 +32,13 @@ private:
     std::vector<vec3<int> > integerVectors;
     PowderHistogram histogram;
     std::vector<SpotVectorPtr> uniqueSymVectors;
-    
+    void addConvolutedPeak(CSVPtr csv, double mean, double stdev, double weight);
+    CSVPtr weightedUnitCell;
 public:
     void setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0);
     void refineUnitCell(PowderHistogram histogram);
     void getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax);
+    void weightUnitCell();
     
     int standardVectorCount()
     {
@@ -87,6 +89,8 @@ public:
     {
         return minDistance;
     }
+    
+    double weightForDistance(double distance);
     
     std::vector<SpotVectorPtr> getStandardVectors()
     {

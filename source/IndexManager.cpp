@@ -638,33 +638,10 @@ double IndexManager::pseudoScore(void *object)
                 continue;
             }
             
-            vec->calculateDistance();
-            
             double realDistance = vec->distance();
+            double weight = me->lattice->weightForDistance(realDistance) / 1000;
             
-            for (int k = 0; k < me->lattice->orderedDistanceCount() - 1; k++)
-            {
-                double oneDistance = me->lattice->orderedDistance(k);
-                double twoDistance = me->lattice->orderedDistance(k + 1);
-                
-                if (realDistance > oneDistance && realDistance < twoDistance)
-                {
-                    double oneIsLower = (fabs(realDistance - oneDistance)
-                                       < fabs(realDistance - twoDistance));
-                    double chosen = oneIsLower ? oneDistance : twoDistance;
-                    int chosenOne = oneIsLower ? k : k + 1;
-                    
-                    if (chosenOne == 0 || chosenOne > me->lattice->orderedDistanceCount() - 2)
-                    {
-                        continue;
-                    }
-                    
-                    double potentialError = me->lattice->orderedDistance(chosenOne + 1) - me->lattice->orderedDistance(chosenOne - 1);
-                    potentialError = 0.1;
-                    
-                    score += fabs(realDistance - chosen) * potentialError * 10;
-                }
-            }
+            score -= weight;
         }
     }
     
