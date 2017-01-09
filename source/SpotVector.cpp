@@ -57,11 +57,14 @@ void SpotVector::calculateUnitVector()
 
 void SpotVector::calculateDistance()
 {
-    vec firstVector = firstSpot->estimatedVector();
-    vec secondVector = secondSpot->estimatedVector();
-    
-    spotDiff = copy_vector(secondVector);
-    take_vector_away_from_vector(firstVector, &spotDiff);
+    if (firstSpot && secondSpot)
+    {
+        vec firstVector = firstSpot->estimatedVector();
+        vec secondVector = secondSpot->estimatedVector();
+        
+        spotDiff = copy_vector(secondVector);
+        take_vector_away_from_vector(firstVector, &spotDiff);
+    }
     
     calculateUnitVector();
 }
