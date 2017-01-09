@@ -42,6 +42,8 @@ public:
         cycleNum = 0;
     };
     
+    static RefinementStrategyPtr userChosenStrategy();
+    
     virtual void refine();
     
     void addParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag = "");

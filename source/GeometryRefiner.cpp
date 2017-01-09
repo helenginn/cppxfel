@@ -16,20 +16,7 @@
 
 RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, GeometryScoreType type)
 {
-    RefinementStrategyPtr strategy;
-    
-    int methodInt = FileParser::getKey("MINIMIZATION_METHOD", 0);
-    
-    if (methodInt == 0)
-    {
-        RefinementStepSearchPtr stepSearch = RefinementStepSearchPtr(new RefinementStepSearch());
-        strategy = boost::static_pointer_cast<RefinementStrategy>(stepSearch);
-    }
-    else
-    {
-        NelderMeadPtr nelderMead = NelderMeadPtr(new NelderMead());
-        strategy = boost::static_pointer_cast<RefinementStrategy>(nelderMead);
-    }
+    RefinementStrategyPtr strategy = RefinementStrategy::userChosenStrategy();
     
     strategy->setVerbose(true);
     strategy->setCycles(30);

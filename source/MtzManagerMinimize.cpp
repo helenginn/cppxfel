@@ -459,19 +459,7 @@ double MtzManager::minimize()
     
     bandwidth = this->getBandwidth();
     
-    int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 1);
-    MinimizationMethod method = (MinimizationMethod)miniMethod;
-    
-    RefinementStrategyPtr refiner;
-    
-    if (method == MinimizationMethodNelderMead)
-    {
-        refiner = boost::static_pointer_cast<RefinementStrategy>(NelderMeadPtr(new NelderMead()));
-    }
-    else
-    {
-        refiner = boost::static_pointer_cast<RefinementStrategy>(RefinementStepSearchPtr(new RefinementStepSearch()));
-    }
+    RefinementStrategyPtr refiner = RefinementStrategy::userChosenStrategy();
     
     refiner->setJobName("Refining " + getFilename());
     

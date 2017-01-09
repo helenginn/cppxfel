@@ -6,8 +6,31 @@
 //  Copyright (c) 2016 Division of Structural Biology Oxford. All rights reserved.
 //
 
+#include "RefinementStepSearch.h"
+#include "NelderMead.h"
 #include "RefinementStrategy.h"
+#include "FileParser.h"
 #include "misc.h"
+
+RefinementStrategyPtr RefinementStrategy::userChosenStrategy()
+{
+    int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 1);
+    MinimizationMethod method = (MinimizationMethod)miniMethod;
+    RefinementStrategyPtr strategy;
+    
+    switch (method) {
+        case MinimizationMethodStepSearch:
+            strategy = boost::static_pointer_cast<RefinementStrategy>(RefinementStepSearchPtr(new RefinementStepSearch()));
+            break;
+        case MinimizationMethodNelderMead:
+            strategy = boost::static_pointer_cast<RefinementStrategy>(NelderMeadPtr(new NelderMead()));
+            break;
+        default:
+            break;
+    }
+    
+    return strategy;
+}
 
 void RefinementStrategy::addParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag)
 {
