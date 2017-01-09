@@ -545,6 +545,56 @@ std::string Detector::writeGeometryFile(int indentCount)
     return output.str();
 }
 
+// MARK: Generate resolution histogram
+
+CSVPtr Detector::resolutionHistogram()
+{
+    double minResolution = FileParser::getKey("MIN_INTEGRATED_RESOLUTION", 0.);
+    double maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 1.4);
+    double approxWavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.);
+    
+    if (approxWavelength == 0.)
+    {
+        std::ostringstream logged;
+        logged << "Cannot create resolution histogram without an approximate value for INTEGRATION_WAVELENGTH. Please provide!" << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+    }
+    
+    std::vector<double> size = FileParser::getKey("DETECTOR_SIZE", std::vector<double>(0, 2));
+    int xDim = size[0];
+    int yDim = size[1];
+    
+    CSVPtr csv = CSVPtr(new CSV(0));
+    csv->setupHistogram(minResolution, maxResolution, -1000, "Resolution", 1, "numPixels");
+    
+    DetectorPtr master = Detector::getMaster();
+    const vec beamAxis = new_vector(0, 0, 1);
+    
+    for (int i = 0; i < yDim; i++)
+    {
+        for (int j = 0; j < xDim; j++)
+        {
+            vec intersection;
+            DetectorPtr aDetector = master->findDetectorAndSpotCoordToAbsoluteVec(j, i, &intersection);
+            
+            if (!aDetector)
+            {
+                continue;
+            }
+            
+            double twoTheta = angleBetweenVectors(beamAxis, intersection);
+            double theta = twoTheta / 2;
+            
+            double resolution = approxWavelength / (2 * sin(theta));
+            
+            csv->addOneToFrequency(resolution, "numPixels");
+        }
+    }
+    
+    csv->writeToFile("resolutions.csv");
+    return csv;
+}
+
 // MARK: Scoring functions
 
 double Detector::millerScoreWrapper(void *object)
