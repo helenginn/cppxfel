@@ -344,8 +344,6 @@ MtzManager::MtzManager(void)
     refPartCorrel = 0;
     penaltyWeight = 0.0;
     penaltyResolution = 2.5;
-    int rotMode = FileParser::getKey("ROTATION_MODE", 0);
-    rotationMode = (RotationMode)rotMode;
     dropped = false;
     lastRSplit = 0;
     timeDelay = 0;

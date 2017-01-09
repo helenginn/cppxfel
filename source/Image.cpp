@@ -2356,9 +2356,6 @@ void Image::radialAverage()
         
         sendLog();
         
-     //   logged << "Intensity portion size: " << intensityPortion.size() << std::endl;
-     //   sendLog();
-        
         std::vector<double> coeffs = polyfit(binsPortion, intensityPortion, 2);
         
         double backgroundSum = 0;

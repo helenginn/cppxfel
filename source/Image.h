@@ -79,7 +79,6 @@ private:
     std::vector<IndexingSolutionPtr> badSolutions;
     std::vector<SpotVectorPtr> spotVectors;
     bool _hasSeeded;
-    std::map<ImageCluster *, bool> unexpectedMatches;
     
 	vector<vector<int> > masks;
 	vector<vector<int> > spotCovers;

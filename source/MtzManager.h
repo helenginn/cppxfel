@@ -78,7 +78,6 @@ protected:
     double penaltyWeight;
     double penaltyResolution;
     
-    RotationMode rotationMode;
 	double hRot;
 	double kRot;
 	double mosaicity;
