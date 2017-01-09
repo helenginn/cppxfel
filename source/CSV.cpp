@@ -23,6 +23,86 @@ void CSV::histogram(std::map<double, int> histogram)
     }
 }
 
+int CSV::findHeader(std::string whichHeader)
+{
+    int chosenHeader = -1;
+    
+    for (int i = 0; i < headers.size(); i++)
+    {
+        if (headers[i] == whichHeader)
+        {
+            chosenHeader = i;
+            break;
+        }
+    }
+    
+    return chosenHeader;
+}
+
+double CSV::valueForHistogramEntry(std::string whichHeader, double value)
+{
+    if (entries.size() == 0)
+        return 0;
+    
+    int chosenHeader = findHeader(whichHeader);
+   
+    bool ascending = (entries[0][0] < entries[1][0]);
+    
+    for (int j = 0; j < entries.size() - 1; j++)
+    {
+        if ((ascending && value > entries[j][0] && value < entries[j + 1][0])
+            || (!ascending && value < entries[j][0] && value > entries[j + 1][0]))
+        {
+            return entries[j][chosenHeader];
+        }
+    }
+    
+    return 0;
+}
+
+void CSV::addOneToFrequency(double category, std::string whichHeader, double weight)
+{
+    if (entries.size() == 0)
+        return;
+    
+    int chosenHeader = findHeader(whichHeader);
+    
+    bool ascending = (entries[0][0] < entries[1][0]);
+    
+    for (int j = 0; j < entries.size() - 1; j++)
+    {
+        if ((ascending && category > entries[j][0] && category < entries[j + 1][0])
+            || (!ascending && category < entries[j][0] && category > entries[j + 1][0]))
+        {
+            entries[j][chosenHeader] += weight;
+            break;
+        }
+    }
+}
+
+void CSV::addPartialEntry(int dummy, ...)
+{
+    va_list arguments;
+    va_start(arguments, dummy);
+    Entry newEntry;
+    
+    for (int i = 0; i < dummy; i++)
+    {
+        double value = va_arg(arguments, double);
+        newEntry.push_back(value);
+    }
+    
+    int difference = newEntry.size() < headers.size();
+    
+    while (difference > 0)
+    {
+        newEntry.push_back(0);
+        difference--;
+    }
+    
+    entries.push_back(newEntry);
+}
+
 void CSV::addEntry(int dummy, ...)
 {
     va_list arguments;
