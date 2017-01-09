@@ -2514,6 +2514,8 @@ void Image::drawSpotsOnPNG()
         processSpotList();
     }
     
+    double stdev = standardDeviationOfPixels();
+    
     std::string filename = getBasename() + ".png";
     int height = FileParser::getKey("PNG_HEIGHT", 2400);
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
@@ -2523,10 +2525,10 @@ void Image::drawSpotsOnPNG()
     {
         Coord coord = spot(i)->getXY();
         
-        file->drawCircleAroundPixel(coord.first, coord.second, 14, 1, 0, 0, 0);
+        file->drawCircleAroundPixel(coord.first, coord.second, 10, 1, 0, 0, 0);
     }
     
-    logged << "Written file " << filename << std::endl;
+    logged << "Written file " << filename << " (stdev of pixel intensities: " << stdev << ")" << std::endl;
     sendLog();
     
     file->writeImageOutput();
@@ -2565,7 +2567,7 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             }
             
             bool strong = myMiller->reachesThreshold();
-            file->drawCircleAroundPixel(pngCoord.first, pngCoord.second, 14, (strong ? 1 : 0.5), red, green, blue, (strong ? 4 : 1));
+            file->drawCircleAroundPixel(pngCoord.first, pngCoord.second, 14, (strong ? 2 : 1), red, green, blue, (strong ? 4 : 1));
             
             if (addShoebox)
             {
