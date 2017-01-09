@@ -597,12 +597,17 @@ CSVPtr Detector::resolutionHistogram()
 
 // MARK: Scoring functions
 
+double Detector::millerStdevScoreWrapper(void *object)
+{
+    return static_cast<Detector *>(object)->millerScore(false, true);
+}
+
 double Detector::millerScoreWrapper(void *object)
 {
     return static_cast<Detector *>(object)->millerScore();
 }
 
-double Detector::millerScore(bool ascii)
+double Detector::millerScore(bool ascii, bool stdev)
 {
     if (!millers.size())
     {
@@ -659,8 +664,17 @@ double Detector::millerScore(bool ascii)
         delete csv;
     }
     
-    double stdevX = standard_deviation(&xs, NULL, 0);
-    double stdevY = standard_deviation(&ys, NULL, 0);
+    double xMean = 0;
+    double yMean = 0;
+    
+    if (stdev)
+    {
+        xMean = weighted_mean(&xs);
+        yMean = weighted_mean(&ys);
+    }
+    
+    double stdevX = standard_deviation(&xs, NULL, xMean);
+    double stdevY = standard_deviation(&ys, NULL, yMean);
     double aScore = stdevX + stdevY;
     
     return aScore;

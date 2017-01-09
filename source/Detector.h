@@ -268,6 +268,10 @@ public:
         newMaster->setTag("master");
     }
 
+    /* Return resolution histogram */
+    
+    static CSVPtr resolutionHistogram();
+    
     // MARK: apply rotations bottom up
     
     void applyRotations();
@@ -389,8 +393,9 @@ public:
     
     /* Scoring functions */
     
-    double millerScore(bool ascii = false);
+    double millerScore(bool ascii = false, bool stdev = false);
     static double millerScoreWrapper(void *object);
+    static double millerStdevScoreWrapper(void *object);
 };
 
 #endif /* defined(__cppxfel__Detector__) */
