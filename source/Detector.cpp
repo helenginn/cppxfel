@@ -286,8 +286,8 @@ DetectorPtr Detector::findDetectorPanelForSpotCoord(double xSpot, double ySpot)
     }
     else
     {
-        if (xSpot > unarrangedTopLeftX && xSpot < unarrangedBottomRightX &&
-            ySpot > unarrangedTopLeftY && ySpot < unarrangedBottomRightY)
+        if (xSpot >= unarrangedTopLeftX && xSpot <= unarrangedBottomRightX &&
+            ySpot >= unarrangedTopLeftY && ySpot <= unarrangedBottomRightY)
         {
             return shared_from_this();
         }
