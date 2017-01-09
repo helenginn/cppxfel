@@ -12,6 +12,8 @@
 
 void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
 {
+    bool verbose = (FileParser::getKey("VERBOSITY_LEVEL", 0) > 0);
+    
     int xDim = this->image->getXDim();
     int yDim = this->image->getYDim();
     
@@ -19,6 +21,8 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
     memset(mask, 0, sizeof(int) * xDim * yDim);
     
     SpotPtr spot = SpotPtr(new Spot(image));
+    
+    double minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
     
     for (int y = 0; y < yDim; y++)
     {
@@ -34,13 +38,21 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
             if (value < threshold)
                 continue;
             
-            bool success = spot->focusOnNearbySpot(0, x, y);
+            
+            double correlation = spot->focusOnNearbySpot(0, x, y);
+            bool success = (correlation > minCorrelation);
             
             if (success)
             {
                 spot->recentreInWindow();
                 spots->push_back(spot);
                 spot->addToMask(mask, xDim);
+            }
+            
+            if (verbose)
+            {
+                logged << "Pixel at (" << x << ", " << y << ") intensity " << value << ", correlation " << correlation << (success ? " - success" : " - abandoned") << std::endl;
+                sendLog(LogLevelDetailed);
             }
 
             spot = SpotPtr(new Spot(image));

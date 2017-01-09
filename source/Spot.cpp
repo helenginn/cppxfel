@@ -20,7 +20,8 @@
 
 double Spot::maxResolution = 0;
 double Spot::minIntensity = 0;
-double Spot::minCorrelation = 0;
+double Spot::minCorrelation = -3;
+bool Spot::checkRes = false;
 
 Spot::Spot(ImagePtr image)
 {
@@ -42,8 +43,9 @@ Spot::Spot(ImagePtr image)
     length = probePadding * 2 + 1;
     backgroundPadding = FileParser::getKey("IMAGE_SPOT_PROBE_BG_PADDING", probePadding) * 2 + 1;
     
-    if (minCorrelation == 0)
+    if (minCorrelation == -3)
     {
+        checkRes = FileParser::hasKey("MAX_INTEGRATED_RESOLUTION");
         maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 2.0);
         minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 100.);
         minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
@@ -123,22 +125,18 @@ double Spot::maximumLift(ImagePtr image, int x, int y, bool ignoreCovers)
 	return (penultimate > 0 && penultimate != FLT_MAX ? penultimate : 0);
 }
 
-bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int round)
+double Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int round)
 {
-  //  logged << "Finding new spot for round " << round << std::endl;
-  //  sendLog(round > 1 ? LogLevelDetailed : LogLevelDebug);
-        int focusedX = trialX;
+    int focusedX = trialX;
     int focusedY = trialY;
     
     if (maxShift > 0)
     {
-    this->getParentImage()->focusOnAverageMax(&focusedX, &focusedY, maxShift);
+        this->getParentImage()->focusOnAverageMax(&focusedX, &focusedY, maxShift);
     }
     
     setXY(focusedX, focusedY);
-  //  logged << "Original position (" << trialX << ", " << trialY << ") focusing on " << focusedX << ", " << focusedY << std::endl;
-  //  sendLog(LogLevelDetailed);
-    
+  
     double pixelIntensity = this->getParentImage()->valueAt(focusedX, focusedY);
     
     if (pixelIntensity < minIntensity)
@@ -146,14 +144,13 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
         return false;
     }
     
-    double resol = this->resolution();
-    
-  //  logged << "Resolution: " << resol << " for " << focusedX << ", " << focusedY << " -> " << getX() << ", " << getY() << std::endl;
-  //  sendLog();
-    
-    if (resol > (1. / maxResolution)) return false;
-    if (resol < 0) return false;
-    
+    if (checkRes)
+    {
+        double resol = this->resolution();
+        
+        if (resol > (1. / maxResolution)) return false;
+        if (resol < 0) return false;
+    }
     
     std::vector<double> probeIntensities, realIntensities;
     
@@ -183,16 +180,8 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
     }
     
     double correlation = correlation_between_vectors(&probeIntensities, &realIntensities);
-    
-    logged << "Correlation: " << correlation << " for intensity height " << pixelIntensity << std::endl;
-    sendLog(LogLevelDetailed);
 
-    if (correlation < minCorrelation)
-        return false;
-    
-    sendLog(LogLevelDetailed);
-
-    return true;
+    return correlation;
 }
 
 void Spot::makeProbe(int height, int background, int length, int backPadding)

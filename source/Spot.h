@@ -36,6 +36,7 @@ private:
     static double maxResolution;
     static double minIntensity;
     static double minCorrelation;
+    static bool checkRes;
     static int useNewDetectorFormat;
     
 public:
@@ -70,7 +71,7 @@ public:
     Coord getRawXY();
     vec estimatedVector();
     void setUpdate();
-    bool focusOnNearbySpot(double maxShift, double trialX, double trialY, int round = 0);
+    double focusOnNearbySpot(double maxShift, double trialX, double trialY, int round = 0);
     
     std::string spotLine();
     

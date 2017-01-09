@@ -10,10 +10,11 @@
 #define __cppxfel__SpotFinder__
 #include "parameters.h"
 #include "FileParser.h"
+#include "LoggableObject.h"
 
 #include <stdio.h>
 
-class SpotFinder
+class SpotFinder : public LoggableObject
 {
 protected:
     typedef struct
