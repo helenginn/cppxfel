@@ -261,7 +261,7 @@ void MtzRefiner::refineCycle(bool once)
     bool exclusion = FileParser::getKey("EXCLUDE_OWN_REFLECTIONS", false);
     bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
     
-    double resolution = FileParser::getKey("MAX_RESOLUTION_ALL",
+    double resolution = FileParser::getKey("MAX_REFINED_RESOLUTION",
                                            MAX_OPTIMISATION_RESOLUTION);
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
                                         (int) SCALING_STRATEGY);

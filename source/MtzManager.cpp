@@ -311,7 +311,7 @@ void MtzManager::loadParametersMap()
     setScale(1);
     setActiveAmbiguity(0);
     
-    maxResolutionAll = FileParser::getKey("MAX_RESOLUTION_ALL",
+    maxResolutionAll = FileParser::getKey("MAX_REFINED_RESOLUTION",
                                           MAX_OPTIMISATION_RESOLUTION);
 }
 

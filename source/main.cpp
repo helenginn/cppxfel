@@ -462,7 +462,7 @@ void new_main(int argc, char *argv[])
 		reference->setFilename(argv[2]);
 		reference->loadReflections(1);
 		MtzManager::setReference(reference);
-        FileParser::setKey("REFINE_B_FACTOR", true);
+  //      FileParser::setKey("REFINE_B_FACTOR", true);
         
 		for (int i = 3; i < argc; i++)
 		{
