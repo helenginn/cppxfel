@@ -18,6 +18,7 @@
 #include "FileParser.h"
 #include "Miller.h"
 #include "Hdf5Crystal.h"
+#include "RefinementStrategy.h"
 
 #define BIG_BANDWIDTH 0.015
 #define DISTANCE_TOLERANCE 0.01
@@ -64,7 +65,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     lastTotal = 0;
     lastStdev = 0;
     expectedSpots = FileParser::getKey("EXPECTED_SPOTS", 30);
-    refinement = RefinementTypeOrientationMatrixEarly;
     image = newImage;
     lowIntensityPenalty = FileParser::getKey("LOW_INTENSITY_PENALTY", false);
     this->matrix = matrix;
@@ -72,9 +72,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
     needsReintegrating = true;
     recalculateMillerPositions = false;
-    
-    int rotationModeInt = FileParser::getKey("ROTATION_MODE", 0);
-    rotationMode = (RotationMode)rotationModeInt;
     
     complexUnitCell = false;
 }
@@ -250,7 +247,8 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                 
                 MillerPtr newMiller = MillerPtr(new Miller(NULL, h, k, l));
                 newMiller->setImageAndIOMRefiner(getImage(), shared_from_this());
-                
+                newMiller->setMatrix(lastRotatedMatrix);
+
                 if (rough == false)
                 {
                     nearbyMillers.push_back(newMiller);
@@ -291,11 +289,11 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                     underRes++;
                     continue;
                 }
-
+                
                 if (h == 0 && k == 0 && l == 0)
                     continue;
                 
-               nearbyMillers.push_back(newMiller);
+                nearbyMillers.push_back(newMiller);
             }
         }
     }
@@ -329,43 +327,32 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
 
     if (complexUnitCell)
     {
-   //     unitCell[1] = unitCell[0];
-        
         lockUnitCellDimensions();
         matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
-    }
-    double wavelength = getImage()->getWavelength();
-    double maxD = 1 / maxResolution;
-    if (maxResolution == 0)
-        maxD = FLT_MAX;
-    
-    if (testWavelength != 0)
-    {
-        getImage()->setWavelength(testWavelength);
-        wavelength = testWavelength;
     }
     
     millers.clear();
     
+    double wavelength = getImage()->getWavelength();
+    
+    double maxD = 1 / maxResolution;
+    if (maxResolution == 0)
+        maxD = FLT_MAX;
+    
     double averageEwald = 0;
     
-    logged << "Testing " << nearbyMillers.size() << " reflections close to the Ewald sphere with wavelength " << wavelength << std::endl;
+    logged << "Testing " << nearbyMillers.size()
+    << " reflections close to the Ewald sphere with wavelength "
+    << wavelength << std::endl;
     
     int cutResolution = 0;
     int partialityTooLow = 0;
     int unacceptableIntensity = 0;
     
-    MatrixPtr newMatrix = MatrixPtr();
+    logged << "Rotating by " << hRot << ", " << kRot << ", " << lRot << std::endl;
+    sendLog(LogLevelDetailed);
     
-    if (rotationMode == RotationModeHorizontalVertical)
-    {
-        logged << "Rotating by " << hRot << ", " << kRot << ", " << lRot << std::endl;
-        sendLog(LogLevelDetailed);
-        
-        Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &newMatrix);
-    }
-    
-    lastRotatedMatrix = newMatrix;
+    Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &lastRotatedMatrix);
     
     std::vector<MillerPtr> *chosenMillerArray = &nearbyMillers;
     
@@ -385,11 +372,10 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     for (int i = 0; i < chosenMillerArray->size(); i++)
     {
         MillerPtr miller = (*chosenMillerArray)[i];
+        miller->setMatrix(lastRotatedMatrix);
         
         vec hkl = new_vector(miller->getH(), miller->getK(), miller->getL());
         matrix->multiplyVector(&hkl);
-        
-        miller->setMatrix(matrix);
         
         double d = length_of_vector(hkl);
         if (d > maxD)
@@ -398,7 +384,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             continue;
         }
         
-        miller->crossesBeamRoughly(newMatrix, 0.0, testSpotSize, wavelength, bandwidth);
+        miller->crossesBeamRoughly(lastRotatedMatrix, 0.0, testSpotSize, wavelength, bandwidth);
         
         if (i == 0)
         {
@@ -408,14 +394,11 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         if (miller->getPartiality() <= 0.05)
         {
-        //    logged << "Rejected Miller partiality too low at\t" << roughX << "\t" << roughY << std::endl;
-            //sendLog(LogLevelDebug);
             partialityTooLow++;
             continue;
         }
         
-  //      miller->setPartialityModel(PartialityModelScaled);
-        miller->getWavelength(newMatrix);
+        miller->getWavelength(lastRotatedMatrix);
         
         if (complexShoebox)
         {
@@ -428,7 +411,15 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         if (needsReintegrating || !roughCalculation || recalculateMillerPositions || complexShoebox)
         {
-            miller->integrateIntensity(newMatrix);
+            if (recalculateMillerPositions && !needsReintegrating)
+            {
+                int x, y;
+                miller->positionOnDetector(lastRotatedMatrix, &x, &y, false);
+            }
+            else
+            {
+                miller->integrateIntensity(lastRotatedMatrix);
+            }
         }
         
         double rawIntensity = miller->getRawIntensity();
@@ -462,118 +453,21 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     needsReintegrating = false;
 }
 
-double IOMRefiner::minimizeParameter(double *meanStep, double *param, int whichAxis)
+double IOMRefiner::getReflectionWavelengthStdev()
 {
-    double param_trials[3];
-    double param_scores[3];
-    
-    int j = 0;
-    double param_min_score = FLT_MAX;
-    int param_min_num = 1;
-    
-    double bestParam = *param;
-    
-    std::ostringstream logged;
-    logged << "Scores for " << getImage()->getFilename() << ": ";
-    
-    for (double i = bestParam - *meanStep; j < 3; i += *meanStep)
-    {
-        *param = i;
-        this->checkAllMillers(maxResolution, testBandwidth, false, false);
-        param_scores[j] = score(whichAxis);
-        logged << param_scores[j] << ", ";
-        param_trials[j] = i;
-        j++;
-    }
-    
-    param_min_score = param_scores[1];
-    
-    for (int i = 0; i < 3; i++)
-        if (param_scores[i] < param_min_score)
-        {
-            param_min_score = param_scores[i];
-            param_min_num = i;
-        }
-    
-    *param = param_trials[param_min_num];
-    this->checkAllMillers(maxResolution, testBandwidth, false, false);
-    
-    logged << "chosen no. " << param_min_num << std::endl;
-    
-    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
-    
-    if (param_min_num == 1)
-        *meanStep /= 2;
-    
-    return param_min_score;
-}
-
-void IOMRefiner::minimizeTwoParameters(double *meanStep1, double *meanStep2,
-                                    double *param1, double *param2)
-{
-    double param_trials1[9];
-    double param_trials2[9];
-    double param_scores[9];
-    
-    int j = 0;
-    double param_min_score = FLT_MAX;
-    int param_min_num = 4;
-    
-    double bestParam1 = *param1;
-    double bestParam2 = *param2;
-    
-    bool perfect = false;
-    
-    for (double i = bestParam1 - *meanStep1; j < 3; i += *meanStep1)
-    {
-        int l = 0;
-        
-        for (double k = bestParam2 - *meanStep2; l < 3; k += *meanStep2)
-        {
-            *param1 = i;
-            *param2 = k;
-            this->checkAllMillers(maxResolution, testBandwidth, false, perfect);
-            param_scores[j * 3 + l] = score(0, false);
-            param_trials1[j * 3 + l] = i;
-            param_trials2[j * 3 + l] = k;
-            l++;
-        }
-        j++;
-    }
-    
-    param_min_score = param_scores[4];
-    
-    for (int i = 0; i < 9; i++)
-    {
-        if ((param_scores[i] < param_min_score))
-        {
-            param_min_score = param_scores[i];
-            param_min_num = i;
-        }
-        
-    }
-    
-    *param1 = param_trials1[param_min_num];
-    *param2 = param_trials2[param_min_num];
-    
-    if (param_min_num == 4)
-    {
-        *meanStep1 /= 2;
-        *meanStep2 /= 2;
-    }
-}
-
-int IOMRefiner::getTotalReflections(double threshold)
-{
-    int count = 0;
+    std::vector<double> values;
     
     for (int i = 0; i < millers.size(); i++)
     {
-        if (millers[i]->getRawIntensity() > threshold)
-            count++;
+        if (millers[i]->reachesThreshold() && millerWithinBandwidth(millers[i]))
+        {
+            values.push_back(millers[i]->getWavelength());
+        }
     }
     
-    return count;
+    double stdev = standard_deviation(&values);
+    
+    return stdev;
 }
 
 int IOMRefiner::getTotalReflections()
@@ -613,64 +507,6 @@ int IOMRefiner::getTotalReflectionsWithinBandwidth()
     }
     
     return count;
-}
-
-void IOMRefiner::findSpots()
-{
-    int tolerance = 60;
-    
-    //	getImage()->printBox(1180, 660, 20);
-    
-    for (int i = 0; i < getImage()->getXDim(); i += tolerance)
-    {
-        for (int j = 0; j < getImage()->getYDim(); j += tolerance)
-        {
-            Spot *spot = new Spot(getImage());
-            
-            double maxLift = 0;
-            double maxX = 0;
-            double maxY = 0;
-            
-            for (int tolX = 0; tolX < tolerance; tolX++)
-            {
-                for (int tolY = 0; tolY < tolerance; tolY++)
-                {
-                    double x = i + tolX;
-                    double y = j + tolY;
-                    
-                    double lift = spot->maximumLift(getImage(), x, y);
-                    
-                    if (lift > maxLift)
-                    {
-                        maxLift = lift;
-                        maxX = x;
-                        maxY = y;
-                    }
-                }
-            }
-            
-            if (maxLift > 0)
-            {
-                spot->setXY(maxX, maxY);
-                spots.push_back(spot);
-                
-                getImage()->addSpotCover(maxX - 30, maxY - 30, maxX + 30, maxY + 30);
-                //	getImage()->printBox(maxX, maxY, 8);
-            }
-        }
-    }
-    
-    Spot::sortSpots(&spots);
-    
-    std::string name = "spots-" + getImage()->getFilename();
-    int lastindex = (int)name.find_last_of(".");
-    std::string rootName = name.substr(0, lastindex);
-    std::string datName = rootName + ".dat";
-    writeDatFromSpots(datName);
-    
-    std::ostringstream logged;
-    logged << "Found " << spots.size() << " spots" << std::endl;
-    Logger::mainLogger->addStream(&logged, LogLevelNormal);
 }
 
 void IOMRefiner::duplicateSpots(vector<ImagePtr> images)
@@ -758,324 +594,139 @@ void IOMRefiner::writeDatFromSpots(std::string filename)
     dat.close();
 }
 
-
-double IOMRefiner::score(int whichAxis, bool silent)
+void IOMRefiner::recalculateMillers()
 {
-    if (refinement == RefinementTypeDetectorWavelength)
-    {
-        double value = getTotalReflections();
-        logged << "Total reflections within bandwidth: " << value << std::endl;
-        sendLog();
-        return 0 - value;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixReverse)
-    {
-        MatrixPtr invRotation = lastRotatedMatrix->getRotation()->inverse3DMatrix();
-        MatrixPtr invTransform = lastRotatedMatrix->getUnitCell()->inverse3DMatrix();
-        MatrixPtr newMatrix = MatrixPtr();
-        Miller::rotateMatrixHKL(hRot, kRot, lRot, MatrixPtr(new Matrix()), &newMatrix);
-
-        std::vector<double> ewaldWavelengths;
-        
-        for (int i = 0; i < getImage()->spotCount(); i++)
-        {
-            SpotPtr spot = getImage()->spot(i);
-            
-            vec estimatedVec = spot->estimatedVector();
-            
-            newMatrix->multiplyVector(&estimatedVec);
-            
-            double ewald = getEwaldSphereNoMatrix(estimatedVec);
-            
-            ewaldWavelengths.push_back(ewald);
-            
-          //  invRotation->printDescription();
-            
-            invTransform->multiplyVector(&estimatedVec);
-            invRotation->multiplyVector(&estimatedVec);
-            
-        //    vec remainder = new_vector(fmod(estimatedVec.h, 1), fmod(estimatedVec.k, 1), fmod(estimatedVec.l, 1));
-            logged << estimatedVec.h << ", " << estimatedVec.k << ", " << estimatedVec.l << std::endl;
-            
-         //   double addition = length_of_vector_squared(remainder);
-            
-         //   sumSqrDiff += addition;
-            
-         //   sendLog();
-        }
-        
-        double stdev = standard_deviation(&ewaldWavelengths);
-        
-        logged << "Standard deviation of Ewald sphere wavelengths: " << stdev << std::endl;
-        sendLog();
-        
-        return stdev;
-    }
-    
-    if (refinement == RefinementTypeRefineLAxis)
-    {
-        double averageShift = 0;
-        int count = 0;
-        
-        for (int i = 0; i < millers.size(); i++)
-        {
-            if (millers[i]->reachesThreshold())
-            {
-                std::pair<double, double> shift = millers[i]->getShift();
-                double shiftDistance = sqrt(pow(shift.first, 2) + pow(shift.second, 2));
-                
-                averageShift += shiftDistance;
-                count++;
-            }
-        }
-        
-        averageShift /= count;
-        
-        logged << "Average shift: " << averageShift << std::endl;
-        sendLog(LogLevelDetailed);
-        return averageShift;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixEarly || refinement == RefinementTypeOrientationMatrixEarlySeparated)
-    {
-        vector<double> wavelengths;
-        vector<int> frequencies;
-        
-        switch (whichAxis)
-        {
-            case 0:
-                Logger::mainLogger->addString("Optimising both axes", LogLevelDetailed);
-                break;
-            case 1:
-                Logger::mainLogger->addString("Optimising H axis", LogLevelDetailed);
-                break;
-            case 2:
-                Logger::mainLogger->addString("Optimising K axis", LogLevelDetailed);
-                break;
-        }
-        
-        LogLevel level = silent ? LogLevelDebug : LogLevelDetailed;
-        if (whichAxis != 0 && silent == 0) level = LogLevelDebug;
-        
-        getWavelengthHistogram(wavelengths, frequencies, level, whichAxis);
-        
-        double mean = 0;
-        double stdev = 0;
-        histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
-        
-        double total = getTotalReflectionsWithinBandwidth();
-        //	double totalIntensity = getTotalIntegratedSignal();
-        
-        double totalWeight = 20;
-        double stdevWeight = 15;
-        
-        double totalChange = total / lastTotal - 1;
-        double totalStdev = stdev / lastStdev - 1;
-        
-        double score = (totalStdev * stdevWeight - totalChange * totalWeight);
-        
-        return score;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixEarlyWeighted)
-    {
-        std::vector<double> wavelengths, weights;
-        
-        for (int i = 0; i < millers.size(); i++)
-        {
-            MillerPtr miller = millers[i];
-            
-            if (!miller->reachesThreshold())
-                continue;
-            
-            double weight = miller->getRawestIntensity();
-            
-            if (weight < 0) weight = 0;
-            
-            double wavelength = miller->getWavelength();
-            
-            if (!(wavelength == wavelength && weight == weight))
-                continue;
-            
-            wavelengths.push_back(wavelength);
-            weights.push_back(weight);
-        }
-        
-        double stdev = standard_deviation(&wavelengths, &weights);
-        
-        return stdev;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixStdevOnly)
-    {
-        vector<double> wavelengths;
-        vector<int> frequencies;
-        getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed, 0);
-        
-        wavelengths.clear();
-        vector<double>().swap(wavelengths);
-        
-        for (int i = 0; i < millers.size(); i++)
-        {
-            if (millers[i]->reachesThreshold() && millerWithinBandwidth(millers[i]))
-            {
-                wavelengths.push_back(millers[i]->getWavelength());
-            }
-        }
-        
-        double stdev = standard_deviation(&wavelengths);
-        return stdev;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixHighestPeak)
-    {
-        vector<double> wavelengths;
-        vector<int> frequencies;
-        
-        getWavelengthHistogram(wavelengths, frequencies);
-        
-        double mean = 0;
-        double stdev = 0;
-        histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
-        
-        int *highest = new int[3];
-        
-        for (int i = 0; i < frequencies.size(); i++)
-        {
-            if (frequencies[i] > highest[0])
-            {
-                for (int j = 0; j < 2; j++)
-                    highest[j + 1] = highest[j];
-                highest[0] = frequencies[i];
-            }
-        }
-        
-        double sum = 0;
-        for (int i = 0; i < 3; i++)
-            sum += highest[i];
-        
-        return 1 / sum;
-    }
-    
-    if (refinement == RefinementTypeOrientationMatrixRough)
-    {
-        vector<double> wavelengths;
-        
-        for (int i = 0; i < millers.size(); i++)
-        {
-            if (millers[i]->reachesThreshold())
-            {
-                wavelengths.push_back(millers[i]->getWavelength());
-            }
-        }
-        
-        double stdev = standard_deviation(&wavelengths);
-        double num = wavelengths.size();
-        
-        double newScore = stdev / num;
-        
-        return newScore;
-    }
-    
-    return 0;
+    this->checkAllMillers(maxResolution, testBandwidth, false, true);
 }
 
-bool compareScore(std::pair<vector<double>, double> a, std::pair<vector<double>, double> b)
+double IOMRefiner::hkScoreWrapper(void *object)
 {
-    return (a.second < b.second);
+    IOMRefiner *refiner = static_cast<IOMRefiner *>(object);
+    refiner->recalculateMillers();
+    return refiner->hkScore(true);
 }
 
-void IOMRefiner::matchMatrixToSpots(RefinementType refinement)
+double IOMRefiner::lScoreWrapper(void *object)
 {
-    double wedge = FileParser::getKey("INDEXING_SLICE_ANGLE", 30.0); // degrees
-    //	map<vector<double>, double> scores = map<vector<double>, double>();
-    vector<std::pair<vector<double>, double> > scores;
+    IOMRefiner *refiner = static_cast<IOMRefiner *>(object);
+    refiner->recalculateMillerPositions = true;
+    refiner->recalculateMillers();
+    return refiner->lScore(true);
+}
+
+double IOMRefiner::hkScore(bool silent)
+{
+    vector<double> wavelengths;
+    vector<int> frequencies;
     
-    MatrixPtr copyMatrix = this->getMatrix()->copy();
+    LogLevel level = silent ? LogLevelDebug : LogLevelDetailed;
     
-    this->refinement = refinement;
+    getWavelengthHistogram(wavelengths, frequencies, level);
     
-    calculateNearbyMillers(false);
+    double mean = 0;
+    double stdev = 0;
+    histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
     
-    for (double hr = 0; hr < 360; hr += wedge)
+    /*
+    double total = getTotalReflectionsWithinBandwidth();
+    double totalWeight = 20;
+    double stdevWeight = 15;
+    
+    double totalChange = total / lastTotal - 1;
+    double totalStdev = stdev / lastStdev - 1;*/
+    
+    double score = stdev;
+    
+    return score;
+}
+
+double IOMRefiner::lScore(bool silent)
+{
+    double averageShift = 0;
+    int count = 0;
+    
+    for (int i = 0; i < millers.size(); i++)
     {
-        double hRad = hr * M_PI / 180;
-        
-        std::cout << hr / 360 * 100 << "% ..." << std::endl;
-        
-        for (double kr = 0; kr < 360; kr += wedge)
+        if (millers[i]->reachesThreshold())
         {
-            double kRad = kr * M_PI / 180;
+            std::pair<double, double> shift = millers[i]->getShift();
+            double shiftDistance = sqrt(pow(shift.first, 2) + pow(shift.second, 2));
             
-            this->getMatrix()->rotate(hRad, kRad, 0);
-            double theScore = score();
-            
-            vector<double> rotation = vector<double>();
-            rotation.push_back(hRad);
-            rotation.push_back(kRad);
-            
-            std::pair<vector<double>, double> pair = std::make_pair(rotation,
-                                                             theScore);
-            scores.push_back(pair);
-            
-            std::cout << hRad << "\t" << kRad << "\t" << theScore << std::endl;
-            
-            this->setMatrixCopy(copyMatrix);
+            averageShift += shiftDistance;
+            count++;
         }
     }
     
-    std::cout << "100%" << std::endl;
+    averageShift /= count;
     
-    vector<double> bestNum = vector<double>();
-    
-    std::sort(scores.begin(), scores.end(), compareScore);
-    
-    std::cout << std::endl << "Solutions to try: " << std::endl;
-    
-    for (int i = 0; i < 6; i++)
-    {
-        std::cout << scores[i].first[0] << "\t" << scores[i].first[1] << "\t"
-        << scores[i].second << std::endl;
-        
-        solutions.push_back(scores[i].first);
-    }
-    
-    this->getMatrix()->rotate(scores[0].first[0], scores[0].first[1], 0);
-    std::cout << "Max score: " << score() << std::endl;
-    
-    this->setMatrix(copyMatrix);
-    
-    std::cout << std::endl;
+    logged << "Average shift: " << averageShift << std::endl;
+    sendLog(LogLevelDetailed);
+    return averageShift;
 }
 
 double IOMRefiner::getRot(int rotNum)
 {
-    if (rotationMode == RotationModeHorizontalVertical)
+    switch (rotNum)
     {
-        switch (rotNum) {
-            case 0:
-                return hRot;
-            case 1:
-                return kRot;
-            case 2:
-                return lRot;
-            default:
-                break;
-        }
+        case 0:
+            return hRot;
+        case 1:
+            return kRot;
+        case 2:
+            return lRot;
+        default:
+            return 0;
+            break;
     }
-
-    return 0;
 }
 
 void IOMRefiner::refineOrientationMatrix()
 {
-    int orientationScore = FileParser::getKey("ORIENTATION_SCORE", 0);
-    RefinementType refinementType = (RefinementType)orientationScore;
+    this->calculateNearbyMillers(true);
     
-    this->refineOrientationMatrix(refinementType);
+    vector<double> wavelengths;
+    vector<int> frequencies;
+    
+    checkAllMillers(maxResolution, testBandwidth);
+    logged << "Wavelength histogram before refinement" << std::endl;
+    sendLog();
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
+    
+    lastStdev = getReflectionWavelengthStdev();
+    lastTotal = getTotalReflections();
+
+    int oldSearchSize = searchSize;
+    int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
+
+    // FIXME: read support for unit cell dimensions
+    
+    RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
+    hkStrategy->setEvaluationFunction(hkScoreWrapper, this);
+    hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
+    hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
+    hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
+    hkStrategy->refine();
+
+    searchSize = bigSize;
+    needsReintegrating = true;
+    
+    RefinementStrategyPtr lStrategy = RefinementStrategy::userChosenStrategy();
+    lStrategy->setEvaluationFunction(lScoreWrapper, this);
+    lStrategy->setJobName("Refining in-detector-plane angle for " + getImage()->getFilename());
+    lStrategy->addParameter(this, getLRot, setLRot, initialStep, orientationTolerance, "lRot");
+    lStrategy->refine();
+    
+    searchSize = oldSearchSize;
+    bestHRot = hRot;
+    bestKRot = kRot;
+    bestLRot = lRot;
+    
+    needsReintegrating = true;
+    checkAllMillers(maxResolution, testBandwidth);
+    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
 }
 
+/*
 void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
 {
     refinement = refinementType;
@@ -1108,19 +759,19 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     {
         double hRotStep = initialStep;
         double kRotStep = initialStep;
-        double lRotStep = initialStep / 4;
+        double lRotStep = initialStep;
         
         double alphaStep = FileParser::getKey("STEP_UNIT_CELL_ALPHA", 0.5);
         double betaStep = FileParser::getKey("STEP_UNIT_CELL_BETA", 0.5);
         double gammaStep = FileParser::getKey("STEP_UNIT_CELL_GAMMA", 0.5);
         
-        bool refinedH = (rotationMode == RotationModeHorizontalVertical) ? false : true;
-        bool refinedK = (rotationMode == RotationModeHorizontalVertical) ? false : true;
+        bool refinedH = false;
+        bool refinedK = false;
         bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", true);
         bool refinedAlpha = !FileParser::getKey("REFINE_UNIT_CELL_ALPHA", false);
         bool refinedBeta = !FileParser::getKey("REFINE_UNIT_CELL_BETA", false);
         bool refinedGamma = !FileParser::getKey("REFINE_UNIT_CELL_GAMMA", false);
-        int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);;
+        int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
         
         int count = 0;
         
@@ -1181,15 +832,13 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
             logged << getRot(0) << "\t" << getRot(1) << "\t" << getRot(2) << "\t" << newScore << std::endl;
             sendLog(LogLevelDetailed);
             
-            if (rotationMode == RotationModeHorizontalVertical && hRotStep < 0.25 && kRotStep < 0.25)
+            if (hRotStep < 0.25 && kRotStep < 0.25)
             {
                 if (!recalculated)
                 {
                     recalculated = true;
                     this->calculateNearbyMillers(true);
                 }
-                
-            //    refinement = RefinementTypeOrientationMatrixStdevOnly;
             }
             
             if (hRotStep < orientationTolerance)
@@ -1213,7 +862,6 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
         count = 0;
     }
     
-    refinement = RefinementTypeOrientationMatrixEarly;
     lastScore = score();
     
     logged << "Current wavelength: " << testWavelength << " Å." << std::endl;
@@ -1240,14 +888,8 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     
     delete [] lengths;
     
-    if (rotationMode == RotationModeHorizontalVertical)
-        getMatrix()->rotate(hRad, kRad, lRad);
-    else
-    {
-        MatrixPtr oldMatrix = getMatrix()->copy();
-        getMatrix()->rotateABC(oldMatrix, getRot(0), getRot(1), getRot(2));
-    }
-    
+    getMatrix()->rotate(hRad, kRad, lRad);
+        
     bestHRot = getRot(0);
     bestKRot = getRot(1);
     bestLRot = getRot(2);
@@ -1262,52 +904,7 @@ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
     
     sendLog(LogLevelNormal);
 }
-
-struct greater { template<class T> bool operator()(T const &a, T const &b) const { return a > b; } };
-
-bool IOMRefiner::isBasicGoodSolution()
-{
-    vector<double> wavelengths;
-    vector<int> frequencies;
-    
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
-    
-    int maxFrequency = 0;
-    int freqMaxNum = 0;
-    int all = 0;
-    
-    for (int i = 0; i < frequencies.size(); i++)
-    {
-        if (frequencies[i] > maxFrequency)
-        {
-            maxFrequency = frequencies[i];
-            freqMaxNum = i;
-        }
-        
-        all += frequencies[i];
-    }
-
-    int totalSquashed = 0.33 * frequencies.size();
-    int start = freqMaxNum - totalSquashed / 2;
-    int end = freqMaxNum + totalSquashed / 2;
-    
-    if (start < 0) start = 0;
-    if (end > frequencies.size()) end = frequencies.size();
-    
-    int highSum = 0;
-    
-    for (int i = start; i < end; i++)
-    {
-        highSum += frequencies[i];
-    }
-
-    double squashedProportion = (double)highSum / (double)all;
-    
-    logged << "(" << getImage()->getFilename() << ") squashed proportion: " << squashedProportion << std::endl;
-    sendLog();
-    
-    return (squashedProportion > 0.6);
-}
+ */
 
 bool IOMRefiner::isGoodSolution()
 {
@@ -1369,7 +966,7 @@ bool IOMRefiner::isGoodSolution()
     diffSquared = sqrt(diffSquared);
     worstSquared = sqrt(worstSquared);
     
-    std::sort(frequencies.begin(), frequencies.end(), greater());
+    std::sort(frequencies.begin(), frequencies.end(), std::greater<int>());
     
     double highSum = 0;
     std::vector<double> lowOnly;
@@ -1473,11 +1070,12 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     
     getWavelengthHistogram(wavelengths, frequencies, silent ? LogLevelDebug : LogLevelNormal, 0);
     
+    needsReintegrating = true;
     bool complexShoebox = FileParser::getKey("COMPLEX_SHOEBOX", false);
     
     checkAllMillers(maxResolution, testBandwidth, complexShoebox);
     
-    MatrixPtr newMat = getMatrix()->copy();
+    MatrixPtr newMat = lastRotatedMatrix->copy();
     
     MtzPtr mtz;
     
@@ -1507,7 +1105,6 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     
     space_group _spaceGroup = space_group(hallSymbol);
     space_group_type spgType = space_group_type(_spaceGroup);
-    asu asymmetricUnit = asu(spgType);
     
     for (int i = 0; i < millers.size(); i++)
     {

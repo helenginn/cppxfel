@@ -21,21 +21,6 @@ class Miller;
 
 using namespace CSym;
 
-typedef enum
-{
-    RefinementTypeOrientationMatrixEarly = 0,
-	RefinementTypeDetectorWavelength = 1,
-    RefinementTypeOrientationMatrixVeryEarly = 2,
-    RefinementTypeOrientationMatrixRough = 6,
-	RefinementTypeOrientationMatrixHighestPeak = 9,
-    RefinementTypeOrientationMatrixEarlySeparated = 10,
-    RefinementTypeOrientationMatrixStdevOnly = 12,
-    RefinementTypeRefineLAxis = 13,
-    RefinementTypeOrientationMatrixEarlyWeighted = 14,
-    RefinementTypeOrientationMatrixReverse = 15,
-    
-} RefinementType;
-
 class IOMRefiner : public boost::enable_shared_from_this<IOMRefiner>
 {
 private:
@@ -46,7 +31,6 @@ private:
 	vector<Spot *>spots;
     MatrixPtr matrix;
     MatrixPtr lastRotatedMatrix;
-    std::vector<Match> indexingMatches;
     MtzPtr lastMtz;
 
     double minResolution;
@@ -54,7 +38,6 @@ private:
     bool needsReintegrating;
     CCP4SPG *spaceGroup;
     bool complexUnitCell;
-    RotationMode rotationMode;
 	vector<double> unitCell;
 	double hRot;
 	double kRot;
@@ -72,7 +55,6 @@ private:
 	double maxResolution;
 	MtzManager *reference;
 	void calculateNearbyMillers(bool rough);
-	RefinementType refinement;
 	double lastTotal;
 	double lastStdev;
 	double testBandwidth;
@@ -83,7 +65,13 @@ private:
     double orientationTolerance;
     std::ostringstream logged;
     void sendLog(LogLevel priority = LogLevelNormal);
-
+    double hkScore(bool silent);
+    double lScore(bool silent);
+    void recalculateMillers();
+    static double hkScoreWrapper(void *object);
+    static double lScoreWrapper(void *object);
+    double getReflectionWavelengthStdev();
+    
 public:
 	IOMRefiner(ImagePtr newImage = ImagePtr(), MatrixPtr matrix = MatrixPtr());
     void setComplexMatrix();
@@ -95,32 +83,25 @@ public:
 	MtzPtr newMtz(int i, bool silent = false);
 	void getWavelengthHistogram(vector<double> &wavelengths,
 			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
-	double score(int whichAxis = 0, bool silent = false);
 
-	void findSpots();
 	static void duplicateSpots(vector<ImagePtr>images);
 	void writeDatFromSpots(std::string filename);
 	
-	void matchMatrixToSpots();
-	void matchMatrixToSpots(RefinementType refinement);
 	double minimizeParameter(double *meanStep, double *param, int whichAxis = 0);
 	void minimizeTwoParameters(double *meanStep1, double *meanStep2,
 			double *param1, double *param2);
 
 	void refineOrientationMatrix();
-	void refineOrientationMatrix(RefinementType refinementType);
 	
     void showHistogram(bool silent);
     bool millerWithinBandwidth(MillerPtr miller);
 	int getTotalReflections();
-	int getTotalReflections(double threshold);
     int getTotalReflectionsWithinBandwidth();
     
     double getRot(int rotNum);
 	void dropMillers();
 
     bool isGoodSolution();
-    bool isBasicGoodSolution();
 
     double getDetectorDistance();
     double getWavelength();
@@ -132,17 +113,6 @@ public:
         *rot1 = bestHRot;
         *rot2 = bestKRot;
         *rot3 = bestLRot;
-    }
-    
-    void setMatch(Match newMatch1, Match newMatch2)
-    {
-        indexingMatches.push_back(newMatch1);
-        indexingMatches.push_back(newMatch2);
-    }
-    
-    std::vector<Match> getMatch()
-    {
-        return indexingMatches;
     }
     
     MatrixPtr getMatrix()
@@ -175,25 +145,35 @@ public:
 		this->image = image;
 	}
 
-	double getHRot() const
+	static double getHRot(void *object)
 	{
-		return hRot;
+		return static_cast<IOMRefiner *>(object)->hRot;
 	}
 
-	void setHRot(double rot)
+	static void setHRot(void *object, double rot)
 	{
-		hRot = rot;
+		static_cast<IOMRefiner *>(object)->hRot = rot;
 	}
 
-	double getKRot() const
-	{
-		return kRot;
-	}
-
-	void setKRot(double rot)
-	{
-		kRot = rot;
-	}
+    static double getKRot(void *object)
+    {
+        return static_cast<IOMRefiner *>(object)->kRot;
+    }
+    
+    static void setKRot(void *object, double rot)
+    {
+        static_cast<IOMRefiner *>(object)->kRot = rot;
+    }
+    
+    static double getLRot(void *object)
+    {
+        return static_cast<IOMRefiner *>(object)->lRot;
+    }
+    
+    static void setLRot(void *object, double rot)
+    {
+        static_cast<IOMRefiner *>(object)->lRot = rot;
+    }
 
 	double getTestBandwidth() const
 	{
