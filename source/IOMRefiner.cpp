@@ -614,23 +614,31 @@ double IOMRefiner::lScoreWrapper(void *object)
 double IOMRefiner::hkScore(bool silent)
 {
     vector<double> wavelengths;
-    vector<int> frequencies;
+    vector<double> throw1, throw2;
     
-    LogLevel level = silent ? LogLevelDebug : LogLevelDetailed;
+    getWavelengthHistogram(throw1, throw2);
     
-    getWavelengthHistogram(wavelengths, frequencies, level);
+    for (int i = 0; i < millers.size(); i++)
+    {
+        MillerPtr miller = millers[i];
+        
+        if (millerWithinBandwidth(miller) && miller->reachesThreshold())
+        {
+            wavelengths.push_back(miller->getWavelength());
+        }
+    }
     
-    double mean = 0;
+    bool unbalanced = FileParser::getKey("UNBALANCED_REFLECTIONS", false);
     double stdev = 0;
-    histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
     
-    /*
-    double total = getTotalReflectionsWithinBandwidth();
-    double totalWeight = 20;
-    double stdevWeight = 15;
-    
-    double totalChange = total / lastTotal - 1;
-    double totalStdev = stdev / lastStdev - 1;*/
+    if (unbalanced)
+    {
+        stdev = standard_deviation(&wavelengths, NULL, getWavelength());
+    }
+    else
+    {
+        stdev = standard_deviation(&wavelengths);
+    }
     
     double score = stdev;
     

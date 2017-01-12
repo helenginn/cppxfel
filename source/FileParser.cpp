@@ -350,6 +350,7 @@ void FileParser::generateFunctionList()
     parserMap["SHOEBOX_BANDWIDTH_MULTIPLIER"] = simpleFloat;
     parserMap["PIXEL_LEAK"] = simpleFloat;
     parserMap["MILLER_INDIVIDUAL_WAVELENGTHS"] = simpleBool;
+    parserMap["UNBALANCED_REFLECTIONS"] = simpleBool;
     parserMap["ORIENTATION_SCORE"] = simpleInt;
     parserMap["ORIENTATION_CORRECTION"] = doubleVector;
     parserMap["IMAGE_MASKED_VALUE"] = simpleInt;
