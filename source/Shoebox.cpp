@@ -157,7 +157,7 @@ void Shoebox::putBoxOnPaddedBackground(Box &smallBox, Box &newShoebox)
     int slowSize = (int)smallBox.size();
     int fastSize = (int)smallBox[0].size();
     
-    int bgPadding = 3;
+    int bgPadding = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING", 3);
     
     int newSlow = slowSize + 4 + bgPadding;
     int newFast = fastSize + 4 + bgPadding;
