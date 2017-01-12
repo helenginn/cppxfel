@@ -141,9 +141,6 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
         interval = (maxLength - minLength) / 20;
     }
     
-    std::ostringstream logged;
-    logged << "Wavelength histogram for " << this->getImage()->getFilename() << std::endl;
-    
     for (double i = minLength; i < maxLength; i += interval)
     {
         wavelengths.push_back(i);
@@ -219,7 +216,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     
     int maxMillers[3];
     
-    MatrixPtr newMatrix = matrix->copy();
+    MatrixPtr newMatrix = lastRotatedMatrix->copy();
     
     double hRad = hRot * M_PI / 180;
     double kRad = kRot * M_PI / 180;
@@ -688,8 +685,8 @@ void IOMRefiner::refineOrientationMatrix()
     vector<int> frequencies;
     
     checkAllMillers(maxResolution, testBandwidth);
-    logged << "Wavelength histogram before refinement" << std::endl;
-    sendLog();
+    logged << "Wavelength histogram before refinement for " << getImage()->getFilename() << std::endl;
+    sendLog(LogLevelDetailed);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     
     lastStdev = getReflectionWavelengthStdev();
@@ -1068,6 +1065,9 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     vector<double> wavelengths;
     vector<int> frequencies;
     
+    std::ostringstream logged;
+    logged << "Wavelength histogram for " << this->getImage()->getFilename() << std::endl;
+    sendLog(silent ? LogLevelDebug : LogLevelNormal);
     getWavelengthHistogram(wavelengths, frequencies, silent ? LogLevelDebug : LogLevelNormal, 0);
     
     needsReintegrating = true;
@@ -1109,6 +1109,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
+        miller->setMatrix(newMat);
         
         miller->incrementOverlapMask();
         miller->setMtzParent(&*mtz);
