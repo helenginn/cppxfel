@@ -616,9 +616,9 @@ double IOMRefiner::lScoreWrapper(void *object)
 double IOMRefiner::hkScore(bool silent)
 {
     vector<double> wavelengths;
-    vector<double> throw1, throw2;
+    vector<double> throw1; vector<int> throw2;
     
-    getWavelengthHistogram(throw1, throw2);
+    getWavelengthHistogram(throw1, throw2, LogLevelDetailed);
     
     for (int i = 0; i < millers.size(); i++)
     {
