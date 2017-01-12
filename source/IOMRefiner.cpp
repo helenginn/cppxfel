@@ -122,6 +122,8 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
     wavelengths.clear();
     frequencies.clear();
     
+    logged << "Wavelength histogram for " << this->getImage()->getFilename() << std::endl;
+    sendLog(level);
     
     double wavelength = getImage()->getWavelength();
     vector<double> totals;
