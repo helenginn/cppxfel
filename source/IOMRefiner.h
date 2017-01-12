@@ -61,6 +61,7 @@ private:
     double lastScore;
 	vector<vector<double> > solutions;
     bool recalculateMillerPositions;
+    IndexingSolutionPtr indexingSolution;
     
     double orientationTolerance;
     std::ostringstream logged;
@@ -296,6 +297,16 @@ public:
     MtzPtr getLastMtz()
     {
         return lastMtz;
+    }
+    
+    IndexingSolutionPtr getIndexingSolution()
+    {
+        return indexingSolution;
+    }
+    
+    void setIndexingSolution(IndexingSolutionPtr solution)
+    {
+        indexingSolution = solution;
     }
 };
 
