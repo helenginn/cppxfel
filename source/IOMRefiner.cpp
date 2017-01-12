@@ -216,7 +216,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     
     int maxMillers[3];
     
-    MatrixPtr newMatrix = lastRotatedMatrix->copy();
+    MatrixPtr newMatrix = matrix->copy();
     
     double hRad = hRot * M_PI / 180;
     double kRad = kRot * M_PI / 180;
