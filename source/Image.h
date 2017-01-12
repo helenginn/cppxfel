@@ -114,7 +114,7 @@ public:
     void incrementOverlapMask(int x, int y);
     virtual void processSpotList();
     virtual void writeSpotsList(std::string spotFile = "");
-    virtual std::pair<double, double> reciprocalCoordinatesToPixels(vec hkl);
+    virtual std::pair<double, double> reciprocalCoordinatesToPixels(vec hkl, double myWavelength = 0);
     virtual vec pixelsToReciprocalCoordinates(double xPix, double yPix);
     virtual vec millimetresToReciprocalCoordinates(double xmm, double ymm);
     

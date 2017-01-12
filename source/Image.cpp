@@ -581,10 +581,14 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
     return true;
 }
 
-std::pair<double, double> Image::reciprocalCoordinatesToPixels(vec hkl)
+std::pair<double, double> Image::reciprocalCoordinatesToPixels(vec hkl, double myWavelength)
 {
-    double x_mm = (-hkl.h * getDetectorDistance() / (1 / wavelength + hkl.l));
-    double y_mm = (hkl.k * getDetectorDistance() / (1 / wavelength + hkl.l));
+    if (myWavelength == 0)
+    {
+        myWavelength = wavelength;
+    }
+    double x_mm = (-hkl.h * getDetectorDistance() / (1 / myWavelength + hkl.l));
+    double y_mm = (hkl.k * getDetectorDistance() / (1 / myWavelength + hkl.l));
     
     double x_coord = getBeamX() - x_mm / mmPerPixel;
     double y_coord = getBeamY() - y_mm / mmPerPixel;

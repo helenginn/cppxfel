@@ -1031,7 +1031,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     hkl.k = hkl.h;
     hkl.h = -tmp;
 
-    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl);
+    bool individual = FileParser::getKey("MILLER_INDIVIDUAL_WAVELENGTHS", false);
+    
+    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl, individual ? wavelength : 0);
     
     lastX = int(coord.first);
     lastY = int(coord.second);

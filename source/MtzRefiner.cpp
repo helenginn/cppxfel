@@ -699,7 +699,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 }
             }
             
-            if (components[0] == "wavelength" && wavelength == 0)
+            if (components[0] == "wavelength")
             {
                 double newWavelength = wavelength;
                 
