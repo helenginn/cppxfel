@@ -1109,7 +1109,6 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
-        miller->setMatrix(newMat);
         
         miller->incrementOverlapMask();
         miller->setMtzParent(&*mtz);
