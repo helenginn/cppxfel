@@ -513,7 +513,8 @@ double Spot::integrate()
     shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
     
     float counting = 0;
-    intensity = getParentImage()->intensityAt(getX(), getY(), shoebox, &counting);
+    Coord rawXY = getRawXY();
+    intensity = getParentImage()->intensityAt(rawXY.first, rawXY.second, shoebox, &counting);
     
     if (intensity != intensity)
     {
