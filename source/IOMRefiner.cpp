@@ -117,13 +117,18 @@ void IOMRefiner::dropMillers()
 }
 
 void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
-                                     vector<int> &frequencies, LogLevel level, int whichAxis)
+                                        vector<int> &frequencies, LogLevel level, int whichAxis)
 {
+    bool shouldPrint = (Logger::getPriorityLevel() >= level);
+    
     wavelengths.clear();
     frequencies.clear();
     
-    logged << "Wavelength histogram for " << this->getImage()->getFilename() << std::endl;
-    sendLog(level);
+    if (shouldPrint)
+    {
+        logged << "Wavelength histogram for " << this->getImage()->getFilename() << std::endl;
+        sendLog(level);
+    }
     
     double wavelength = getImage()->getWavelength();
     vector<double> totals;
@@ -176,14 +181,20 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
             }
         }
         
-        logged << std::setprecision(4) << i << "\t";
-        
-        for (int i=0; i < frequency; i++)
+        if (shouldPrint)
         {
-            logged << ".";
+            logged << std::setprecision(4) << i << "\t";
+            
+            for (int i=0; i < frequency; i++)
+            {
+                logged << ".";
+            }
         }
         
-        logged << std::endl;
+        if (shouldPrint)
+        {
+            logged << std::endl;
+        }
         
         frequencies.push_back(frequency);
         totals.push_back(total);
@@ -191,16 +202,17 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
     
     int strong = getTotalReflections();
     
-    logged << std::endl;
-    logged << "Total strong reflections: " << strong << std::endl;
-
-    
-    Logger::mainLogger->addStream(&logged, level);
+    if (shouldPrint)
+    {
+        logged << std::endl;
+        logged << "Total strong reflections: " << strong << std::endl;
+        
+        Logger::mainLogger->addStream(&logged, level);
+    }
 }
 
 void IOMRefiner::calculateNearbyMillers(bool rough)
 {
-    MatrixPtr matrix = getMatrix();
     double wavelength = getImage()->getWavelength();
     
     double minBandwidth = wavelength * (1 - testBandwidth * 2);
@@ -618,7 +630,10 @@ double IOMRefiner::hkScore(bool silent)
     vector<double> wavelengths;
     vector<double> throw1; vector<int> throw2;
     
-    getWavelengthHistogram(throw1, throw2, LogLevelDetailed);
+    if (Logger::getPriorityLevel() >= LogLevelDetailed)
+    {
+        getWavelengthHistogram(throw1, throw2, LogLevelDetailed);
+    }
     
     for (int i = 0; i < millers.size(); i++)
     {
