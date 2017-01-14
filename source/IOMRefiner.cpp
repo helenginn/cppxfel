@@ -105,7 +105,7 @@ void IOMRefiner::setComplexMatrix()
     {
         getImage()->setUnitCell(unitCell);
         setUnitCell(unitCell);
-   
+        
         matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
     }
 }
@@ -137,7 +137,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
     
     double spread = testBandwidth * 2;
     double interval = (wavelength * spread * 2) / 20;
-
+    
     double minLength = wavelength * (1 - spread);
     double maxLength = wavelength * (1 + spread);
     
@@ -157,7 +157,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
         for (int j = 0; j < millers.size(); j++)
         {
             double ewald = millers[j]->getWavelength();
-                        
+            
             if (ewald < i || ewald > i + interval)
                 continue;
             
@@ -322,7 +322,7 @@ void IOMRefiner::lockUnitCellDimensions()
 void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation)
 {
     MatrixPtr matrix = getMatrix();
-
+    
     if (complexUnitCell)
     {
         lockUnitCellDimensions();
@@ -703,10 +703,10 @@ void IOMRefiner::refineOrientationMatrix()
     
     lastStdev = getReflectionWavelengthStdev();
     lastTotal = getTotalReflections();
-
+    
     int oldSearchSize = searchSize;
     int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
-
+    
     // FIXME: read support for unit cell dimensions
     
     RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
@@ -715,7 +715,7 @@ void IOMRefiner::refineOrientationMatrix()
     hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
     hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
     hkStrategy->refine();
-
+    
     searchSize = bigSize;
     needsReintegrating = true;
     
@@ -736,183 +736,183 @@ void IOMRefiner::refineOrientationMatrix()
 }
 
 /*
-void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
-{
-    refinement = refinementType;
-    this->calculateNearbyMillers(true);
-    
-    testWavelength = getImage()->getWavelength();
-    
-    vector<double> wavelengths;
-    vector<int> frequencies;
-    
-    checkAllMillers(maxResolution, testBandwidth);
-    Logger::mainLogger->addString("Wavelength histogram before refinement", LogLevelDetailed);
-    sendLog(LogLevelDetailed);
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
-    
-    double mean = 0;
-    double stdev = 0;
-    double theScore = 0;
-    
-    histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
-    
-    lastStdev = stdev;
-    lastTotal = getTotalReflections();
-    
-    getImage()->setWavelength(mean);
-    
-    bool recalculated = false;
-    
-    for (int i = 0; i < 1; i++)
-    {
-        double hRotStep = initialStep;
-        double kRotStep = initialStep;
-        double lRotStep = initialStep;
-        
-        double alphaStep = FileParser::getKey("STEP_UNIT_CELL_ALPHA", 0.5);
-        double betaStep = FileParser::getKey("STEP_UNIT_CELL_BETA", 0.5);
-        double gammaStep = FileParser::getKey("STEP_UNIT_CELL_GAMMA", 0.5);
-        
-        bool refinedH = false;
-        bool refinedK = false;
-        bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", true);
-        bool refinedAlpha = !FileParser::getKey("REFINE_UNIT_CELL_ALPHA", false);
-        bool refinedBeta = !FileParser::getKey("REFINE_UNIT_CELL_BETA", false);
-        bool refinedGamma = !FileParser::getKey("REFINE_UNIT_CELL_GAMMA", false);
-        int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
-        
-        int count = 0;
-        
-        while (!(refinedH && refinedK && refinedL) && count < 20)
-        {
-            if (!refinedL)
-            {
-                int oldSearchSize = searchSize;
-                
-                if (searchSize < bigSize)
-                {
-                    searchSize = bigSize;
-                }
-                
-                recalculateMillerPositions = true;
-                refinement = RefinementTypeRefineLAxis;
-                
-                this->minimizeParameter(&lRotStep, &lRot);
-                refinement = refinementType;
-                recalculateMillerPositions = false;
-                
-                searchSize = oldSearchSize;
-            }
-            if (!refinedH && !refinedK)
-            {
-                this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
-            }
-            
-       //     refinementType = RefinementTypeOrientationMatrixPanelStdev;
-            
-            if (!refinedAlpha)
-            {
-                minimizeParameter(&alphaStep, &unitCell[3]);
-            }
-            
-            if (!refinedBeta)
-            {
-                minimizeParameter(&betaStep, &unitCell[4]);
-            }
-
-            if (!refinedGamma)
-            {
-                minimizeParameter(&gammaStep, &unitCell[5]);
-            }
-
-       //     refinementType = RefinementTypeOrientationMatrixEarly;
-            
-            checkAllMillers(maxResolution, testBandwidth, false, false);
-            
-            getWavelengthHistogram(wavelengths, frequencies);
-            histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
-            lastStdev = stdev;
-            lastTotal = getTotalReflections();
-            
-            double newScore = score();
-            lastScore = newScore;
-            
-            logged << getRot(0) << "\t" << getRot(1) << "\t" << getRot(2) << "\t" << newScore << std::endl;
-            sendLog(LogLevelDetailed);
-            
-            if (hRotStep < 0.25 && kRotStep < 0.25)
-            {
-                if (!recalculated)
-                {
-                    recalculated = true;
-                    this->calculateNearbyMillers(true);
-                }
-            }
-            
-            if (hRotStep < orientationTolerance)
-                refinedH = true;
-            if (kRotStep < orientationTolerance)
-                refinedK = true;
-            
-            if (lRotStep < orientationTolerance)
-                refinedL = true;
-            
-            if (alphaStep < 0.01)
-                refinedAlpha = true;
-            if (betaStep < 0.01)
-                refinedBeta = true;
-            if (gammaStep < 0.01)
-                refinedGamma = true;
-            
-            count++;
-        }
-        
-        count = 0;
-    }
-    
-    lastScore = score();
-    
-    logged << "Current wavelength: " << testWavelength << " Å." << std::endl;
-    logged << "Rotation result:\t" << getImage()->getFilename() << "\t" << hRot
-    << "\t" << kRot << "\t" << getTotalReflections() << "\t" << getLastScore() << std::endl;
-    
-    double hRad = getRot(0) * M_PI / 180;
-    double kRad = getRot(1) * M_PI / 180;
-    double lRad = getRot(2) * M_PI / 180;
-    
-    vector<double> originalUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-    double *lengths = new double[3];
-    getMatrix()->unitCellLengths(&lengths);
-    
-    double aRatio = originalUnitCell[0] / lengths[0];
-    double bRatio = originalUnitCell[1] / lengths[1];
-    double cRatio = originalUnitCell[2] / lengths[2];
-    
-    double aveRatio = (aRatio + bRatio + cRatio) / 3;
-    
-    lengths[0] *= aveRatio;
-    lengths[1] *= aveRatio;
-    lengths[2] *= aveRatio;
-    
-    delete [] lengths;
-    
-    getMatrix()->rotate(hRad, kRad, lRad);
-        
-    bestHRot = getRot(0);
-    bestKRot = getRot(1);
-    bestLRot = getRot(2);
-    
-    hRot = 0;
-    kRot = 0;
-    lRot = 0;
-    
-    needsReintegrating = true;
-    checkAllMillers(maxResolution, testBandwidth);
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
-    
-    sendLog(LogLevelNormal);
-}
+ void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
+ {
+ refinement = refinementType;
+ this->calculateNearbyMillers(true);
+ 
+ testWavelength = getImage()->getWavelength();
+ 
+ vector<double> wavelengths;
+ vector<int> frequencies;
+ 
+ checkAllMillers(maxResolution, testBandwidth);
+ Logger::mainLogger->addString("Wavelength histogram before refinement", LogLevelDetailed);
+ sendLog(LogLevelDetailed);
+ getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
+ 
+ double mean = 0;
+ double stdev = 0;
+ double theScore = 0;
+ 
+ histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
+ 
+ lastStdev = stdev;
+ lastTotal = getTotalReflections();
+ 
+ getImage()->setWavelength(mean);
+ 
+ bool recalculated = false;
+ 
+ for (int i = 0; i < 1; i++)
+ {
+ double hRotStep = initialStep;
+ double kRotStep = initialStep;
+ double lRotStep = initialStep;
+ 
+ double alphaStep = FileParser::getKey("STEP_UNIT_CELL_ALPHA", 0.5);
+ double betaStep = FileParser::getKey("STEP_UNIT_CELL_BETA", 0.5);
+ double gammaStep = FileParser::getKey("STEP_UNIT_CELL_GAMMA", 0.5);
+ 
+ bool refinedH = false;
+ bool refinedK = false;
+ bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", true);
+ bool refinedAlpha = !FileParser::getKey("REFINE_UNIT_CELL_ALPHA", false);
+ bool refinedBeta = !FileParser::getKey("REFINE_UNIT_CELL_BETA", false);
+ bool refinedGamma = !FileParser::getKey("REFINE_UNIT_CELL_GAMMA", false);
+ int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
+ 
+ int count = 0;
+ 
+ while (!(refinedH && refinedK && refinedL) && count < 20)
+ {
+ if (!refinedL)
+ {
+ int oldSearchSize = searchSize;
+ 
+ if (searchSize < bigSize)
+ {
+ searchSize = bigSize;
+ }
+ 
+ recalculateMillerPositions = true;
+ refinement = RefinementTypeRefineLAxis;
+ 
+ this->minimizeParameter(&lRotStep, &lRot);
+ refinement = refinementType;
+ recalculateMillerPositions = false;
+ 
+ searchSize = oldSearchSize;
+ }
+ if (!refinedH && !refinedK)
+ {
+ this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
+ }
+ 
+ //     refinementType = RefinementTypeOrientationMatrixPanelStdev;
+ 
+ if (!refinedAlpha)
+ {
+ minimizeParameter(&alphaStep, &unitCell[3]);
+ }
+ 
+ if (!refinedBeta)
+ {
+ minimizeParameter(&betaStep, &unitCell[4]);
+ }
+ 
+ if (!refinedGamma)
+ {
+ minimizeParameter(&gammaStep, &unitCell[5]);
+ }
+ 
+ //     refinementType = RefinementTypeOrientationMatrixEarly;
+ 
+ checkAllMillers(maxResolution, testBandwidth, false, false);
+ 
+ getWavelengthHistogram(wavelengths, frequencies);
+ histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
+ lastStdev = stdev;
+ lastTotal = getTotalReflections();
+ 
+ double newScore = score();
+ lastScore = newScore;
+ 
+ logged << getRot(0) << "\t" << getRot(1) << "\t" << getRot(2) << "\t" << newScore << std::endl;
+ sendLog(LogLevelDetailed);
+ 
+ if (hRotStep < 0.25 && kRotStep < 0.25)
+ {
+ if (!recalculated)
+ {
+ recalculated = true;
+ this->calculateNearbyMillers(true);
+ }
+ }
+ 
+ if (hRotStep < orientationTolerance)
+ refinedH = true;
+ if (kRotStep < orientationTolerance)
+ refinedK = true;
+ 
+ if (lRotStep < orientationTolerance)
+ refinedL = true;
+ 
+ if (alphaStep < 0.01)
+ refinedAlpha = true;
+ if (betaStep < 0.01)
+ refinedBeta = true;
+ if (gammaStep < 0.01)
+ refinedGamma = true;
+ 
+ count++;
+ }
+ 
+ count = 0;
+ }
+ 
+ lastScore = score();
+ 
+ logged << "Current wavelength: " << testWavelength << " Å." << std::endl;
+ logged << "Rotation result:\t" << getImage()->getFilename() << "\t" << hRot
+ << "\t" << kRot << "\t" << getTotalReflections() << "\t" << getLastScore() << std::endl;
+ 
+ double hRad = getRot(0) * M_PI / 180;
+ double kRad = getRot(1) * M_PI / 180;
+ double lRad = getRot(2) * M_PI / 180;
+ 
+ vector<double> originalUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+ double *lengths = new double[3];
+ getMatrix()->unitCellLengths(&lengths);
+ 
+ double aRatio = originalUnitCell[0] / lengths[0];
+ double bRatio = originalUnitCell[1] / lengths[1];
+ double cRatio = originalUnitCell[2] / lengths[2];
+ 
+ double aveRatio = (aRatio + bRatio + cRatio) / 3;
+ 
+ lengths[0] *= aveRatio;
+ lengths[1] *= aveRatio;
+ lengths[2] *= aveRatio;
+ 
+ delete [] lengths;
+ 
+ getMatrix()->rotate(hRad, kRad, lRad);
+ 
+ bestHRot = getRot(0);
+ bestKRot = getRot(1);
+ bestLRot = getRot(2);
+ 
+ hRot = 0;
+ kRot = 0;
+ lRot = 0;
+ 
+ needsReintegrating = true;
+ checkAllMillers(maxResolution, testBandwidth);
+ getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
+ 
+ sendLog(LogLevelNormal);
+ }
  */
 
 bool IOMRefiner::isGoodSolution()
@@ -966,7 +966,7 @@ bool IOMRefiner::isGoodSolution()
         double length = wavelengths[i];
         double expected = super_gaussian(length, totalMean, goodSolutionStdev * 0.8, 2) * (double)maxFrequency / maxHeight;
         
-    //    logged << "expected: " << expected << ", frequency: " << frequencies[i] << std::endl;
+        //    logged << "expected: " << expected << ", frequency: " << frequencies[i] << std::endl;
         
         diffSquared += pow(expected - frequencies[i], 2);
         worstSquared += pow(expected, 2);
@@ -1004,19 +1004,19 @@ bool IOMRefiner::isGoodSolution()
         good = true;
         details << "(" << getImage()->getFilename() << ") Standard deviation is sufficiently low (" << lastStdev << " vs " << goodSolutionStdev << ")" << std::endl;
     }
-
+    
     if (highSum > stdevLow * goodSolutionSumRatio)
     {
         good = true;
         details << "(" << getImage()->getFilename() << ") Sum ratio is sufficiently high (" << highSum << " vs " << stdevLow << ")" << std::endl;
     }
     
-  /*  if (highSum <= 5)
-    {
-        details << "(" << getImage()->getFilename() << ") However, high sum not high enough (" << highSum << ")" << std::endl;
-        good = false;
-    }
-    */
+    /*  if (highSum <= 5)
+     {
+     details << "(" << getImage()->getFilename() << ") However, high sum not high enough (" << highSum << ")" << std::endl;
+     good = false;
+     }
+     */
     if (frequencies[0] > goodSolutionHighestPeak)
     {
         details << "(" << getImage()->getFilename() << ") Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;
@@ -1029,8 +1029,8 @@ bool IOMRefiner::isGoodSolution()
         good = false;
     }
     
-//    if (lastScore < 3)
- //       good = true;
+    //    if (lastScore < 3)
+    //       good = true;
     
     if (getTotalReflections() < minimumReflections)
     {
@@ -1151,7 +1151,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
             mtz->sortLastReflection();
         }
     }
-        
+    
     this->sendLog(LogLevelDetailed);
     
     double cutoff = FileParser::getKey("SIGMA_RESOLUTION_CUTOFF", SIGMA_RESOLUTION_CUTOFF);
@@ -1167,7 +1167,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
 
 IOMRefiner::~IOMRefiner()
 {
-//    std::cout << "Deallocating IOMRefiner." << std::endl;
+    //    std::cout << "Deallocating IOMRefiner." << std::endl;
     
     lastMtz = MtzPtr();
     
@@ -1178,8 +1178,8 @@ IOMRefiner::~IOMRefiner()
     vector<MillerPtr>().swap(millers);
     
     // FIXME: work out when this should and should not be freed
- //   if (spaceGroup != NULL)
- //       ccp4spg_free(&spaceGroup);
+    //   if (spaceGroup != NULL)
+    //       ccp4spg_free(&spaceGroup);
 }
 
 void IOMRefiner::sendLog(LogLevel priority)
@@ -1215,7 +1215,7 @@ std::string IOMRefiner::refinementSummary()
     
     summary << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
     << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << "\t" << unitCell[3] << "\t" << unitCell[4] << "\t" << unitCell[5];
-
+    
     delete [] lengths;
     
     return summary.str();
