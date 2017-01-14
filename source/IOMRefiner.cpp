@@ -230,15 +230,9 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     
     int maxMillers[3];
     
-    MatrixPtr newMatrix = matrix->copy();
+    Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &lastRotatedMatrix);
     
-    double hRad = hRot * M_PI / 180;
-    double kRad = kRot * M_PI / 180;
-    
-    if (!(hRad == 0 && kRad == 0))
-        newMatrix->rotate(hRad, kRad, 0);
-    
-    newMatrix->maxMillers(maxMillers, maxResolution);
+    lastRotatedMatrix->maxMillers(maxMillers, maxResolution);
     
     logged << "Integrating to maximum Miller indices: (" << maxMillers[0] << ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
     
@@ -256,18 +250,8 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                 if (ccp4spg_is_sysabs(spaceGroup, h, k, l))
                     continue;
                 
-                MillerPtr newMiller = MillerPtr(new Miller(NULL, h, k, l));
-                newMiller->setImageAndIOMRefiner(getImage(), shared_from_this());
-                newMiller->setMatrix(lastRotatedMatrix);
-
-                if (rough == false)
-                {
-                    nearbyMillers.push_back(newMiller);
-                    continue;
-                }
-
                 vec hkl = new_vector(h, k, l);
-                newMatrix->multiplyVector(&hkl);
+                lastRotatedMatrix->multiplyVector(&hkl);
                 
                 if (hkl.l > 0)
                     continue;
@@ -304,6 +288,9 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                 if (h == 0 && k == 0 && l == 0)
                     continue;
                 
+                MillerPtr newMiller = MillerPtr(new Miller(NULL, h, k, l));
+                newMiller->setImageAndIOMRefiner(getImage(), shared_from_this());
+                newMiller->setMatrix(lastRotatedMatrix);
                 nearbyMillers.push_back(newMiller);
             }
         }
@@ -953,8 +940,8 @@ bool IOMRefiner::isGoodSolution()
     vector<double> wavelengths;
     vector<int> frequencies;
     
+    calculateOnce();
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
-    
     
     double totalMean = 0;
     double totalStdev = 0;
@@ -1057,7 +1044,7 @@ bool IOMRefiner::isGoodSolution()
         details << "(" << getImage()->getFilename() << ") However, standard deviation too high (" << lastStdev << " vs " << badSolutionStdev << ")" << std::endl;
     }
     
-    details << "Decision: " << (good ? "keep." : "throw away.") << std::endl;
+    details << "(" << getImage()->getFilename() << ") Decision: " << (good ? "keep." : "throw away.") << std::endl;
     
     Logger::mainLogger->addStream(&details, LogLevelNormal);
     
@@ -1066,6 +1053,7 @@ bool IOMRefiner::isGoodSolution()
 
 void IOMRefiner::calculateOnce()
 {
+    needsReintegrating = true;
     calculateNearbyMillers(true);
     checkAllMillers(maxResolution, testBandwidth);
     
@@ -1139,7 +1127,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         miller->setMtzParent(&*mtz);
         
         int index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
-                                               mtz->getLowGroup(), false);
+                                                   mtz->getLowGroup(), false);
         
         ReflectionPtr found = ReflectionPtr();
         mtz->findReflectionWithId(index, &found);

@@ -187,6 +187,13 @@ public:
     vec getTransformedHKL(MatrixPtr matrix = MatrixPtr());
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
     
+    void setHKL(int _h, int _k, int _l)
+    {
+        h = _h;
+        k = _k;
+        l = _l;
+    }
+    
     DetectorPtr getDetector()
     {
         return lastDetector.lock();
