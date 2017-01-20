@@ -333,8 +333,9 @@ Coord Spot::getXY()
 {
     if (Detector::isActive())
     {
-        vec arrangedPos;
-        Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+        vec arrangedPos = new_vector(FLT_MAX, FLT_MAX, FLT_MAX);
+        
+        DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
         
         return std::make_pair(arrangedPos.h, arrangedPos.k);
     }
@@ -476,7 +477,7 @@ vec Spot::estimatedVector()
     if (Detector::isActive())
     {
         vec arrangedPos;
-        DetectorPtr detector = Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(x, y, &arrangedPos);
+        DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
         
         if (detector)
         {

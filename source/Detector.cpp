@@ -356,7 +356,7 @@ DetectorPtr Detector::spotToAbsoluteVec(SpotPtr spot, vec *arrangedPos)
 {
     if (spot->getDetector())
     {
-        spotCoordToAbsoluteVec(spot->getRawXY().first, spot->getRawXY().second, arrangedPos);
+        spot->getDetector()->spotCoordToAbsoluteVec(spot->getRawXY().first, spot->getRawXY().second, arrangedPos);
         return spot->getDetector();
     }
     

@@ -294,7 +294,7 @@ public:
     
     /* If you don't know the detector panel, find it using this function */
     DetectorPtr findDetectorPanelForSpotCoord(double xSpot, double ySpot);
-    
+
     /* Both at once - ask Master Panel */
     DetectorPtr findDetectorAndSpotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
                                                       vec *arrangedPos);
