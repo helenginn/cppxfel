@@ -347,7 +347,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     panelMaps.push_back(panelMap);
     
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
-    std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(0, 2));
+    std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(2, 0));
     
     DetectorPtr master = DetectorPtr(new Detector(detectorDistance, beamCentre[0], beamCentre[1]));
     Detector::setMaster(master);
