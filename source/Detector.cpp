@@ -597,7 +597,59 @@ std::string Detector::writeGeometryFile(int indentCount)
     return output.str();
 }
 
-// MARK: Generate resolution histogram
+// MARK: Resolution things.
+
+void updateMinMax(double *min, double *max, double value)
+{
+    if (value < *min)
+    {
+        *min = value;
+    }
+    if (value > *max)
+    {
+        *max = value;
+    }
+}
+
+void Detector::resolutionLimits(double *min, double *max)
+{
+    if (isLUCA())
+    {
+        *min = FLT_MAX;
+        *max = 0;
+    }
+    
+    if (hasChildren())
+    {
+        for (int i = 0; i < childrenCount(); i++)
+        {
+            double myChildMin, myChildMax;
+            getChild(i)->resolutionLimits(&myChildMin, &myChildMax);
+            updateMinMax(min, max, myChildMin);
+            updateMinMax(min, max, myChildMax);
+        }
+    }
+    else
+    {
+        double myMin = FLT_MAX;
+        double myMax = 0;
+        vec arrangedPos = new_vector(0, 0, 0);
+        spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedTopLeftY, &arrangedPos);
+        updateMinMax(&myMin, &myMax, length_of_vector(arrangedPos));
+        
+        spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedBottomRightY, &arrangedPos);
+        updateMinMax(&myMin, &myMax, length_of_vector(arrangedPos));
+
+        spotCoordToAbsoluteVec(unarrangedBottomRightX, unarrangedTopLeftY, &arrangedPos);
+        updateMinMax(&myMin, &myMax, length_of_vector(arrangedPos));
+        
+        spotCoordToAbsoluteVec(unarrangedBottomRightX, unarrangedBottomRightY, &arrangedPos);
+        updateMinMax(&myMin, &myMax, length_of_vector(arrangedPos));
+        
+        *min = myMin;
+        *max = myMax;
+    }
+}
 
 CSVPtr Detector::resolutionHistogram()
 {

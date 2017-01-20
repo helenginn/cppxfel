@@ -19,6 +19,7 @@
 #include "Miller.h"
 #include "Hdf5Crystal.h"
 #include "RefinementStrategy.h"
+#include "Detector.h"
 
 #define BIG_BANDWIDTH 0.015
 #define DISTANCE_TOLERANCE 0.01
@@ -49,7 +50,32 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     maxResolution = FileParser::getKey(
                                        "MAX_INTEGRATED_RESOLUTION", MAX_INTEGRATED_RESOLUTION);;
     minResolution = FileParser::getKey(
-                                       "MIN_INTEGRATED_RESOLUTION", 0.0);;
+                                       "MIN_INTEGRATED_RESOLUTION", 0.0);
+    
+    if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION") || !FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
+    {
+        if (Detector::isActive())
+        {
+            double min, max;
+            Detector::getMaster()->resolutionLimits(&min, &max);
+            
+            if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION"))
+            {
+                minResolution = 1 / min;
+                if (min == 0) minResolution = 0;
+            }
+            
+            if (!FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
+            {
+                maxResolution = 1 / max;
+                if (max == 0) maxResolution = 0;
+            }
+            
+            logged << "Setting minimum resolution to " << minResolution << " Å and max resolution to " << maxResolution << " Å." << std::endl;
+            sendLog(LogLevelDetailed);
+        }
+    }
+    
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                     METROLOGY_SEARCH_SIZE);
     

@@ -417,6 +417,10 @@ public:
     /* Special image functions */
     
     static void drawSpecialImage(std::string filename = "");
+    
+    /* Resolution fun */
+    
+    void resolutionLimits(double *min, double *max);
 };
 
 #endif /* defined(__cppxfel__Detector__) */
