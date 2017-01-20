@@ -652,7 +652,7 @@ double IOMRefiner::hkScore(bool silent)
     {
         MillerPtr miller = millers[i];
         
-        if (millerWithinBandwidth(miller) && miller->reachesThreshold())
+        if (/*millerWithinBandwidth(miller) && */miller->reachesThreshold())
         {
             wavelengths.push_back(miller->getWavelength());
         }
@@ -669,6 +669,8 @@ double IOMRefiner::hkScore(bool silent)
     {
         stdev = standard_deviation(&wavelengths);
     }
+    
+    stdev /= getTotalReflections();
     
     double score = stdev;
     
