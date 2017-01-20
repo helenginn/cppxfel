@@ -137,6 +137,7 @@ public:
         memcpy(components, newComponents, sizeof(double) * 16);
     }
     
+    void prettyPrint();
     double determinant();
     Matrix operator*=(Matrix &b);
     Matrix operator*(Matrix &b);
