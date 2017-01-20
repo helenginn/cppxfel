@@ -15,10 +15,10 @@
 
 typedef enum
 {
-    FreeElectronLaserTypeLCLS,
-    FreeElectronLaserTypeSACLA,
-    FreeElectronLaserTypeEuropeanXFEL,
-    FreeElectronLaserTypeSwissFEL
+    FreeElectronLaserTypeLCLS = 0,
+    FreeElectronLaserTypeSACLA = 1,
+    FreeElectronLaserTypeEuropeanXFEL = 2,
+    FreeElectronLaserTypeSwissFEL = 3
 } FreeElectronLaserType;
 
 class Hdf5ManagerCheetah : public Hdf5Manager
