@@ -415,6 +415,7 @@ void FileParser::generateFunctionList()
     parserMap["POWDER_PATTERN_STEP_ANGLE"] = simpleFloat;
     parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
     parserMap["LOW_MEMORY_MODE"] = simpleBool;
+    parserMap["GEOMETRY_FORMAT"] = simpleInt;
     
     // force spot finding
     
