@@ -588,7 +588,7 @@ void Spot::spotsAndVectorsToResolution(double lowRes, double highRes, std::vecto
     }
 }
 
-void Spot::addToMask(int *mask, int width)
+void Spot::addToMask(int *mask, int width, int height)
 {
     int padding = (backgroundPadding - 1) / 2 + 2;
     
@@ -603,6 +603,12 @@ void Spot::addToMask(int *mask, int width)
             int yShifted = yPos + j;
             
             int position = width * yShifted + xShifted;
+            
+            if (position > width * height)
+            {
+                continue;
+            }
+            
             mask[position] = 1;
         }
     }

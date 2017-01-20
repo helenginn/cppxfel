@@ -46,7 +46,7 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
             {
                 spot->recentreInWindow();
                 spots->push_back(spot);
-                spot->addToMask(mask, xDim);
+                spot->addToMask(mask, xDim, yDim);
             }
             
             if (verbose)

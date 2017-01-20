@@ -48,7 +48,7 @@ public:
 	double maximumLift(ImagePtr image, int x, int y, bool ignoreCovers);
 	double maximumLift(ImagePtr image, int x, int y);
 	void makeProbe(int height, int background, int size, int backPadding = 0);
-    void addToMask(int *mask, int width);
+    void addToMask(int *mask, int width, int height);
 	void setXY(double x, double y);
     void setXYFromEstimatedVector(vec hkl);
 	double scatteringAngle(ImagePtr image = ImagePtr());
