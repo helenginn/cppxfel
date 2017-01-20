@@ -191,7 +191,7 @@ void FileParser::generateDeprecatedList()
     deprecatedList["MAX_RESOLUTION_RLP_SIZE"] = "This option has been removed as it provided no benefit.";
     deprecatedList["REFINE_B_FACTOR"] = "This option has been replaced by assigning SCALING_STRATEGY 4. For now.";
     deprecatedList["HDF5_OUTPUT_FILE"] = "This option is not supported yet.";
-
+    deprecatedList["REJECT_IF_SPOT_COUNT"] = "This option was badly worded. Please change this to REJECT_OVER_SPOT_COUNT.";
 }
 
 void FileParser::generateFunctionList()
@@ -410,7 +410,7 @@ void FileParser::generateFunctionList()
     parserMap["CHECKING_COMMON_SPOTS"] = simpleBool;
     parserMap["EXCLUDE_WEAKEST_SPOT_FRACTION"] = simpleFloat;
     parserMap["REJECT_UNDER_SPOT_COUNT"] = simpleInt;
-    parserMap["REJECT_IF_SPOT_COUNT"] = simpleInt;
+    parserMap["REJECT_OVER_SPOT_COUNT"] = simpleInt;
     parserMap["POWDER_PATTERN_STEP"] = simpleFloat;
     parserMap["POWDER_PATTERN_STEP_ANGLE"] = simpleFloat;
     parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;

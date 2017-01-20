@@ -1484,7 +1484,7 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
 
 bool Image::acceptableSpotCount()
 {
-    int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
+    int maxSpots = FileParser::getKey("REJECT_OVER_SPOT_COUNT", 4000);
     int minSpots = FileParser::getKey("REJECT_UNDER_SPOT_COUNT", 0);
 
     return (spotCount() > minSpots) && (spotCount() < maxSpots);
@@ -1507,7 +1507,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
     }
     
-    int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
+    int maxSpots = FileParser::getKey("REJECT_OVER_SPOT_COUNT", 4000);
     int minSpots = FileParser::getKey("REJECT_UNDER_SPOT_COUNT", 0);
     
     if (maxSpots > 0)
