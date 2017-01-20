@@ -36,6 +36,8 @@ class CSV
 private:
     std::vector<std::string> headers;
     std::vector<Entry> entries;
+    double minX, minY, maxX, maxY;
+    bool didSetMinMaxXY;
     void minMaxCol(int col, double *min, double *max);
     std::string mapToAscii(Plot plot);
     int findHeader(std::string whichHeader);
@@ -43,6 +45,8 @@ private:
 public:
     CSV(int count, ...)
     {
+        didSetMinMaxXY = false;
+        
         va_list arguments;
         va_start(arguments, count);
         
@@ -109,6 +113,15 @@ public:
     int headerCount()
     {
         return (int)headers.size();
+    }
+    
+    void setMinMaxXY(double _minX, double _minY, double _maxX, double _maxY)
+    {
+        minX = _minX;
+        minY = _minY;
+        maxX = _maxX;
+        maxY = _maxY;
+        didSetMinMaxXY = true;
     }
 };
 

@@ -249,11 +249,19 @@ std::string CSV::plotColumns(int col1, int col2)
     }
     
     double xMin, xMax, yMin, yMax;
-    minMaxCol(col1, &xMin, &xMax);
-    minMaxCol(col2, &yMin, &yMax);
     
-  //  double xStep = (xMax - xMin) / (double)graphCols;
-  //  double yStep = (yMax - yMin) / (double)graphLines;
+    if (!didSetMinMaxXY)
+    {
+        minMaxCol(col1, &xMin, &xMax);
+        minMaxCol(col2, &yMin, &yMax);
+    }
+    else
+    {
+        xMin = minX;
+        xMax = maxX;
+        yMin = minY;
+        yMax = maxY;
+    }
     
     for (int i = 0; i < graphLines; i++)
     {
@@ -295,6 +303,9 @@ std::string CSV::plotColumns(int col1, int col2)
         double xValue = entries[i][col1];
         double yValue = entries[i][col2];
         
+        if (xValue < xMin || xValue > xMax || yValue < yMin || yValue > yMax)
+            continue;
+        
         double xProportion = (xValue - xMin) / (xMax - xMin);
         double yProportion = (yValue - yMin) / (yMax - yMin);
         
@@ -319,13 +330,25 @@ std::string CSV::plotColumns(int col1, int col2)
         }
         else if (currentChar == ':')
         {
+            plot[yFullCharsIn][xFullCharsIn] = '^';
+        }
+        else if (currentChar == '^')
+        {
             plot[yFullCharsIn][xFullCharsIn] = '*';
         }
         else if (currentChar == '*')
         {
+            plot[yFullCharsIn][xFullCharsIn] = 'x';
+        }
+        else if (currentChar == 'x')
+        {
             plot[yFullCharsIn][xFullCharsIn] = '#';
         }
         else if (currentChar == '#')
+        {
+            plot[yFullCharsIn][xFullCharsIn] = '%';
+        }
+        else if (currentChar == '%')
         {
             plot[yFullCharsIn][xFullCharsIn] = '@';
         }
