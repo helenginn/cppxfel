@@ -42,6 +42,7 @@ public:
     virtual bool dataForImage(std::string address, void **buffer);
     virtual int hdf5MallocBytesForImage(std::string address, void **buffer);
     virtual size_t bytesPerTypeForImageAddress(std::string address);
+    virtual bool getImageSize(std::string address, int *dims);
 };
 
 #endif /* defined(__cppxfel__Hdf5ManagerCheetahLCLS__) */

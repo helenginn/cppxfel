@@ -24,7 +24,8 @@ public:
     virtual ~Hdf5ManagerCheetahSacla() {};
     virtual double wavelengthForImage(std::string address, void **buffer);
     virtual int hdf5MallocBytesForImage(std::string address, void **buffer);
-    
+    virtual bool getImageSize(std::string address, int *dims);
+   
     size_t bytesPerTypeForImageAddress(std::string address);
     
     Hdf5ManagerCheetahSacla(std::string newName) : Hdf5ManagerCheetah(newName)

@@ -124,7 +124,18 @@ void Hdf5Image::loadImage()
     
     if (size > 0)
     {
-        bool success = manager->dataForImage(address, (void **)&buffer);
+        int dims[2];
+        bool success = manager->getImageSize(address, dims);
+        
+        xDim = dims[1];
+        yDim = dims[0];
+        
+        if (!success)
+        {
+            failureMessage();
+        }
+        
+        success = manager->dataForImage(address, (void **)&buffer);
         
         if (!success)
         {

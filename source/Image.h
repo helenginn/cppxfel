@@ -57,9 +57,6 @@ private:
 	/* Shoebox must be n by n where n is an odd number */
 	int shoebox[7][7];
 
-	int xDim;
-	int yDim;
-
 	double beamX;
 	double beamY;
 	double mmPerPixel;
@@ -95,6 +92,9 @@ private:
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
     double resolutionAtPixel(double x, double y);
 protected:
+    int xDim;
+    int yDim;
+    
     double standardDeviationOfPixels();
     std::vector<SpotPtr> spots;
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
