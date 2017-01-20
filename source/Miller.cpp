@@ -39,6 +39,7 @@ int Miller::peakSize = 0;
 bool Miller::correctedPartiality = false;
 bool Miller::absoluteIntensity = false;
 double Miller::intensityThreshold = 0;
+bool Miller::individualWavelength = false;
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
@@ -53,6 +54,7 @@ void Miller::setupStaticVariables()
     
     model = FileParser::getKey("BINARY_PARTIALITY", false) ? PartialityModelBinary : PartialityModelScaled;
     
+    individualWavelength = FileParser::getKey("MILLER_INDIVIDUAL_WAVELENGTHS", false);
     normalised = FileParser::getKey("NORMALISE_PARTIALITIES", true);
     correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
     polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
@@ -259,6 +261,8 @@ double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double
     
     vec oldIncrement = low_wl_pos;
     
+    predictedWavelength = 0;
+    
     for (double slice = p + interval; slice < q; slice += interval)
     {
         vec newIncrement = incrementedPosition(low_wl_pos, high_wl_pos, slice);
@@ -276,12 +280,25 @@ double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double
         
         double totalSlice = normalSlice * sphereSlice;
         
+        predictedWavelength += totalSlice * fabs(qBandwidth - pBandwidth);
         total_integral += totalSlice;
         total_normal += normalSlice;
         total_sphere += sphereSlice;
     }
     
+    predictedWavelength /= total_integral;
+    
     return total_integral;
+}
+
+void Miller::recalculatePredictedWavelength()
+{
+    bool oldCorrected = correctedPartiality;
+    
+    correctedPartiality = true;
+    recalculatePartiality(matrix, getMtzParent()->getMosaicity(), getMtzParent()->getSpotSize(), getMtzParent()->getWavelength(), getMtzParent()->getBandwidth(), getMtzParent()->getExponent());
+    
+    correctedPartiality = oldCorrected;
 }
 
 Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
@@ -974,6 +991,19 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
     return isym != 0;
 }
 
+double Miller::getPredictedWavelength()
+{
+    if (!individualWavelength)
+    {
+        return getImage()->getWavelength();
+    }
+    else
+    {
+        recalculatePredictedWavelength();
+        return predictedWavelength;
+    }
+}
+
 void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
                                 int *y, bool shouldSearch)
 {
@@ -1031,9 +1061,8 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     hkl.k = hkl.h;
     hkl.h = -tmp;
 
-    bool individual = FileParser::getKey("MILLER_INDIVIDUAL_WAVELENGTHS", false);
     
-    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl, individual ? wavelength : 0);
+    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl, individualWavelength ? wavelength : 0);
     
     lastX = int(coord.first);
     lastY = int(coord.second);

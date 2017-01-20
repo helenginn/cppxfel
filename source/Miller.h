@@ -47,6 +47,7 @@ private:
     static float trickyRes;
     static bool setupStatic;
     static int peakSize;
+    static bool individualWavelength;
     
     short int h;
     short int k;
@@ -66,6 +67,7 @@ private:
     float lastPeakY;
     float correctedX;
     float correctedY;
+    double predictedWavelength;
     vec shiftedRay;
     
     float bFactorScale; // should be extracted from Mtz.
@@ -85,7 +87,8 @@ private:
     double integrate_sphere_uniform(double p, double q);
     double integrate_sphere_gaussian(double p, double q);
     double integrate_sphere(double p, double q);
-    
+    void recalculatePredictedWavelength();
+
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
     
     BeamPtr beam;
@@ -473,6 +476,8 @@ public:
     {
         return sigma;
     }
+    
+    double getPredictedWavelength();
     
     vec getShiftedRay();
     
