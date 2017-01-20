@@ -17,6 +17,8 @@
 double Detector::mmPerPixel = 0;
 DetectorPtr Detector::masterPanel = DetectorPtr();
 int Detector::detectorActive = -1;
+bool Detector::noisy = false;
+ImagePtr Detector::drawImage = ImagePtr();
 
 // MARK: initialisation and constructors
 
@@ -61,6 +63,18 @@ Detector::Detector(double distance, double beamX, double beamY)
     arrangedMidPoint = new_vector(-beamX, -beamY, pixDistance);
 }
 
+Detector::Detector(DetectorPtr parent, vec arrangedMiddle, std::string tag)
+{
+    initialiseZeros();
+    
+    setSlowDirection(0, 1, 0);
+    setFastDirection(1, 0, 0);
+    
+    arrangedMidPoint = arrangedMiddle;
+    setParent(parent);
+    setTag(tag);
+}
+
 Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarrangedBottomRight,
                    vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle)
 {
@@ -80,6 +94,17 @@ Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarranged
     {
         setArrangedTopLeft(_arrangedTopLeft.h, _arrangedTopLeft.k, _arrangedTopLeft.l);
     }
+    
+    if (!parent->isLUCA())
+    {
+        removeMidPointRelativeToParent();
+    }
+}
+
+void Detector::removeMidPointRelativeToParent()
+{
+    vec parentPos = getParent()->midPointOffsetFromParent(false);
+    take_vector_away_from_vector(parentPos, &arrangedMidPoint);
 }
 
 // MARK: Housekeeping and additional initialisation
@@ -165,37 +190,67 @@ vec Detector::getRotatedFastDirection()
     return fastRotated;
 }
 
-vec Detector::midPointOffsetFromParent()
+vec Detector::midPointOffsetFromParent(bool useParent)
 {
     if (isLUCA())
     {
         return arrangedMidPoint;
     }
     
-    vec parentMidPoint = getParent()->midPointOffsetFromParent();
+    vec parentMidPoint = new_vector(0, 0, 0);
+    
+    if (useParent)
+    {
+        parentMidPoint = getParent()->midPointOffsetFromParent();
+    }
     
     vec slow = getParent()->getRotatedSlowDirection();
     vec fast = getParent()->getRotatedFastDirection();
     
     multiply_vector(&slow, arrangedMidPoint.k);
     multiply_vector(&fast, arrangedMidPoint.h);
+/*    if (noisy && (getTag() == "q0" || getTag() == "q1"))
+    {
+        logged << "Addition for " << getTag() << " is " << prettyDesc(slow) << " and " << prettyDesc(fast) << std::endl;
+        sendLog();
+    }*/
     
-    vec modOffset = parentMidPoint;
-    add_vector_to_vector(&modOffset, slow);
-    add_vector_to_vector(&modOffset, fast);
-    modOffset.l += arrangedMidPoint.l;
+    add_vector_to_vector(&parentMidPoint, slow);
+    add_vector_to_vector(&parentMidPoint, fast);
+    parentMidPoint.l += arrangedMidPoint.l;
     
-    return modOffset;
+    return parentMidPoint;
 }
 
-void Detector::cumulativeMidPoint(vec *cumulative)
+void Detector::fullDescription()
 {
-    if (hasNoChildren())
-    {
-        *cumulative = new_vector(0, 0, 0);
-    }
+    Detector::getMaster()->description(true);
+}
+
+void Detector::description(bool propogate)
+{
+    logged << "I am detector " << getTag();
+    if (!isLUCA())
+        logged << " and my parent is " << getParent()->getTag();
+    logged  << std::endl << "My corrected midpoint is " << prettyDesc(midPointOffsetFromParent()) << std::endl;
+    logged << "My midpoint relative to my parent is " << prettyDesc(midPointOffsetFromParent(false)) << std::endl;
+    logged << "I am " << (isLUCA() ? "" : "not") << " the master detector." << std::endl;
+    logged << "I have " << childrenCount() << " children." << std::endl << std::endl;
+    sendLog();
     
-    add_vector_to_vector(cumulative, midPointOffsetFromParent());
+    if (propogate && hasChildren())
+    {
+        logged << "Now for my children (" << getTag() << ")..." << std::endl;
+        sendLog();
+        
+        for (int i = 0; i < childrenCount(); i++)
+        {
+            getChild(i)->description(true);
+        }
+        
+        logged << "Finished children (" << getTag() << ")..." << std::endl;
+        sendLog();
+    }
 }
 
 double Detector::halfSlow()
@@ -256,8 +311,7 @@ void Detector::spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
          * This could probably be improved for speed by
          * storing some pre-calculations automatically. */
         
-        vec cumulative = new_vector(0, 0, 0);
-        cumulativeMidPoint(&cumulative);
+        vec cumulative = midPointOffsetFromParent();
         
         add_vector_to_vector(&cumulative, *arrangedPos);
         
@@ -333,8 +387,7 @@ void Detector::intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *y
     
     /* Need the cumulative midpoint for this panel */
     
-    vec cumulative;
-    cumulativeMidPoint(&cumulative);
+    vec cumulative = midPointOffsetFromParent();
     
     /* Need offset from centre of the panel */
     take_vector_away_from_vector(cumulative, &absoluteVec);
@@ -354,8 +407,7 @@ void Detector::intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *y
 
 void Detector::intersectionWithRay(vec ray, vec *intersection)
 {
-    vec cumulative;
-    cumulativeMidPoint(&cumulative);
+    vec cumulative = midPointOffsetFromParent();
     
     double t = cumulative.h * cross.h + cumulative.k * cross.k + cumulative.l * cross.l;
     t /= (cross.h * ray.h + cross.k * ray.k + cross.l * ray.l);
@@ -420,7 +472,7 @@ DetectorPtr Detector::detectorForRayIntersection(vec ray, vec *intersection)
 DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
 {
     vec hkl = miller->getTransformedHKL();
-    double imageWavelength = miller->getImage()->getWavelength();
+    double imageWavelength = miller->getPredictedWavelength();
     double tmp = hkl.k;
     hkl.k = -hkl.h;
     hkl.h = -tmp;
@@ -638,7 +690,7 @@ double Detector::millerScore(bool ascii, bool stdev)
         }
     }
 
-    std::vector<double> xs, ys;
+    std::vector<double> distances;
     
     CSV *csv;
     
@@ -647,36 +699,60 @@ double Detector::millerScore(bool ascii, bool stdev)
         csv = new CSV(2, "x", "y");
     }
     
+    double leastSquares = 0;
+    
     for (int i = 0; i < xShifts.size(); i++)
     {
-        xs.push_back(*xShifts[i]);
-        ys.push_back(*yShifts[i]);
+        double x = *xShifts[i];
+        double y = *yShifts[i];
+        
+        double distance = sqrt(x * x + y * y);
         
         if (ascii)
         {
-            csv->addEntry(0, xs[i], ys[i]);
+            csv->addEntry(0, x, y);
         }
+        
+        leastSquares += distance;
+        distances.push_back(distance);
     }
+    
+    leastSquares /= xShifts.size();
 
     if (ascii)
     {
+        logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;
+        sendLog();
+        csv->setMinMaxXY(-3.5, -3.5, +3.5, +3.5);
         csv->plotColumns(0, 1);
         delete csv;
     }
     
-    double xMean = 0;
-    double yMean = 0;
+    double aScore = 0;
     
     if (stdev)
     {
-        xMean = weighted_mean(&xs);
-        yMean = weighted_mean(&ys);
+        double mean = weighted_mean(&distances);
+        for (int i = 0; i < distances.size(); i++)
+        {
+            double add = abs(distances[i] - mean);
+            aScore += add;
+        }
+        
+        aScore /= distances.size();
     }
-    
-    double stdevX = standard_deviation(&xs, NULL, xMean);
-    double stdevY = standard_deviation(&ys, NULL, yMean);
-    double aScore = stdevX + stdevY;
+    else
+    {
+        return leastSquares;
+    }
     
     return aScore;
 }
 
+void Detector::drawSpecialImage(std::string filename)
+{
+    if (!drawImage)
+        return;
+    
+    drawImage->drawSpotsOnPNG(filename);
+}

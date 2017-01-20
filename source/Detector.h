@@ -21,6 +21,8 @@ private:
     static int detectorActive;
     static double mmPerPixel;
     static DetectorPtr masterPanel;
+    static bool noisy;
+    static ImagePtr drawImage;
     
     /* MARK: Simple type class members */
     
@@ -94,10 +96,9 @@ private:
     
     void spotCoordToRelativeVec(double unarrangedX, double unarrangedY,
                                 vec *arrangedPos);
-    vec midPointOffsetFromParent();
+    vec midPointOffsetFromParent(bool useParent = true);
     void cumulativeMidPoint(vec *cumulative);
-    
-    
+    void removeMidPointRelativeToParent();
 
 public:
     /* Initialise all variables to zero */
@@ -111,6 +112,12 @@ public:
     /* Follow with parent->addChild to complete the process */
     Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarrangedBottomRight,
              vec slowDir, vec fastDir, vec arrangedTopLeft, bool lastIsMiddle = false);
+    
+    /* For detectors who have children and are not the master */
+    Detector(DetectorPtr parent, vec arrangedMiddle, std::string tag);
+    
+    static void fullDescription();
+    void description(bool propogate = false);
     
     /* Are we using detectors? */
     
@@ -391,11 +398,25 @@ public:
         return static_cast<Detector *>(object)->rotationAngles.l;
     }
     
-    /* Scoring functions */
+    static void setNoisy(bool _noisy)
+    {
+        noisy = _noisy;
+    }
+    
+    static void setDrawImage(ImagePtr image)
+    {
+        drawImage = image;
+    }
+    
+    /* MARK: Scoring functions */
     
     double millerScore(bool ascii = false, bool stdev = false);
     static double millerScoreWrapper(void *object);
     static double millerStdevScoreWrapper(void *object);
+    
+    /* Special image functions */
+    
+    static void drawSpecialImage(std::string filename = "");
 };
 
 #endif /* defined(__cppxfel__Detector__) */

@@ -13,12 +13,15 @@
 #include "parameters.h"
 #include "LoggableObject.h"
 
+typedef std::map<std::string, std::string> PanelMap;
+
 class GeometryParser : public LoggableObject
 {
 private:
     std::string filename;
     GeometryFormat format;
     
+    DetectorPtr makeDetectorFromPanelMap(PanelMap map, DetectorPtr parent);
     void parseCrystFELLines(std::vector<std::string> lines);
     void parseCppxfelLines(std::vector<std::string> lines);
     

@@ -14,15 +14,10 @@
 #include "Vector.h"
 #include <fstream>
 
+
 GeometryParser::GeometryParser(std::string aFilename, GeometryFormat aFormat)
 {
     filename = aFilename;
-    
-    if (!FileReader::exists(filename))
-    {
-        logged << "File " << filename << " does not exist." << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
-    }
     
     format = aFormat;
 }
@@ -202,9 +197,63 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
     Detector::getMaster()->applyRotations();
 }
 
+DetectorPtr GeometryParser::makeDetectorFromPanelMap(PanelMap panelMap, DetectorPtr parent)
+{
+    int    min_fs;
+    int    min_ss;
+    int    max_fs;
+    int    max_ss;
+    double fs_x;
+    double fs_y;
+    double fs_z;
+    double ss_x;
+    double ss_y;
+    double ss_z;
+    double corner_x;
+    double corner_y;
+    std::string name;
+    
+    try
+    {
+        min_fs = atoi(panelMap["min_fs"].c_str());
+        min_ss = atoi(panelMap["min_ss"].c_str());
+        max_fs = atoi(panelMap["max_fs"].c_str());
+        max_ss = atoi(panelMap["max_ss"].c_str());
+        fs_x = atof(panelMap["fs_x"].c_str());
+        fs_y = atof(panelMap["fs_y"].c_str());
+        fs_z = atof(panelMap["fs_z"].c_str());
+        ss_x = atof(panelMap["ss_x"].c_str());
+        ss_y = atof(panelMap["ss_y"].c_str());
+        ss_z = atof(panelMap["ss_z"].c_str());
+        corner_x = atof(panelMap["corner_x"].c_str());
+        corner_y = atof(panelMap["corner_y"].c_str());
+        name = panelMap["name"];
+    }
+    catch (std::exception e)
+    {
+        logged << "Missing a vital parameter in panel" << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+    }
+    
+    Coord topLeft = std::make_pair(min_fs, min_ss);
+    Coord bottomRight = std::make_pair(max_fs, max_ss);
+    vec fastAxis = new_vector(fs_x, fs_y, fs_z);
+    vec slowAxis = new_vector(ss_x, ss_y, ss_z);
+    vec arrangedTopLeft = new_vector(corner_x, corner_y, 0);
+    
+    DetectorPtr segment = DetectorPtr(new Detector(parent, topLeft, bottomRight,
+                                                   slowAxis, fastAxis, arrangedTopLeft));
+    
+    segment->setRotationAngles(0, 0, 0);
+    segment->setTag(name);
+    parent->addChild(segment);
+
+    return segment;
+}
+
 void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
 {
-    std::vector<std::map<std::string, std::string> > panelMaps;
+    std::vector<PanelMap> panelMaps;
     
     std::string lastPanel = "";
     std::map<std::string, std::string> panelMap;
@@ -222,7 +271,9 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
             continue;
         }
         
-        if (!(forwardSlashes[0].length() == 2 || forwardSlashes[0].length() == 4))
+        unsigned long nameLength = forwardSlashes[0].length();
+        
+        if (!(nameLength == 2 || (nameLength >= 4 && nameLength <= 5)))
         {
             continue;
         }
@@ -295,74 +346,74 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     
     panelMaps.push_back(panelMap);
     
+    double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
+    std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(0, 2));
+    
+    DetectorPtr master = DetectorPtr(new Detector(detectorDistance, beamCentre[0], beamCentre[1]));
+    Detector::setMaster(master);
+    
+    logged << "Making the assumption that this detector is a " << (isSacla ? "MPCCD" : "CSPAD") << " detector." << std::endl;
+    sendLog();
+    
     if (isSacla)
     {
-        double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
-        std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(0, 2));
-        
-        DetectorPtr master = DetectorPtr(new Detector(detectorDistance, beamCentre[0], beamCentre[1]));
-        Detector::setMaster(master);
-        
         for (int i = 0; i < panelMaps.size(); i++)
         {
-            std::map<std::string, std::string> panelMap = panelMaps[i];
-            int    min_fs;
-            int    min_ss;
-            int    max_fs;
-            int    max_ss;
-            double fs_x;
-            double fs_y;
-            double fs_z;
-            double ss_x;
-            double ss_y;
-            double ss_z;
-            double corner_x;
-            double corner_y;
-            std::string name;
-            
-            try
-            {
-                min_fs = atoi(panelMap["min_fs"].c_str());
-                min_ss = atoi(panelMap["min_ss"].c_str());
-                max_fs = atoi(panelMap["max_fs"].c_str());
-                max_ss = atoi(panelMap["max_ss"].c_str());
-                fs_x = atof(panelMap["fs_x"].c_str());
-                fs_y = atof(panelMap["fs_y"].c_str());
-                fs_z = atof(panelMap["fs_z"].c_str());
-                ss_x = atof(panelMap["ss_x"].c_str());
-                ss_y = atof(panelMap["ss_y"].c_str());
-                ss_z = atof(panelMap["ss_z"].c_str());
-                corner_x = atof(panelMap["corner_x"].c_str());
-                corner_y = atof(panelMap["corner_y"].c_str());
-                name = panelMap["name"];
-            }
-            catch (std::exception e)
-            {
-                logged << "Missing a vital parameter in panel" << std::endl;
-                Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
-            }
-            
-            Coord topLeft = std::make_pair(min_fs, min_ss);
-            Coord bottomRight = std::make_pair(max_fs, max_ss);
-            vec fastAxis = new_vector(fs_x, fs_y, fs_z);
-            vec slowAxis = new_vector(ss_x, ss_y, ss_z);
-            vec arrangedTopLeft = new_vector(corner_x, corner_y, 0);
-            
-            DetectorPtr segment = DetectorPtr(new Detector(master, topLeft, bottomRight,
-                                                           slowAxis, fastAxis, arrangedTopLeft));
-            
-            segment->setRotationAngles(0, 0, 0);
-            segment->setTag(name);
-            
-            master->addChild(segment);
+            DetectorPtr segment = makeDetectorFromPanelMap(panelMaps[i], master);
         }
         
-        master->setRotationAngles(0.2, 0.2, 0.2);
     }
+    else if (!isSacla) // for now, CSPAD
+    {
+        std::vector<DetectorPtr> quarters;
+        /* Top right */
+        DetectorPtr q0 = DetectorPtr(new Detector(master, new_vector(+441, +441, 0), "q0"));
+        master->addChild(q0);
+        quarters.push_back(q0);
+        
+        /* Bottom left */
+        DetectorPtr q1 = DetectorPtr(new Detector(master, new_vector(-441, +441, 0), "q1"));
+        master->addChild(q1);
+        quarters.push_back(q1);
+        
+        /* Top left */
+        DetectorPtr q2 = DetectorPtr(new Detector(master, new_vector(-441, -441, 0), "q2"));
+        master->addChild(q2);
+        quarters.push_back(q2);
+        
+        /* Bottom right */
+        DetectorPtr q3 = DetectorPtr(new Detector(master, new_vector(+441, -441, 0), "q3"));
+        master->addChild(q3);
+        quarters.push_back(q3);
+
+        for (int i = 0; i < panelMaps.size(); i++)
+        {
+            PanelMap map = panelMaps[i];
+            std::string name = map["name"];
+            if (name.length() < 4)
+            {
+                logged << "Huh?" << std::endl;
+                sendLog();
+            }
+            
+            int qNum = atoi(name.substr(1, 1).c_str());
+            
+            DetectorPtr myParent;
+            makeDetectorFromPanelMap(panelMaps[i], quarters[qNum]);
+        }
+    }
+
+    master->setRotationAngles(0, 0, 0);
 }
 
 void GeometryParser::parse()
 {
+    if (!FileReader::exists(filename))
+    {
+        logged << "File " << filename << " does not exist." << std::endl;
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+    }
+    
     std::string contents = FileReader::get_file_contents(filename.c_str());
     std::vector<std::string> lines = FileReader::split(contents, '\n');
     
@@ -374,6 +425,8 @@ void GeometryParser::parse()
     {
         parseCppxfelLines(lines);
     }
+    
+    Detector::fullDescription();
 }
 
 void GeometryParser::writeToFile(std::string newName)

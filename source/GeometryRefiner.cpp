@@ -20,7 +20,7 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
     
     strategy->setVerbose(true);
     strategy->setCycles(30);
-    strategy->setJobName("Detector" + detector->getTag());
+    strategy->setJobName("Detector " + detector->getTag());
 
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
     indexManagers.push_back(aManager);
@@ -57,18 +57,13 @@ GeometryRefiner::GeometryRefiner()
 
 void GeometryRefiner::refineGeometry()
 {
-    reportProgress();
+    Detector::setNoisy(true);
     
-    for (int i = 0; i < 2; i++)
-    {
-        cycleNum++;
-        refineMasterDetector();
-    }
-
-    for (int i = 0; i < 1; i++)
-    {
-        refineGeometryCycle();
-    }
+    reportProgress();
+    std::vector<DetectorPtr> detectors;
+    detectors.push_back(Detector::getMaster());
+    
+    geometryCycleForDetector(detectors);
     
     GeometryParser geomParser = GeometryParser("test.cppxfel_geom", GeometryFormatCppxfel);
     geomParser.writeToFile("new.cppxfel_geom");
@@ -76,6 +71,9 @@ void GeometryRefiner::refineGeometry()
 
 void GeometryRefiner::reportProgress()
 {
+    std::string filename = "special_image_" + i_to_str(refinementEvent) + ".png";
+    Detector::drawSpecialImage(filename);
+    
     double intraScore = IndexManager::pseudoScore(&*manager);
     manager->setPseudoScoreType(PseudoScoreTypeInterPanel);
     double interScore = IndexManager::pseudoScore(&*manager);
@@ -83,7 +81,8 @@ void GeometryRefiner::reportProgress()
     
     double intraIncrease = 100;
     double interIncrease = 100;
-    double mScore = Detector::getMaster()->millerScore(true);
+    double mScore = Detector::getMaster()->millerScore(true, false);
+    double sScore = Detector::getMaster()->millerScore(false, true);
     
     interIncrease = 100 * (interScore - lastInterScore) / interScore;
     intraIncrease = 100 * (intraScore - lastIntraScore) / intraScore;
@@ -100,12 +99,94 @@ void GeometryRefiner::reportProgress()
     << " (" << (intraIncrease > 0 ? "+" : "") << intraIncrease << "% from last round) " << std::endl;
     logged << "N: Progress score (event " << refinementEvent << ", inter-panel): " << interScore
     << " (" << (interIncrease > 0 ? "+" : "") << interIncrease << "% from last round)" << std::endl;
-    logged << "N: Progress score (event " << refinementEvent << ", miller): " << mScore << std::endl;
+    logged << "N: Progress score (event " << refinementEvent << ", miller mean): " << mScore << std::endl;
+    logged << "N: Progress score (event " << refinementEvent << ", miller stdev): " << sScore << std::endl;
     sendLog();
 
+    refinementEvent++;
+    
     sendLog();
 }
 
+void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detectors)
+{
+    std::ostringstream detectorList;
+    cycleNum++;
+    
+    for (int j = 0; j < detectors.size(); j++)
+    {
+        detectorList << detectors[j]->getTag() << " ";
+    }
+
+    
+    logged << "***************************************************" << std::endl;
+    logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
+    logged << "  Refining detector" << (detectors.size() == 1 ? "" : "s") << ": " << detectorList.str() << std::endl;
+    logged << "***************************************************" << std::endl << std::endl;
+    sendLog();
+
+    if (detectors[0]->isLUCA())
+    {
+        refineMasterDetector();
+    }
+    else
+    {
+        int maxThreads = FileParser::getMaxThreads();
+        boost::thread_group threads;
+        
+        for (int i = 0; i < maxThreads; i++)
+        {
+            boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 1);
+            threads.add_thread(thr);
+        }
+        
+        threads.join_all();
+        reportProgress();
+        manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
+        
+        boost::thread_group threads2;
+        
+        for (int i = 0; i < maxThreads; i++)
+        {
+            boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 2);
+            threads2.add_thread(thr);
+        }
+        
+        threads2.join_all();
+        
+        reportProgress();
+        manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
+        
+        boost::thread_group threads3;
+        
+        for (int i = 0; i < maxThreads; i++)
+        {
+            boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 3);
+            threads3.add_thread(thr);
+        }
+        
+        threads3.join_all();
+        
+        reportProgress();
+        manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
+    }
+    
+    std::vector<DetectorPtr> nextDetectors;
+    
+    for (int i = 0; i < detectors.size(); i++)
+    {
+        for (int j = 0; j < detectors[i]->childrenCount(); j++)
+        {
+            nextDetectors.push_back(detectors[i]->getChild(j));
+        }
+    }
+    
+    if (nextDetectors.size())
+    {
+        geometryCycleForDetector(nextDetectors);
+    }
+}
+/*
 void GeometryRefiner::refineGeometryCycle()
 {
     std::vector<DetectorPtr> sameLevelDetectors;
@@ -174,6 +255,7 @@ void GeometryRefiner::refineGeometryCycle()
     reportProgress();
     manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
 }
+*/
 
 void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy)
 {
@@ -257,17 +339,18 @@ void GeometryRefiner::refineVarious(DetectorPtr detector, GeometryScoreType type
 void GeometryRefiner::refineMasterDetector()
 {
     DetectorPtr detector = Detector::getMaster();
-    refinementEvent++;
 
     logged << "***************************************************" << std::endl;
     logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
-    logged << "  Refining detector: " << detector->getTag() << std::endl;
+    logged << "  Refining one detector: " << detector->getTag() << std::endl;
     logged << "***************************************************" << std::endl << std::endl;
     sendLog();
     
     refineMidPointXY(detector, GeometryScoreTypeMiller);
     reportProgress();
     refineMidPointZ(detector, GeometryScoreTypeIntrapanel);
+    reportProgress();
+    refineMidPointXY(detector, GeometryScoreTypeMiller);
     reportProgress();
     refineTiltXY(detector, GeometryScoreTypeMillerStdev);
     reportProgress();
@@ -285,11 +368,21 @@ void GeometryRefiner::refineDetectorStrategyOne(DetectorPtr detector)
 
 void GeometryRefiner::refineDetectorStrategyTwo(DetectorPtr detector)
 {
+    if (!detector->hasChildren())
+    {
+        return;
+    }
+
     refineTiltXY(detector, GeometryScoreTypeMillerStdev);
 }
 
 void GeometryRefiner::refineDetectorStrategyThree(DetectorPtr detector)
 {
+    if (!detector->hasChildren())
+    {
+        return;
+    }
+
     refineMidPointXY(detector, GeometryScoreTypeMiller);
     //    refineVarious(detector, GeometryScoreTypeMiller);
 }
