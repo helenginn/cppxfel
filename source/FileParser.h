@@ -96,6 +96,7 @@ public:
     FileParser(void);
     FileParser(std::string filename, std::vector<std::string> someExtras = std::vector<std::string>());
     static void printCommandInfo(std::string command);
+    static void printAllCommands();
 	virtual ~FileParser();
     virtual void parseFromPython() { parse(true); };
 	virtual void parse(bool fromPython) {};

@@ -105,6 +105,21 @@ void FileParser::simpleString(ParametersMap *map, std::string command,
 
 }
 
+void FileParser::printAllCommands()
+{
+    std::ostringstream logged;
+    logged << "------------------------------------" << std::endl;
+    logged << "--- List of all cppxfel commands ---" << std::endl;
+    logged << "------------------------------------" << std::endl << std::endl;
+    
+    for (ParserMap::iterator it = parserMap.begin(); it != parserMap.end(); it++)
+    {
+        logged << it->first << std::endl;
+    }
+    
+    Logger::log(logged);
+}
+
 void FileParser::printCommandInfo(std::string unsanitisedCommand)
 {
     std::ostringstream commandStr;
