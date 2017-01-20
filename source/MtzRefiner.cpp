@@ -1669,7 +1669,7 @@ void MtzRefiner::loadImageFiles()
 
 void MtzRefiner::integrate()
 {
-    bool orientation = FileParser::getKey("REFINE_ORIENTATIONS", false);
+    bool orientation = FileParser::getKey("REFINE_ORIENTATIONS", false); // unused I think
     
     loadImageFiles();
     
