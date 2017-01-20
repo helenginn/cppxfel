@@ -1014,21 +1014,23 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     
     if (Detector::isActive())
     {
-        double xSpot, ySpot;
-        DetectorPtr detector = Detector::getMaster()->spotCoordForMiller(shared_from_this(), &xSpot, &ySpot);
+        double xSpotPred, ySpotPred;
+        DetectorPtr detector = Detector::getMaster()->spotCoordForMiller(shared_from_this(), &xSpotPred, &ySpotPred);
         
         if (!detector)
         {
             return;
         }
         
-        lastX = xSpot + 0.5;
-        lastY = ySpot + 0.5;
+        lastX = xSpotPred;
+        lastY = ySpotPred;
         
-        int xInt = xSpot;
-        int yInt = ySpot;
+        int xInt = xSpotPred;
+        int yInt = ySpotPred;
         
-        if ((shouldSearch || (correctedX == 0 && correctedY == 0)) && getIOMRefiner())
+        bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0)) && getIOMRefiner();
+        
+        if (refocus)
         {
             int search = getIOMRefiner()->getSearchSize();
             getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
@@ -1039,13 +1041,16 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             yInt = correctedY;
         }
         
-        shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
+        shift = std::make_pair(xInt - lastX, yInt - lastY);
         
-        correctedX = xInt;
-        correctedY = yInt;
+        if (refocus)
+        {
+            correctedX = xInt;
+            correctedY = yInt;
+        }
         
-        *x = xInt;
-        *y = yInt;
+        *x = correctedX;
+        *y = correctedY;
         
         return;
     }
