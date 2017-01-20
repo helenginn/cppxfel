@@ -64,7 +64,7 @@ void UnitCellLattice::weightUnitCell()
         addConvolutedPeak(csv, distance, stdev, inverse);
     }
     
-    csv->writeToFile("test_perfect.csv");
+    csv->writeToFile("perfect_unit_cell.csv");
     weightedUnitCell = csv;
 }
 
