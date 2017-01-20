@@ -68,6 +68,7 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
 
 Hdf5ManagerCheetahPtr Hdf5ManagerCheetah::hdf5ManagerForImage(std::string imageName)
 {
+    // make a map!
     for (int i = 0; i < cheetahManagers.size(); i++)
     {
         Hdf5ManagerCheetahPtr cheetahManager = cheetahManagers[i];
