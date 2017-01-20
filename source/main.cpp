@@ -111,15 +111,22 @@ void new_main(int argc, char *argv[])
         std::cout << "lowRes and highRes: set to resolution in Angstroms to bound the results, or set to 0 to take lowest/highest resolution data. Default 0, 0" << std::endl;
         std::cout << "bins: number of bins to report correlation statistics. Default 20." << std::endl << std::endl;
         
+        std::cout << "General help for most of the parameters which are specified in input files can be found using --help or -h, for example:" << std::endl;
+        std::cout << "\tcppxfel.run --help verbosity_level" << std::endl;
+        std::cout << "\tcppxfel.run --help intensity_threshold" << std::endl;
+        
         exit(1);
 	}
     
-    if (strcmp(argv[1], "-test") == 0)
+    Logger::mainLogger = LoggerPtr(new Logger());
+    boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
+    
+    if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 )
     {
-        std::string testHdf5 = argv[2];
-        
-        Hdf5ManagerCheetahSaclaPtr cheetahPtr = Hdf5ManagerCheetahSaclaPtr(new Hdf5ManagerCheetahSacla(testHdf5));
-        
+        std::cout << "Help" << std::endl;
+        std::string whichCommand = argv[2];
+        FileParser parser;
+        FileParser::printCommandInfo(whichCommand);
         
     }
 
@@ -162,11 +169,6 @@ void new_main(int argc, char *argv[])
         
         delete parser;
 	}
-    else
-    {
-        Logger::mainLogger = LoggerPtr(new Logger());
-        boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
-    }
     
     if (strcmp(argv[1], "-b") == 0)
     {

@@ -805,9 +805,9 @@ void IOMRefiner::refineOrientationMatrix()
  bool refinedH = false;
  bool refinedK = false;
  bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", true);
- bool refinedAlpha = !FileParser::getKey("REFINE_UNIT_CELL_ALPHA", false);
- bool refinedBeta = !FileParser::getKey("REFINE_UNIT_CELL_BETA", false);
- bool refinedGamma = !FileParser::getKey("REFINE_UNIT_CELL_GAMMA", false);
+ bool refinedAlpha = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+ bool refinedBeta = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+ bool refinedGamma = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
  int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
  
  int count = 0;

@@ -1021,7 +1021,7 @@ vector<MtzPtr> Image::currentMtzs()
 {
     vector<MtzPtr> mtzs;
     int count = 0;
-    bool rejecting = !FileParser::getKey("DO_NOT_REJECT_REFLECTIONS", false);
+    bool rejecting = !FileParser::getKey("REJECT_OVERLAPPING_REFLECTIONS", true);
     
     for (int i = 0; i < IOMRefinerCount(); i++)
     {
