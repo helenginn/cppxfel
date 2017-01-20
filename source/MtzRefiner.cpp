@@ -1639,6 +1639,7 @@ void MtzRefiner::maximumImage()
     threads.join_all();
     
     maximum->makeMaximumFromImages(maxSelections);
+    Detector::setDrawImage(maximum);
 }
 
 void MtzRefiner::loadImageFiles()
@@ -1659,6 +1660,11 @@ void MtzRefiner::loadImageFiles()
     }
     
     readMatricesAndImages(&filename);
+    
+    if (images.size() > 0)
+    {
+        Detector::setDrawImage(images[0]);
+    }
 }
 
 void MtzRefiner::integrate()
