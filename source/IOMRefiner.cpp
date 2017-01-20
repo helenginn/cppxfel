@@ -32,8 +32,9 @@ bool IOMRefiner::lowIntensityPenalty = false;
 
 IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
 {
+    image = newImage;
     int spgNum = FileParser::getKey("SPACE_GROUP", -1);
-    
+
     if (spgNum > 0)
     {
         Reflection::setSpaceGroup(spgNum);
@@ -57,7 +58,7 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
         if (Detector::isActive())
         {
             double min, max;
-            Detector::getMaster()->resolutionLimits(&min, &max);
+            Detector::getMaster()->resolutionLimits(&min, &max, getImage()->getWavelength());
             
             if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION"))
             {
@@ -91,7 +92,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     lastTotal = 0;
     lastStdev = 0;
     expectedSpots = FileParser::getKey("EXPECTED_SPOTS", 30);
-    image = newImage;
     lowIntensityPenalty = FileParser::getKey("LOW_INTENSITY_PENALTY", false);
     this->matrix = matrix;
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());

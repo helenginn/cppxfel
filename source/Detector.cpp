@@ -300,6 +300,15 @@ void Detector::spotCoordToRelativeVec(double unarrangedX, double unarrangedY,
     add_vector_to_vector(arrangedPos, slowOffset);
 }
 
+double Detector::spotCoordToResolution(double unarrangedX, double unarrangedY, double wavelength)
+{
+    vec arrangedPos;
+    spotCoordToAbsoluteVec(unarrangedX, unarrangedY, &arrangedPos);
+    scale_vector_to_distance(&arrangedPos, 1 / wavelength);
+    arrangedPos.l -= 1 / wavelength;
+    return length_of_vector(arrangedPos);
+}
+
 void Detector::spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
                                       vec *arrangedPos)
 {
@@ -611,7 +620,7 @@ void updateMinMax(double *min, double *max, double value)
     }
 }
 
-void Detector::resolutionLimits(double *min, double *max)
+void Detector::resolutionLimits(double *min, double *max, double wavelength)
 {
     if (isLUCA())
     {
@@ -624,7 +633,7 @@ void Detector::resolutionLimits(double *min, double *max)
         for (int i = 0; i < childrenCount(); i++)
         {
             double myChildMin, myChildMax;
-            getChild(i)->resolutionLimits(&myChildMin, &myChildMax);
+            getChild(i)->resolutionLimits(&myChildMin, &myChildMax, wavelength);
             updateMinMax(min, max, myChildMin);
             updateMinMax(min, max, myChildMax);
         }
@@ -633,19 +642,20 @@ void Detector::resolutionLimits(double *min, double *max)
     {
         double myMin = FLT_MAX;
         double myMax = 0;
-        vec arrangedPos = new_vector(0, 0, 0);
-        spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedTopLeftY, &arrangedPos);
-        updateMinMax(&myMin, &myMax, length_of_vector(arrangedPos));
+        double resol = 0;
+    
+        resol = spotCoordToResolution(unarrangedTopLeftX, unarrangedTopLeftY, wavelength);
+        updateMinMax(&myMin, &myMax, resol);
         
-        spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedBottomRightY, &arrangedPos);
-        updateMinMax(&myMin, &myMax, length_of_vector(arrangedPos));
+        resol = spotCoordToResolution(unarrangedTopLeftX, unarrangedBottomRightY, wavelength);
+        updateMinMax(&myMin, &myMax, resol);
 
-        spotCoordToAbsoluteVec(unarrangedBottomRightX, unarrangedTopLeftY, &arrangedPos);
-        updateMinMax(&myMin, &myMax, length_of_vector(arrangedPos));
-        
-        spotCoordToAbsoluteVec(unarrangedBottomRightX, unarrangedBottomRightY, &arrangedPos);
-        updateMinMax(&myMin, &myMax, length_of_vector(arrangedPos));
-        
+        resol = spotCoordToResolution(unarrangedBottomRightX, unarrangedTopLeftY, wavelength);
+        updateMinMax(&myMin, &myMax, resol);
+
+        resol = spotCoordToResolution(unarrangedBottomRightX, unarrangedBottomRightY, wavelength);
+        updateMinMax(&myMin, &myMax, resol);
+
         *min = myMin;
         *max = myMax;
     }

@@ -420,7 +420,8 @@ public:
     
     /* Resolution fun */
     
-    void resolutionLimits(double *min, double *max);
+    double spotCoordToResolution(double unarrangedX, double unarrangedY, double wavelength);
+    void resolutionLimits(double *min, double *max, double wavelength);
 };
 
 #endif /* defined(__cppxfel__Detector__) */
