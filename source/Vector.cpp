@@ -1003,7 +1003,14 @@ void histogramCSV(std::string filename, std::map<double, int> map1, std::map<dou
 
 void printDesc(vec hkl)
 {
-    Logger::mainLogger->addString(desc(hkl) + std::string("\n"));
+    Logger::mainLogger->addString(desc(hkl));
+}
+
+std::string prettyDesc(vec hkl)
+{
+    std::ostringstream logged;
+    logged << "(" << hkl.h << ", " << hkl.k << ", " << hkl.l << ")";
+    return logged.str();
 }
 
 std::string desc(vec hkl)

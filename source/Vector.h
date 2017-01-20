@@ -78,6 +78,7 @@ double r_factor_between_vectors(vector<double> *vec1,
 double standard_deviation(vector<double> *values, vector<double> *weights, double mean);
 void printDesc(vec hkl);
 std::string desc(vec hkl);
+std::string prettyDesc(vec hkl);
 
 double cartesian_to_distance(double x, double y);
 double cartesian_to_angle(double x, double y);
