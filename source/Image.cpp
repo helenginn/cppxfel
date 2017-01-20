@@ -1360,9 +1360,9 @@ void Image::processSpotList()
             
             if (spotsAreReciprocalCoordinates)
             {
-                double k = atof(components[0].c_str()) * 10e-11;
-                double h = atof(components[1].c_str()) * 10e-11;
-                double l = atof(components[2].c_str()) * 10e-11;
+                double k = atof(components[0].c_str());
+                double h = atof(components[1].c_str());
+                double l = atof(components[2].c_str());
                 
                 vec hkl = new_vector(h, k, l);
                 
@@ -1397,7 +1397,7 @@ void Image::processSpotList()
             {
                 SpotPtr testSpot = spots[j];
                 
-                if (tooCloseDistance > 0)
+                if (rejectCloseSpots && tooCloseDistance > 0)
                 {
                     vec testVec = testSpot->estimatedVector();
                     vec copyVec = copy_vector(myVec);
@@ -2511,7 +2511,7 @@ void Image::clusterCountWithSpotNumber(int spotNum)
     sendLog();
 }
 
-void Image::drawSpotsOnPNG()
+void Image::drawSpotsOnPNG(std::string filename)
 {
     if (!loadedSpots)
     {
@@ -2520,7 +2520,8 @@ void Image::drawSpotsOnPNG()
     
     double stdev = standardDeviationOfPixels();
     
-    std::string filename = getBasename() + ".png";
+    if (!filename.length())
+        filename = getBasename() + ".png";
     int height = FileParser::getKey("PNG_HEIGHT", 2400);
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
     writePNG(file);
