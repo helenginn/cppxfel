@@ -410,6 +410,7 @@ void FileParser::generateHelpList()
     helpMap["MINIMIZATION_METHOD"] = "Minimization method used for various minimization events throughout the software.";
     helpMap["NELDER_MEAD_CYCLES"] = "If using Nelder Mead, specify how many cycles are carried out (convergence criteria not implemented).";
     helpMap["MEDIAN_WAVELENGTH"] = "Calculate starting X-ray beam wavelength for post-refinement of an image using the median excitation wavelength of all strong reflections. Otherwise a mean average is used. Default OFF.";
+    helpMap["WAVELENGTH_FROM_REF_COUNT"] = "Calculates the mean wavelength from the top X reflections as an alternative to using all above a certain value. I haven't tested this thoroughly and have no idea if it's any good.";
     helpMap["WAVELENGTH_RANGE"] = "x, y – start and end for range of wavelengths to consider when calculating the starting X-ray beam wavelength. Can ignore extreme outliers. Default 0 0 (not applied).";
     helpMap["REFINEMENT_INTENSITY_THRESHOLD"] = "Double x - Intensity threshold x in absolute terms to define ‘strong’ reflections in initial wavelength determination. Default 200.";
     helpMap["ALLOW_TRUST"] = "If an image correlates well with the reference data set, fix the indexing ambiguity chosen in the future to reduce computation time. Default ON";
@@ -508,6 +509,8 @@ void FileParser::generateHelpList()
     helpMap["DETECTOR_LIST"] = "Path to a file containing detector information. Should use one of the formats specified in GEOMETRY_FORMAT.";
     helpMap["GEOMETRY_FORMAT"] = "Read in with the detector information from cppxfel or CrystFEL format.";
     helpMap["HDF5_SOURCE_FILES"] = "HDF5 files from which image data should be found. Supports glob strings (e.g. run*.h5 for SACLA HDF5 files from cheetah-dispatcher).";
+    helpMap["HDF5_USE_WAVELENGTH"] = "Use the wavelengths stored within HDF5 files. If you do not trust these values, disable this in order to default to the value of INTEGRATION_WAVELENGTH.";
+
     helpMap["FREE_ELECTRON_LASER"] = "Which free electron laser did this data come from? This is used for interpreting HDF5 files. Only LCLS and SACLA currently supported.";
     helpMap["OUTPUT_DIRECTORY"] = "Path to a directory into which almost all processing files will be deposited, except for spot-finding results.";
     
@@ -527,7 +530,7 @@ void FileParser::generateHelpList()
 
     helpMap["PNG_TOTAL"] = "Specifies how many PNG files should be written to disk by cppxfel when WRITE_PNGS is called in the commands section.";
     helpMap["PNG_SHOEBOX"] = "If writing PNGs when WRITE_PNGS is called, whether to draw the integration shoeboxes (currently might be buggy for complex/non-symmetrical shoeboxes).";
-    
+    helpMap["IMAGE_IGNORE_UNDER_VALUE"] = "If a value on an image goes below this value, it is masked out.";
 
 }
 
