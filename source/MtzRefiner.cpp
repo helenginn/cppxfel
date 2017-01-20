@@ -1790,8 +1790,11 @@ void MtzRefiner::loadPanels(bool mustFail)
         
         logged << "Loading new detector format from " << detectorList << "." << std::endl;
         sendLog();
+        int formatInt = FileParser::getKey("GEOMETRY_FORMAT", 0);
         
-        GeometryParser geomParser = GeometryParser(detectorList, GeometryFormatCppxfel);
+        GeometryFormat format = (GeometryFormat)formatInt;
+        
+        GeometryParser geomParser = GeometryParser(detectorList, format);
         geomParser.parse();
         
         return;
