@@ -55,7 +55,7 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     
     reference = NULL;
     lastMtz = MtzPtr();
-    roughCalculation = FileParser::getKey("ROUGH_CALCULATION", false);
+    roughCalculation = FileParser::getKey("ROUGH_CALCULATION", true);
     hRot = 0;
     kRot = 0;
     lRot = 0;
