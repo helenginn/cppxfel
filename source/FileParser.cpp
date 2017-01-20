@@ -15,6 +15,7 @@
 #include <locale>
 #include <stdio.h>
 #include "misc.h"
+#include <iomanip>
 
 #define FILE_PARSER_CPP_
 
@@ -114,7 +115,9 @@ void FileParser::printAllCommands()
     
     for (ParserMap::iterator it = parserMap.begin(); it != parserMap.end(); it++)
     {
-        logged << it->first << std::endl;
+        bool helpExists = helpMap.count(it->first);
+        
+        logged << std::setw(35) << it->first << (helpExists ? " --help exists." : "") << std::endl;
     }
     
     Logger::log(logged);
@@ -533,7 +536,6 @@ void FileParser::generateFunctionList()
 	parserMap = ParserMap();
 
     parserMap["VERBOSITY_LEVEL"] = simpleInt;
-    
     
     parserMap["MAX_THREADS"] = simpleInt;
     

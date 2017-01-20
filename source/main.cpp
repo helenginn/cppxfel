@@ -123,6 +123,8 @@ void new_main(int argc, char *argv[])
     
     if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 )
     {
+        FileParser parser;
+        
         if (argc == 2)
         {
             FileParser::printAllCommands();
@@ -130,7 +132,6 @@ void new_main(int argc, char *argv[])
         else
         {
             std::string whichCommand = argv[2];
-            FileParser parser;
             FileParser::printCommandInfo(whichCommand);
         }
     }
