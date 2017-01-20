@@ -1236,10 +1236,8 @@ void Miller::incrementOverlapMask(double hRot, double kRot)
 
 bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDelete)
 {
-    Coord fullShift = Panel::shiftForMiller(this);
-    
-    double x = fullShift.first + lastX + shift.first;
-    double y = fullShift.second + lastY + shift.second;
+    double x = correctedX;
+    double y = correctedY;
     int count = 0;
     double tolerance = 2.5;
     
