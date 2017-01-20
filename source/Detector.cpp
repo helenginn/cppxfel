@@ -95,7 +95,7 @@ Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarranged
         setArrangedTopLeft(_arrangedTopLeft.h, _arrangedTopLeft.k, _arrangedTopLeft.l);
     }
     
-    if (!parent->isLUCA())
+    if (parent && !parent->isLUCA())
     {
         removeMidPointRelativeToParent();
     }
