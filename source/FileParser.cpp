@@ -329,6 +329,7 @@ void FileParser::generateDeprecatedList()
     deprecatedList["REFINE_UNIT_CELL_ALPHA"] = "This option has been merged with OPTIMISING_UNIT_CELL_ALPHA, please use this instead.";
     deprecatedList["REFINE_UNIT_CELL_BETA"] = "This option has been merged with OPTIMISING_UNIT_CELL_BETA, please use this instead.";
     deprecatedList["REFINE_UNIT_CELL_GAMMA"] = "This option has been merged with OPTIMISING_UNIT_CELL_GAMMA, please use this instead.";
+    deprecatedList["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = "This option has been removed as it provided no benefit.";
     deprecatedList["STEP_UNIT_CELL_A"] = "This option was badly worded. Please change this to STEP_SIZE_UNIT_CELL_A.";
     deprecatedList["STEP_UNIT_CELL_B"] = "This option was badly worded. Please change this to STEP_SIZE_UNIT_CELL_B.";
     deprecatedList["STEP_UNIT_CELL_C"] = "This option was badly worded. Please change this to STEP_SIZE_UNIT_CELL_C.";
@@ -509,7 +510,7 @@ void FileParser::generateHelpList()
     helpMap["DETECTOR_LIST"] = "Path to a file containing detector information. Should use one of the formats specified in GEOMETRY_FORMAT.";
     helpMap["GEOMETRY_FORMAT"] = "Read in with the detector information from cppxfel or CrystFEL format.";
     helpMap["HDF5_SOURCE_FILES"] = "HDF5 files from which image data should be found. Supports glob strings (e.g. run*.h5 for SACLA HDF5 files from cheetah-dispatcher).";
-    helpMap["HDF5_USE_WAVELENGTH"] = "Use the wavelengths stored within HDF5 files. If you do not trust these values, disable this in order to default to the value of INTEGRATION_WAVELENGTH.";
+    helpMap["USE_HDF5_WAVELENGTH"] = "Use the wavelengths stored within HDF5 files. If you do not trust these values, disable this in order to default to the value of INTEGRATION_WAVELENGTH.";
 
     helpMap["FREE_ELECTRON_LASER"] = "Which free electron laser did this data come from? This is used for interpreting HDF5 files. Only LCLS and SACLA currently supported.";
     helpMap["OUTPUT_DIRECTORY"] = "Path to a directory into which almost all processing files will be deposited, except for spot-finding results.";
@@ -559,7 +560,6 @@ void FileParser::generateFunctionList()
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
     parserMap["WAVELENGTH_FROM_REF_COUNT"] = simpleInt;
     parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
-    parserMap["ACCEPTABLE_UNIT_CELL_TOLERANCE"] = simpleFloat;
     parserMap["ALLOW_TRUST"] = simpleBool;
     parserMap["EXCLUDE_OWN_REFLECTIONS"] = simpleBool;
     parserMap["PARTIALITY_CUTOFF"] = simpleFloat;
@@ -715,7 +715,6 @@ void FileParser::generateFunctionList()
     parserMap["REJECT_OVERLAPPING_REFLECTIONS"] = simpleBool;
     parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;
     parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
-    parserMap["SKIP_BAD_PIXELS"] = simpleBool;
     parserMap["ROUGH_CALCULATION"] = simpleBool;
     parserMap["BINS"] = simpleInt;
 
@@ -791,7 +790,6 @@ void FileParser::generateFunctionList()
     
 	parserMap["PANEL_LIST"] = simpleString;
     parserMap["DETECTOR_LIST"] = simpleString;
-    parserMap["SKIP_LINES"] = simpleInt;
 
     
     parserMap["MILLER_INDEX"] = intVector;

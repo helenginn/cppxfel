@@ -540,7 +540,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
     Image::setGlobalDetectorDistance(NULL, detectorDistance);
     
-    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
     vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
     std::vector<std::string> hdf5Sources = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
@@ -549,9 +548,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     vector<double> cellDims = FileParser::getKey("UNIT_CELL", vector<double>());
     
     bool checkingUnitCell = false;
-    
-    if (givenUnitCell.size() > 0 && tolerance > 0.0)
-        checkingUnitCell = true;
     
     bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
@@ -838,13 +834,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 newImage->processSpotList();
             }
             
-            if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
-            {
-                newImages->push_back(newImage);
-                
-            }
-            else if (!checkingUnitCell)
-                newImages->push_back(newImage);
+            newImages->push_back(newImage);
         }
         
         if (newMtzs && !v3)
@@ -877,18 +867,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             
             if (newManager->reflectionCount() > 0 || lowMemoryMode)
             {
-                if (checkingUnitCell && newManager->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
-                {
-                    newMtzs->push_back(newManager);
-                }
-                else if (!checkingUnitCell)
-                {
-                    newMtzs->push_back(newManager);
-                }
-                else
-                {
-                    Logger::mainLogger->addString("Skipping file " + *filename + " due to poor unit cell");
-                }
+                newMtzs->push_back(newManager);
             }
         }
     }
@@ -1171,14 +1150,9 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(0, 2));
-    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
     vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
-    bool checkingUnitCell = false;
     int count = 0;
-    
-    if (givenUnitCell.size() > 0 && tolerance > 0.0)
-        checkingUnitCell = true;
     
     std::string orientationList = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
     bool hasList = (orientationList.length() > 0);
@@ -1238,16 +1212,7 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
                                                                     detectorDistance));
                 ImagePtr newImage = boost::static_pointer_cast<Image>(hdf5Image);
                 hdf5Image->loadCrystals();
-                
-                if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
-                {
-                    newImages->push_back(newImage);
-                    
-                }
-                else if (!checkingUnitCell)
-                {
-                    newImages->push_back(newImage);
-                }
+                newImages->push_back(newImage);
             }
 
             count++;
@@ -1353,12 +1318,8 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
     
     int skip = FileParser::getKey("IMAGE_SKIP", 0);
     vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
     
     bool checkingUnitCell = false;
-    
-    if (unitCell.size() > 0 && tolerance > 0.0)
-        checkingUnitCell = true;
     
     if (skip > lines.size())
     {
@@ -1400,18 +1361,7 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
         
         if (newManager->reflectionCount() > 0)
         {
-            if (checkingUnitCell && newManager->checkUnitCell(unitCell[0], unitCell[1], unitCell[2], tolerance))
-            {
-                mtzManagers->push_back(newManager);
-            }
-            else if (!checkingUnitCell)
-            {
-                mtzManagers->push_back(newManager);
-            }
-            else
-            {
-                log << "Skipping file " << mtzName << " due to poor unit cell" << std::endl;
-            }
+            mtzManagers->push_back(newManager);
         }
         
         Logger::mainLogger->addStream(&log);
