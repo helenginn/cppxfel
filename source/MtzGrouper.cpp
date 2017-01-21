@@ -14,7 +14,6 @@
 #include <boost/thread/thread.hpp>
 #include "Miller.h"
 #include "Reflection.h"
-#include "lbfgs_scaling.h"
 #include "ccp4_general.h"
 #include "ccp4_parser.h"
 #include <fstream>
@@ -33,7 +32,7 @@ MtzGrouper::MtzGrouper()
 	scalingType = ScalingTypeAverage;
 	acceptableResolution = 1;
 	cutResolution = false;
-    expectedResolution = FileParser::getKey("MAX_RESOLUTION_ALL", 1.6);
+    expectedResolution = FileParser::getKey("MAX_REFINED_RESOLUTION", 1.6);
     
     exclusionByCCHalf = FileParser::getKey("EXCLUSION_BY_CC_HALF", false);
         
@@ -88,6 +87,15 @@ bool MtzGrouper::isMtzAccepted(MtzPtr mtz)
     
     if (needsRSplit)
         rSplit = mtz->rSplit(0, 0);
+    
+    
+    double scale = mtz->getScale();
+    double rejectBelow = FileParser::getKey("REJECT_BELOW_SCALE", 0.0);
+    
+    if (scale < rejectBelow)
+    {
+        return false;
+    }
     
     if (refCorrelation < correlationThreshold)
     {
@@ -286,20 +294,6 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 		mtzManagers[i]->applyScaleFactor(scale);
 	}
 
-	if (scalingType == ScalingTypeMinimizeRMerge)
-	{
-        vector<MtzPtr> acceptedMtzs;
-        
-        for (int i = 0; i < mtzManagers.size(); i++)
-        {
-            if (isMtzAccepted(mtzManagers[i]))
-                acceptedMtzs.push_back(mtzManagers[i]);
-        }
-        
-		Lbfgs_Scaling scaling = Lbfgs_Scaling(acceptedMtzs);
-		scaling.run();
-	}
-
 	logged << "Altered scales." << std::endl;
 
 	MtzPtr idxMerge;
@@ -417,7 +411,6 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 	}
 
 	int mtzCount = groupMillers(mergeMtz, unmergedMtz, start, end);
- //   std::cout << "N: Accepted " << total << " due to increase in CC half" << std::endl;
     
 	if (!unmergedMtz)
 	{

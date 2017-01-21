@@ -17,7 +17,8 @@
 #include "Spot.h"
 #include "CSV.h"
 #include <complex>
-#include "GetterSetterMap.h"
+#include "RefinementStepSearch.h"
+#include "FileReader.h"
 
 vector<PanelPtr> Panel::panels;
 vector<PanelPtr> Panel::badPanels;
@@ -86,6 +87,11 @@ void Panel::init(vector<double> dimensions, PanelTag newTag)
     {
         gainScale = dimensions[9];
     }
+    
+    Coord origTopLeft = millerToSpotCoord(topLeft);
+    logged << "Original top left coord: " << origTopLeft.first << ", " << origTopLeft.second << std::endl;
+    sendLog();
+    
 }
 
 void Panel::setupPanel(PanelPtr panel)
@@ -98,27 +104,6 @@ void Panel::setupPanel(PanelPtr panel)
     
     panel->setPanelNum((int)panels.size());
     panels.push_back(panel);
-}
-
-
-void Panel::removePanel(PanelPtr panel)
-{
-    std::vector<PanelPtr> *panelList = &panels;
-    
-    if (panel->getTag() == PanelTagBad)
-    {
-        panelList = &badPanels;
-    }
-    
-    for (int i = 0; i < panelList->size(); i++)
-    {
-        if ((*panelList)[i] == panel)
-        {
-            panelList->erase(panelList->begin() + i);
-            return;
-        }
-    }
-
 }
 
 Panel::~Panel()
@@ -136,7 +121,15 @@ double Panel::height()
     return bottomRight.second - topLeft.second;
 }
 
-bool Panel::isCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
+Coord Panel::midPoint()
+{
+    double x = topLeft.first + width() / 2;
+    double y = topLeft.second + height() / 2;
+    
+    return std::make_pair(x, y);
+}
+
+bool Panel::isMillerCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
 {
     double x = coord.first;
     double y = coord.second;
@@ -152,31 +145,20 @@ bool Panel::isCoordInPanel(Coord coord, Coord *topLeft, Coord *bottomRight)
     
     if (y < topLeft->second || y > bottomRight->second)
         return false;
-    /*
-    logged << "Success!" << std::endl;
-    sendLog();*/
     
     return true;
 }
 
 bool Panel::isMillerInPanel(Miller *miller)
 {
-    return isCoordInPanel(miller->getLastXY());
-}
-
-Coord Panel::midPoint()
-{
-    double x = topLeft.first + width() / 2;
-    double y = topLeft.second + height() / 2;
-    
-    return std::make_pair(x, y);
+    return isMillerCoordInPanel(miller->getLastXY());
 }
 
 bool Panel::addMiller(MillerPtr miller)
 {
     Coord coord = std::make_pair(miller->getLastX(), miller->getLastY());
     
-    if (!isCoordInPanel(coord))
+    if (!isMillerCoordInPanel(coord))
         return false;
     
     boost::thread::id thread_id = boost::this_thread::get_id();
@@ -191,6 +173,9 @@ bool Panel::addMiller(MillerPtr miller)
 
 void Panel::addMillerToPanelArray(MillerPtr miller)
 {
+    if (!miller->reachesThreshold())
+        return;
+    
     for (int i = 0; i < panels.size(); i++)
     {
         if (panels[i]->addMiller(miller))
@@ -229,6 +214,20 @@ void Panel::finaliseMillerArray()
     
 }
 
+void Panel::clearAllMillers()
+{
+    for (int i = 0; i < panels.size(); i++)
+    {
+        panels[i]->clearMillers();
+    }
+}
+
+void Panel::clearMillers()
+{
+    millers.clear();
+    vector<MillerPtr>().swap(millers);
+}
+
 void Panel::calculateMetrologyThread(int offset)
 {
     int maxThreads = FileParser::getMaxThreads();
@@ -255,9 +254,10 @@ void Panel::print(std::ostringstream *stream)
 void Panel::printToFile(std::string filename)
 {
     std::string info = printAllThreaded();
+    std::string dirFilename = FileReader::addOutputDirectory(filename);
     
     std::ofstream file;
-    file.open(filename);
+    file.open(dirFilename);
     file << info;
     file.close();
     
@@ -297,39 +297,17 @@ std::string Panel::printAll()
     return stream.str();
 }
 
-void Panel::clearAllMillers()
-{
-    for (int i = 0; i < panels.size(); i++)
-    {
-        panels[i]->clearMillers();
-    }
-}
-
-void Panel::clearMillers()
-{
-    millers.clear();
-    vector<MillerPtr>().swap(millers);
-}
-
 int Panel::panelCount()
 {
     return (int)panels.size();
 }
 
-bool scoreComparison(std::pair<Coord, double> score1,
-                     std::pair<Coord, double> score2)
-{
-    return (score1.second > score2.second);
-}
-
-bool scoreComparisonDescending(std::pair<double, double> score1,
-                               std::pair<double, double> score2)
-{
-    return (score1.second > score2.second);
-}
-
 PanelPtr Panel::panelForMiller(Miller *miller)
 {
+    PanelPtr currentPanel = miller->getPanel();
+    
+    if (currentPanel) return currentPanel;
+    
     for (int i = 0; i < badPanels.size(); i++)
     {
         if (badPanels[i]->isMillerInPanel(miller))
@@ -342,6 +320,8 @@ PanelPtr Panel::panelForMiller(Miller *miller)
     {
         if (panels[i]->isMillerInPanel(miller))
         {
+            miller->setPanel(panels[i]);
+            
             return panels[i];
         }
     }
@@ -349,7 +329,7 @@ PanelPtr Panel::panelForMiller(Miller *miller)
     return PanelPtr();
 }
 
-Coord Panel::shiftSpot(Coord xy)
+Coord Panel::spotToMillerCoord(Coord xy)
 {
     Coord shift = bestShift;
     Coord swivelShift = getSwivelShift(xy, true);
@@ -372,7 +352,7 @@ PanelPtr Panel::spotCoordFallsInMask(Coord shifted)
 {
     for (int j = 0; j < badPanels.size(); j++)
     {
-        if (badPanels[j]->isCoordInPanel(shifted))
+        if (badPanels[j]->isMillerCoordInPanel(shifted))
         {
             return badPanels[j];
         }
@@ -385,9 +365,9 @@ PanelPtr Panel::panelForSpotCoord(Coord coord, PanelPtr *anyBadPanel)
 {
     for (int i = 0; i < panels.size(); i++)
     {
-        Coord shifted = panels[i]->shiftSpot(coord);
+        Coord shifted = panels[i]->spotToMillerCoord(coord);
         
-        if (panels[i]->isCoordInPanel(shifted))
+        if (panels[i]->isMillerCoordInPanel(shifted))
         {
             PanelPtr mask = spotCoordFallsInMask(shifted);
             
@@ -410,58 +390,14 @@ PanelPtr Panel::panelForSpot(Spot *spot)
 {
     Coord coord = spot->getRawXY();
     
-    return panelForSpotCoord(coord);
-}
-
-PanelPtr Panel::panelForCoord(Coord coord)
-{
-    for (int i = 0; i < badPanels.size(); i++)
-    {
-        if (badPanels[i]->isCoordInPanel(coord))
-        {
-       //     Logger::mainLogger->addString("Hit bad mask", LogLevelDetailed);
-            return PanelPtr();
-        }
-    }
+    PanelPtr panel = panelForSpotCoord(coord);
     
-    for (int i = 0; i < panels.size(); i++)
-    {
-        if (panels[i]->isCoordInPanel(coord))
-        {
-            return panels[i];
-        }
-    }
-    
-    return PanelPtr();
-}
-
-double cartesian_to_distance(Coord dV)
-{
-    double distance = sqrt(pow(dV.first, 2) + pow(dV.second, 2));
-    
-    return distance;
-}
-
-double cartesian_to_angle(Coord dV)
-{
-    double angle = atan(dV.second / dV.first);
-    
-    if ((dV.first < 0 && dV.second > 0) ||
-        (dV.first < 0 && dV.second < 0))
-        angle += M_PI;
-    
-    if (dV.first > 0 && dV.second < 0)
-        angle += M_PI * 2;
-    
-    return angle;
+    return panel;
 }
 
 Coord Panel::getSwivelShift(Coord millerCoord, bool isSpot)
 {
     Coord relative = relativeToMidPointForMiller(millerCoord, isSpot);
-    
-    if (swivel == 0)
-        return std::make_pair(0, 0);
     
     double oldX = relative.first;
     double oldY = relative.second;
@@ -489,7 +425,7 @@ Coord Panel::getTiltShift(Coord millerCoord)
     return std::make_pair(xShift, yShift);
 }
 
-Coord Panel::getTotalShift(Coord millerCoord, bool isMiller)
+Coord Panel::millerToSpotCoordShift(Coord millerCoord)
 {
     Coord swivelShift = getSwivelShift(millerCoord);
     Coord tiltShift = getTiltShift(millerCoord);
@@ -497,8 +433,14 @@ Coord Panel::getTotalShift(Coord millerCoord, bool isMiller)
     double x = bestShift.first + tiltShift.first + swivelShift.first;
     double y = bestShift.second + tiltShift.second + swivelShift.second;
     
-    
     return std::make_pair(x, y);
+}
+
+Coord Panel::millerToSpotCoord(Coord millerCoord)
+{
+    Coord theShift = millerToSpotCoordShift(millerCoord);
+    
+    return std::make_pair(millerCoord.first + theShift.first, millerCoord.second + theShift.second);
 }
 
 Coord Panel::shiftForMiller(Miller *miller)
@@ -508,7 +450,7 @@ Coord Panel::shiftForMiller(Miller *miller)
     if (!panel)
         return std::make_pair(FLT_MAX, FLT_MAX);
     
-    return panel->getTotalShift(miller->getLastXY());
+    return panel->millerToSpotCoordShift(miller->getLastXY());
 }
 
 Coord Panel::realCoordsForImageCoord(Coord xy)
@@ -543,16 +485,6 @@ Coord Panel::swivelShiftForSpot(Spot *spot)
     return panel->getSwivelShift(spot->getRawXY(), true);
 }
 
-double Panel::scaleForMiller(Miller *miller)
-{
-    PanelPtr panel = panelForMiller(miller);
-    
-    if (panel)
-        return panel->gainScale;
-    
-    return 1;
-}
-
 void Panel::plotAll(PlotType plotType)
 {
     for (int i = 0; i < panels.size(); i++)
@@ -561,27 +493,29 @@ void Panel::plotAll(PlotType plotType)
     }
 }
 
-Coord Panel::relativeToMidPointForMiller(Coord coord, bool isSpot)
+Coord Panel::relativeToCoordForMiller(Coord coord, Coord relative, bool isSpot)
 {
     double pos_x = coord.first;
     double pos_y = coord.second;
     
-    Coord panelMidPoint = midPoint();
+    relative.first += isSpot ? bestShift.first : 0;
+    relative.second += isSpot ? bestShift.second : 0;
     
-    panelMidPoint.first += isSpot ? bestShift.first : 0;
-    panelMidPoint.second += isSpot ? bestShift.second : 0;
-    
-    double rel_x = pos_x - panelMidPoint.first;
-    double rel_y = pos_y - panelMidPoint.second;
+    double rel_x = pos_x - relative.first;
+    double rel_y = pos_y - relative.second;
     
     return std::make_pair(rel_x, rel_y);
 }
 
-double Panel::distanceFromMidPointForMiller(Miller *miller)
+Coord Panel::relativeToMidPointForMiller(Coord coord, bool isSpot)
 {
-    Coord relative = relativeToMidPointForMiller(miller->getLastXY());
-    
-    return sqrt(relative.first * relative.first + relative.second * relative.second);
+    Coord panelMidPoint = midPoint();
+    return relativeToCoordForMiller(coord, panelMidPoint, isSpot);
+}
+
+Coord Panel::relativeToTopLeftForMiller(Coord coord, bool isSpot)
+{
+    return relativeToCoordForMiller(coord, topLeft, isSpot);
 }
 
 double Panel::angleForMiller(Miller *miller)
@@ -641,8 +575,6 @@ void Panel::plotVectors(int i, PlotType plotType)
             maxD = bins[j + 1] == 0 ? FLT_MAX : 1 / bins[j + 1];
         }
         
-        std::cout << minD << ", " << maxD << std::endl;
-        
         for (int k = 0; k < millers.size(); k++)
         {
             MillerPtr miller = millers[k];
@@ -655,7 +587,8 @@ void Panel::plotVectors(int i, PlotType plotType)
         
         double aveIntensity = Miller::averageRawIntensity(resMillers);
         
-        std::cout << "Average intensity: " << aveIntensity << std::endl;
+        logged << "Average intensity: " << aveIntensity << std::endl;
+        sendLog();
         
         double minX = FLT_MAX; double minY = FLT_MAX; double maxX = -FLT_MAX; double maxY = -FLT_MAX;
         
@@ -668,7 +601,7 @@ void Panel::plotVectors(int i, PlotType plotType)
             double intensity = miller->getRawIntensity();
             
             Coord shift = miller->getShift();
-            Coord expectedShift = this->getTotalShift((&*miller)->getLastXY());
+            Coord expectedShift = this->millerToSpotCoordShift((&*miller)->getLastXY());
             
             if (shift.first < minX)
                 minX = shift.first;
@@ -700,14 +633,14 @@ void Panel::plotVectors(int i, PlotType plotType)
             
             double angle = angleForMiller(&*miller);
             
-            double shiftAngle = cartesian_to_angle(difference);
+            double shiftAngle = cartesian_to_angle(difference.first, difference.second);
             shiftAngle *= 180 / M_PI;
             
             bool under = intensity < aveIntensity * 2.5;
             under = (miller->getRawIntensity() / miller->getCountingSigma() < 17);
             double strength = miller->getRawIntensity();// / miller->getCountingSigma();
             
-            bool isStrong = IOMRefiner::millerReachesThreshold(miller);
+            bool isStrong = miller->reachesThreshold();
             
             if (isStrong)
             {
@@ -743,46 +676,6 @@ void Panel::plotVectors(int i, PlotType plotType)
     }
 }
 
-double Panel::stdevScore(double minRes, double maxRes)
-{
-    vector<MillerPtr> resMillers;
-    
-    double minD, maxD;
-    
-    StatisticsManager::convertResolutions(minRes, maxRes, &minD, &maxD);
-    
-    for (int i = 0; i < millers.size(); i++)
-    {
-        MillerPtr miller = millers[i];
-        
-        if (miller->getResolution() > minD && miller->getResolution() < maxD)
-        {
-            resMillers.push_back(miller);
-        }
-    }
-    
-    double aveIntensity = Miller::averageRawIntensity(resMillers);
-    vector<double> xShifts, yShifts;
-    
-    for (int i = 0; i < resMillers.size(); i++)
-    {
-        MillerPtr miller = resMillers[i];
-        
-        if (miller->getRawIntensity() > aveIntensity)
-        {
-            Coord shift = miller->getShift();
-            
-            xShifts.push_back(shift.first);
-            yShifts.push_back(shift.second);
-        }
-    }
-    
-    double xStdev = standard_deviation(&xShifts);
-    double yStdev = standard_deviation(&yShifts);
-    
-    return xStdev + yStdev;
-}
-
 void Panel::fractionalCoordinates(Miller *miller, Coord *frac)
 {
     Coord position = std::make_pair(miller->getLastX(),
@@ -808,163 +701,8 @@ void Panel::findAllParameters()
     {
         return;
     }
-    /*
-    findShift(2, 0.4);
-    this->findAxisDependence(3);*/
     
     this->stepSearch();
-}
-
-void Panel::findShift(double windowSize, double step, double x, double y)
-{
-    std::ostringstream logged;
-    logged << "**** NEW PANEL ****" << std::endl;
-    
-    vector<std::pair<Coord, double> > scores;
-    logged << "Miller count: " << millers.size() << std::endl;
-    
-    double minX = -defaultShift + originalShift.first + x + 0.5;
-    double maxX = defaultShift + originalShift.first + x - 0.5;
-    double minY = -defaultShift + originalShift.second + y + 0.5;
-    double maxY = defaultShift + originalShift.second + y - 0.5;
-    
-    double intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", 12.);
-    
-    logged << "Finding best shift within window x(" << minX << ", " << maxX << "), y(" << minY << ", " << maxY << ")" << std::endl;
-    
-    for (double i = minX; i < maxX; i += step)
-    {
-        for (double j = minY; j < maxY; j += step)
-        {
-            Coord windowTopLeft = std::make_pair(i, j);
-            Coord windowBottomRight = std::make_pair(i + windowSize, j + windowSize);
-            
-            Coord windowMidPoint = std::make_pair(i + windowSize / 2,
-                                             j + windowSize / 2);
-            
-            double score = 0;
-            
-            for (int k = 0; k < millers.size(); k++)
-            {
-                if (!millers[k])
-                {
-                    continue;
-                }
-                
-                Coord predictedPosition = millers[k]->getLastXY();
-                Coord currentShift = bestShift;
-                Coord newShift = millers[k]->getShift();
-                
-                
-                Coord millerShift = std::make_pair(newShift.first + currentShift.first,
-                                                   newShift.second + currentShift.second);
-                
-                bool inWindow = isCoordInPanel(millerShift, &windowTopLeft,
-                                               &windowBottomRight);
-                
-                if (!inWindow)
-                {
-                    continue;
-                }
-                
-                bool strong = millers[k]->getRawIntensity() / millers[k]->getCountingSigma() > intensityThreshold;
-                
-                if (strong)
-                {
-                    score++;
-                }
-            }
-            
-            scores.push_back(make_pair(windowMidPoint, score));
-        }
-    }
-    
-    std::sort(scores.begin(), scores.end(), scoreComparison);
-    
-    logged << "Changed best shift to " << scores[0].first.first << "\t" << scores[0].first.second << " with score of " << scores[0].second << std::endl;
-    Logger::mainLogger->addStream(&logged);
-    
-    bestShift = scores[0].first;
-}
-
-double Panel::swivelShiftScoreWrapper(void *object)
-{
-    double threshold = 200;
-    
-    Panel *panel = static_cast<Panel *>(object);
-    
-    std::vector<double> shiftXs, shiftYs;
-    
-    for (int i = 0; i < panel->millers.size(); i++)
-    {
-        if (panel->millers[i]->getRawIntensity() > threshold)
-        {
-            MillerPtr miller = panel->millers[i];
-            
-            Coord shift = shiftForMiller(&*miller);
-            
-            shiftXs.push_back(shift.first);
-            shiftYs.push_back(shift.second);
-        }
-    }
-    
-    double stdevX = standard_deviation(&shiftXs);
-    double stdevY = standard_deviation(&shiftYs);
-    
-    double score = stdevX + stdevY;
-    
- //   std::ostringstream logged;
- //   logged << "Swivel score: " << score << " for " << panel->swivel << std::endl;
- //   Logger::mainLogger->addStream(&logged);
-    
-    return score;
-}
-
-double Panel::tiltShiftScoreWrapper(void *object)
-{
-    return static_cast<Panel *>(object)->tiltShiftScore();
-}
-
-double Panel::tiltShiftScore(double stdev)
-{
-    double xMin = bestShift.first - tiltWindowSize / 2;
-    double xMax = bestShift.first + tiltWindowSize / 2;
-    
-    double yMin = bestShift.second - tiltWindowSize / 2;
-    double yMax = bestShift.second + tiltWindowSize / 2;
-    
-    vector<double> tiltShifts;
-    vector<double> weights;
-    
-    for (int k = 0; k < millers.size(); k++)
-    {
-        Coord shift = millers[k]->getShift();
-        
-        if (shift.first < xMin || shift.first > xMax)
-            continue;
-        
-        if (shift.second < yMin || shift.second > yMax)
-            continue;
-        
-        if (millers[k]->getRawIntensity() < averageIntensity)
-            continue;
-        
-        double rawIntensity = millers[k]->getRawIntensity();
-        
-        Coord totalShift = this->shiftForMiller(&*millers[k]);
-        Coord shiftDifference = std::make_pair(totalShift.first - shift.first,
-                                               totalShift.second - shift.second);
-        
-        double desiredAxis = tiltHorizontalAxis ? shiftDifference.first : shiftDifference.second;
-        
-        tiltShifts.push_back(desiredAxis);
-        weights.push_back(log(rawIntensity));
-    }
-    
-    double stdeviation = standard_deviation(&tiltShifts);
-    double mean = weighted_mean(&tiltShifts, &weights);
-    
-    return stdev ? stdeviation : mean;
 }
 
 double Panel::detectorGain(double *error)
@@ -997,25 +735,32 @@ double Panel::detectorGain(double *error)
     return mean;
 }
 
-bool Panel::hasMillers()
+double Panel::globalPseudoScoreWrapper(void *object)
 {
-    for (int i = 0; i < panels.size(); i++)
-    {
-        if (panels[i]->millers.size() > 0)
-            return true;
-    }
+    IndexManager *manager = static_cast<IndexManager *>(object);
     
-    return false;
+    double score = IndexManager::pseudoScore(manager);
+    
+    return score;
 }
 
-double Panel::scoreWrapper(void *object)
+double Panel::globalScoreWrapper(void *object)
 {
-    return static_cast<Panel *>(object)->stepScore();
+    double scoreTotal = 0;
+    
+    for (int i = 0; i < panels.size(); i++)
+    {
+        panels[i]->refreshMillerPositions();
+        scoreTotal += panels[i]->stepScore();
+    }
+    
+    scoreTotal /= (double)panels.size();
+    
+    return scoreTotal;
 }
 
 double Panel::stepScore()
 {
-    double intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", 12.0);
     std::vector<double> shiftXs;
     std::vector<double> shiftYs;
     int count = 0;
@@ -1023,9 +768,6 @@ double Panel::stepScore()
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
-
-        if (miller->getRawIntensity() / miller->getRawCountingSigma() < intensityThreshold)
-            continue;
         
         int x, y;
         
@@ -1044,26 +786,137 @@ double Panel::stepScore()
     double stdevY = standard_deviation(&shiftYs, NULL, 0);
     double aScore = stdevX + stdevY;
     
-//    logged << "Panel " << panelNum << " on st dev " << aScore << std::endl;
-//   sendLog();
-    
     return aScore;
+}
+
+double Panel::scoreWrapper(void *object)
+{
+    return static_cast<Panel *>(object)->stepScore();
 }
 
 void Panel::stepSearch()
 {
     usePanelInfo = true;
     
-    GetterSetterMapPtr refinementMap = GetterSetterMapPtr(new GetterSetterMap());
+    Coord origBottomRight = millerToSpotCoord(bottomRight);
     
-    refinementMap->addParameter(this, getBestShiftX, setBestShiftX, 2.0, 0.2);
-    refinementMap->addParameter(this, getBestShiftY, setBestShiftY, 2.0, 0.2);
+    Coord origTopLeft = millerToSpotCoord(topLeft);
+    
+    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
+    
+    refinementMap->addParameter(this, getBestShiftX, setBestShiftX, 2.0, 0.08);
+    refinementMap->addParameter(this, getBestShiftY, setBestShiftY, 2.0, 0.08);
 
     refinementMap->addParameter(this, getSwivel, setSwivel, 0.4, 0.01);
     
     refinementMap->setEvaluationFunction(scoreWrapper, this);
     refinementMap->setCycles(30);
     
-    refinementMap->refine(GetterSetterStepSearch);
+    refinementMap->refine();
+    
+    Coord newTopLeft = spotToMillerCoord(origTopLeft);
+    Coord newBottomRight = spotToMillerCoord(origBottomRight);
+    
+    double topLeftCorrectionX = newTopLeft.first - topLeft.first;
+    double topLeftCorrectionY = newTopLeft.second - topLeft.second;
+    
+    double bottomRightCorrectionX = newBottomRight.first - bottomRight.first;
+    double bottomRightCorrectionY = newBottomRight.second - bottomRight.second;
+    
+    topLeft.first -= topLeftCorrectionX;
+    topLeft.second -= topLeftCorrectionY;
+    
+    bottomRight.first -= bottomRightCorrectionX;
+    bottomRight.second -= bottomRightCorrectionY;
 }
 
+void Panel::refreshMillerPositions()
+{
+    Miller::refreshMillerPositions(millers);
+}
+
+void Panel::detectorStepSearch(bool pseudo, std::vector<ImagePtr> images)
+{
+    std::ostringstream logged;
+    IndexManager *powderManager = NULL;
+    void *object = NULL;
+    Getter getter = globalScoreWrapper;
+    std::string absRel = pseudo ? "relative" : "absolute";
+    
+    
+    logged << "*********************************" << std::endl;
+    logged << "***   Detector step search    ***" << std::endl;
+    logged << "***  Beam centre vs " << absRel << "  ***" << std::endl;
+    logged << "*********************************" << std::endl;
+    
+    Logger::log(logged);
+    
+    RefinementStepSearchPtr beamRefinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
+    
+    beamRefinementMap->addParameter(NULL, Image::getGlobalBeamX, Image::setGlobalBeamX, 2.0, 0.05);
+    beamRefinementMap->addParameter(NULL, Image::getGlobalBeamY, Image::setGlobalBeamY, 2.0, 0.05);
+    beamRefinementMap->setVerbose(true);
+    
+    beamRefinementMap->setEvaluationFunction(globalScoreWrapper, NULL);
+    
+    beamRefinementMap->setCycles(30);
+    
+    beamRefinementMap->refine();
+    
+    if (pseudo)
+    {
+        powderManager = new IndexManager(images);
+        object = powderManager;
+        getter = globalPseudoScoreWrapper;
+        
+        logged << "*********************************" << std::endl;
+        logged << "***   Detector step search    ***" << std::endl;
+        logged << "***  D. distance vs " << absRel << "  ***" << std::endl;
+        logged << "*********************************" << std::endl;
+        
+        Logger::log(logged);
+        
+        RefinementStepSearchPtr distRefinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
+        
+        distRefinementMap->addParameter(NULL, Image::getGlobalDetectorDistance, Image::setGlobalDetectorDistance, 5.0, 0.01);
+        distRefinementMap->setVerbose(true);
+        
+        distRefinementMap->setEvaluationFunction(getter, object);
+        
+        distRefinementMap->setCycles(30);
+        
+        distRefinementMap->refine();
+        
+    }
+    
+    /*
+    logged << "*********************************" << std::endl;
+    logged << "****  Detector step search  *****" << std::endl;
+    logged << "**** Distance + beam centre *****" << std::endl;
+    logged << "*********************************" << std::endl;
+    
+    Logger::log(logged);
+    
+    
+    RefinementStepSearchPtr totalRefinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
+    
+    totalRefinementMap->addParameter(NULL, Image::getGlobalBeamX, Image::setGlobalBeamX, 1.0, 0.01);
+    totalRefinementMap->addParameter(NULL, Image::getGlobalBeamY, Image::setGlobalBeamY, 1.0, 0.01);
+    totalRefinementMap->addParameter(NULL, Image::getGlobalDetectorDistance, Image::setGlobalDetectorDistance, 1.0, 0.01);
+    totalRefinementMap->setVerbose(true);
+    
+    totalRefinementMap->setEvaluationFunction(getter, object);
+    totalRefinementMap->setCycles(30);
+    
+    totalRefinementMap->refine();
+    
+    if (pseudo)
+    {
+        powderManager->powderPattern("powder_after.csv");
+    }*/
+    
+    logged << "New parameters (please enter into your input file): " << std::endl << std::endl;
+    logged << "DETECTOR_DISTANCE " << Image::getGlobalDetectorDistance(NULL) << std::endl;
+    logged << "BEAM_CENTRE " << Image::getGlobalBeamX(NULL) << " " << Image::getGlobalBeamY(NULL) << std::endl << std::endl;
+    Logger::log(logged);
+}

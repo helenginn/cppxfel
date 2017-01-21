@@ -25,6 +25,7 @@
 #include "Spot.h"
 #include "FreeMillerLibrary.h"
 #include "polyfit.hpp"
+#include "Detector.h"
 
 bool Miller::normalised = true;
 bool Miller::correctingPolarisation = false;
@@ -36,6 +37,9 @@ bool Miller::setupStatic = false;
 PartialityModel Miller::model = PartialityModelScaled;
 int Miller::peakSize = 0;
 bool Miller::correctedPartiality = false;
+bool Miller::absoluteIntensity = false;
+double Miller::intensityThreshold = 0;
+bool Miller::individualWavelength = false;
 
 using cctbx::sgtbx::reciprocal_space::asu;
 
@@ -50,6 +54,7 @@ void Miller::setupStaticVariables()
     
     model = FileParser::getKey("BINARY_PARTIALITY", false) ? PartialityModelBinary : PartialityModelScaled;
     
+    individualWavelength = FileParser::getKey("MILLER_INDIVIDUAL_WAVELENGTHS", false);
     normalised = FileParser::getKey("NORMALISE_PARTIALITIES", true);
     correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
     polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
@@ -58,6 +63,8 @@ void Miller::setupStaticVariables()
     maxSlices = FileParser::getKey("MAX_SLICES", 100);
     peakSize = FileParser::getKey("FOCUS_ON_PEAK_SIZE", 0);
     correctedPartiality = FileParser::getKey("CORRECTED_PARTIALITY_MODEL", false);
+    absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
+    intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", INTENSITY_THRESHOLD);
     
     setupStatic = true;
 }
@@ -254,6 +261,8 @@ double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double
     
     vec oldIncrement = low_wl_pos;
     
+    predictedWavelength = 0;
+    
     for (double slice = p + interval; slice < q; slice += interval)
     {
         vec newIncrement = incrementedPosition(low_wl_pos, high_wl_pos, slice);
@@ -271,12 +280,25 @@ double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double
         
         double totalSlice = normalSlice * sphereSlice;
         
+        predictedWavelength += totalSlice * fabs(qBandwidth - pBandwidth);
         total_integral += totalSlice;
         total_normal += normalSlice;
         total_sphere += sphereSlice;
     }
     
+    predictedWavelength /= total_integral;
+    
     return total_integral;
+}
+
+void Miller::recalculatePredictedWavelength()
+{
+    bool oldCorrected = correctedPartiality;
+    
+    correctedPartiality = true;
+    recalculatePartiality(matrix, getMtzParent()->getMosaicity(), getMtzParent()->getSpotSize(), getMtzParent()->getWavelength(), getMtzParent()->getBandwidth(), getMtzParent()->getExponent());
+    
+    correctedPartiality = oldCorrected;
 }
 
 Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
@@ -300,6 +322,8 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
     flipMatrix = 0;
+    correctedX = 0;
+    correctedY = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -312,6 +336,7 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
         free = FreeMillerLibrary::isMillerFree(this);
     }
     
+    shiftedRay = new_vector(0, 0, 0);
     mtzParent = parent;
     matrix = MatrixPtr();
 }
@@ -332,6 +357,7 @@ vec Miller::hklVector(bool shouldFlip)
     
     return newVec;
 }
+
 
 int Miller::getH()
 {
@@ -371,11 +397,6 @@ void Miller::setData(double _intensity, double _sigma, double _partiality,
     sigma = _sigma;
     partiality = _partiality;
     wavelength = _wavelength;
-}
-
-void Miller::printHkl(void)
-{
-    std::cout << "h k l " << h << " " << k << " " << l << std::endl;
 }
 
 bool Miller::accepted(void)
@@ -507,11 +528,14 @@ double Miller::getWavelength()
     return wavelength;
 }
 
-vec Miller::getTransformedHKL(MatrixPtr matrix)
+vec Miller::getTransformedHKL(MatrixPtr myMatrix)
 {
+    if (!myMatrix)
+        myMatrix = getMatrix();
+    
     vec hkl = new_vector(h, k, l);
     
-    matrix->multiplyVector(&hkl);
+    myMatrix->multiplyVector(&hkl);
     
     return hkl;
 }
@@ -523,6 +547,22 @@ vec Miller::getTransformedHKL(double hRot, double kRot)
     
     vec hkl = getTransformedHKL(newMatrix);
     return hkl;
+}
+
+double Miller::recalculateWavelength()
+{
+    double hRot = 0;
+    double kRot = 0;
+    
+    if (getMtzParent() != NULL)
+    {
+        hRot = getMtzParent()->getHRot();
+        kRot = getMtzParent()->getKRot();
+    }
+    
+    getWavelength(hRot, kRot);
+    
+    return getWavelength();
 }
 
 double Miller::getWavelength(double hRot, double kRot)
@@ -587,13 +627,6 @@ double Miller::getWeight(bool cutoff, WeightType weighting)
     weight *= getBFactorScale();
 
     return weight;
-}
-
-void Miller::rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
-{
-    (*newMatrix) = oldMatrix->copy();
-    
-    (*newMatrix)->rotateABC(oldMatrix, aRot, bRot, cRot);
 }
 
 void Miller::rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix)
@@ -707,25 +740,6 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
     
     return thisPartiality;
     
-}
-
-double Miller::calculateDefaultNorm()
-{
-    double defaultSpotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
-    double wavelength = 1.75;
-    
-    double d = getResolution();
-    
-    double newH = 0;
-    double newK = sqrt((4 * pow(d, 2) - pow(d, 4) * pow(wavelength, 2)) / 4);
-    double newL = 0 - pow(d, 2) * wavelength / 2;
-    
-    vec newHKL = new_vector(newH, newK, newL);
-    
-    double normPartiality = partialityForHKL(newHKL, 0,
-                                             defaultSpotSize, wavelength, INITIAL_BANDWIDTH, INITIAL_EXPONENT);
-    
-    return normPartiality;
 }
 
 double Miller::calculateNormPartiality(MatrixPtr rotatedMatrix, double mosaicity,
@@ -929,31 +943,9 @@ MillerPtr Miller::copy(void)
     return newMiller;
 }
 
-void Miller::flip(void)
-{
-    int tmp = l;
-    l = k;
-    k = tmp;
-}
-
 void Miller::applyScaleFactor(double scaleFactor)
 {
     setScale(scale * scaleFactor);
-/*
-    if ((abs(h) == 9 && abs(k) == 9 && abs(l) == 16) ||
-        (abs(h) == 16 && abs(k) == 9 && abs(l) == 9))
-    {
-        logged << mtzParent->getFilename() << std::endl;
-        logged << h << "\t" << k << "\t" << l << std::endl;
-        logged << "Intensity: " << getRawestIntensity() << std::endl;
-        logged << "Scale: " << getScale() << std::endl;
-        logged << "Partiality: " << getPartiality() << std::endl;
-        logged << "getSigma: " << getSigma() << std::endl;
-        logged << "Sigma itself: " << sigma << std::endl;
-        
-        sendLog();
-    }*/
-    
 }
 
 void Miller::applyPolarisation(double wavelength)
@@ -999,89 +991,133 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
     return isym != 0;
 }
 
-double Miller::scatteringAngle(ImagePtr image)
+double Miller::getPredictedWavelength()
 {
-    double beamX = getImage()->getBeamX();
-    double beamY = getImage()->getBeamY();
-    
-    double distance_from_centre = sqrt(
-                                      pow(lastX - beamX, 2) + pow(lastY - beamY, 2));
-    double distance_pixels = distance_from_centre * getImage()->getMmPerPixel();
-    double detector_distance = getImage()->getDetectorDistance();
-    
-    double sinTwoTheta = sin(distance_pixels / detector_distance);
-    
-    return sinTwoTheta;
-}
-
-void flattenAngle(double *radians)
-{
-    while (*radians < 0)
+    if (!individualWavelength)
     {
-        *radians += M_PI;
+        return getImage()->getWavelength();
     }
-    
-    while (*radians > 2 * M_PI)
+    else
     {
-        *radians -= M_PI;
+        recalculatePredictedWavelength();
+        return predictedWavelength;
     }
 }
 
 void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
-                                int *y)
+                                int *y, bool shouldSearch)
 {
-    double x_coord = 0;
-    double y_coord = 0;
     
-    vec hkl = new_vector(h, k, l);
-    transformedMatrix->multiplyVector(&hkl);
+    bool even = false;
+    if (shoebox)
+        even = shoebox->isEven();
     
-    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl);
-    
-    lastX = int(coord.first);
-    lastY = int(coord.second);
-    
-    PanelPtr panel = Panel::panelForMiller(this);
-    
-    if (!panel)
+    if (Detector::isActive())
     {
-        *x = -INT_MAX;
-        *y = -INT_MAX;
+        double xSpotPred, ySpotPred;
+        DetectorPtr detector = Detector::getMaster()->spotCoordForMiller(shared_from_this(), &xSpotPred, &ySpotPred);
+        
+        if (!detector)
+        {
+            return;
+        }
+        
+        lastX = xSpotPred;
+        lastY = ySpotPred;
+        
+        int xInt = xSpotPred;
+        int yInt = ySpotPred;
+        
+        bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0)) && getIOMRefiner();
+        
+        if (refocus)
+        {
+            int search = getIOMRefiner()->getSearchSize();
+            getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+        }
+        else
+        {
+            xInt = correctedX;
+            yInt = correctedY;
+        }
+        
+        shift = std::make_pair(xInt - lastX, yInt - lastY);
+        
+        if (refocus)
+        {
+            correctedX = xInt;
+            correctedY = yInt;
+        }
+        
+        *x = correctedX;
+        *y = correctedY;
         
         return;
     }
     
-    x_coord = coord.first;
-    y_coord = coord.second;
-    
-    
-    bool even = shoebox->isEven();
+    if (!transformedMatrix)
+    {
+        transformedMatrix = getMatrix();
+    }
 
-    int intLastX = int(x_coord);
-    int intLastY = int(y_coord);
+    vec hkl = new_vector(h, k, l);
+    transformedMatrix->multiplyVector(&hkl);
+    double tmp = hkl.k;
+    hkl.k = hkl.h;
+    hkl.h = -tmp;
+
+    
+    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl, individualWavelength ? wavelength : 0);
+    
+    lastX = int(coord.first);
+    lastY = int(coord.second);
+    
+    *x = -INT_MAX;
+    *y = -INT_MAX;
+    
+    PanelPtr panel = Panel::panelForMiller(this);
+    
+    
+    int intLastX = int(coord.first);
+    int intLastY = int(coord.second);
     
     if (even)
     {
-        intLastX = round(x_coord);
-        intLastY = round(y_coord);
+        intLastX = round(coord.first);
+        intLastY = round(coord.second);
     }
     
-    lastX = x_coord;
-    lastY = y_coord;
-    
+    lastX = coord.first;
+    lastY = coord.second;
+
     if (!Panel::shouldUsePanelInfo())
     {
-        int search = indexer->getSearchSize();
+        if (!panel)
+            return;
+        
+        if (!getIOMRefiner())
+            return;
+
+        int search = getIOMRefiner()->getSearchSize();
         getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
         
-        shift = std::make_pair(intLastX + 0.5 - x_coord, intLastY + 0.5 - y_coord);
+        shift = std::make_pair(intLastX + 0.5 - coord.first, intLastY + 0.5 - coord.second);
         
         *x = intLastX;
         *y = intLastY;
+        
+        lastPeakX = intLastX;
+        lastPeakY = intLastY;
     }
     else
     {
-        int search = indexer->getSearchSize();
+        if (!panel)
+            return;
+
+        if (!getIOMRefiner())
+            return;
+        
+        int search = getIOMRefiner()->getSearchSize();
         Coord bestShift = panel->shiftForMiller(this);
         
         if (bestShift.first != FLT_MAX)
@@ -1089,19 +1125,35 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
             double shiftedX = lastX + bestShift.first;
             double shiftedY = lastY + bestShift.second;
             
-            int xInt = shiftedX;
-            int yInt = shiftedY;
+            int xInt, yInt;
             
-            getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+            if (shouldSearch || (correctedX == 0 && correctedY == 0))
+            {
+                xInt = shiftedX;
+                yInt = shiftedY;
+            
+                getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+            }
+            else
+            {
+                xInt = correctedX;
+                yInt = correctedY;
+            }
             
             shift = std::make_pair(xInt + 0.5 - shiftedX, yInt + 0.5 - shiftedY);
             
             *x = xInt;
             *y = yInt;
+            
+            lastPeakX = xInt;
+            lastPeakY = yInt;
         }
         else
         {
-            int search = indexer->getSearchSize();
+            if (!getIOMRefiner())
+                return;
+
+            int search = getIOMRefiner()->getSearchSize();
             
             getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
             
@@ -1112,6 +1164,17 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     
     correctedX = *x;
     correctedY = *y;
+}
+
+vec Miller::getShiftedRay()
+{
+    // if unassigned, should be genuine zeros
+    if (length_of_vector(shiftedRay) < 0.1)
+    {
+        Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
+    }
+    
+    return shiftedRay;
 }
 
 void Miller::makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize)
@@ -1173,10 +1236,8 @@ void Miller::incrementOverlapMask(double hRot, double kRot)
 
 bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDelete)
 {
-    Coord fullShift = Panel::shiftForMiller(this);
-    
-    double x = fullShift.first + lastX + shift.first;
-    double y = fullShift.second + lastY + shift.second;
+    double x = correctedX;
+    double y = correctedY;
     int count = 0;
     double tolerance = 2.5;
     
@@ -1344,3 +1405,46 @@ double Miller::getRawestIntensity()
     return rawIntensity;
 }
 
+bool Miller::reachesThreshold()
+{
+    double iSigI = getRawIntensity() / getCountingSigma();
+    
+    if (absoluteIntensity)
+    {
+        return (getRawIntensity() > intensityThreshold);
+    }
+    
+    return (iSigI > intensityThreshold);
+}
+
+void Miller::refreshMillerPositions(std::vector<MillerPtr> millers)
+{
+    for (int i = 0; i < millers.size(); i++)
+    {
+        int x, y;
+        millers[i]->positionOnDetector(MatrixPtr(), &x, &y, false);
+    }
+}
+
+void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers)
+{
+    for (int i = 0; i < millers.size(); i++)
+    {
+        int x, y;
+        MillerPtr miller = millers[i].lock();
+        if (miller)
+        {
+            miller->positionOnDetector(MatrixPtr(), &x, &y, false);
+        }
+    }
+}
+
+void Miller::setDetector(DetectorPtr newD)
+{
+    if (!(lastDetector.lock() == newD))
+    {
+        newD->addMillerCarefully(shared_from_this());
+    }
+    
+    lastDetector = newD;
+}

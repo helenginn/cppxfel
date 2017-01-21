@@ -38,7 +38,6 @@ class Reflection
 {
 private:
     
-    
     std::vector<LiteMiller> liteMillers;
 	vector<MillerPtr> millers;
 	double resolution;
@@ -51,6 +50,7 @@ private:
     static bool hasSetup;
     static std::mutex setupMutex;
     static bool setupUnitCell;
+    static MatrixPtr customAmbiguity;
     static std::vector<MatrixPtr> flipMatrices;
     static double rejectSigma;
     static bool shouldReject;

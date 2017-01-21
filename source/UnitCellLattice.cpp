@@ -11,6 +11,10 @@
 #include "FileParser.h"
 #include "SpotVector.h"
 #include "Logger.h"
+#include "Detector.h"
+#include "CSV.h"
+#include "Vector.h"
+#include <algorithm>
 
 std::vector<MatrixPtr> UnitCellLattice::symOperators;
 
@@ -27,20 +31,51 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
     delete [] lengths;
 }
 
+void UnitCellLattice::addConvolutedPeak(CSVPtr csv, double mean, double stdev, double weight)
+{
+    double totalIntervals = 300;
+    double step = (stdev * 6) / totalIntervals;
+    
+    for (double x = -stdev * 3; x < stdev * 3; x += step)
+    {
+        double y = normal_distribution(x, 0, stdev) / totalIntervals;
+        csv->addOneToFrequency(x + mean, "Perfect frequency", y * weight);
+    }
+}
+
+void UnitCellLattice::weightUnitCell()
+{
+    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+    CSVPtr csv = CSVPtr(new CSV(0));
+    csv->setupHistogram(0, maxDistance, step, "Distance", 1, "Perfect frequency");
+    
+    for (int i = 0; i < uniqueSymVectorCount(); i++)
+    {
+        double distance = uniqueSymVector(i)->distance();
+        
+        if (distance <= 0)
+            continue;
+        
+        double inverse = 1 / distance;
+        inverse *= maxDistance;
+        double stdev = rlpSize / 2;
+        
+        addConvolutedPeak(csv, distance, stdev, inverse);
+    }
+    
+    csv->writeToFile("perfect_unit_cell.csv");
+    weightedUnitCell = csv;
+}
+
 void UnitCellLattice::setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution)
 {
     spaceGroup = CSym::ccp4spg_load_by_ccp4_num(spaceGroupNum);
     
-    Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, a, b, c, alpha, beta, gamma);
- /*
-    Logger::mainLogger->addString("\nSymmetry operators:");
-    
-    for (int i = 0; i < symOperatorCount(); i++)
+    if (!symOperators.size())
     {
-        symOperator(i)->printDescription();
+        Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, a, b, c, alpha, beta, gamma);
     }
-    
-    Logger::mainLogger->addString("\n");*/
     
     unitCellOnly = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
     
@@ -74,40 +109,28 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     int count = 0;
     
+    orderedDistances.push_back(0);
+    
     for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
     {
         for (int j = -maxMillerIndexTrialK; j <= maxMillerIndexTrialK; j++)
         {
             for (int k = -maxMillerIndexTrialL; k <= maxMillerIndexTrialL; k++)
             {
-                if (spaceGroupNum != 19 && spaceGroupNum != 178 && spaceGroupNum != 4)
+                if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
                 {
-                    bool sysabs = false;
-                    if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
-                        sysabs = true;
-                    
-                    if (spaceGroupNum == 20)
-                    {
-                        // exception for this difference vector
-                        if (i == 0 && j == 0 && k == 1)
-                        {
-                            sysabs = false;
-                        }
-                    }
-                    
-                    if (sysabs == true)
-                        continue;
+                    continue;
                 }
                 
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
                 
-                if (resolution == 0 && length_of_vector(hkl) > maxMillerIndexTrial)
-                    continue;
-                
                 unitCellMatrix->multiplyVector(&hkl_transformed);
                 
                 double distance = length_of_vector(hkl_transformed);
+                
+                if (distance > 1 / resolution)
+                    continue;
                 
                 if (distance > maxDistance)
                     maxDistance = distance;
@@ -123,6 +146,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 if (asym)
                 {
                     uniqueSymVectors.push_back(newStandardVector);
+                    orderedDistances.push_back(newStandardVector->distance());
                 }
                 
                 count++;
@@ -130,9 +154,9 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
         }
     }
     
-    std::ostringstream logged;
-    logged << "Added " << count << " test vectors from space group / unit cell." << std::endl;
-    Logger::mainLogger->addStream(&logged);
+    weightUnitCell();
+    
+    std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
     
     minDistance = FLT_MAX;
     
@@ -149,4 +173,9 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
 void UnitCellLattice::refineUnitCell(PowderHistogram aHistogram)
 {
     histogram = aHistogram;
+}
+
+double UnitCellLattice::weightForDistance(double distance)
+{
+    return weightedUnitCell->valueForHistogramEntry("Perfect frequency", distance);
 }

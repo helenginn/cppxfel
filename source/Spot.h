@@ -15,11 +15,12 @@
 #include "Vector.h"
 #include "LoggableObject.h"
 
-class Spot : LoggableObject
+class Spot : LoggableObject, public boost::enable_shared_from_this<Spot>
 {
 private:
 	vector<vector<double> > probe;
 	ImageWeakPtr parentImage;
+    DetectorWeakPtr lastDetector;
     double angleDetectorPlane;
     bool setAngle;
     bool checked;
@@ -35,6 +36,8 @@ private:
     static double maxResolution;
     static double minIntensity;
     static double minCorrelation;
+    static bool checkRes;
+    static int useNewDetectorFormat;
     
 public:
 	Spot(ImagePtr image);
@@ -45,7 +48,7 @@ public:
 	double maximumLift(ImagePtr image, int x, int y, bool ignoreCovers);
 	double maximumLift(ImagePtr image, int x, int y);
 	void makeProbe(int height, int background, int size, int backPadding = 0);
-    void addToMask(int *mask, int width);
+    void addToMask(int *mask, int width, int height);
 	void setXY(double x, double y);
     void setXYFromEstimatedVector(vec hkl);
 	double scatteringAngle(ImagePtr image = ImagePtr());
@@ -60,6 +63,7 @@ public:
     bool isSameAs(SpotPtr spot2);
     double closeToSecondSpot(SpotPtr spot2, double squareMinDistance);
     double integrate();
+    void recentreInWindow(int windowPadding = 0);
 
     Coord getXY();
     double getX(bool update = false);
@@ -67,7 +71,7 @@ public:
     Coord getRawXY();
     vec estimatedVector();
     void setUpdate();
-    bool focusOnNearbySpot(double maxShift, double trialX, double trialY, int round = 0);
+    double focusOnNearbySpot(double maxShift, double trialX, double trialY, int round = 0);
     
     std::string spotLine();
     
@@ -115,6 +119,16 @@ public:
 	{
 		this->parentImage = parentImage;
 	}
+    
+    DetectorPtr getDetector()
+    {
+        return lastDetector.lock();
+    }
+    
+    void setDetector(DetectorPtr newD)
+    {
+        lastDetector = newD;
+    }
     
     double getIntensity()
     {

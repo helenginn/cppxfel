@@ -349,6 +349,14 @@ MtzRejectionReason MtzMerger::isMtzAccepted(MtzPtr mtz)
         return MtzRejectionPartCorrel;
     }
     
+    double scale = mtz->getScale();
+    double rejectBelow = FileParser::getKey("REJECT_BELOW_SCALE", 0.0);
+    
+    if (scale < rejectBelow)
+    {
+        return MtzRejectionOther;
+    }
+    
     if (mtz->accepted() < minReflectionCounts)
     {
         return MtzRejectionMinRefl;

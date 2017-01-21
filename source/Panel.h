@@ -48,7 +48,8 @@ private:
 
     Coord getSwivelShift(Coord millerCoord, bool isSpot = false);
     Coord getTiltShift(Coord millerCoord);
-	Coord getTotalShift(Coord millerCoord, bool isMiller = false);
+    Coord millerToSpotCoordShift(Coord millerCoord);
+    Coord millerToSpotCoord(Coord millerCoord);
     
     void fractionalCoordinates(Coord coord, Coord *frac);
     void fractionalCoordinates(Miller *miller, Coord *frac);
@@ -60,24 +61,22 @@ private:
 
     void centreWindowShift();
     void findAllParameters();
-    void findShift(double windowSize, double step, double x = 0, double y = 0);
     
-    double tiltShiftScore(double stdev = true);
-    static double tiltShiftScoreWrapper(void *object);
-    static double swivelShiftScoreWrapper(void *object);
-
     std::map<boost::thread::id, vector<MillerPtr> > tempMillers;
     
     static void calculateMetrologyThread(int offset);
     static std::string printAllThreaded();
     double detectorGain(double *error);
 
+    Coord relativeToCoordForMiller(Coord coord, Coord relative, bool isSpot);
+    Coord relativeToTopLeftForMiller(Coord coord, bool isSpot = false);
     Coord relativeToMidPointForMiller(Coord coord, bool isSpot = false);
     double angleForMiller(Miller *miller);
-    double distanceFromMidPointForMiller(Miller *miller);
-    
+    void refreshMillerPositions();
+
     void score();
-    double stdevScore(double minRes, double maxRes);
+    static double globalScoreWrapper(void *object);
+    static double globalPseudoScoreWrapper(void *object);
     vector<MillerPtr> millers;
 	int defaultShift;
     
@@ -92,7 +91,7 @@ public:
     void init(vector<double> dimensions, PanelTag newTag);
     virtual ~Panel();
 
-    bool isCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
+    bool isMillerCoordInPanel(Coord coord, Coord *topLeft = NULL, Coord *bottomRight = NULL);
     bool isMillerInPanel(Miller *miller);
 	static void addMillerToPanelArray(MillerPtr miller);
 	static PanelPtr panelForMiller(Miller *miller);
@@ -100,12 +99,12 @@ public:
     static PanelPtr panelForSpotCoord(Coord coord, PanelPtr *anyBadPanel = NULL);
     static PanelPtr panelForCoord(Coord coord);
     static PanelPtr spotCoordFallsInMask(Coord shifted);
-    Coord shiftSpot(Coord xy);
+    Coord spotToMillerCoord(Coord xy);
     static void setupPanel(PanelPtr panel);
-    static void removePanel(PanelPtr panel);
-	void plotVectors(int i, PlotType plotType);
+    void plotVectors(int i, PlotType plotType);
 	static void plotAll(PlotType plotType);
     void stepSearch();
+    static void detectorStepSearch(bool pseudo = false, std::vector<ImagePtr> images = std::vector<ImagePtr>());
     double stepScore();
     static double scoreWrapper(void *object);
 
@@ -115,12 +114,10 @@ public:
     Coord realCoordsForImageCoord(Coord xy);
     static Coord translationShiftForSpot(Spot *spot);
     static Coord swivelShiftForSpot(Spot *spot);
-    static double scaleForMiller(Miller *miller);
-	void print(std::ostringstream *stream);
+    void print(std::ostringstream *stream);
 	static void printToFile(std::string filename);
 	static std::string printAll();
     
-    static bool hasMillers();
     static int panelCount();
     static void clearAllMillers();
     void clearMillers();

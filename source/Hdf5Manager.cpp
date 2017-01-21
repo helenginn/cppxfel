@@ -392,6 +392,31 @@ size_t Hdf5Manager::bytesPerTypeForDatasetAddress(std::string dataAddress)
     return sizeType;
 }
 
+bool Hdf5Manager::getImageSize(std::string dataAddress, int *finalDims)
+{
+    std::lock_guard<std::mutex> lg(readingHdf5);
+    
+    try
+    {
+        hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
+        hid_t space = H5Dget_space(dataset);
+        int numDims = H5Sget_simple_extent_ndims(space);
+        hsize_t dims[numDims];
+        H5Sget_simple_extent_dims(space, dims, NULL);
+        
+        int start = (numDims == 3) ? 1 : 0;
+        
+        finalDims[0] = (int)dims[start];
+        finalDims[1] = (int)dims[start + 1];
+    }
+    catch (std::exception e)
+    {
+        return false;
+    }
+    
+    return true;
+}
+
 bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer, int offset)
 {
     std::lock_guard<std::mutex> lg(readingHdf5);
@@ -401,7 +426,7 @@ bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer, int off
         hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
         hid_t type = H5Dget_type(dataset);
         
-        if (offset == -1)
+        if (offset == -1) // numDims = 2
         {
             H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, *buffer);
         }
@@ -414,7 +439,7 @@ bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer, int off
             
             if (numDims < 3)
             {
-                logged << "This HDF5 file does no support offsets when reading images!" << std::endl;
+                logged << "I have no idea what this error message should say!" << std::endl;
                 sendLog();
             }
             else

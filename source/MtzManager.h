@@ -78,7 +78,6 @@ protected:
     double penaltyWeight;
     double penaltyResolution;
     
-    RotationMode rotationMode;
 	double hRot;
 	double kRot;
 	double mosaicity;
@@ -279,8 +278,8 @@ public:
     static double bFactorScoreWrapper(void *object);
     static double scoreNelderMead(void *object);
 	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
-    double leastSquaresPartiality(ScoreType typeOfScore);
-    double leastSquaresPartiality(double low, double high, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
+    double leastSquaresPartiality(double low = 0, double high = 0, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
+    double partialityFunction(double low = 0, double high = 0);
 	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high, bool withCutoff = false, bool set = false);
 	std::string describeScoreType();
@@ -304,8 +303,6 @@ public:
     void findSteps(int param1, int param2, std::string csvName);
 	void gridSearch(bool silent = false);
 	double minimize();
-	double minimize(double (*score)(void *object, double lowRes, double highRes),
-			void *object);
 	double minimizeTwoParameters(double *meanStep1, double *meanStep2,
 			double **params, int paramNum1, int paramNum2,
 			double (*score)(void *object, double lowRes, double highRes),
@@ -660,7 +657,7 @@ public:
 	}
     
     MatrixPtr getLatestMatrix();
-    void addParameters(GetterSetterMapPtr map);
+    void addParameters(RefinementStepSearchPtr map);
     static double refineParameterScore(void *object);
     
     static double getSpotSizeStatic(void *object)
@@ -673,7 +670,7 @@ public:
         static_cast<MtzManager *>(object)->setSpotSize(newSize);
     }
 
-    void refineParametersStepSearch(GetterSetterMap &map);
+    void refineParametersStepSearch(RefinementStepSearch &map);
     
     static double getMosaicityStatic(void *object)
     {
@@ -702,7 +699,6 @@ public:
     static void setHRotStatic(void *object, double newHRot)
     {
         static_cast<MtzManager *>(object)->setHRot(newHRot);
- //       static_cast<MtzManager *>(object)->updateLatestMatrix();
     }
     
     static double getKRotStatic(void *object)
@@ -713,7 +709,6 @@ public:
     static void setKRotStatic(void *object, double newKRot)
     {
         static_cast<MtzManager *>(object)->setKRot(newKRot);
-  //      static_cast<MtzManager *>(object)->updateLatestMatrix();
     }
 
     static double getWavelengthStatic(void *object)
@@ -725,6 +720,57 @@ public:
     {
         static_cast<MtzManager *>(object)->setWavelength(newWavelength);
     }
+    
+    static double getBandwidthStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getBandwidth();
+    }
+    
+    static void setBandwidthStatic(void *object, double newBandwidth)
+    {
+        static_cast<MtzManager *>(object)->setBandwidth(newBandwidth);
+    }
+    
+    static double getExponentStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getExponent();
+    }
+    
+    static void setExponentStatic(void *object, double newExponent)
+    {
+        static_cast<MtzManager *>(object)->setExponent(newExponent);
+    }
+    
+    static double getUnitCellAStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getUnitCell()[0];
+    }
+    
+    static void setUnitCellAStatic(void *object, double newDim)
+    {
+        static_cast<MtzManager *>(object)->getUnitCell()[0] = newDim;
+    }
+    
+    static double getUnitCellBStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getUnitCell()[1];
+    }
+    
+    static void setUnitCellBStatic(void *object, double newDim)
+    {
+        static_cast<MtzManager *>(object)->getUnitCell()[1] = newDim;
+    }
+
+    static double getUnitCellCStatic(void *object)
+    {
+        return static_cast<MtzManager *>(object)->getUnitCell()[2];
+    }
+    
+    static void setUnitCellCStatic(void *object, double newDim)
+    {
+        static_cast<MtzManager *>(object)->getUnitCell()[2] = newDim;
+    }
+
 
     ImagePtr getImagePtr()
     {

@@ -269,12 +269,29 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
         }
     }
     
-    Logger::log(logged);
+    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
 }
 
 void Matrix::printDescription(bool detailed)
 {
     Logger::mainLogger->addString(description(detailed));
+}
+
+void Matrix::prettyPrint()
+{
+    int width = 10;
+    std::ostringstream logged;
+    logged << "Pretty: " << std::endl;
+    logged << std::setw(width) << std::setprecision(4) << components[0];
+    logged << std::setw(width) << std::setprecision(4) << components[4];
+    logged << std::setw(width) << std::setprecision(4) << components[8] << std::endl;
+    logged << std::setw(width) << std::setprecision(4) << components[1];
+    logged << std::setw(width) << std::setprecision(4) << components[5];
+    logged << std::setw(width) << std::setprecision(4) << components[9] << std::endl;
+    logged << std::setw(width) << std::setprecision(4) << components[2];
+    logged << std::setw(width) << std::setprecision(4) << components[6];
+    logged << std::setw(width) << std::setprecision(4) << components[10] << std::endl;
+    Logger::mainLogger->addStream(&logged);
 }
 
 MatrixPtr Matrix::matrixFromUnitCellVersion2(double a, double b, double c, double alpha, double beta, double gamma)
@@ -572,6 +589,7 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
 }
 
+// Order = b * this
 Matrix Matrix::operator*=(Matrix &b)
 {
     Matrix newMat;
@@ -654,6 +672,7 @@ void Matrix::multiply(Matrix &b)
     (*this) *= b;
 }
 
+// Order = this * b (I think)
 void Matrix::preMultiply(Matrix &b)
 {
     Matrix newMat = b * (*this);

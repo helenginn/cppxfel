@@ -69,6 +69,7 @@ public:
     bool writeDataset(std::string address, void **buffer, hid_t type);
     bool dataForAddress(std::string address, void **buffer, int offset = -1);
     void identifiersFromAddress(std::vector<std::string> *list, std::string idAddress);
+    virtual bool getImageSize(std::string dataAddress, int *dims);
     
     template <class Value>
     bool writeSingleValueDataset(std::string address, Value value, hid_t type)

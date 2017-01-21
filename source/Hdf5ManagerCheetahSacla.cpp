@@ -16,6 +16,11 @@ Hdf5ManagerCheetahPtr Hdf5ManagerCheetahSacla::makeManager(std::string filename)
     return std::static_pointer_cast<Hdf5ManagerCheetah>(cheetahPtr);
 }
 
+bool Hdf5ManagerCheetahSacla::getImageSize(std::string address, int *dims)
+{
+    std::string dataAddress = concatenatePaths(address, "data");
+    return Hdf5Manager::getImageSize(dataAddress, dims);
+}
 
 bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer)
 {

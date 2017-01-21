@@ -16,10 +16,12 @@
 #include "FileParser.h"
 #include "CSV.h"
 #include "Shoebox.h"
+#include "Detector.h"
 
 double Spot::maxResolution = 0;
 double Spot::minIntensity = 0;
-double Spot::minCorrelation = 0;
+double Spot::minCorrelation = -3;
+bool Spot::checkRes = false;
 
 Spot::Spot(ImagePtr image)
 {
@@ -36,13 +38,14 @@ Spot::Spot(ImagePtr image)
     x = 0;
     y = 0;
     height = FileParser::getKey("IMAGE_SPOT_PROBE_HEIGHT", 100);
-    background = FileParser::getKey("IMAGE_SPOT_PROBE_BACKGROUND", 10);
+    background = FileParser::getKey("IMAGE_SPOT_PROBE_BACKGROUND", 0);
     int probePadding = FileParser::getKey("IMAGE_SPOT_PROBE_PADDING", 1);
     length = probePadding * 2 + 1;
     backgroundPadding = FileParser::getKey("IMAGE_SPOT_PROBE_BG_PADDING", probePadding) * 2 + 1;
     
-    if (minCorrelation == 0)
+    if (minCorrelation == -3)
     {
+        checkRes = FileParser::hasKey("MAX_INTEGRATED_RESOLUTION");
         maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 2.0);
         minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 100.);
         minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
@@ -122,22 +125,18 @@ double Spot::maximumLift(ImagePtr image, int x, int y, bool ignoreCovers)
 	return (penultimate > 0 && penultimate != FLT_MAX ? penultimate : 0);
 }
 
-bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int round)
+double Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int round)
 {
-  //  logged << "Finding new spot for round " << round << std::endl;
-  //  sendLog(round > 1 ? LogLevelDetailed : LogLevelDebug);
-        int focusedX = trialX;
+    int focusedX = trialX;
     int focusedY = trialY;
     
     if (maxShift > 0)
     {
-    this->getParentImage()->focusOnAverageMax(&focusedX, &focusedY, maxShift);
+        this->getParentImage()->focusOnAverageMax(&focusedX, &focusedY, maxShift);
     }
     
     setXY(focusedX, focusedY);
-  //  logged << "Original position (" << trialX << ", " << trialY << ") focusing on " << focusedX << ", " << focusedY << std::endl;
-  //  sendLog(LogLevelDetailed);
-    
+  
     double pixelIntensity = this->getParentImage()->valueAt(focusedX, focusedY);
     
     if (pixelIntensity < minIntensity)
@@ -145,14 +144,13 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
         return false;
     }
     
-    double resol = this->resolution();
-    
-  //  logged << "Resolution: " << resol << " for " << focusedX << ", " << focusedY << " -> " << getX() << ", " << getY() << std::endl;
-  //  sendLog();
-    
-    if (resol > (1. / maxResolution)) return false;
-    if (resol < 0) return false;
-    
+    if (checkRes)
+    {
+        double resol = this->resolution();
+        
+        if (resol > (1. / maxResolution)) return false;
+        if (resol < 0) return false;
+    }
     
     std::vector<double> probeIntensities, realIntensities;
     
@@ -182,16 +180,8 @@ bool Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int 
     }
     
     double correlation = correlation_between_vectors(&probeIntensities, &realIntensities);
-    
-    logged << "Correlation: " << correlation << " for intensity height " << pixelIntensity << std::endl;
-    sendLog(LogLevelDetailed);
 
-    if (correlation < minCorrelation)
-        return false;
-    
-    sendLog(LogLevelDetailed);
-
-    return true;
+    return correlation;
 }
 
 void Spot::makeProbe(int height, int background, int length, int backPadding)
@@ -341,6 +331,15 @@ void Spot::setUpdate()
 
 Coord Spot::getXY()
 {
+    if (Detector::isActive())
+    {
+        vec arrangedPos = new_vector(FLT_MAX, FLT_MAX, FLT_MAX);
+        
+        DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+        
+        return std::make_pair(arrangedPos.h, arrangedPos.k);
+    }
+    
     Coord shift = Panel::translationShiftForSpot(this);
     Coord swivelShift = Panel::swivelShiftForSpot(this);
     
@@ -384,6 +383,43 @@ double Spot::getY(bool update)
 Coord Spot::getRawXY()
 {
     return std::make_pair(x, y);
+}
+
+void Spot::recentreInWindow(int windowPadding)
+{
+    if (windowPadding == 0)
+    {
+        windowPadding = backgroundPadding + 4;
+    }
+    
+    std::vector<double> xPositions, yPositions, weights;
+    Coord xy = this->getRawXY();
+    ImagePtr thisImage = getParentImage();
+    
+    for (int i = -windowPadding; i < windowPadding + 1; i++)
+    {
+        for (int j = -windowPadding; j < windowPadding + 1; j++)
+        {
+            int myX = xy.first + i;
+            int myY = xy.second + j;
+            int pixelIntensity = thisImage->valueAt(myX, myY);
+            
+            if (pixelIntensity <= 10)
+                continue;
+            
+            xPositions.push_back(myX);
+            yPositions.push_back(myY);
+            weights.push_back(pixelIntensity);
+        }
+    }
+    
+    double newX = weighted_mean(&xPositions, &weights);
+    double newY = weighted_mean(&yPositions, &weights);
+    
+    if (weights.size() > 0)
+    {
+        setXY(newX, newY);
+    }
 }
 
 bool Spot::isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees)
@@ -438,9 +474,30 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
 
 vec Spot::estimatedVector()
 {
-    vec estimated = getParentImage()->pixelsToReciprocalCoordinates(getX(), getY());
-    
-    return estimated;
+    if (Detector::isActive())
+    {
+        vec arrangedPos;
+        DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+        
+        if (detector)
+        {
+            double wavelength = getParentImage()->getWavelength();
+            arrangedPos.k *= -1;
+            scale_vector_to_distance(&arrangedPos, 1 / wavelength);
+            arrangedPos.l -= 1 / wavelength;
+
+            return arrangedPos;
+        }
+        else
+        {
+            return new_vector(0, 0, 0);
+        }
+    }
+    else
+    {
+        vec estimated = getParentImage()->pixelsToReciprocalCoordinates(getX(), getY());
+        return estimated;
+    }
 }
 
 double Spot::integrate()
@@ -457,7 +514,8 @@ double Spot::integrate()
     shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
     
     float counting = 0;
-    intensity = getParentImage()->intensityAt(getX(), getY(), shoebox, &counting);
+    Coord rawXY = getRawXY();
+    intensity = getParentImage()->intensityAt(rawXY.first, rawXY.second, shoebox, &counting);
     
     if (intensity != intensity)
     {
@@ -531,9 +589,9 @@ void Spot::spotsAndVectorsToResolution(double lowRes, double highRes, std::vecto
     }
 }
 
-void Spot::addToMask(int *mask, int width)
+void Spot::addToMask(int *mask, int width, int height)
 {
-    int padding = (backgroundPadding - 1) / 2;
+    int padding = (backgroundPadding - 1) / 2 + 2;
     
     for (int j = -padding; j < padding + 1; j++)
     {
@@ -546,6 +604,12 @@ void Spot::addToMask(int *mask, int width)
             int yShifted = yPos + j;
             
             int position = width * yShifted + xShifted;
+            
+            if (position > width * height)
+            {
+                continue;
+            }
+            
             mask[position] = 1;
         }
     }

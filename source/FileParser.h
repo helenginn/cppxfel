@@ -11,16 +11,19 @@
 #include <string>
 #include "parameters.h"
 #include <iostream>
-
+#include "LoggableObject.h"
 class MtzRefiner;
+typedef std::map<std::string, int> CodeMap;
 
-class FileParser
+class FileParser: public LoggableObject
 {
 protected:
-    FileParser(void);
-	ParserMap parserMap;
+    static ParserMap parserMap;
 	static ParametersMap parameters;
-
+    static std::map<std::string, std::string> deprecatedList;
+    static std::map<std::string, std::string> helpMap;
+    static std::map<std::string, CodeMap> codeMaps;
+    
 	static void simpleFloat(ParametersMap *map, std::string command,
 			std::string rest);
 	static void simpleBool(ParametersMap *map, std::string command,
@@ -41,7 +44,10 @@ protected:
     static char splitCharMinor;
     static int threadsFound;
 	std::string filename;
-	void generateFunctionList();
+    void generateCodeList();
+    void generateHelpList();
+    void generateFunctionList();
+    void generateDeprecatedList();
 	ParserFunction splitLine(std::string line, std::string &command, std::string &rest);
 	bool checkSpaces(std::string line);
     static std::ostringstream log;
@@ -87,7 +93,10 @@ public:
 		}
 	}
 	static bool hasKey(std::string key);
+    FileParser(void);
     FileParser(std::string filename, std::vector<std::string> someExtras = std::vector<std::string>());
+    static void printCommandInfo(std::string command);
+    static void printAllCommands();
 	virtual ~FileParser();
     virtual void parseFromPython() { parse(true); };
 	virtual void parse(bool fromPython) {};

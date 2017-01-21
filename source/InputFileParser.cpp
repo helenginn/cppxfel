@@ -166,10 +166,16 @@ void InputFileParser::parse(bool fromPython)
                 refiner->refine();
 			}
             
+            if (line == "REFINE_GLOBAL_GEOMETRY")
+            {
+                understood = true;
+                refiner->refineMetrology(true);
+            }
+            
             if (line == "REFINE_METROLOGY" || line == "REFINE_GEOMETRY")
             {
                 understood = true;
-                refiner->refineMetrology();
+                refiner->refineMetrology(false);
             }
 
 			if (line == "MERGE")
@@ -267,13 +273,6 @@ void InputFileParser::parse(bool fromPython)
             {
                 understood = true;
                 refiner->maximumImage();
-            }
-            
-            if (line == "INDEX_FROM_SCRATCH")
-            {
-                understood = true;
-                
-                refiner->indexFromScratch();
             }
             
             if (line == "POWDER_PATTERN")

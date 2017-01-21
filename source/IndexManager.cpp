@@ -25,6 +25,7 @@
 IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
     images = newImages;
+    scoreType = PseudoScoreTypeIntraPanel;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -93,83 +94,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     
     Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, unitCell[0], unitCell[1], unitCell[2],
                                            unitCell[3], unitCell[4], unitCell[5]);
-    
-    logged << "Calculating distances of unit cell " << spaceGroupNum << std::endl;
-    sendLog();
-    
-    
-    for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
-    {
-        for (int j = -maxMillerIndexTrialK; j <= maxMillerIndexTrialK; j++)
-        {
-            for (int k = -maxMillerIndexTrialL; k <= maxMillerIndexTrialL; k++)
-            {
-                if (spaceGroupNum != 19 && spaceGroupNum != 178 && spaceGroupNum != 5)
-                {
-                    if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
-                    {
-                        continue;
-                    }
-                    
-                    if (spaceGroupNum == 5 && (i + j % 2 != 0))
-                        continue;
-                    
-              //      if (spaceGroupNum == 146 && ((-i + j + k) % 3 != 0))
-              //          continue;
 
-                }
-                
-             //   if (k != 0) continue;
-                
-                vec hkl = new_vector(i, j, k);
-                vec hkl_transformed = copy_vector(hkl);
-                
-                if (1 / length_of_vector(hkl) > resolution)
-                    continue;
-                
-                unitCellMatrix->multiplyVector(&hkl_transformed);
-                
-                logged << hkl.h << "\t" << hkl.k << "\t" << hkl.l << "\t" << hkl_transformed.h << "\t" << hkl_transformed.k << "\t" << hkl_transformed.l << std::endl;
-                sendLog(LogLevelDebug);
-                
-                
-                double distance = length_of_vector(hkl_transformed);
-                
-                if (distance > maxDistance)
-                    maxDistance = distance;
-                
-                vectorDistances.push_back(std::make_pair(hkl, distance));
-            }
-        }
-    }
-
-    maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
-    
-    smallestDistance = FLT_MAX;
-    
-    if (1 / unitCell[0] < smallestDistance)
-        smallestDistance = 1 / unitCell[0];
-    if (1 / unitCell[1] < smallestDistance)
-        smallestDistance = 1 / unitCell[1];
-    if (1 / unitCell[2] < smallestDistance)
-        smallestDistance = 1 / unitCell[2];
-    
-    smallestDistance *= 0.85;
-    
-    for (int i = 0; i < vectorDistances.size(); i++)
-    {
-        vec transformed = copy_vector(vectorDistances[i].first);
-        unitCellMatrix->multiplyVector(&transformed);
-        
-        logged << vectorDistances[i].first.h << "\t"
-         << vectorDistances[i].first.k << "\t"
-         << vectorDistances[i].first.l << "\t"
-         << transformed.h << "\t"
-         << transformed.k << "\t"
-         << transformed.l << "\t"
-        << vectorDistances[i].second << std::endl;
-    }
-    
     sendLog(LogLevelDebug);
 }
 
@@ -677,7 +602,8 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
                 finished = true;
         }
         
-        logged << "N: Finished image " << image->getFilename() << " on " << image->IOMRefinerCount() << " crystals and " << image->spotCount() << " spots." << std::endl;
+        logged << "N: Finished image " << image->getFilename() << " on "
+        << image->IOMRefinerCount() << " crystals and " << image->spotCount() << " spots." << std::endl;
         Logger::mainLogger->addStream(&logged); logged.str("");
 
         image->writeSpotsList();
@@ -685,20 +611,69 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
     }
 }
 
-void IndexManager::powderPattern()
+double IndexManager::pseudoScore(void *object)
+{
+    IndexManager *me = static_cast<IndexManager *>(object);
+    
+    double score = 0;
+    
+    for (int i = 0; i < me->images.size(); i++)
+    {
+        for (int j = 0; j < me->images[i]->spotVectorCount(); j++)
+        {
+            SpotVectorPtr vec = me->images[i]->spotVector(j);
+            
+            if (me->scoreType == PseudoScoreTypeIntraPanel && !vec->isIntraPanelVector())
+            {
+                continue;
+            }
+            
+            if (me->scoreType == PseudoScoreTypeInterPanel && vec->isIntraPanelVector())
+            {
+                continue;
+            }
+            
+            if (me->activeDetector && !vec->isOnlyFromDetector(me->activeDetector))
+            {
+                continue;
+            }
+            
+            vec->setUpdate();
+            double realDistance = vec->distance();
+            double weight = me->lattice->weightForDistance(realDistance) / 1000;
+            
+            score -= weight;
+        }
+    }
+    
+    return score;
+}
+
+void IndexManager::powderPattern(std::string csvName, bool force)
 {
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     
     std::ostringstream pdbLog;
-    
+
+
     for (int i = 0; i < images.size(); i++)
     {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
+        if (force)
+        {
+            images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
+        }
+        
+        for (int j = 0; j < images[i]->spotVectorCount(); j++)
+        {
+            SpotVectorPtr spotVec = images[i]->spotVector(j);
+            spotVec->calculateDistance();
+        }
     }
+
     
-    refineMetrology();
-    
-    PowderHistogram frequencies = generatePowderHistogram();
+    PowderHistogram allFrequencies = generatePowderHistogram();
+    PowderHistogram intraFrequencies = generatePowderHistogram(1);
+    PowderHistogram interFrequencies = generatePowderHistogram(0);
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -769,22 +744,27 @@ void IndexManager::powderPattern()
     
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
 
-    CSV powder(3, "Distance", "Frequency", "Perfect frequency");
+    CSV powder(5, "Distance", "Frequency", "Perfect frequency", "Intra-panel", "Inter-panel");
     
-    for (PowderHistogram::iterator it = frequencies.begin(); it != frequencies.end(); it++)
+    for (PowderHistogram::iterator it = allFrequencies.begin(); it != allFrequencies.end(); it++)
     {
         double distance = it->first * step;
         double freq = it->second.first;
         double perfect = it->second.second;
+        double intrapanel = intraFrequencies[it->first].first;
+        double interpanel = interFrequencies[it->first].first;
         
-        powder.addEntry(0, distance, freq, perfect);
-        
-//        powderLog << distance << "," << freq << "," << perfect << std::endl;
+        powder.addEntry(0, distance, freq, perfect, intrapanel, interpanel);
     }
     
-    powder.writeToFile("powder.csv");
-    logged << powder.plotColumns(0, 1) << std::endl;
+    powder.writeToFile(csvName);
+    logged << "Written to " << csvName << std::endl;
     sendLog();
+    
+    if (force)
+    {
+        powder.plotColumns(0, 1);
+    }
     
     lattice->powderPattern(false, "unitCellLatticePowder.csv");
     
@@ -986,28 +966,12 @@ void IndexManager::index()
     }
 }
 
-void IndexManager::indexFromScratch()
-{
-    std::vector<double> startingData = FileParser::getKey("INDEX_STARTING_DATA", std::vector<double>());
-    
-    if (startingData.size() < 6)
-    {
-        std::cout << "INDEX_STARTING_DATA should be set to dist1, dist2, dist3, angle1, angle2, angle3" << std::endl;
-    }
-    
-    FreeLattice lattice = FreeLattice(startingData[0], startingData[1], startingData[2], startingData[3], startingData[4], startingData[5]);
-    lattice.addExpanded();
-//    lattice.addExpanded();
-    lattice.powderPattern();
-    lattice.anglePattern(false);
-}
-
-PowderHistogram IndexManager::generatePowderHistogram()
+PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfectPadding)
 {
     PowderHistogram frequencies;
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     
-    double maxCatDistance = 0.05;
+    double maxCatDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
     int maxCategory = maxCatDistance / step;
     
     for (int i = 0; i < maxCategory; i++)
@@ -1016,12 +980,18 @@ PowderHistogram IndexManager::generatePowderHistogram()
     }
     
     
-    for (int i = 0; i < vectorDistances.size(); i++)
+    for (int i = 0; i < lattice->standardVectorCount(); i++)
     {
-        double distance = vectorDistances[i].second;
+        double distance = lattice->standardVector(i)->distance();
         int categoryNum = distance / step;
         
-        frequencies[categoryNum].second++;
+        if (categoryNum > maxCategory)
+            continue;
+        
+        for (int i = categoryNum - perfectPadding; i <= categoryNum + perfectPadding; i++)
+        {
+            frequencies[i].second++;
+        }
     }
     
     for (int i = 0; i < images.size(); i++)
@@ -1033,54 +1003,27 @@ PowderHistogram IndexManager::generatePowderHistogram()
             double distance = spotVec->distance();
             int categoryNum = distance / step;
             
-            frequencies[categoryNum].first++;
+            if (categoryNum > maxCategory)
+                continue;
+
+            bool isIntraPanel = spotVec->isIntraPanelVector();
+            
+            if (intraPanel == -1)
+            {
+                frequencies[categoryNum].first++;
+            }
+            else if (intraPanel == 0 && !isIntraPanel)
+            {
+                frequencies[categoryNum].first++;
+            }
+            else if (intraPanel == 1 && isIntraPanel)
+            {
+                frequencies[categoryNum].first++;
+            }
         }
     }
     
     return frequencies;
-}
-
-
-double IndexManager::metrologyTarget(void *object)
-{
-    static_cast<IndexManager *>(object)->updateAllSpots();
-    PowderHistogram histogram = static_cast<IndexManager *>(object)->generatePowderHistogram();
-    double highPercentage = 0.0524;
-    std::vector<double> frequencies;
-    
-    for (PowderHistogram::iterator it = histogram.begin(); it != histogram.end(); it++)
-    {
-        frequencies.push_back(it->second.first);
-    }
-    
-    std::sort(frequencies.begin(), frequencies.end(), std::greater<double>());
-    
-    int maxCap = highPercentage * frequencies.size();
-    int maxSum = 0;
-    int minSum = 0;
-    int maxCount = 0;
-    int minCount = 0;
-    
-    for (int i = 0; i < frequencies.size(); i++)
-    {
-        if (i <= maxCap)
-        {
-            maxSum += frequencies[i];
-            maxCount++;
-        }
-        else
-        {
-            minSum += frequencies[i];
-            minCount++;
-        }
-    }
-    
-    double result = -maxSum;
-    
-    static_cast<IndexManager *>(object)->logged << "Metrology target result: " << result << std::endl;
-    static_cast<IndexManager *>(object)->sendLog();
-    
-    return result;
 }
 
 void IndexManager::updateAllSpots()
@@ -1089,51 +1032,6 @@ void IndexManager::updateAllSpots()
     {
         images[i]->updateAllSpots();
     }
-}
-
-void IndexManager::refineMetrology()
-{
-    return;
-    
-    Panel::setUsePanelInfo(true);
-    
-    std::map<int, std::pair<double, double> > steps;
-    
-    for (int i = 0; i < Panel::panelCount(); i++)
-    {
-        steps[i] = std::make_pair(2, 2);
-    }
-    
-    logged << "Panel count: " << Panel::panelCount() << std::endl;
-    sendLog();
-    
-    bool converged = false;
-    double convergeValue = 0.5;
-    
-    while (!converged)
-    {
-        converged = true;
-        
-        for (int i = 0; i < Panel::panelCount(); i++)
-        {
-            PanelPtr panel = Panel::getPanel(i);
-            
-            double *xShiftPtr = panel->pointerToBestShiftX();
-            double *yShiftPtr = panel->pointerToBestShiftY();
-            
-            minimizeParameter(steps[i].first, xShiftPtr, metrologyTarget, this);
-            minimizeParameter(steps[i].second, yShiftPtr, metrologyTarget, this);
-            
-            if (steps[i].first > convergeValue || steps[i].second > convergeValue)
-            {
-                converged = false;
-            }
-        }
-        
-    }
-    
-    logged << Panel::printAll() << std::endl;
-    sendLog();
 }
 
 void IndexManager::indexingParameterAnalysis()

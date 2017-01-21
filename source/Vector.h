@@ -29,6 +29,7 @@ vec copy_vector(vec old_vec);
 void add_vector_to_vector(vec *vec1, vec vec2);
 vec vector_between_vectors(vec vec1, vec vec2);
 void take_vector_away_from_vector(vec vec1, vec *vec2);
+void multiply_vector(vec *vec, double mult);
 void scale_vector_to_distance(vec *vec, double new_distance);
 vec perpendicular_for_vectors(vec vec1, vec vec2);
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2);
@@ -75,7 +76,9 @@ double standard_deviation(vector<double> *values, vector<double> *weights = NULL
 double r_factor_between_vectors(vector<double> *vec1,
 		vector<double> *vec2, vector<double> *weights, double scale);
 double standard_deviation(vector<double> *values, vector<double> *weights, double mean);
-void desc(vec hkl);
+void printDesc(vec hkl);
+std::string desc(vec hkl);
+std::string prettyDesc(vec hkl);
 
 double cartesian_to_distance(double x, double y);
 double cartesian_to_angle(double x, double y);

@@ -57,15 +57,15 @@ private:
 	/* Shoebox must be n by n where n is an odd number */
 	int shoebox[7][7];
 
-	int xDim;
-	int yDim;
-
 	double beamX;
 	double beamY;
 	double mmPerPixel;
-    bool noCircles;
     double detectorGain;
 
+    static double globalDetectorDistance;
+    static double globalBeamX;
+    static double globalBeamY;
+    
 	double detectorDistance; // mm
 	double wavelength;
 	bool pinPoint;
@@ -75,9 +75,7 @@ private:
     std::vector<IndexingSolutionPtr> goodSolutions;
     std::vector<IndexingSolutionPtr> badSolutions;
     std::vector<SpotVectorPtr> spotVectors;
-    double commonCircleThreshold;
     bool _hasSeeded;
-    std::map<ImageCluster *, bool> unexpectedMatches;
     
 	vector<vector<int> > masks;
 	vector<vector<int> > spotCovers;
@@ -94,6 +92,9 @@ private:
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
     double resolutionAtPixel(double x, double y);
 protected:
+    int xDim;
+    int yDim;
+    
     double standardDeviationOfPixels();
     std::vector<SpotPtr> spots;
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
@@ -113,7 +114,7 @@ public:
     void incrementOverlapMask(int x, int y);
     virtual void processSpotList();
     virtual void writeSpotsList(std::string spotFile = "");
-    virtual std::pair<double, double> reciprocalCoordinatesToPixels(vec hkl);
+    virtual std::pair<double, double> reciprocalCoordinatesToPixels(vec hkl, double myWavelength = 0);
     virtual vec pixelsToReciprocalCoordinates(double xPix, double yPix);
     virtual vec millimetresToReciprocalCoordinates(double xmm, double ymm);
     
@@ -136,7 +137,6 @@ public:
 	bool coveredBySpot(int x, int y);
 	static void applyMaskToImages(vector<ImagePtr> images, int startX,
 			int startY, int endX, int endY);
-    void refineDistances();
     std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
     void reset();
     void findSpots();
@@ -146,7 +146,7 @@ public:
     void integrateSpots();
     void drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red = 0, char green = 0, char blue = 0);
     void drawCrystalsOnPNG(int crystalNum);
-    void drawSpotsOnPNG();
+    void drawSpotsOnPNG(std::string filename = "");
     void dumpImage();
     void makeMaximumFromImages(std::vector<ImagePtr> images);
     void excludeWeakestSpots(double fraction);
@@ -198,7 +198,6 @@ public:
     void setSpaceGroup(CSym::CCP4SPG *spg);
     void setMaxResolution(double res);
     void setSearchSize(int searchSize);
-    void setIntensityThreshold(double threshold);
     void setUnitCell(vector<double> dims);
     void setInitialStep(double step);
     void setTestSpotSize(double spotSize);
@@ -213,8 +212,39 @@ public:
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     void updateAllSpots();
     void clusterCountWithSpotNumber(int spotNum);
+    bool acceptableSpotCount();
 
     void addSpotIfNotMasked(SpotPtr newSpot);
+    
+    static void setGlobalDetectorDistance(void *object, double distance)
+    {
+        globalDetectorDistance = distance;
+    }
+    
+    static double getGlobalDetectorDistance(void *object)
+    {
+        return globalDetectorDistance;
+    }
+    
+    static double getGlobalBeamX(void *object)
+    {
+        return globalBeamX;
+    }
+    
+    static void setGlobalBeamX(void *object, double newX)
+    {
+        globalBeamX = newX;
+    }
+    
+    static double getGlobalBeamY(void *object)
+    {
+        return globalBeamY;
+    }
+    
+    static void setGlobalBeamY(void *object, double newY)
+    {
+        globalBeamY = newY;
+    }
     
     void removeRefiner(int j)
     {
@@ -276,6 +306,12 @@ public:
         std::vector<IOMRefinerPtr>().swap(indexers);
     }
     
+    void clearMtzs()
+    {
+        mtzs.clear();
+        std::vector<MtzPtr>().swap(mtzs);
+    }
+    
 	int getXDim() const
 	{
 		return xDim;
@@ -296,16 +332,19 @@ public:
 		yDim = dim;
 	}
 
-	double getDetectorDistance() const
+	double getDetectorDistance()
 	{
+        if (detectorDistance == 0)
+        {
+            return globalDetectorDistance;
+        }
+        
 		return detectorDistance;
 	}
 
 	void setDetectorDistance(double detectorDistance)
 	{
 		this->detectorDistance = detectorDistance;
-        
-        
 	}
 
 	double getWavelength() const
@@ -318,22 +357,32 @@ public:
 		this->wavelength = wavelength;
 	}
 
-	int getBeamX() const
+	double getBeamX() const
 	{
+        if (beamX == INT_MAX)
+        {
+            return globalBeamX;
+        }
+        
 		return beamX;
 	}
 
-	void setBeamX(int beamX)
+	void setBeamX(double beamX)
 	{
 		this->beamX = beamX;
 	}
 
-	int getBeamY() const
+	double getBeamY() const
 	{
+        if (beamY == INT_MAX)
+        {
+            return globalBeamY;
+        }
+        
 		return beamY;
 	}
 
-	void setBeamY(int beamY)
+	void setBeamY(double beamY)
 	{
 		this->beamY = beamY;
 	}

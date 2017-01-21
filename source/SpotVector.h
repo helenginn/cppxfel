@@ -46,6 +46,7 @@ public:
     double getResolution();
     double getMinDistanceTolerance();
     double getMinAngleTolerance();
+    bool isIntraPanelVector();
     double angleWithVector(SpotVectorPtr spotVector2);
     double similarityToSpotVector(SpotVectorPtr spotVector2);
     bool isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistance);
@@ -62,6 +63,8 @@ public:
     {
         return sameLengthStandardVectors;
     }
+    
+    bool isOnlyFromDetector(DetectorPtr detector);
     
     vec getHKL()
     {

@@ -36,6 +36,7 @@ protected:
     MatrixPtr unitCellMatrixInverse;
     Reflection *newReflection;
     CSym::CCP4SPG *spaceGroup;
+    DetectorPtr activeDetector;
     int spaceGroupNum;
     std::vector<MtzPtr> mtzs;
     double minimumTrustDistance;
@@ -46,16 +47,16 @@ protected:
     int nextImage;
     std::mutex indexMutex;
     bool modifyParameters();
+    PseudoScoreType scoreType;
     
     void updateAllSpots();
-    static double metrologyTarget(void *object);
     bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
     int indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset);
     double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;
     double minReciprocalDistance;
-    PowderHistogram generatePowderHistogram();
+    PowderHistogram generatePowderHistogram(int intraPanel = -1, int perfectPadding = 0);
     std::vector<VectorDistance> vectorDistances;
     std::vector<IOMRefinerPtr> consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both);
 public:
@@ -74,14 +75,28 @@ public:
         mergeImages = otherImages;
     }
     
+    void setActiveDetector(DetectorPtr detector)
+    {
+        activeDetector = detector;
+    }
+    
+    void setPseudoScoreType(PseudoScoreType type)
+    {
+        scoreType = type;
+    }
+    
+    PseudoScoreType getPseudoScoreType()
+    {
+        return scoreType;
+    }
+    
     void combineLists();
     void indexingParameterAnalysis();
-    void refineMetrology();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
-    void indexFromScratch();
-    void powderPattern();
+    void powderPattern(std::string csvName = "powder.csv", bool force = true);
     void refineUnitCell();
+    static double pseudoScore(void *object);
     IndexManager(std::vector<ImagePtr>images);
 };
 

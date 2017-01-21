@@ -922,7 +922,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
 void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k, int l)
 {
     int index = Reflection::reflectionIdForCoordinates(h, k, l);
-    int windowPadding = 10;
+    int windowPadding = 20;
     double threshold = FileParser::getKey("PNG_THRESHOLD", 1000.);
     
     PNGFile png = PNGFile("windows.png", 1000, 1000);

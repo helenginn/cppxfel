@@ -28,6 +28,9 @@
 #include "MtzGrouper.h"
 #include "MtzMerger.h"
 #include "Hdf5ManagerProcessing.h"
+#include "Detector.h"
+#include "GeometryParser.h"
+#include "GeometryRefiner.h"
 
 bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
@@ -48,6 +51,7 @@ MtzRefiner::MtzRefiner()
     
     hasRefined = false;
     isPython = false;
+    readRefinedMtzs = FileParser::getKey("READ_REFINED_MTZS", false);
     
     indexManager = NULL;
 }
@@ -257,7 +261,7 @@ void MtzRefiner::refineCycle(bool once)
     bool exclusion = FileParser::getKey("EXCLUDE_OWN_REFLECTIONS", false);
     bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
     
-    double resolution = FileParser::getKey("MAX_RESOLUTION_ALL",
+    double resolution = FileParser::getKey("MAX_REFINED_RESOLUTION",
                                            MAX_OPTIMISATION_RESOLUTION);
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
                                         (int) SCALING_STRATEGY);
@@ -529,80 +533,13 @@ int MtzRefiner::imageMax(size_t lineCount)
     return end;
 }
 
-void MtzRefiner::applyParametersToImages()
-{
-    vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-    
-    if (unitCell.size() == 0)
-    {
-        logged
-        << "Please provide unit cell dimensions under keyword UNIT_CELL"
-        << std::endl;
-        sendLog(LogLevelNormal, true);
-        
-        exit(1);
-    }
-    
-    int spg_num = FileParser::getKey("SPACE_GROUP", -1);
-    
-    double distance = 0;
-    double wavelength = 0;
-    
-    if (spg_num == -1)
-    {
-        std::cout << "Please set space group number under keyword SPACE_GROUP"
-        << std::endl;
-    }
-    
-    if (isFromPython())
-    {
-        distance = FileParser::getKey("DETECTOR_DISTANCE", 0.);
-        wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.);
-        
-        if (distance != 0 || wavelength != 0)
-        {
-            std::cout << "Overriding image parameters with distance and/or wavelength specified in input file." << std::endl;
-        }
-    }
-    
-    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        ImagePtr newImage = images[i];
-        
-        newImage->setPinPoint(true);
-        
-        CCP4SPG *spg = ccp4spg_load_by_standard_num(spg_num);
-        
-        newImage->setSpaceGroup(spg);
-        
-        if (distance != 0)
-        {
-            newImage->setDetectorDistance(distance);
-        }
-        
-        if (wavelength != 0)
-        {
-            newImage->setWavelength(wavelength);
-        }
-        
-        if (fixUnitCell)
-            newImage->setUnitCell(unitCell);
-        
-        if (fixUnitCell)
-            for (int j = 0; j < newImage->IOMRefinerCount(); j++)
-            {
-                newImage->getIOMRefiner(j)->getMatrix()->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
-            }
-    }
-}
-
-void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset)
+void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset, bool v3, MtzRefiner *me)
 {
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
-    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
+    
+    Image::setGlobalDetectorDistance(NULL, detectorDistance);
+    
     vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
     std::vector<std::string> hdf5Sources = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
@@ -611,20 +548,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     vector<double> cellDims = FileParser::getKey("UNIT_CELL", vector<double>());
     
     bool checkingUnitCell = false;
-    
-    if (givenUnitCell.size() > 0 && tolerance > 0.0)
-        checkingUnitCell = true;
-    
-    if (wavelength == 0 && newImages != NULL)
-    {
-        std::cout << "No integration wavelength provided. If this is not deliberate, please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH" << std::endl;
-    }
-    
-    if (detectorDistance == 0 && newImages != NULL)
-    {
-        std::cout << "No detector distance provided. If this is not deliberate, please provide detector distance for integration under keyword DETECTOR_DISTANCE" << std::endl;
-        
-    }
     
     bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
@@ -638,9 +561,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         ignoreMissing = true;
     }
     
-    const std::string contents = FileReader::get_file_contents(
-                                                               filename->c_str());
-    
+    const std::string contents = FileReader::get_file_contents( filename->c_str());
     vector<std::string> imageList = FileReader::split(contents, "\nimage ");
     
     int maxThreads = FileParser::getMaxThreads();
@@ -680,14 +601,14 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         
         std::ostringstream logged;
         
-        if (!FileReader::exists(imgName) && !ignoreMissing)
+        if (!FileReader::exists(imgName) && !ignoreMissing && !v3)
         {
             logged << "Skipping image " << imgName << std::endl;
             Logger::mainLogger->addStream(&logged);
             continue;
         }
         
-        if (readFromHdf5 && newImages != NULL)
+        if ((readFromHdf5 && newImages != NULL) || v3)
         {
             Hdf5ManagerCheetahPtr manager = Hdf5ManagerCheetah::hdf5ManagerForImage(imgNameOnly);
             
@@ -718,17 +639,18 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         if (readFromHdf5)
         {
             Hdf5ImagePtr hdf5Image = Hdf5ImagePtr(new Hdf5Image(imgName, wavelength,
-                                                                detectorDistance));
+                                                                0));
             newImage = boost::static_pointer_cast<Image>(hdf5Image);
         }
         else
         {
             newImage = ImagePtr(new Image(imgName, wavelength,
-                                          detectorDistance));
+                                          0));
         }
         
         bool hasSpots = false;
         std::string parentImage = "";
+        int currentCrystal = -1;
         
         for (int i = 1; i < lines.size(); i++)
         {
@@ -747,6 +669,11 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             if (components[0] == "parent")
             {
                 parentImage = components[1];
+            }
+            
+            if (components[0] == "crystal")
+            {
+                currentCrystal = atoi(components[1].c_str());
             }
             
             if (components[0] == "matrix")
@@ -768,7 +695,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 }
             }
             
-            if (components[0] == "wavelength" && wavelength == 0)
+            if (components[0] == "wavelength")
             {
                 double newWavelength = wavelength;
                 
@@ -781,7 +708,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 Logger::log(logged);
             }
             
-            if (components[0] == "distance" && detectorDistance == 0)
+            if (components[0] == "distance")
             {
                 double newDistance = detectorDistance;
                 
@@ -827,7 +754,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                     {
                         vector<double> correction = FileParser::getKey("ORIENTATION_CORRECTION", vector<double>());
                         
-                        if (fromDials)
+                        if (fromDials && !v3)
                         {
                             rotation->rotate(0, 0, M_PI / 2);
                         }
@@ -858,6 +785,28 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                         newImage->setUpIOMRefiner(newMatrix);
                     }
                     
+                    if (v3 && newMtzs)
+                    {
+                        MtzPtr newManager = MtzPtr(new MtzManager());
+                        std::string prefix = (me->readRefinedMtzs ? "ref-" : "");
+                        newManager->setFilename((prefix + "img-" + imgNameOnly + "_" + i_to_str(currentCrystal) + ".mtz").c_str());
+                        newManager->setMatrix(newMatrix);
+                        
+                        if (setSigmaToUnity)
+                            newManager->setSigmaToUnity();
+                        
+                        newManager->setParamLine(paramsLine);
+                        newManager->setTimeDelay(delay);
+                        newManager->setImage(newImage);
+                        newManager->loadReflections(PartialityModelScaled);
+                        
+                        if (newManager->reflectionCount() > 0)
+                        {
+                            newImage->addMtz(newManager);
+                            newMtzs->push_back(newManager);
+                        }
+                    }
+                    
                     unitCell = MatrixPtr();
                 }
                 else
@@ -885,20 +834,15 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 newImage->processSpotList();
             }
             
-            if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
-            {
-                newImages->push_back(newImage);
-                
-            }
-            else if (!checkingUnitCell)
-                newImages->push_back(newImage);
+            newImages->push_back(newImage);
         }
         
-        if (newMtzs)
+        if (newMtzs && !v3)
         {
             MtzPtr newManager = MtzPtr(new MtzManager());
             
             newManager->setFilename(imgName.c_str());
+            
             newManager->setParentImageName(parentImage);
             
             if (!newMatrix)
@@ -923,22 +867,10 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             
             if (newManager->reflectionCount() > 0 || lowMemoryMode)
             {
-                if (checkingUnitCell && newManager->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
-                {
-                    newMtzs->push_back(newManager);
-                }
-                else if (!checkingUnitCell)
-                {
-                    newMtzs->push_back(newManager);
-                }
-                else
-                {
-                    Logger::mainLogger->addString("Skipping file " + *filename + " due to poor unit cell");
-                }
+                newMtzs->push_back(newManager);
             }
         }
     }
-    
 }
 
 void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
@@ -956,20 +888,48 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
     imageSubsets.resize(maxThreads);
     mtzSubsets.resize(maxThreads);
     
+    const std::string contents = FileReader::get_file_contents( filename->c_str());
+    vector<std::string> imageList = FileReader::split(contents, "\nimage ");
+    
+    std::ostringstream logged;
+    
+    if (imageList[0].substr(0, 6) == "ersion")
+    {
+        std::string vString = imageList[0].substr(7, imageList[0].length() - 7);
+        float inputVersion = atof(vString.c_str());
+        
+        logged << "Autodetecting matrix list version: " << inputVersion << std::endl;
+        
+        version = inputVersion;
+    }
+    
+    Logger::log(logged);
+    
+    if (version > 2.99 && version < 3.99)
+    {
+        loadPanels();
+    }
+
     for (int i = 0; i < maxThreads; i++)
     {
-        if (version == 1.0)
+        if (version <= 1.1) // floating point comparison???
         {
             boost::thread *thr = new boost::thread(singleLoadImages, filename,
                                                    &imageSubsets[i], i);
             threads.add_thread(thr);
         }
-        else if (version == 2.0)
+        else if (version > 1.99 && version < 2.99)
         {
             vector<MtzPtr> *chosenMtzs = areImages ? NULL : &mtzSubsets[i];
             vector<ImagePtr> *chosenImages = areImages ? &imageSubsets[i] : NULL;
             boost::thread *thr = new boost::thread(readSingleImageV2, filename,
-                                                   chosenImages, chosenMtzs, i);
+                                                   chosenImages, chosenMtzs, i, false, this);
+            threads.add_thread(thr);
+        }
+        else if (version > 2.99 && version < 3.99)
+        {
+            boost::thread *thr = new boost::thread(readSingleImageV2, filename,
+                                                   &imageSubsets[i], &mtzSubsets[i], i, true, this);
             threads.add_thread(thr);
         }
     }
@@ -1045,6 +1005,9 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     {
         readFromHdf5(&images);
     }
+    
+    logged << "Summary\nImages: " << images.size() << "\nCrystals: " << mtzManagers.size() << std::endl;
+    sendLog();
 }
 
 void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset)
@@ -1091,7 +1054,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         logged
         << "Please provide initial wavelength for integration under keyword INTEGRATION_WAVELENGTH"
         << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal);
     }
     
     if (detectorDistance == 0)
@@ -1099,7 +1062,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         logged
         << "Please provide detector distance for integration under keyword DETECTOR_DISTANCE"
         << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal);
     }
     
     vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
@@ -1109,7 +1072,9 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         logged
         << "Please provide unit cell dimensions under keyword UNIT_CELL"
         << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        Logger::mainLogger->addStream(&logged, LogLevelNormal);
+        
+        fixUnitCell = false;
     }
     
     int maxThreads = FileParser::getMaxThreads();
@@ -1144,7 +1109,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         
         
         ImagePtr newImage = ImagePtr(new Image(imgName, wavelength,
-                                               detectorDistance));
+                                               0));
         
         MatrixPtr newMat = MatrixPtr();
         
@@ -1169,7 +1134,6 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         newImage->setSpaceGroup(spg);
         newImage->setMaxResolution(maxIntegratedResolution);
         newImage->setSearchSize(metrologySearchSize);
-        newImage->setIntensityThreshold(intensityThreshold);
         newImage->setUnitCell(unitCell);
         newImage->setInitialStep(orientationStep);
         
@@ -1186,14 +1150,9 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(0, 2));
-    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
     vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
-    bool checkingUnitCell = false;
     int count = 0;
-    
-    if (givenUnitCell.size() > 0 && tolerance > 0.0)
-        checkingUnitCell = true;
     
     std::string orientationList = FileParser::getKey("ORIENTATION_MATRIX_LIST", std::string(""));
     bool hasList = (orientationList.length() > 0);
@@ -1253,16 +1212,7 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
                                                                     detectorDistance));
                 ImagePtr newImage = boost::static_pointer_cast<Image>(hdf5Image);
                 hdf5Image->loadCrystals();
-                
-                if (checkingUnitCell && newImage->checkUnitCell(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], tolerance))
-                {
-                    newImages->push_back(newImage);
-                    
-                }
-                else if (!checkingUnitCell)
-                {
-                    newImages->push_back(newImage);
-                }
+                newImages->push_back(newImage);
             }
 
             count++;
@@ -1281,11 +1231,6 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     
     logged << "N: Images loaded from HDF5: " << newImages->size() << std::endl;;
     
-    if (mtzManagers.size() == 0)
-    {
-        
-    }
-    
     sendLog();
 }
 
@@ -1296,7 +1241,7 @@ void MtzRefiner::readMatricesAndMtzs()
     
     double version = FileParser::getKey("MATRIX_LIST_VERSION", 2.0);
     
-    if (version == 2.0)
+    if (version >= 2.0)
     {
         readMatricesAndImages(NULL, false);
         
@@ -1373,12 +1318,8 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
     
     int skip = FileParser::getKey("IMAGE_SKIP", 0);
     vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-    double tolerance = FileParser::getKey("ACCEPTABLE_UNIT_CELL_TOLERANCE", 0.0);
     
     bool checkingUnitCell = false;
-    
-    if (unitCell.size() > 0 && tolerance > 0.0)
-        checkingUnitCell = true;
     
     if (skip > lines.size())
     {
@@ -1420,18 +1361,7 @@ void MtzRefiner::singleThreadRead(vector<std::string> lines,
         
         if (newManager->reflectionCount() > 0)
         {
-            if (checkingUnitCell && newManager->checkUnitCell(unitCell[0], unitCell[1], unitCell[2], tolerance))
-            {
-                mtzManagers->push_back(newManager);
-            }
-            else if (!checkingUnitCell)
-            {
-                mtzManagers->push_back(newManager);
-            }
-            else
-            {
-                log << "Skipping file " << mtzName << " due to poor unit cell" << std::endl;
-            }
+            mtzManagers->push_back(newManager);
         }
         
         Logger::mainLogger->addStream(&log);
@@ -1511,6 +1441,7 @@ void MtzRefiner::merge(bool mergeOnly)
     
     loadInitialMtz();
     MtzManager::setReference(&*reference);
+    readRefinedMtzs = true;
     readMatricesAndMtzs();
     
     bool partialityRejection = FileParser::getKey("PARTIALITY_REJECTION", false);
@@ -1593,16 +1524,13 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
 {
     int maxThreads = FileParser::getMaxThreads();
     
-    bool refineDistances = FileParser::getKey("REFINE_DISTANCES", false);
-    
     for (int i = offset; i < images.size(); i += maxThreads)
     {
         std::ostringstream logged;
         logged << "Integrating image " << i << std::endl;
         Logger::mainLogger->addStream(&logged);
         
-        if (refineDistances)
-            images[i]->refineDistances();
+        images[i]->clearMtzs();
         
         if (orientation)
             images[i]->refineOrientations();
@@ -1661,6 +1589,7 @@ void MtzRefiner::maximumImage()
     threads.join_all();
     
     maximum->makeMaximumFromImages(maxSelections);
+    Detector::setDrawImage(maximum);
 }
 
 void MtzRefiner::loadImageFiles()
@@ -1681,11 +1610,16 @@ void MtzRefiner::loadImageFiles()
     }
     
     readMatricesAndImages(&filename);
+    
+    if (images.size() > 0)
+    {
+        Detector::setDrawImage(images[0]);
+    }
 }
 
 void MtzRefiner::integrate()
 {
-    bool orientation = FileParser::getKey("REFINE_ORIENTATIONS", false);
+    bool orientation = FileParser::getKey("REFINE_ORIENTATIONS", false); // unused I think
     
     loadImageFiles();
     
@@ -1700,6 +1634,11 @@ void MtzRefiner::integrate()
     sendLog();
     
     mtzManagers.clear();
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        images[i]->clearMtzs();
+    }
     
     int maxThreads = FileParser::getMaxThreads();
     
@@ -1788,6 +1727,29 @@ void MtzRefiner::integrationSummary()
 
 void MtzRefiner::loadPanels(bool mustFail)
 {
+    bool useNewDetectorFormat = Detector::isActive();
+    
+    if (useNewDetectorFormat)
+    {
+        if (Detector::getMaster())
+        {
+            return;
+        }
+        
+        std::string detectorList = FileParser::getKey("DETECTOR_LIST", std::string(""));
+        
+        logged << "Loading new detector format from " << detectorList << "." << std::endl;
+        sendLog();
+        int formatInt = FileParser::getKey("GEOMETRY_FORMAT", 0);
+        
+        GeometryFormat format = (GeometryFormat)formatInt;
+        
+        GeometryParser geomParser = GeometryParser(detectorList, format);
+        geomParser.parse();
+        
+        return;
+    }
+    
     std::string panelList = FileParser::getKey("PANEL_LIST", std::string(""));
     
     panelParser = new PanelParser(panelList);
@@ -1806,8 +1768,12 @@ void MtzRefiner::loadPanels(bool mustFail)
     }
     else if (Panel::panelCount() > 0)
     {
-        std::cout << "Panels already present" << std::endl;
+        logged <<  "Panels already present" << std::endl;
+        sendLog();
+        return;
     }
+    
+    
 }
 
 void MtzRefiner::findSteps()
@@ -1829,6 +1795,46 @@ void MtzRefiner::findSteps()
 }
 
 // MARK: indexing
+
+void MtzRefiner::writeAllNewOrientations()
+{
+    std::string filename = FileParser::getKey("NEW_MATRIX_LIST", std::string("new_orientations.dat"));
+    bool includeRots = false;
+    
+    std::ofstream allMats;
+    allMats.open(FileReader::addOutputDirectory("all-" + filename));
+    
+    allMats << "version 3.0" << std::endl;
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        std::string imageName = images[i]->getBasename();
+        allMats << "image " << imageName << std::endl;
+        
+        for (int j = 0; j < images[i]->mtzCount(); j++)
+        {
+            MtzPtr mtz = images[i]->mtz(j);
+            int crystalNum = j;
+            
+            MatrixPtr matrix = mtz->getMatrix()->copy();
+            
+            if (includeRots)
+            {
+                double hRad = mtz->getHRot() * M_PI / 180;
+                double kRad = mtz->getKRot() * M_PI / 180;
+                
+                matrix->rotate(hRad, kRad, 0);
+            }
+            
+            allMats << "crystal " << crystalNum << std::endl;
+            std::string description = matrix->description(true);
+            allMats << description << std::endl;
+        }
+    }
+    
+    Logger::mainLogger->addString("Written to matrix list: all-" + filename);
+    allMats.close();
+}
 
 void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
 {
@@ -1927,6 +1933,8 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
     refineMats.close();
     mergeMats.close();
     integrateMats.close();
+    
+    writeAllNewOrientations();
 }
 
 void MtzRefiner::findSpotsThread(MtzRefiner *me, int offset)
@@ -1980,18 +1988,6 @@ void MtzRefiner::combineLists()
     integrationSummary();
 }
 
-void MtzRefiner::indexFromScratch()
-{
-    loadPanels();
-    this->readMatricesAndImages();
-    std::cout << "N: Total images loaded: " << images.size() << std::endl;
-    
-    if (!indexManager)
-        indexManager = new IndexManager(images);
-    
-    indexManager->indexFromScratch();
-    
-}
 
 void MtzRefiner::powderPattern()
 {
@@ -2137,24 +2133,59 @@ void MtzRefiner::plotIntensities()
     
 }
 
-void MtzRefiner::refineMetrology()
+void MtzRefiner::refineMetrology(bool global)
 {
-    int count = 0;
-    
-    for (int i = 0; i < images.size(); i++)
+    if (Detector::isActive())
     {
-        if (images[i]->IOMRefinerCount())
+        GeometryRefiner refiner = GeometryRefiner();
+        refiner.setImages(images);
+        refiner.refineGeometry();
+        
+        return;
+    }
+    
+    int count = 0;
+    bool againstPseudo = FileParser::getKey("REFINE_AGAINST_PSEUDO", false);
+    
+    if (againstPseudo)
+    {
+        powderPattern();
+    }
+    
+    else
+    {
+        for (int i = 0; i < images.size(); i++)
         {
-            images[i]->valueAt(100, 100);
-            count++;
+            if (images[i]->IOMRefinerCount())
+            {
+                images[i]->valueAt(100, 100); // trigger load into memory!
+                count++;
+            }
         }
     }
     
     logged << "Loaded " << count << " images into memory! Now refining..." << std::endl;
-    sendLog();
     
-    Panel::printToFile("new_panels.txt");
-    Panel::plotAll(PlotTypeAbsolute);
+    if (global)
+    {
+        
+        Panel::detectorStepSearch(againstPseudo, images);
+    }
+    else
+    {
+        logged << "Panel plots from before refinement:" << std::endl;
+        sendLog();
+        Panel::plotAll(PlotTypeAbsolute);
+        Panel::printToFile("new_panels.txt");
+    }
+    
+    if ((global && !againstPseudo) || !global)
+    {
+        logged << "Panel plots from after refinement:" << std::endl;
+        sendLog();
+        
+        Panel::plotAll(PlotTypeAbsolute);
+    }
 }
 
 MtzRefiner::~MtzRefiner()
@@ -2204,17 +2235,6 @@ void MtzRefiner::applyUnrefinedPartiality()
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         mtzManagers[i]->applyUnrefinedPartiality();
-    }
-}
-
-void MtzRefiner::refineDistances()
-{
-    for (int i = 0; i < images.size(); i++)
-    {
-        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
-        {
-            images[i]->getIOMRefiner(j)->refineDetectorAndWavelength(&*reference);
-        }
     }
 }
 

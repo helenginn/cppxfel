@@ -28,11 +28,11 @@ private:
     static int imageLimit;
     static int imageMax(size_t lineCount);
     static void singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset);
-    static void readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset);
+    static void readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset, bool v3 = false, MtzRefiner *me = NULL);
     static void findSpotsThread(MtzRefiner *me, int offset);
     void readFromHdf5(std::vector<ImagePtr> *newImages);
+    bool readRefinedMtzs;
 IndexManager *indexManager;
-    void applyParametersToImages();
     static int cycleNum;
     bool hasRefined;
     int maxThreads;
@@ -47,7 +47,6 @@ public:
 	virtual ~MtzRefiner();
 
     void index();
-    void indexFromScratch();
     void powderPattern();
     void hitAnalysis();
 	bool loadInitialMtz(bool force = false);
@@ -61,7 +60,7 @@ public:
 	void refine();
 	void refineCycle(bool once = false);
 	void readMatricesAndMtzs();
-    void refineMetrology();
+    void refineMetrology(bool global);
     void initialMerge();
     void orientationPlot();
     void applyUnrefinedPartiality();
@@ -107,11 +106,11 @@ public:
     }
     
     void setupFreeMillers();
-    void refineDistances();
     void polarisationGraph();
     void displayIndexingHands();
     void findSteps();
     
+    void writeAllNewOrientations();
     void writeNewOrientations(bool includeRots = false, bool detailed = false);
     void removeSigmaValues();
     void radialAverage();

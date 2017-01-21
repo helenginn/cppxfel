@@ -396,7 +396,7 @@ bool IndexingSolution::spotsAreNotTooClose(SpotVectorPtr observedVector)
     SpotPtr spot1 = observedVector->getFirstSpot();
     SpotPtr spot2 = observedVector->getSecondSpot();
     
-    double squareMinDistance = pow(lattice->getMinDistance(), 2);
+    double squareMinDistance = pow(lattice->getMinDistance(), 2) * 0.7;
     
     for (SpotVectorMap::iterator it = spotVectors.begin(); it != spotVectors.end(); it++)
     {

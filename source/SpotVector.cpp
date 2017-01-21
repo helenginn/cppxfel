@@ -10,6 +10,7 @@
 #include "Matrix.h"
 #include "misc.h"
 #include "FileParser.h"
+#include "Detector.h"
 
 double SpotVector::trustComparedToStandardVector(SpotVectorPtr standardVector)
 {
@@ -56,11 +57,14 @@ void SpotVector::calculateUnitVector()
 
 void SpotVector::calculateDistance()
 {
-    vec firstVector = firstSpot->estimatedVector();
-    vec secondVector = secondSpot->estimatedVector();
-    
-    spotDiff = copy_vector(secondVector);
-    take_vector_away_from_vector(firstVector, &spotDiff);
+    if (firstSpot && secondSpot)
+    {
+        vec firstVector = firstSpot->estimatedVector();
+        vec secondVector = secondSpot->estimatedVector();
+        
+        spotDiff = copy_vector(secondVector);
+        take_vector_away_from_vector(firstVector, &spotDiff);
+    }
     
     calculateUnitVector();
 }
@@ -249,6 +253,25 @@ double SpotVector::getMinDistanceTolerance()
     minDistanceTolerance = 1 / minDistanceTolerance;
     
     return minDistanceTolerance;
+}
+
+bool SpotVector::isIntraPanelVector()
+{
+    DetectorPtr onePanel = firstSpot->getDetector();
+    DetectorPtr twoPanel = secondSpot->getDetector();
+    
+    if (!onePanel || !twoPanel)
+        return false;
+    
+    return (onePanel == twoPanel);
+}
+
+bool SpotVector::isOnlyFromDetector(DetectorPtr detector)
+{
+    DetectorPtr onePanel = firstSpot->getDetector();
+    DetectorPtr twoPanel = secondSpot->getDetector();
+    
+    return (detector->isAncestorOf(onePanel) && detector->isAncestorOf(twoPanel));
 }
 
 double SpotVector::getMinAngleTolerance()

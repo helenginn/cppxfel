@@ -27,6 +27,11 @@
 #include "Miller.h"
 #include "SpotFinderQuick.h"
 #include "SpotFinderCorrelation.h"
+#include "Detector.h"
+
+double Image::globalDetectorDistance = 0;
+double Image::globalBeamX = INT_MAX;
+double Image::globalBeamY = INT_MAX;
 
 Image::Image(std::string filename, double wavelength,
              double distance)
@@ -36,6 +41,9 @@ Image::Image(std::string filename, double wavelength,
     xDim = 1765;
     yDim = 1765;
     
+    beamX = INT_MAX;
+    beamY = INT_MAX;
+    
     spotsFile = "";
     
     if (dims.size())
@@ -44,15 +52,11 @@ Image::Image(std::string filename, double wavelength,
         yDim = dims[1];
     }
     
-    noCircles = false;
-    commonCircleThreshold = FileParser::getKey("COMMON_CIRCLE_THRESHOLD", 0.05);
-    
     minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
     indexingFailureCount = 0;
     data = vector<int>();
     shortData = vector<short>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
-    vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
     
     metrologyMoveThreshold = FileParser::getKey("METROLOGY_MOVE_THRESHOLD", 1.0);
     
@@ -71,14 +75,20 @@ Image::Image(std::string filename, double wavelength,
     
     detectorGain = FileParser::getKey("DETECTOR_GAIN", 1.0);
     
-    if (beam.size() == 0)
+    if (globalBeamX == INT_MAX || globalBeamY == INT_MAX)
     {
-        beam.push_back(BEAM_CENTRE_X);
-        beam.push_back(BEAM_CENTRE_Y);
+        vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
+        
+        if (beam.size() == 0)
+        {
+            beam.push_back(0);
+            beam.push_back(0);
+        }
+        
+        globalBeamX = beam[0];
+        globalBeamY = beam[1];
     }
     
-    beamX = beam[0];
-    beamY = beam[1];
     _hasSeeded = false;
     
     pinPoint = true;
@@ -200,7 +210,7 @@ void Image::setImageData(vector<int> newData)
     
     memcpy(&data[0], &newData[0], newData.size() * sizeof(int));
     
-    logged << "Image with wavelength " << this->wavelength << ", distance " << detectorDistance << std::endl;
+    logged << "Image with wavelength " << this->wavelength << ", distance " << getDetectorDistance() << std::endl;
     sendLog();
 }
 
@@ -258,6 +268,13 @@ void Image::loadImage()
     else
     {
         Logger::mainLogger->addString("Unable to open file " + getFilename());
+    }
+    
+    bool fromTiffs = FileParser::getKey("FROM_TIFFS", false);
+    
+    if (fromTiffs)
+    {
+        shortData.erase(shortData.begin(), shortData.begin() + 4);
     }
 }
 
@@ -354,7 +371,7 @@ int Image::valueAt(int x, int y)
 {
     double rawValue = rawValueAt(x, y);
     
-    PanelPtr panel = Panel::panelForCoord(std::make_pair(x, y));
+    PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
     double panelGain = detectorGain;
     
     if (panel)
@@ -564,13 +581,17 @@ bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
     return true;
 }
 
-std::pair<double, double> Image::reciprocalCoordinatesToPixels(vec hkl)
+std::pair<double, double> Image::reciprocalCoordinatesToPixels(vec hkl, double myWavelength)
 {
-    double x_mm = (hkl.k * detectorDistance / (1 / wavelength + hkl.l));
-    double y_mm = (hkl.h * detectorDistance / (1 / wavelength + hkl.l));
+    if (myWavelength == 0)
+    {
+        myWavelength = wavelength;
+    }
+    double x_mm = (-hkl.h * getDetectorDistance() / (1 / myWavelength + hkl.l));
+    double y_mm = (hkl.k * getDetectorDistance() / (1 / myWavelength + hkl.l));
     
-    double x_coord = beamX - x_mm / mmPerPixel;
-    double y_coord = beamY - y_mm / mmPerPixel;
+    double x_coord = getBeamX() - x_mm / mmPerPixel;
+    double y_coord = getBeamY() - y_mm / mmPerPixel;
     
     return std::make_pair(x_coord, y_coord);
 }
@@ -916,12 +937,7 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int to
         else
             focusOnAverageMax(&x1, &y1, tolerance, 1, shoebox->isEven());
     }
-    /* commenting out because it's dealt with in the following call
-    if (checkShoebox(shoebox, x1, y1) == 0)
-    {
-        return nan("");
-    }
-    */
+    
     double integral = integrateWithShoebox(x1, y1, shoebox, error);
     
     return integral;
@@ -929,14 +945,24 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int to
 
 bool Image::accepted(int x, int y)
 {
-    double value = rawValueAt(x, y);
-    
-    PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
-    
-    if (!panel)
+    if (Detector::isActive())
     {
-        return false;
+        DetectorPtr detector = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
+        
+        if (!detector)
+            return false;
     }
+    else
+    {
+        PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
+        
+        if (!panel)
+        {
+            return false;
+        }
+    }
+    
+    double value = rawValueAt(x, y);
     
     if (shouldMaskValue)
     {
@@ -976,21 +1002,6 @@ void Image::index()
     }
 }
 
-void Image::refineIndexing(MtzManager *reference)
-{
-    if (indexers.size() == 0)
-    {
-        logged << "No orientation matrices, cannot index/integrate." << std::endl;
-        sendLog();
-        return;
-    }
-    
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->refineDetectorAndWavelength(reference);
-    }
-}
-
 void Image::refineOrientations()
 {
     if (indexers.size() == 0)
@@ -1006,26 +1017,11 @@ void Image::refineOrientations()
     }
 }
 
-void Image::refineDistances()
-{
-    if (indexers.size() == 0)
-    {
-        logged << "No orientation matrices, cannot refine distance." << std::endl;
-        sendLog();
-        return;
-    }
-    
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->refineDetectorAndWavelength();
-    }
-}
-
 vector<MtzPtr> Image::currentMtzs()
 {
     vector<MtzPtr> mtzs;
     int count = 0;
-    bool rejecting = !FileParser::getKey("DO_NOT_REJECT_REFLECTIONS", false);
+    bool rejecting = !FileParser::getKey("REJECT_OVERLAPPING_REFLECTIONS", true);
     
     for (int i = 0; i < IOMRefinerCount(); i++)
     {
@@ -1084,14 +1080,6 @@ void Image::setSearchSize(int searchSize)
     for (int i = 0; i < indexers.size(); i++)
     {
         indexers[i]->setSearchSize(searchSize);
-    }
-}
-
-void Image::setIntensityThreshold(double threshold)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setIntensityThreshold(threshold);
     }
 }
 
@@ -1261,6 +1249,10 @@ void Image::findSpots()
     {
         spotFinder = SpotFinderPtr(new SpotFinderCorrelation(shared_from_this()));
     }
+    else
+    {
+        return;
+    }
     
     tempSpots = spotFinder->findSpots();
     
@@ -1279,6 +1271,13 @@ void Image::findSpots()
     Spot::writeDatFromSpots(basename + "_spots.csv", spots);
     writeSpotsList("_" + basename + "_strong.list");
     
+    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
+
+    if (alwaysFilterSpots)
+    {
+        compileDistancesFromSpots(0, 0, alwaysFilterSpots);
+    }
+    
     return;
     
 }
@@ -1291,8 +1290,6 @@ void Image::processSpotList()
     if (!spotsFile.length() && !forceSpotFinding)
     {
         spotsFile = "_" + getBasename() + "_strong.list";
-        logged << "Guessing name of spots file as " << spotsFile << std::endl;
-        sendLog();
     }
     
     if (spotsFile == "find" || forceSpotFinding)
@@ -1328,9 +1325,9 @@ void Image::processSpotList()
         
         vector<std::string> spotLines = FileReader::split(spotContents, '\n');
         
-        double x = beamX;
-        double y = beamY;
-        vec beamXY = new_vector(beamX, beamY, 1);
+        double x = getBeamX();
+        double y = getBeamY();
+        vec beamXY = new_vector(getBeamX(), getBeamY(), 1);
         vec newXY = new_vector(x, y, 1);
         vec xyVec = vector_between_vectors(beamXY, newXY);
         MatrixPtr rotateMat = MatrixPtr(new Matrix());
@@ -1338,7 +1335,7 @@ void Image::processSpotList()
         rotateMat->multiplyVector(&xyVec);
         
         SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
-        newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
+        newSpot->setXY(getBeamX() - xyVec.h, getBeamY() - xyVec.k);
         
         addSpotIfNotMasked(newSpot);
         double tooCloseDistance = 0;
@@ -1363,9 +1360,9 @@ void Image::processSpotList()
             
             if (spotsAreReciprocalCoordinates)
             {
-                double k = atof(components[0].c_str()) * 10e-11;
-                double h = atof(components[1].c_str()) * 10e-11;
-                double l = atof(components[2].c_str()) * 10e-11;
+                double k = atof(components[0].c_str());
+                double h = atof(components[1].c_str());
+                double l = atof(components[2].c_str());
                 
                 vec hkl = new_vector(h, k, l);
                 
@@ -1383,7 +1380,7 @@ void Image::processSpotList()
                 y = atof(components[1].c_str());
             }
             
-            vec beamXY = new_vector(beamX, beamY, 1);
+            vec beamXY = new_vector(getBeamX(), getBeamY(), 1);
             vec newXY = new_vector(x, y, 1);
             vec xyVec = vector_between_vectors(beamXY, newXY);
             MatrixPtr rotateMat = MatrixPtr(new Matrix());
@@ -1391,7 +1388,7 @@ void Image::processSpotList()
             rotateMat->multiplyVector(&xyVec);
             
             SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
-            newSpot->setXY(beamX - xyVec.h, beamY - xyVec.k);
+            newSpot->setXY(getBeamX() - xyVec.h, getBeamY() - xyVec.k);
             bool add = true;
             
             vec myVec = newSpot->estimatedVector();
@@ -1400,7 +1397,7 @@ void Image::processSpotList()
             {
                 SpotPtr testSpot = spots[j];
                 
-                if (tooCloseDistance > 0)
+                if (rejectCloseSpots && tooCloseDistance > 0)
                 {
                     vec testVec = testSpot->estimatedVector();
                     vec copyVec = copy_vector(myVec);
@@ -1427,7 +1424,7 @@ void Image::processSpotList()
             << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
             sendLog(LogLevelDebug);
             
-            if (Panel::panelForSpot(&*newSpot) == PanelPtr())
+            if (!Detector::isActive() && Panel::panelForSpot(&*newSpot) == PanelPtr())
             {
                 add = false;
             }
@@ -1447,6 +1444,18 @@ void Image::processSpotList()
     if (fractionToExclude > 0)
     {
         excludeWeakestSpots(fractionToExclude);
+    }
+    
+    bool recentreSpots = FileParser::getKey("FORCE_RECENTRE_SPOTS", false);
+    
+    if (recentreSpots)
+    {
+        for (int i = 0; i < spotCount(); i++)
+        {
+            spots[i]->recentreInWindow();
+        }
+        
+        writeSpotsList("_" + getBasename() + "_strong.list");
     }
     
     loadedSpots = true;
@@ -1473,6 +1482,15 @@ void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spo
     }
 }
 
+bool Image::acceptableSpotCount()
+{
+    int maxSpots = FileParser::getKey("REJECT_OVER_SPOT_COUNT", 4000);
+    int minSpots = FileParser::getKey("REJECT_UNDER_SPOT_COUNT", 0);
+
+    return (spotCount() > minSpots) && (spotCount() < maxSpots);
+    
+}
+
 void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance, bool filter)
 {
     if (!loadedSpots)
@@ -1489,14 +1507,14 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
     }
     
-    int maxSpots = FileParser::getKey("REJECT_IF_SPOT_COUNT", 4000);
+    int maxSpots = FileParser::getKey("REJECT_OVER_SPOT_COUNT", 4000);
     int minSpots = FileParser::getKey("REJECT_UNDER_SPOT_COUNT", 0);
     
     if (maxSpots > 0)
     {
         if (spotCount() > maxSpots)
         {
-            logged << "N: Aborting image " << getFilename() << " due to too many spots." << std::endl;
+            logged << "(" << getFilename() << ") Aborting image due to too many spots." << std::endl;
             sendLog();
             spotVectors.clear();
             std::vector<SpotVectorPtr>().swap(spotVectors);
@@ -1506,7 +1524,8 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     
     if (spotCount() < minSpots)
     {
-        logged << "N: Aborting image " << getFilename() << " due to too few spots." << std::endl;
+        logged << "(" << getFilename() << ") Aborting image due to too few spots." << std::endl;
+        sendLog();
         
         if (IOMRefinerCount() == 0)
         {
@@ -1624,7 +1643,7 @@ void Image::filterSpotVectors()
     
     std::vector<double> scoresOnly;
     std::map<SpotVectorPtr, double> spotVectorMap;
-    double reciprocalTolerance = FileParser::getKey("RECIPROCAL_TOLERANCE", 0.0015);
+    double reciprocalTolerance = FileParser::getKey("INITIAL_RLP_SIZE", 0.0015);
     
     int totalSpots = spotCount();
     double expectedLatticesFraction = (double)totalSpots / (double)spotsPerLattice;
@@ -2015,8 +2034,6 @@ void Image::findIndexingSolutions()
         processSpotList();
     }
 
-    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
-    
     std::vector<IndexingSolutionPtr> solutions;
     
     int maxSearch = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 1000);
@@ -2039,6 +2056,7 @@ void Image::findIndexingSolutions()
         sendLog();
     }
     
+    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     compileDistancesFromSpots(0, 0, alwaysFilterSpots);
     if (spotVectors.size() == 0)
         return;
@@ -2342,9 +2360,6 @@ void Image::radialAverage()
         
         sendLog();
         
-     //   logged << "Intensity portion size: " << intensityPortion.size() << std::endl;
-     //   sendLog();
-        
         std::vector<double> coeffs = polyfit(binsPortion, intensityPortion, 2);
         
         double backgroundSum = 0;
@@ -2496,26 +2511,29 @@ void Image::clusterCountWithSpotNumber(int spotNum)
     sendLog();
 }
 
-void Image::drawSpotsOnPNG()
+void Image::drawSpotsOnPNG(std::string filename)
 {
     if (!loadedSpots)
     {
         processSpotList();
     }
     
-    std::string filename = getBasename() + ".png";
+    double stdev = standardDeviationOfPixels();
+    
+    if (!filename.length())
+        filename = getBasename() + ".png";
     int height = FileParser::getKey("PNG_HEIGHT", 2400);
-    PNGFilePtr file = PNGFilePtr(new PNGFile(filename, 2400, height));
+    PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
     writePNG(file);
     
     for (int i = 0; i < spotCount(); i++)
     {
         Coord coord = spot(i)->getXY();
         
-        file->drawCircleAroundPixel(coord.first, coord.second, 14, 1, 0, 0, 0);
+        file->drawCircleAroundPixel(coord.first, coord.second, 10, 1, 0, 0, 0);
     }
     
-    logged << "Written file " << filename << std::endl;
+    logged << "Written file " << filename << " (stdev of pixel intensities: " << stdev << ")" << std::endl;
     sendLog();
     
     file->writeImageOutput();
@@ -2530,23 +2548,35 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
         for (int j = 0; j < myMtz->reflection(i)->millerCount(); j++)
         {
             MillerPtr myMiller = myMtz->reflection(i)->miller(j);
-            PanelPtr panel = Panel::panelForMiller(&*myMiller);
             
-            if (!panel)
-                continue;
+            Coord pngCoord;
             
-            double correctedX = myMiller->getCorrectedX();
-            double correctedY = myMiller->getCorrectedY();
+            if (Detector::isActive())
+            {
+                vec intersection = myMiller->getShiftedRay();
+                
+                pngCoord = std::make_pair(intersection.h, intersection.k);
+            }
+            else
+            {
+                PanelPtr panel = Panel::panelForMiller(&*myMiller);
+                
+                if (!panel)
+                    continue;
+                
+                double correctedX = myMiller->getCorrectedX();
+                double correctedY = myMiller->getCorrectedY();
+                
+                Coord corrected = std::pair<double, double>(correctedX, correctedY);
+                pngCoord = panel->spotToMillerCoord(corrected);
+            }
             
-            Coord corrected = std::pair<double, double>(correctedX, correctedY);
-            Coord shifted = panel->shiftSpot(corrected);
-            
-            bool strong = IOMRefiner::millerReachesThreshold(myMiller);
-            file->drawCircleAroundPixel(shifted.first, shifted.second, 14, (strong ? 1 : 0.5), red, green, blue, (strong ? 4 : 1));
+            bool strong = myMiller->reachesThreshold();
+            file->drawCircleAroundPixel(pngCoord.first, pngCoord.second, 14, (strong ? 2 : 1), red, green, blue, (strong ? 4 : 1));
             
             if (addShoebox)
             {
-                file->drawShoeboxAroundPixel(shifted.first, shifted.second, myMiller->getShoebox());
+                file->drawShoeboxAroundPixel(pngCoord.first, pngCoord.second, myMiller->getShoebox());
             }
         }
     }
@@ -2558,8 +2588,8 @@ void Image::drawCrystalsOnPNG(int crystalNum)
     std::string crystNumString = (crystalNum > 0 ? i_to_str(crystalNum) : "all" + i_to_str(count));
     
     std::string filename = getBasename() + "_" + crystNumString + ".png";
-    int height = FileParser::getKey("PNG_HEIGHT", 4800);
-    PNGFilePtr file = PNGFilePtr(new PNGFile(filename, 2400, height));
+    int height = FileParser::getKey("PNG_HEIGHT", 2400);
+    PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
     writePNG(file);
     
     if (crystalNum >= 0)
@@ -2594,14 +2624,14 @@ void Image::drawCrystalsOnPNG(int crystalNum)
 
 void Image::writePNG(PNGFilePtr file)
 {
-    file->setCentre(beamX, beamY);
+    file->setCentre(getBeamX(), getBeamY());
     
     double defaultThreshold = standardDeviationOfPixels() * 5; // calculate
     
     double threshold = FileParser::getKey("PNG_THRESHOLD", defaultThreshold);
     
     PanelPtr lastPanel = PanelPtr();
- //   PanelPtr lastMask = PanelPtr();
+    DetectorPtr lastDetector = DetectorPtr();
 
     for (int i = 0; i < xDim; i++)
     {
@@ -2619,11 +2649,35 @@ void Image::writePNG(PNGFilePtr file)
             PanelPtr panel = lastPanel;
         //    PanelPtr mask = lastMask;
             
+            DetectorPtr detector = lastDetector;
+            
+            if (Detector::isActive())
+            {
+                if (!detector || !detector->spotCoordWithinBounds(i, j))
+                {
+                    detector = Detector::getMaster()->findDetectorPanelForSpotCoord(i, j);
+                    
+                    if (detector)
+                    {
+                        lastDetector = detector;
+                    }
+                }
+                
+                if (detector)
+                {
+                    vec arranged;
+                    detector->spotCoordToAbsoluteVec(i, j, &arranged);
+                    file->setPixelColourRelative(arranged.h, arranged.k, pixelValue, pixelValue, pixelValue);
+                }
+                
+                continue;
+            }
+            
             if (panel)
             {
-                Coord shifted = lastPanel->shiftSpot(coord);
+                Coord shifted = lastPanel->spotToMillerCoord(coord);
                 
-                if (!panel->isCoordInPanel(shifted) || Panel::spotCoordFallsInMask(shifted))
+                if (!panel->isMillerCoordInPanel(shifted) || Panel::spotCoordFallsInMask(shifted))
                 {
                     panel = Panel::panelForSpotCoord(coord);
                 }

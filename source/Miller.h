@@ -47,6 +47,7 @@ private:
     static float trickyRes;
     static bool setupStatic;
     static int peakSize;
+    static bool individualWavelength;
     
     short int h;
     short int k;
@@ -62,8 +63,12 @@ private:
 	float scale; // should be extracted from Mtz. Maybe?
 	float lastX;
 	float lastY;
+    float lastPeakX;
+    float lastPeakY;
     float correctedX;
     float correctedY;
+    double predictedWavelength;
+    vec shiftedRay;
     
     float bFactorScale; // should be extracted from Mtz.
     
@@ -82,18 +87,28 @@ private:
     double integrate_sphere_uniform(double p, double q);
     double integrate_sphere_gaussian(double p, double q);
     double integrate_sphere(double p, double q);
-    
+    void recalculatePredictedWavelength();
+
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
     
     BeamPtr beam;
     ImageWeakPtr image;
-    IOMRefiner *indexer;
+    PanelWeakPtr lastPanel;
+    DetectorWeakPtr lastDetector;
+    IOMRefinerWeakPtr refiner;
     ShoeboxPtr shoebox;
     unsigned char flipMatrix;
+    static bool absoluteIntensity;
+    static double intensityThreshold;
 public:
     int getH();
     int getK();
     int getL();
+    
+    bool is(int _h, int _k, int _l)
+    {
+        return (h == _h && k == _k && l == _l);
+    }
     
     static void setupStaticVariables();
     vec hklVector(bool shouldFlip = true);
@@ -109,13 +124,11 @@ public:
 
 	Miller(MtzManager *parent, int _h = 0, int _k = 0, int _l = 0, bool calcFree = true);
 	MillerPtr copy(void);
-	void printHkl(void);
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
     void limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh, vec *inwards = NULL, vec *outwards = NULL);
     double slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double rlpSize, double mean, double sigma, double exponent);
     
     bool isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDelete = true);
-    double calculateDefaultNorm();
     void setPartialityModel(PartialityModel model);
 	void setData(double _intensity, double _sigma, double _partiality,
 			double _wavelength);
@@ -138,26 +151,24 @@ public:
     {
         free = newFree;
     }
-    
-	void flip(void);
 
     bool isRejected();
     double getBFactorScale();
 	double intensity(bool withCutoff = true);
-	double getSigma(void);
+	double getSigma();
 	double getPartiality();
-	double getWavelength(void);
+	double getWavelength();
 	double getWavelength(double hRot, double kRot);
     double getWavelength(MatrixPtr transformedMatrix);
+    double recalculateWavelength();
 	double getWeight(bool cutoff = true, WeightType weighting = WeightTypePartialitySigma);
 	double resolution();
     double twoTheta(bool horizontal);
-	double scatteringAngle(ImagePtr image);
 
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
 	void positionOnDetector(MatrixPtr transformedMatrix, int *x,
-			int *y);
+			int *y, bool search = true);
     void recalculateBetterPartiality();
     
     void setHorizontalPolarisationFactor(double newFactor);
@@ -174,8 +185,24 @@ public:
     double observedPartiality(double reference);
     double observedPartiality(MtzManager *reference);
     
-    vec getTransformedHKL(MatrixPtr matrix);
+    static void refreshMillerPositions(std::vector<MillerWeakPtr> millers);
+    static void refreshMillerPositions(std::vector<MillerPtr> millers);
+    vec getTransformedHKL(MatrixPtr matrix = MatrixPtr());
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
+    
+    void setHKL(int _h, int _k, int _l)
+    {
+        h = _h;
+        k = _k;
+        l = _l;
+    }
+    
+    DetectorPtr getDetector()
+    {
+        return lastDetector.lock();
+    }
+    
+    void setDetector(DetectorPtr newD);
     
     ShoeboxPtr getShoebox()
     {
@@ -186,6 +213,8 @@ public:
     RejectReason getRejectedReason();
 
     virtual ~Miller();
+    
+    bool reachesThreshold();
     
     void setBeam(BeamPtr newBeam)
     {
@@ -303,6 +332,16 @@ public:
         return std::make_pair(lastX, lastY);
     }
 
+    void setCorrectedX(double lastX)
+    {
+        this->correctedX = lastX;
+    }
+    
+    void setCorrectedY(double lastY)
+    {
+        this->correctedY = lastY;
+    }
+    
 	void setLastX(double lastX)
 	{
 		this->lastX = lastX;
@@ -361,21 +400,46 @@ public:
 	{
 		return shift;
 	}
+    
+    float *getXShiftPointer()
+    {
+        return &(shift.first);
+    }
+    
+    float *getYShiftPointer()
+    {
+        return &(shift.second);
+    }
 
 	void setShift(const std::pair<int, int>& shift)
 	{
 		this->shift = shift;
 	}
     
-    void setImageAndIOMRefiner(ImagePtr newImage, IOMRefiner *indexer)
+    void setImageAndIOMRefiner(ImagePtr newImage, IOMRefinerPtr indexer)
     {
-        this->image = newImage;
-        this->indexer = indexer;
+        if (newImage) this->image = newImage;
+        if (indexer) this->refiner = indexer;
+    }
+    
+    IOMRefinerPtr getIOMRefiner()
+    {
+        return refiner.lock();
     }
     
     ImagePtr getImage()
     {
         return image.lock();
+    }
+    
+    PanelPtr getPanel()
+    {
+        return lastPanel.lock();
+    }
+    
+    void setPanel(PanelPtr newPanel)
+    {
+        lastPanel = newPanel;
     }
     
     void setCorrectingPolarisation(bool on)
@@ -413,10 +477,10 @@ public:
         return sigma;
     }
     
+    double getPredictedWavelength();
     
-
-
-    static void rotateMatrixABC(double aRot, double bRot, double cRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
+    vec getShiftedRay();
+    
     static void rotateMatrixHKL(double hRot, double kRot, double lRot, MatrixPtr oldMatrix, MatrixPtr *newMatrix);
 
 protected:

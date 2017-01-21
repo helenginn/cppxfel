@@ -111,16 +111,29 @@ void new_main(int argc, char *argv[])
         std::cout << "lowRes and highRes: set to resolution in Angstroms to bound the results, or set to 0 to take lowest/highest resolution data. Default 0, 0" << std::endl;
         std::cout << "bins: number of bins to report correlation statistics. Default 20." << std::endl << std::endl;
         
+        std::cout << "General help for most of the parameters which are specified in input files can be found using --help or -h, for example:" << std::endl;
+        std::cout << "\tcppxfel.run --help verbosity_level" << std::endl;
+        std::cout << "\tcppxfel.run --help intensity_threshold" << std::endl;
+        
         exit(1);
 	}
     
-    if (strcmp(argv[1], "-test") == 0)
+    Logger::mainLogger = LoggerPtr(new Logger());
+    boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
+    
+    if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 )
     {
-        std::string testHdf5 = argv[2];
+        FileParser parser;
         
-        Hdf5ManagerCheetahSaclaPtr cheetahPtr = Hdf5ManagerCheetahSaclaPtr(new Hdf5ManagerCheetahSacla(testHdf5));
-        
-        
+        if (argc == 2)
+        {
+            FileParser::printAllCommands();
+        }
+        else
+        {
+            std::string whichCommand = argv[2];
+            FileParser::printCommandInfo(whichCommand);
+        }
     }
 
 	if (strcmp(argv[1], "-wiki") == 0)
@@ -162,11 +175,6 @@ void new_main(int argc, char *argv[])
         
         delete parser;
 	}
-    else
-    {
-        Logger::mainLogger = LoggerPtr(new Logger());
-        boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
-    }
     
     if (strcmp(argv[1], "-b") == 0)
     {
@@ -462,7 +470,7 @@ void new_main(int argc, char *argv[])
 		reference->setFilename(argv[2]);
 		reference->loadReflections(1);
 		MtzManager::setReference(reference);
-        FileParser::setKey("REFINE_B_FACTOR", true);
+  //      FileParser::setKey("REFINE_B_FACTOR", true);
         
 		for (int i = 3; i < argc; i++)
 		{
@@ -522,14 +530,12 @@ void new_main(int argc, char *argv[])
     std::ostringstream logged;
     logged << "N: Total time: " << minutes << " minutes, "
     << finalSeconds << " seconds (" << seconds << " seconds)." << std::endl;
-
-	logged << "Done" << std::endl;
-    Logger::mainLogger->addStream(&logged);
     
     if (strcmp(argv[1], "-i") == 0)
         finishJobNotification(argc, argv, minutes);
     
     Hdf5ManagerCheetahSacla::closeHdf5Files();
     
-    sleep(2);
+    logged << "Done" << std::endl;
+    Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
 }

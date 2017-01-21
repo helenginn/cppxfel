@@ -369,6 +369,13 @@ vec new_vector(double h, double k, double l)
 	return vec;
 }
 
+void multiply_vector(vec *vec, double mult)
+{
+    vec->h *= mult;
+    vec->k *= mult;
+    vec->l *= mult;
+}
+
 void scale_vector_to_distance(vec *vector, double new_distance)
 {
 	double distance = sqrt(
@@ -376,9 +383,7 @@ void scale_vector_to_distance(vec *vector, double new_distance)
 
 	double scale = new_distance / distance;
 
-	(*vector).h *= scale;
-	(*vector).k *= scale;
-	(*vector).l *= scale;
+    multiply_vector(vector, scale);
 }
 
 double getEwaldSphereNoMatrix(vec index)
@@ -996,9 +1001,21 @@ void histogramCSV(std::string filename, std::map<double, int> map1, std::map<dou
     stream.close();
 }
 
-void desc(vec hkl)
+void printDesc(vec hkl)
+{
+    Logger::mainLogger->addString(desc(hkl));
+}
+
+std::string prettyDesc(vec hkl)
 {
     std::ostringstream logged;
-    logged << hkl.h << "\t" << hkl.k << "\t" << hkl.l << std::endl;
-    Logger::log(logged);
+    logged << "(" << hkl.h << ", " << hkl.k << ", " << hkl.l << ")";
+    return logged.str();
+}
+
+std::string desc(vec hkl)
+{
+    std::ostringstream logged;
+    logged << hkl.h << "\t" << hkl.k << "\t" << hkl.l;
+    return logged.str();
 }

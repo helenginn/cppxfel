@@ -32,13 +32,21 @@ cctbx::uctbx::unit_cell Reflection::unitCell;
 unsigned char Reflection::spgNum = 0;
 std::mutex Reflection::setupMutex;
 std::vector<MatrixPtr> Reflection::flipMatrices;
+MatrixPtr Reflection::customAmbiguity;
 double Reflection::rejectSigma = 0;
 bool Reflection::shouldReject = 0;
 
 MatrixPtr Reflection::matrixForAmbiguity(int i)
 {
     if (i >= ambiguityCount())
+    {
         std::cout << "Ambiguity issue!" << std::endl;
+    }
+    
+    if (flipMatrices.size() > i)
+    {
+        return flipMatrices[i];
+    }
     
     if (i == 0)
     {
@@ -49,6 +57,11 @@ MatrixPtr Reflection::matrixForAmbiguity(int i)
     
     if (i == 1)
     {
+        if (ambiguityCount() == 2 && customAmbiguity)
+        {
+            return customAmbiguity;
+        }
+        
         if (ambiguityCount() == 2 || ambiguityCount() == 4)
         {
             MatrixPtr khMinusL = MatrixPtr(new Matrix());
@@ -75,6 +88,11 @@ MatrixPtr Reflection::matrixForAmbiguity(int i)
     
     if (i == 2)
     {
+        if (ambiguityCount() == 3 && customAmbiguity)
+        {
+            return customAmbiguity;
+        }
+
         if (ambiguityCount() == 3)
         {
             if (spgNum == 149 || spgNum == 151 || spgNum == 153)
@@ -118,6 +136,11 @@ MatrixPtr Reflection::matrixForAmbiguity(int i)
     
     if (i == 3)
     {
+        if (ambiguityCount() == 4 && customAmbiguity)
+        {
+            return customAmbiguity;
+        }
+
         if (ambiguityCount() == 4)
         {
             // return -k -h -l
@@ -131,35 +154,43 @@ MatrixPtr Reflection::matrixForAmbiguity(int i)
 
     }
     
+    if (i == 4)
+    {
+        if (customAmbiguity)
+        {
+            return customAmbiguity;
+        }
+    }
+    
     return MatrixPtr(new Matrix());
 }
 
 
 int Reflection::ambiguityCount()
 {
- //   std::cout << "spgNum: " << (int)spgNum << std::endl;
+    int basicNum = 1;
     
     if (spgNum >= 75 && spgNum <= 80)
     {
-        return 2;
+        basicNum = 2;
     }
     
     if (spgNum >= 195 && spgNum <= 199)
-        return 2;
+        basicNum = 2;
     
     if (spgNum >= 168 && spgNum <= 173)
-        return 2;
+        basicNum = 2;
     
     if (spgNum == 146)
-        return 2;
+        basicNum = 2;
     
     if (spgNum >= 149 && spgNum <= 154)
-        return 3;
+        basicNum = 3;
     
     if (spgNum >= 143 && spgNum <= 145)
-        return 4;
+        basicNum = 4;
     
-    return 1;
+    return basicNum + (customAmbiguity != MatrixPtr());
 }
 
 
@@ -182,6 +213,13 @@ void Reflection::setSpaceGroup(int spaceGroupNum)
     
     if (hasSetup)
         return;
+    
+    std::vector<double> ambiguityDouble = FileParser::getKey("CUSTOM_AMBIGUITY", std::vector<double>());
+    
+    if (ambiguityDouble.size() >= 9)
+    {
+        customAmbiguity = MatrixPtr(new Matrix(&ambiguityDouble[0]));
+    }
     
     int totalAmbiguities = ambiguityCount();
     
@@ -1026,7 +1064,7 @@ double Reflection::observedPartiality(MtzManager *reference, Miller *miller)
     double reflId = getReflId();
     reference->findReflectionWithId(reflId, &refReflection);
     
-    if (!refReflection)
+    if (refReflection)
         return miller->observedPartiality(refReflection->meanIntensity());
     
     return nan(" ");

@@ -93,7 +93,7 @@ FreeMillerLibrary::FreeMillerLibrary(std::string filename, double maxResolution)
 
 void FreeMillerLibrary::setup()
 {
-    double resolution = FileParser::getKey("MAX_RESOLUTION_ALL", 1.0);
+    double resolution = FileParser::getKey("MAX_REFINED_RESOLUTION", 1.0);
     std::string filename = FileParser::getKey("FREE_MILLER_LIST", std::string("freeMillers.txt"));
     
     if (filename == "")

@@ -11,24 +11,19 @@
 
 #include <stdio.h>
 #include "parameters.h"
-#include "Logger.h"
+#include "RefinementStrategy.h"
 
 typedef std::pair<std::vector<double>, double> TestPoint;
 
-class NelderMead
+class NelderMead : public RefinementStrategy
 {
 private:
     double alpha;
     double gamma;
     double rho;
     double sigma;
-    bool unlimited;
     
-    std::vector<double *> paramPtrs;
     std::vector<TestPoint> testPoints;
-    std::ostringstream logged;
-    double (*evaluationFunction)(void *object);
-    void *evaluatingObject;
     
     void setWorstTestPoint(TestPoint &newPoint);
     TestPoint *worstTestPoint();
@@ -48,20 +43,11 @@ private:
     void scalePoint(std::vector<double> *point, double scale);
     void subtractPoints(std::vector<double> *point, std::vector<double> pointToSubtract);
 public:
-    NelderMead(std::vector<double *> newParamPtrs, std::vector<double> expectedRanges, void *object, double (*score)(void *object));
-    void process();
+    void init();
+    NelderMead() : RefinementStrategy() { init(); };
+    virtual void refine();
     
-    void setUnlimited(bool newLimited)
-    {
-        unlimited = newLimited;
-    }
-    
-    int paramCount()
-    {
-        return (int)paramPtrs.size();
-    }
-    
-    void sendLog(LogLevel logLevel = LogLevelDetailed);
+    virtual void clearParameters();
 };
 
 #endif /* defined(__cppxfel__NelderMead__) */

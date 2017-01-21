@@ -124,7 +124,18 @@ void Hdf5Image::loadImage()
     
     if (size > 0)
     {
-        bool success = manager->dataForImage(address, (void **)&buffer);
+        int dims[2];
+        bool success = manager->getImageSize(address, dims);
+        
+        xDim = dims[1];
+        yDim = dims[0];
+        
+        if (!success)
+        {
+            failureMessage();
+        }
+        
+        success = manager->dataForImage(address, (void **)&buffer);
         
         if (!success)
         {
@@ -319,7 +330,7 @@ void Hdf5Image::createSpotTable()
 
 void Hdf5Image::getWavelengthFromHdf5()
 {
-    bool useHdf5Wavelength = FileParser::getKey("USE_HDF5_WAVELENGTH", false);
+    bool useHdf5Wavelength = FileParser::getKey("USE_HDF5_WAVELENGTH", true);
     
     if (!useHdf5Wavelength)
     {

@@ -80,7 +80,7 @@
 #define OVER_PRED_BANDWIDTH 0.03
 #define OVER_PRED_SPOT_SIZE 0.0002
 #define INDEXING_ORIENTATION_TOLERANCE 0.001
-#define INITIAL_ORIENTATION_STEP 1.0
+#define INITIAL_ORIENTATION_STEP 0.5
 #define MM_PER_PIXEL 0.11
 #define METROLOGY_SEARCH_SIZE 5
 #define SHOEBOX_FOREGROUND_PADDING 1
@@ -170,10 +170,18 @@ typedef enum
     ScalingTypeResolutionShells = 5
 } ScalingType;
 
+typedef enum
+{
+    GeometryFormatCppxfel = 0,
+    GeometryFormatCrystFEL = 1,
+} GeometryFormat;
+
 class Panel;
+class Detector;
 class SolventMask;
 class Logger;
 class Image;
+class IndexManager;
 class Hdf5Image;
 class Shoebox;
 class Matrix;
@@ -186,27 +194,36 @@ class UnitCellLattice;
 class Beam;
 class GaussianBeam;
 class SpectrumBeam;
-class GetterSetterMap;
+class RefinementStepSearch;
+class RefinementStrategy;
 class Hdf5ManagerProcessing;
 class Hdf5ManagerCheetahLCLS;
 class Hdf5ManagerCheetahSacla;
 class Hdf5ManagerCheetah;
 class Hdf5Crystal;
 class PNGFile;
+class CSV;
 class SpotFinderQuick;
 class SpotFinder;
 class Reflection;
+class NelderMead;
 
 typedef boost::shared_ptr<SpectrumBeam> SpectrumBeamPtr;
-typedef boost::shared_ptr<GetterSetterMap> GetterSetterMapPtr;
+typedef boost::shared_ptr<RefinementStepSearch> RefinementStepSearchPtr;
+typedef boost::shared_ptr<RefinementStrategy> RefinementStrategyPtr;
+typedef boost::shared_ptr<NelderMead> NelderMeadPtr;
 typedef boost::shared_ptr<Beam> BeamPtr;
 typedef boost::shared_ptr<GaussianBeam> GaussianBeamPtr;
 typedef boost::shared_ptr<Miller> MillerPtr;
+typedef boost::weak_ptr<Miller> MillerWeakPtr;
 typedef boost::shared_ptr<Reflection> ReflectionPtr;
 typedef boost::weak_ptr<Reflection> ReflectionWeakPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
 typedef boost::shared_ptr<Panel>PanelPtr;
+typedef boost::shared_ptr<Detector>DetectorPtr;
+typedef boost::weak_ptr<Detector>DetectorWeakPtr;
+typedef boost::weak_ptr<Panel>PanelWeakPtr;
 typedef boost::shared_ptr<SolventMask> SolventMaskPtr;
 typedef boost::shared_ptr<MtzManager> MtzPtr;
 typedef boost::shared_ptr<Hdf5Crystal> Hdf5CrystalPtr;
@@ -217,12 +234,15 @@ typedef boost::weak_ptr<Image>ImageWeakPtr;
 typedef boost::shared_ptr<Hdf5Image> Hdf5ImagePtr;
 typedef boost::shared_ptr<Matrix>MatrixPtr;
 typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
+typedef boost::weak_ptr<IOMRefiner>IOMRefinerWeakPtr;
 typedef boost::shared_ptr<SpotVector> SpotVectorPtr;
+typedef boost::shared_ptr<IndexManager> IndexManagerPtr;
 typedef boost::shared_ptr<IndexingSolution> IndexingSolutionPtr;
 typedef boost::shared_ptr<std::mutex> MutexPtr;
 typedef boost::shared_ptr<UnitCellLattice> UnitCellLatticePtr;
 typedef boost::shared_ptr<Hdf5ManagerProcessing> Hdf5ManagerProcessingPtr;
 typedef std::shared_ptr<PNGFile> PNGFilePtr;
+typedef std::shared_ptr<CSV> CSVPtr;
 typedef std::shared_ptr<SpotFinder> SpotFinderPtr;
 typedef std::shared_ptr<Hdf5ManagerCheetahSacla> Hdf5ManagerCheetahSaclaPtr;
 typedef std::shared_ptr<Hdf5ManagerCheetahLCLS> Hdf5ManagerCheetahLCLSPtr;
@@ -249,12 +269,27 @@ typedef std::map<int, std::pair<int, int> > PowderHistogram;
 
 typedef enum
 {
+    LogLevelNormal = 0,
+    LogLevelDetailed = 1,
+    LogLevelDebug = 2
+} LogLevel;
+
+
+typedef enum
+{
 	WeightTypeAverage,
 	WeightTypePartiality,
 	WeightTypePartialitySigma,
 	WeightTypeISigI,
 	WeightTypePartialityCorrelation
 } WeightType;
+
+typedef enum
+{
+    PseudoScoreTypeAll,
+    PseudoScoreTypeIntraPanel,
+    PseudoScoreTypeInterPanel,
+} PseudoScoreType;
 
 typedef enum
 {
