@@ -385,67 +385,26 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
     int maxValue = 0;
     int newX = *x;
     int newY = *y;
-    int oldValue = valueAt(newX, newY);
-    int adjustment = (even ? -1 : 0);
-    int latestCount = 0;
     std::string bestPixels;
     std::vector<double> values;
     
-    for (int j = *y - tolerance1 - tolerance2; j <= *y + tolerance1 + tolerance2; j++)
+    for (int j = *y - tolerance1; j <= *y + tolerance1 + 1; j++)
     {
-        for (int i = *x - tolerance1 - tolerance2; i <= *x + tolerance1 + tolerance2; i++)
+        for (int i = *x - tolerance1; i <= *x + tolerance1 + 1; i++)
         {
-            int aValue = valueAt(i, j);
-            
-            values.push_back(aValue);
-        }
-    }
-    
-    double stdev = standard_deviation(&values);
-    
-    for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
-    {
-        for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
-        {
-            double newValue = 0;
-            int count = 0;
-       //     std::ostringstream pixelLog;
-       //     pixelLog << "Metrology pixels: ";
-            
-            for (int k = j - tolerance2; k <= j + tolerance2 + adjustment; k++)
-            {
-                for (int h = i - tolerance2; h <= i + tolerance2 + adjustment; h++)
-                {
-                    if (!accepted(h, k))
-                        continue;
-                    
-                    int addition = valueAt(h, k);
-                    newValue += addition;
-                    count++;
-                    
-               //     pixelLog << addition << ", ";
-                }
-            }
-            
-          //  pixelLog << std::endl;
+            double newValue = valueAt(i, j);
             
             if (newValue > maxValue)
             {
                 newX = i;
                 newY = j;
                 maxValue = newValue;
-                latestCount = count;
-          //      bestPixels = pixelLog.str();
             }
         }
     }
     
-    // only move if the new value is significantly higher
-    if (maxValue > oldValue + metrologyMoveThreshold * stdev)
-    {
-        *x = newX;
-        *y = newY;
-    }
+    *x = newX;
+    *y = newY;
 }
 
 void Image::focusOnMaximum(int *x, int *y, int tolerance, double shiftX, double shiftY)
