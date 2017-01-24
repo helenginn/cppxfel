@@ -670,7 +670,10 @@ double IOMRefiner::hkScore(bool silent)
         stdev = standard_deviation(&wavelengths);
     }
     
-    stdev /= getTotalReflections();
+    double refTotal = getTotalReflections();
+    if (refTotal > 100) refTotal = 100;
+    
+    stdev /= refTotal;
     
     double score = stdev;
     
