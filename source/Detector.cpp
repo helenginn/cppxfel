@@ -766,19 +766,19 @@ double Detector::millerScore(bool ascii, bool stdev)
 
     std::vector<double> distances;
     
-    CSV *csv;
+    CSVPtr csv = CSVPtr(new CSV(2, "x", "y"));
     
-    if (ascii)
-    {
-        csv = new CSV(2, "x", "y");
-    }
-    
-    double leastSquares = 0;
+    double meanDistance = 0;
+    double xSum = 0;
+    double ySum = 0;
     
     for (int i = 0; i < xShifts.size(); i++)
     {
         double x = *xShifts[i];
         double y = *yShifts[i];
+        
+        xSum += x;
+        ySum += y;
         
         double distance = sqrt(x * x + y * y);
         
@@ -787,40 +787,48 @@ double Detector::millerScore(bool ascii, bool stdev)
             csv->addEntry(0, x, y);
         }
         
+        meanDistance += distance;
+    }
+    
+    meanDistance /= xShifts.size();
+    xSum /= xShifts.size();
+    ySum /= xShifts.size();
+    
+    double leastSquares = 0;
+    
+    for (int i = 0; i < xShifts.size(); i++)
+    {
+        double x = *xShifts[i];
+        double y = *yShifts[i];
+        
+        double distance = sqrt((x - xSum) * (x - xSum) + (y - ySum) * (y - ySum));
+        
+        if (ascii)
+        {
+            csv->addEntry(0, x, y);
+        }
+        
         leastSquares += distance;
-        distances.push_back(distance);
     }
     
     leastSquares /= xShifts.size();
-
+    
     if (ascii)
     {
         logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;
         sendLog();
         csv->setMinMaxXY(-3.5, -3.5, +3.5, +3.5);
         csv->plotColumns(0, 1);
-        delete csv;
     }
     
-    double aScore = 0;
-    
-    if (stdev)
+    if (!stdev)
     {
-        double mean = weighted_mean(&distances);
-        for (int i = 0; i < distances.size(); i++)
-        {
-            double add = abs(distances[i] - mean);
-            aScore += add;
-        }
-        
-        aScore /= distances.size();
+        return meanDistance;
     }
     else
     {
         return leastSquares;
     }
-    
-    return aScore;
 }
 
 void Detector::drawSpecialImage(std::string filename)
