@@ -99,7 +99,6 @@ source = [
 'source/StatisticsManager.cpp',
 'source/UnitCellLattice.cpp',
 'source/Vector.cpp',
-'source/Wiki.cpp',
 'source/main.cpp',
 'source/misc.cpp']
 

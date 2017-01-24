@@ -8,7 +8,6 @@
 #include "StatisticsManager.h"
 #include "misc.h"
 #include "GraphDrawer.h"
-#include "Wiki.h"
 #include "Logger.h"
 #include <fstream>
 #include <unistd.h>
@@ -135,20 +134,6 @@ void new_main(int argc, char *argv[])
             FileParser::printCommandInfo(whichCommand);
         }
     }
-
-	if (strcmp(argv[1], "-wiki") == 0)
-	{
-		if (argc <= 2)
-		{
-			std::cout << "arguments: -wiki <logfile>" << std::endl;
-			exit(1);
-		}
-
-        Wiki wiki = Wiki(std::string(argv[2]));
-		wiki.process();
-
-		exit(1);
-	}
     
 	std::cout << "Welcome to cppxfel!" << std::endl;
     
