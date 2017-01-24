@@ -148,10 +148,10 @@ void FileParser::printCommandInfo(std::string unsanitisedCommand)
         else
         {
             logged << "The command " << command << " is not understood by cppxfel." << std::endl << std::endl;
+            Logger::log(logged);
+            return;
         }
 
-        Logger::log(logged);
-        return;
     }
     
     if (codeMaps.count(command))
@@ -163,7 +163,9 @@ void FileParser::printCommandInfo(std::string unsanitisedCommand)
         {
             logged << "   - " << it->first << std::endl;
         }
+        
         logged << std::endl;
+        
     }
     else
     {
@@ -220,12 +222,13 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
         {
             std::ostringstream logged;
             logged << "You used the code \"" << lowered << "\" to set parameter " << command << std::endl;
-            logged << "This is not one of the allowed options. These are:" << std::endl << std::endl;
+            logged << "This is not one of the allowed options. Help says:" << std::endl << std::endl;
             Logger::log(logged);
             printCommandInfo(command);
             logged << "Please edit your log file, for example, to:" << std::endl;
             logged << command << " " << codeMap.begin()->first << std::endl << std::endl;
             Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+            return;
         }
 
         int theInt = codeMap[lowered];
