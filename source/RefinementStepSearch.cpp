@@ -50,7 +50,10 @@ double RefinementStepSearch::minimizeTwoParameters(int whichParam1, int whichPar
             
             double aScore = (*evaluationFunction)(evaluateObject);
             
-            if (aScore != aScore) aScore = FLT_MAX;
+            if (aScore != aScore)
+            {
+                aScore = FLT_MAX;
+            }
             
             param_scores[j * 3 + l] = aScore;
             param_trials1[j * 3 + l] = i;
@@ -102,14 +105,18 @@ double RefinementStepSearch::minimizeParameter(int whichParam, double *bestScore
     
     double bestParam = (*getter)(object);
     
-    if (*bestScore == FLT_MAX)
+    if (*bestScore != FLT_MAX)
     {
         param_scores[1] = *bestScore;
     }
     else
     {
         double aScore = (*evaluationFunction)(evaluateObject);
-        if (aScore != aScore) aScore = FLT_MAX;
+        if (aScore != aScore)
+        {
+            aScore = FLT_MAX;
+        }
+        
         param_scores[1] = aScore;
     }
     
@@ -121,11 +128,14 @@ double RefinementStepSearch::minimizeParameter(int whichParam, double *bestScore
         
         double aScore = (*evaluationFunction)(evaluateObject);
         
-        if (aScore != aScore) aScore = FLT_MAX;
+        if (aScore != aScore)
+        {
+            aScore = FLT_MAX;
+        }
         
         param_scores[j] = aScore;
         param_trials[j] = i;
-        j++;
+        j += 2;
     }
     
     double param_min_score = param_scores[1];
@@ -138,6 +148,8 @@ double RefinementStepSearch::minimizeParameter(int whichParam, double *bestScore
         }
     
     (*setter)(object, param_trials[param_min_num]);
+    
+    *bestScore = param_min_score;
     
     if (param_min_num == 1)
         stepSizes[whichParam] /= 2;
