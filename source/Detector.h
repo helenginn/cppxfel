@@ -282,6 +282,7 @@ public:
     // MARK: apply rotations bottom up
     
     void applyRotations();
+    void rearrangeCoord(std::pair<float, float> *aShift);
     
     // MARK: Spot coord to absolute vec
     

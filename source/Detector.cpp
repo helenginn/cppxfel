@@ -263,6 +263,18 @@ double Detector::halfFast()
     return (unarrangedBottomRightX - unarrangedTopLeftX) / 2;
 }
 
+void Detector::rearrangeCoord(std::pair<float, float> *aShift)
+{
+    vec slow = getRotatedSlowDirection();
+    vec fast = getRotatedFastDirection();
+    
+    double newX = aShift->first * slow.h + aShift->second * fast.h;
+    double newY = aShift->first * slow.k + aShift->second * fast.k;
+    
+    aShift->first = newX;
+    aShift->second = newY;
+}
+
 bool Detector::isAncestorOf(DetectorPtr detector)
 {
     if (shared_from_this() == detector)
