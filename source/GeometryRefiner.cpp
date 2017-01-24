@@ -104,6 +104,7 @@ void GeometryRefiner::reportProgress()
     sendLog();
 
     refinementEvent++;
+    manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
     
     sendLog();
 }
@@ -142,7 +143,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         
         threads.join_all();
         reportProgress();
-        manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
         
         boost::thread_group threads2;
         
@@ -155,7 +155,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         threads2.join_all();
         
         reportProgress();
-        manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
         
         boost::thread_group threads3;
         
@@ -168,7 +167,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         threads3.join_all();
         
         reportProgress();
-        manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
     }
     
     std::vector<DetectorPtr> nextDetectors;
@@ -356,8 +354,6 @@ void GeometryRefiner::refineMasterDetector()
     reportProgress();
     refineMidPointXY(detector, GeometryScoreTypeMiller);
     reportProgress();
-    
-    manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
 }
 
 void GeometryRefiner::refineDetectorStrategyOne(DetectorPtr detector)
