@@ -1043,14 +1043,6 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         
         shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
         detector->rearrangeCoord(&shift);
-        /*
-        if (is(-19, -57, -16))
-        {
-            logged << "New prediction " << lastX << ", " << lastY << std::endl;
-            logged << "Real position " << correctedX << ", " << correctedY << std::endl;
-            logged << "Shift now " << shift.first << ", " << shift.second << std::endl;
-            sendLog();
-        }*/
         
         if (refocus)
         {
