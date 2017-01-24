@@ -81,8 +81,10 @@ void new_main(int argc, char *argv[])
     
 	if (argc == 1)
 	{
-        std::cout << "Welcome to cppxfel version 1.1!" << std::endl;
-        std::cout << "Please refer to & cite paper in Journal of Applied Crystallography (unpublished)" << std::endl << std::endl;
+        std::cout << "Welcome to cppxfel version 2.0!" << std::endl;
+        std::cout << "Please refer to & cite paper (Ginn et al., J. Appl. Cryst. (2016). 49, 1065-1072)" << std::endl << std::endl;
+
+        
         std::cout << "Command order for regular structure solution:" << std::endl;
         std::cout << "\tcppxfel.run_dials shot*.pickle" << std::endl;
         std::cout << "\tcppxfel.input_gen" << std::endl;
@@ -479,28 +481,6 @@ void new_main(int argc, char *argv[])
 		for (int i = 0; i < managers.size(); i++)
 			delete managers[i];
 
-	}
-
-	if (strcmp(argv[1], "-ccplot") == 0)
-	{
-		MtzManager *reference = new MtzManager();
-		reference->setFilename(argv[2]);
-		reference->loadReflections(1);
-		MtzManager::setReference(reference);
-
-		for (int i = 3; i < argc; i++)
-		{
-			MtzManager *image = new MtzManager();
-			image->setFilename(argv[i]);
-			image->loadReflections(1);
-
-			GraphDrawer graph = GraphDrawer(image);
-			graph.correlationPlot("correl");
-
-			delete image;
-		}
-
-		delete reference;
 	}
     
     time_t endcputime;
