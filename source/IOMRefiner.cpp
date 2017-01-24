@@ -740,23 +740,27 @@ void IOMRefiner::refineOrientationMatrix()
     
     // FIXME: read support for unit cell dimensions
     
+    searchSize = bigSize;
+    needsReintegrating = true;
+    
+    RefinementStrategyPtr lStrategy = RefinementStrategy::userChosenStrategy();
+    //lStrategy->setVerbose(true);
+    lStrategy->setEvaluationFunction(lScoreWrapper, this);
+    lStrategy->setJobName("Refining in-detector-plane angle for " + getImage()->getFilename());
+    lStrategy->addParameter(this, getLRot, setLRot, initialStep, orientationTolerance, "lRot");
+    lStrategy->refine();
+
+    searchSize = oldSearchSize;
+    
     RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
+    //hkStrategy->setVerbose(true);
     hkStrategy->setEvaluationFunction(hkScoreWrapper, this);
     hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
     hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
     hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
     hkStrategy->refine();
     
-    searchSize = bigSize;
-    needsReintegrating = true;
     
-    RefinementStrategyPtr lStrategy = RefinementStrategy::userChosenStrategy();
-    lStrategy->setEvaluationFunction(lScoreWrapper, this);
-    lStrategy->setJobName("Refining in-detector-plane angle for " + getImage()->getFilename());
-    lStrategy->addParameter(this, getLRot, setLRot, initialStep, orientationTolerance, "lRot");
-    lStrategy->refine();
-    
-    searchSize = oldSearchSize;
     bestHRot = hRot;
     bestKRot = kRot;
     bestLRot = lRot;
