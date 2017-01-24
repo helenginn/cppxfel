@@ -614,6 +614,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
+    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
     
     double score = 0;
     
@@ -640,6 +641,12 @@ double IndexManager::pseudoScore(void *object)
             
             vec->setUpdate();
             double realDistance = vec->distance();
+            
+            if (realDistance > maxDistance * 0.8)
+            {
+                continue;
+            }
+            
             double weight = me->lattice->weightForDistance(realDistance) / 1000;
             
             score -= weight;
