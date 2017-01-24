@@ -186,6 +186,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
     
     double total_normal = 0;
     double total_sphere = 0;
+    predictedWavelength = 0;
     
     for (int i = 0; i < mySlices; i++)
     {
@@ -216,6 +217,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         if (binary && normalSlice > 0.01)
             return 1.0;
         
+        predictedWavelength += totalSlice * (qBandwidth + pBandwidth) / 2;
         total_integral += totalSlice;
         total_normal += normalSlice;
         total_sphere += sphereSlice;
@@ -223,6 +225,8 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         currentP = currentQ;
         currentQ += fraction_total / mySlices;
     }
+    
+    predictedWavelength /= total_integral;
     
     return total_integral;
 }
@@ -286,19 +290,26 @@ double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double
         total_sphere += sphereSlice;
     }
     
-    predictedWavelength /= total_integral;
+    if (predictedWavelength != predictedWavelength)
+    {
+        predictedWavelength = getImage()->getWavelength();
+    }
+    else
+    {
+        predictedWavelength /= total_integral;
+    }
     
     return total_integral;
 }
 
 void Miller::recalculatePredictedWavelength()
 {
-    bool oldCorrected = correctedPartiality;
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double exponent = FileParser::getKey("INITIAL_EXPONENT", 1.5);
     
-    correctedPartiality = true;
-    recalculatePartiality(matrix, getMtzParent()->getMosaicity(), getMtzParent()->getSpotSize(), getMtzParent()->getWavelength(), getMtzParent()->getBandwidth(), getMtzParent()->getExponent());
-    
-    correctedPartiality = oldCorrected;
+    recalculatePartiality(matrix, 0, rlpSize, getImage()->getWavelength(), bandwidth, exponent);
+
 }
 
 Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
@@ -804,6 +815,16 @@ bool Miller::crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
 void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
                                    double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
 {
+    if (wavelength == 0)
+    {
+        wavelength = getImage()->getWavelength();
+    }
+    
+    if (wavelength == 0)
+    {
+        return;
+    }
+    
     if (model == PartialityModelFixed)
     {
         return;
@@ -999,6 +1020,9 @@ double Miller::getPredictedWavelength()
     }
     else
     {
+        if (predictedWavelength != 0)
+            return predictedWavelength;
+        
         recalculatePredictedWavelength();
         return predictedWavelength;
     }
