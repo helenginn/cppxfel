@@ -1692,14 +1692,23 @@ bool Image::checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeL
     return false;
 }
 
-IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
+IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, IOMRefinerPtr *aRefiner)
 {
     logged << "(" << filename << ") Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
     sendLog(LogLevelNormal);
     
+    if (modify)
+    {
+        solutionPtr->setModMatrix(Reflection::getCustomAmbiguity());
+    }
+    else
+    {
+        solutionPtr->setModMatrix(MatrixPtr());
+    }
+    
     MatrixPtr solutionMatrix = solutionPtr->createSolution();
     bool similar = checkIndexingSolutionDuplicates(solutionMatrix);
-  
+    
     if (similar)
     {
         logged << "Indexing solution too similar to previous solution. Continuing..." << std::endl;
@@ -1709,7 +1718,6 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         return IndexingSolutionTrialDuplicate;
     }
     
-    bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
     bool refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
     int minimumSpotsExplained = FileParser::getKey("MINIMUM_SPOTS_EXPLAINED", 20);
     
@@ -1721,6 +1729,8 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     setUpIOMRefiner(solutionMatrix);
     int lastRefiner = IOMRefinerCount() - 1;
     IOMRefinerPtr refiner = getIOMRefiner(lastRefiner);
+    *aRefiner = refiner;
+
     if (refineOrientations)
     {
         refiner->refineOrientationMatrix();
@@ -1744,59 +1754,101 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     bool successfulImage = refiner->isGoodSolution();
     
     MtzPtr mtz = refiner->newMtz(lastRefiner, true);
-    int spotsRemoved = mtz->removeStrongSpots(&spots, false);
+    *spotsRemoved = mtz->removeStrongSpots(&spots, false);
+    int minSpotsForImage = std::min(minimumSpotsExplained, (int)(spotCount() * 0.8));
     
-    if (spotsRemoved < minimumSpotsExplained)
+    if (*spotsRemoved < minSpotsForImage)
     {
-        logged << "(" << getFilename() << ") However, does not explain enough spots (" << spotsRemoved << " vs  " << minimumSpotsExplained << ")" << std::endl;
+        logged << "(" << getFilename() << ") However, does not explain enough spots (" << *spotsRemoved << " vs  " << minSpotsForImage << ")" << std::endl;
         sendLog();
         successfulImage = false;
     }
     else
     {
-        logged << "(" << getFilename() << ") Enough spots are explained (" << spotsRemoved << " vs  " << minimumSpotsExplained << ")" << std::endl;
+        logged << "(" << getFilename() << ") Enough spots are explained (" << *spotsRemoved << " vs  " << minimumSpotsExplained << ")" << std::endl;
         sendLog();
-
+        
     }
     
-    if (successfulImage || acceptAllSolutions)
+    removeRefiner(lastRefiner);
+    
+    return successfulImage ? IndexingSolutionTrialSuccess : IndexingSolutionTrialFailure;
+}
+
+IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
+{
+    bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
+    IOMRefinerPtr normRefiner, modRefiner;
+    int spotsRemoved = 0;
+    int modSpotsRemoved = 0;
+    IndexingSolutionStatus status = tryIndexingSolution(solutionPtr, false, &spotsRemoved, &normRefiner);
+    IndexingSolutionStatus modStatus = IndexingSolutionTrialFailure;
+    
+    if (Reflection::getCustomAmbiguity())
     {
-        logged << "Successful crystal for " << getFilename() << std::endl;
-        Logger::log(logged); logged.str("");
-        goodSolutions.push_back(solutionPtr);
-        int spotCountBefore = (int)spots.size();
-        refiner->showHistogram(false);
-        
-        mtz->removeStrongSpots(&spots);
-        compileDistancesFromSpots();
-        IndexingSolution::calculateSimilarStandardVectorsForImageVectors(spotVectors);
-        
-        int spotCountAfter = (int)spots.size();
-        
-        logged << "Removed spots; from " << spotCountBefore << " to " << spotCountAfter << "." << std::endl;
-        
-        Logger::log(logged); logged.str("");
-        
-        addMtz(mtz);
-        std::string imgFilename = "img-" + mtz->getFilename();
-        mtz->writeToFile(imgFilename, true);
-        mtz->writeToDat("img-");
-        
-        return IndexingSolutionTrialSuccess;
+        modStatus = tryIndexingSolution(solutionPtr, true, &modSpotsRemoved, &modRefiner);
+    }
+    
+    bool modBetter = false;
+
+    if ((status != IndexingSolutionTrialSuccess && modStatus != IndexingSolutionTrialSuccess) && !acceptAllSolutions)
+    {
+        badSolutions.push_back(solutionPtr);
+        indexingFailureCount++;
+        return status;
+    }
+    else if (status != IndexingSolutionTrialSuccess && modStatus == IndexingSolutionTrialSuccess)
+    {
+        modBetter = true;
+    }
+    else if (status == IndexingSolutionTrialSuccess && modStatus == IndexingSolutionTrialSuccess)
+    {
+        if (modSpotsRemoved > spotsRemoved)
+        {
+            modBetter = true;
+        }
+    }
+    
+    if (modBetter)
+    {
+        solutionPtr->setModMatrix(Reflection::getCustomAmbiguity());
     }
     else
     {
-        logged << "Unsuccessful crystal for " << getFilename() << std::endl;
-        badSolutions.push_back(solutionPtr);
-        removeRefiner(lastRefiner);
-        
-        Logger::mainLogger->addStream(&logged); logged.str("");
-        indexingFailureCount++;
-        
-        solutionPtr->removeSpotVectors(&spotVectors);
-        
-        return IndexingSolutionTrialFailure;
+        solutionPtr->setModMatrix(MatrixPtr());
     }
+    
+    logged << "(" << getFilename() << ") " << (modBetter ? "custom ambiguity" : "expected ambiguity") << " is better." << std::endl;
+    sendLog();
+
+    IOMRefinerPtr myRefiner = modBetter ? modRefiner : normRefiner;
+
+    int lastRefiner = IOMRefinerCount();
+    addIOMRefiner(myRefiner);
+    MtzPtr mtz = myRefiner->newMtz(lastRefiner, true);
+    
+    logged << "Successful crystal for " << getFilename() << std::endl;
+    Logger::log(logged); logged.str("");
+    goodSolutions.push_back(solutionPtr);
+    int spotCountBefore = (int)spots.size();
+    myRefiner->showHistogram(false);
+    
+    mtz->removeStrongSpots(&spots);
+    compileDistancesFromSpots();
+    IndexingSolution::calculateSimilarStandardVectorsForImageVectors(spotVectors);
+    
+    int spotCountAfter = (int)spots.size();
+    
+    logged << "Removed spots; from " << spotCountBefore << " to " << spotCountAfter << "." << std::endl;
+    
+    Logger::log(logged); logged.str("");
+    
+    addMtz(mtz);
+    std::string imgFilename = "img-" + mtz->getFilename();
+    mtz->writeToFile(imgFilename, true);
+    mtz->writeToDat("img-");
+    
+    return IndexingSolutionTrialSuccess;
 }
 
 IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures, int added)
@@ -1836,6 +1888,7 @@ IndexingSolutionStatus Image::extendIndexingSolution(IndexingSolutionPtr solutio
                 logged << "Starting new branch with " << added + newlyAdded << " additions (trial " << trials << ")." << std::endl;
                 sendLog(LogLevelDetailed);
             }
+            
             IndexingSolutionStatus success = extendIndexingSolution(copyPtr, newVectors, failures, added + newlyAdded);
             
             if (success == IndexingSolutionBranchFailure)
@@ -1971,16 +2024,16 @@ IndexingSolutionStatus Image::testSeedSolution(IndexingSolutionPtr newSolution, 
     
     if (success == IndexingSolutionTrialSuccess)
     {
-        logged << "Indexing solution trial success." << std::endl;
+        logged << "(" << getFilename() << ") indexing solution trial success." << std::endl;
         (*successes)++;
     }
     else if (success == IndexingSolutionTrialFailure)
     {
-        logged << "Indexing solution trial failure." << std::endl;
+        logged << "(" << getFilename() << ") indexing solution trial failure." << std::endl;
     }
     else if (success == IndexingSolutionTrialDuplicate)
     {
-        logged << "Indexing solution trial duplicate." << std::endl;
+        logged << "(" << getFilename() << ") indexing solution trial duplicate." << std::endl;
     }
     
     return success;

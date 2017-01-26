@@ -97,6 +97,7 @@ protected:
     
     double standardDeviationOfPixels();
     std::vector<SpotPtr> spots;
+    virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, IOMRefinerPtr *refiner);
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     virtual bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
     int minimumSolutionNetworkCount;
