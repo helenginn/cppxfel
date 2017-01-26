@@ -853,7 +853,8 @@ double Detector::millerScore(bool ascii, bool stdev)
     {
         logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;
         sendLog();
-        csv->setMinMaxXY(-3.5, -3.5, +3.5, +3.5);
+        double edge = 4.5;
+        csv->setMinMaxXY(-edge, -edge, +edge, +edge);
         csv->plotColumns(0, 1);
     }
     
