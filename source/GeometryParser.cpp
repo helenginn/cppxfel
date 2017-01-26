@@ -263,6 +263,11 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     {
         std::string line = lines[i];
         
+        if (line[0] == ';')
+        {
+            continue;
+        }
+        
         std::vector<std::string> forwardSlashes = FileReader::split(line, '/');
         
         if (forwardSlashes.size() < 2)
