@@ -821,7 +821,7 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
 
 	rest = line.substr(space_index + 1, std::string::npos);
 
-    if (deprecatedList.count(command) > 0)
+    if (deprecatedList.count(upperCommand) > 0)
     {
         logged << "Deprecated command: " << command << std::endl;
         sendLog();
@@ -849,7 +849,8 @@ bool FileParser::checkSpaces(std::string line)
 
 	if (space_index == std::string::npos)
 	{
-		log << "Warning: " << line << " has no assignment" << std::endl;
+		logged << "Warning: " << line << " has no assignment" << std::endl;
+        sendLog();
 		return false;
 	}
 

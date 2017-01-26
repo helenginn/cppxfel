@@ -79,9 +79,9 @@ int InputFileParser::processOptions(std::vector<std::string> lines)
         
         if (parserMap.count(command) == 0)
         {
-            std::cout << "Warning: Line \"" << line << "\" not recognised."
+            logged << "Warning: Line \"" << line << "\" not recognised."
             << std::endl;
-            exit(0);
+            Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
         }
         
         if (function)
