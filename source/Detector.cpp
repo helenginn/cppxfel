@@ -19,6 +19,7 @@ DetectorPtr Detector::masterPanel = DetectorPtr();
 int Detector::detectorActive = -1;
 bool Detector::noisy = false;
 ImagePtr Detector::drawImage = ImagePtr();
+DetectorType Detector::detectorType = DetectorTypeMPCCD;
 
 // MARK: initialisation and constructors
 

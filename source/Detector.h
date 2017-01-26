@@ -14,6 +14,12 @@
 #include "LoggableObject.h"
 #include "FileParser.h"
 
+typedef enum
+{
+    DetectorTypeCSPAD,
+    DetectorTypeMPCCD,
+} DetectorType;
+
 class Detector : public LoggableObject, public boost::enable_shared_from_this<Detector>
 {
 private:
@@ -23,6 +29,7 @@ private:
     static DetectorPtr masterPanel;
     static bool noisy;
     static ImagePtr drawImage;
+    static DetectorType detectorType;
     
     /* MARK: Simple type class members */
     
@@ -422,7 +429,25 @@ public:
     /* Resolution fun */
     
     double spotCoordToResolution(double unarrangedX, double unarrangedY, double wavelength);
+    void resolutionOrZLimits(double *min, double *max, double wavelength, int type);
+    void zLimits(double *min, double *max);
     void resolutionLimits(double *min, double *max, double wavelength);
+    
+    static void setDetectorType(DetectorType _type)
+    {
+        detectorType = _type;
+    }
+    
+    static bool isMPCCD()
+    {
+        return (detectorType == DetectorTypeMPCCD);
+    }
+
+    static bool isCSPAD()
+    {
+        return (detectorType == DetectorTypeCSPAD);
+    }
+
 };
 
 #endif /* defined(__cppxfel__Detector__) */

@@ -357,6 +357,8 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     
     if (isSacla)
     {
+        Detector::setDetectorType(DetectorTypeMPCCD);
+        
         for (int i = 0; i < panelMaps.size(); i++)
         {
             DetectorPtr segment = makeDetectorFromPanelMap(panelMaps[i], master);
@@ -365,6 +367,8 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     }
     else if (!isSacla) // for now, CSPAD
     {
+        Detector::setDetectorType(DetectorTypeCSPAD);
+
         std::vector<DetectorPtr> quarters;
         /* Top right */
         DetectorPtr q0 = DetectorPtr(new Detector(master, new_vector(+441, +441, 0), "q0"));
