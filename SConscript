@@ -88,6 +88,7 @@ source = [
 'source/PythonExt.cpp',
 'source/Reflection.cpp',
 'source/RefinementStrategy.cpp',
+'source/RefinementGridSearch.cpp',
 'source/RefinementStepSearch.cpp',
 'source/Shoebox.cpp',
 'source/Spot.cpp',
