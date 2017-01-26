@@ -252,7 +252,7 @@ void GeometryRefiner::refineMasterDetector()
     sendLog();
     
     refineVarious(detector, GeometryScoreTypeIntrapanel);
-    exit(0);
+    reportProgress();
     refineMidPointXY(detector, GeometryScoreTypeMiller);
     reportProgress();
     refineMidPointZ(detector, GeometryScoreTypeIntrapanel);
