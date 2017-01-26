@@ -438,7 +438,7 @@ void GeometryParser::writeToFile(std::string newName)
     std::string geometry = Detector::getMaster()->writeGeometryFile();
     
     std::ofstream file;
-    file.open(newName.c_str());
+    file.open(FileReader::addOutputDirectory(newName.c_str()));
     
     file << "# Geometry file (cppxfel format v2)" << std::endl << std::endl;
 
