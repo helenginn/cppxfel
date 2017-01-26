@@ -93,7 +93,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     if (resolution == 0 && maxMillerIndexTrial == 0)
     {
-        resolution = 1 / FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+        resolution = 1 / (FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05);
     }
     
     if (resolution == 0)
