@@ -827,6 +827,7 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
         sendLog();
         logged << deprecatedList[command] << std::endl;
         Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        return NULL;
     }
     
     // make a list of permitted words soon

@@ -84,7 +84,8 @@ int InputFileParser::processOptions(std::vector<std::string> lines)
             exit(0);
         }
         
-        function(&parameters, command, rest);
+        if (function)
+            function(&parameters, command, rest);
     }
 
     return continueFrom;
