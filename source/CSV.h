@@ -43,6 +43,11 @@ private:
     int findHeader(std::string whichHeader);
     void writeStringToPlot(std::string text, Plot *plot, int x, int y);
 public:
+    CSV()
+    {
+        
+    }
+
     CSV(int count, ...)
     {
         didSetMinMaxXY = false;
@@ -53,7 +58,7 @@ public:
         for (int i = 0; i < count; i++)
         {
             std::string header = std::string(va_arg(arguments, char *));
-            headers.push_back(header);
+            addHeader(header);
         }
         
         va_end(arguments);
@@ -105,6 +110,11 @@ public:
     void histogram(std::map<double, int> histogram);
     std::string plotColumns(int col1, int col2);
     
+    void addEntry(std::vector<double> entry)
+    {
+        entries.push_back(entry);
+    }
+    
     int entryCount()
     {
         return (int)entries.size();
@@ -113,6 +123,11 @@ public:
     int headerCount()
     {
         return (int)headers.size();
+    }
+    
+    void addHeader(std::string header)
+    {
+        headers.push_back(header);
     }
     
     void setMinMaxXY(double _minX, double _minY, double _maxX, double _maxY)
