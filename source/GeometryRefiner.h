@@ -30,9 +30,7 @@ private:
     IndexManagerPtr manager;
     int refinementEvent;
     int cycleNum;
-    void refineDetectorStrategyOne(DetectorPtr detector);
-    void refineDetectorStrategyTwo(DetectorPtr detector);
-    void refineDetectorStrategyThree(DetectorPtr detector);
+    void refineDetectorStrategy(DetectorPtr detector, int strategy);
     static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy);
     void refineGeometryCycle();
     void geometryCycleForDetector(std::vector<DetectorPtr> detectors);
