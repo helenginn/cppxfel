@@ -636,26 +636,39 @@ void updateMinMax(double *min, double *max, double value)
 
 void Detector::resolutionLimits(double *min, double *max, double wavelength)
 {
+    resolutionOrZLimits(min, max, wavelength, 0);
+}
+
+
+void Detector::zLimits(double *min, double *max)
+{
+    resolutionOrZLimits(min, max, 0, 1);
+}
+
+// type = 0 = resolution, type = 1 = z limits
+void Detector::resolutionOrZLimits(double *min, double *max, double wavelength, int type)
+{
     if (isLUCA())
     {
         *min = FLT_MAX;
-        *max = 0;
+        *max = -FLT_MAX;
     }
     
     if (hasChildren())
     {
         for (int i = 0; i < childrenCount(); i++)
         {
-            double myChildMin, myChildMax;
-            getChild(i)->resolutionLimits(&myChildMin, &myChildMax, wavelength);
+            double myChildMin = FLT_MAX;
+            double myChildMax = -FLT_MAX;
+            getChild(i)->resolutionOrZLimits(&myChildMin, &myChildMax, wavelength, type);
             updateMinMax(min, max, myChildMin);
             updateMinMax(min, max, myChildMax);
         }
     }
-    else
+    else if (type == 0)
     {
         double myMin = FLT_MAX;
-        double myMax = 0;
+        double myMax = -FLT_MAX;
         double resol = 0;
     
         resol = spotCoordToResolution(unarrangedTopLeftX, unarrangedTopLeftY, wavelength);
@@ -672,6 +685,27 @@ void Detector::resolutionLimits(double *min, double *max, double wavelength)
 
         *min = myMin;
         *max = myMax;
+    }
+    else if (type == 1)
+    {
+        double lowZ = FLT_MAX;
+        double highZ = 0;
+        
+        vec arrangedPos = new_vector(0, 0, 0);
+        spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedTopLeftY, &arrangedPos);
+        updateMinMax(&lowZ, &highZ, arrangedPos.l);
+        
+        spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedBottomRightY, &arrangedPos);
+        updateMinMax(&lowZ, &highZ, arrangedPos.l);
+        
+        spotCoordToAbsoluteVec(unarrangedBottomRightX, unarrangedTopLeftY, &arrangedPos);
+        updateMinMax(&lowZ, &highZ, arrangedPos.l);
+
+        spotCoordToAbsoluteVec(unarrangedBottomRightX, unarrangedBottomRightY, &arrangedPos);
+        updateMinMax(&lowZ, &highZ, arrangedPos.l);
+        
+        *min = lowZ;
+        *max = highZ;
     }
 }
 

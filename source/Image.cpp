@@ -2591,7 +2591,21 @@ void Image::writePNG(PNGFilePtr file)
     
     PanelPtr lastPanel = PanelPtr();
     DetectorPtr lastDetector = DetectorPtr();
-
+    double minZ = 0;
+    double maxZ = 0;
+    
+    if (Detector::isActive())
+    {
+        Detector::getMaster()->zLimits(&minZ, &maxZ);
+        double nudge = std::max(0.1 * (maxZ - minZ), 0.1);
+        
+        minZ -= nudge;
+        maxZ += nudge;
+        
+        minZ = 909;
+        maxZ = 914;
+    }
+    
     for (int i = 0; i < xDim; i++)
     {
         for (int j = 0; j < yDim; j++)
@@ -2602,6 +2616,7 @@ void Image::writePNG(PNGFilePtr file)
             
             unsigned char pixelValue = std::min(value, threshold) * 255 / threshold;
             pixelValue = 255 - pixelValue;
+            float brightness = 1 - std::min(value, threshold) / threshold;
             
             Coord coord = std::make_pair(i, j);
             
@@ -2626,7 +2641,12 @@ void Image::writePNG(PNGFilePtr file)
                 {
                     vec arranged;
                     detector->spotCoordToAbsoluteVec(i, j, &arranged);
-                    file->setPixelColourRelative(arranged.h, arranged.k, pixelValue, pixelValue, pixelValue);
+                    double proportion_distance = (arranged.l - minZ) / (maxZ - minZ) * 120 + 120;
+                    png_byte red, green, blue;
+                    
+                    PNGFile::HSB_to_RGB(proportion_distance, 1.0, brightness, &red, &green, &blue);
+                    
+                    file->setPixelColourRelative(arranged.h, arranged.k, red, green, blue);
                 }
                 
                 continue;
