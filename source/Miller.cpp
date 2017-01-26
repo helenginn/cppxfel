@@ -304,11 +304,22 @@ double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double
 
 void Miller::recalculatePredictedWavelength()
 {
-    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
-    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double rlpSize = FileParser::getKey("OVER_PRED_RLP_SIZE", 0.0001);
+    double bandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH", 0.01) * 1.5;
     double exponent = FileParser::getKey("INITIAL_EXPONENT", 1.5);
+    double mosaicity = 0;
+    double wavelength = getImage()->getWavelength();
     
-    recalculatePartiality(matrix, 0, rlpSize, getImage()->getWavelength(), bandwidth, exponent);
+    if (getMtzParent())
+    {
+        rlpSize = getMtzParent()->getSpotSize();
+        bandwidth = getMtzParent()->getBandwidth();
+        exponent = getMtzParent()->getExponent();
+        mosaicity = getMtzParent()->getMosaicity();
+        wavelength = getMtzParent()->getWavelength();
+    }
+    
+    recalculatePartiality(matrix, mosaicity, rlpSize, wavelength, bandwidth, exponent, false, true);
 
 }
 
@@ -335,6 +346,7 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     flipMatrix = 0;
     correctedX = 0;
     correctedY = 0;
+    predictedWavelength = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -813,7 +825,7 @@ bool Miller::crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
 
 
 void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
-                                   double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
+                                   double spotSize, double wavelength, double bandwidth, double exponent, bool binary, bool no_norm)
 {
     if (wavelength == 0)
     {
@@ -844,14 +856,9 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     
     double normPartiality = 1;
     
-    if (normalised && tempPartiality > 0)
+    if (!no_norm && normalised && tempPartiality > 0)
     {
         normPartiality = calculateNormPartiality(rotatedMatrix, mosaicity, spotSize, wavelength, bandwidth, exponent);
-    }
-    else
-    {
-        partiality = 0;
-        return;
     }
     
     partiality = tempPartiality / normPartiality;

@@ -194,6 +194,7 @@ class UnitCellLattice;
 class Beam;
 class GaussianBeam;
 class SpectrumBeam;
+class RefinementGridSearch;
 class RefinementStepSearch;
 class RefinementStrategy;
 class Hdf5ManagerProcessing;
@@ -210,6 +211,7 @@ class NelderMead;
 
 typedef boost::shared_ptr<SpectrumBeam> SpectrumBeamPtr;
 typedef boost::shared_ptr<RefinementStepSearch> RefinementStepSearchPtr;
+typedef boost::shared_ptr<RefinementGridSearch> RefinementGridSearchPtr;
 typedef boost::shared_ptr<RefinementStrategy> RefinementStrategyPtr;
 typedef boost::shared_ptr<NelderMead> NelderMeadPtr;
 typedef boost::shared_ptr<Beam> BeamPtr;

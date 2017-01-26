@@ -173,7 +173,7 @@ public:
     
     void setHorizontalPolarisationFactor(double newFactor);
 	void recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
-			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false);
+			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false, bool no_norm = false);
 	double partialityForHKL(vec hkl, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false);
 	void applyScaleFactor(double scaleFactor);
