@@ -66,7 +66,7 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     }
     else if (scoreType == ScoreTypeMinimizeRSplitLog)
     {
-        return mtz->rSplit(lowRes, highRes, true);
+        return mtz->rSplit(lowRes, highRes);
     }
     else if (scoreType == ScoreTypeSymmetry)
     {
@@ -95,19 +95,16 @@ bool partialGreaterThanPartial(Partial a, Partial b)
     return (a.wavelength > b.wavelength);
 }
 
-double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
+double MtzManager::rSplit(double low, double high)
 {
-    if (set == false)
-    {
-        withCutoff = !FileParser::getKey("SMOOTH_FUNCTION", false);
-    }
+    bool reverse = FileParser::getKey("SMOOTH_FUNCTION", false);
     
     if (referenceManager == NULL)
     {
         return 0;
     }
     
-    double scale = this->gradientAgainstManager(referenceManager, withCutoff);
+    double scale = this->gradientAgainstManager(referenceManager);
     applyScaleFactor(scale);
     
     double sum_numerator = 0;
@@ -125,7 +122,7 @@ double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
         ReflectionPtr reflection = reflections1[i];
         ReflectionPtr reflection2 = reflections2[i];
         
-        if (withCutoff && reflection->acceptedCount() == 0)
+        if (!reverse && reflection->acceptedCount() == 0)
             continue;
         
         if (reflection2->millerCount() == 0)
@@ -137,32 +134,45 @@ double MtzManager::rSplit(double low, double high, bool withCutoff, bool set)
         if (!reflection->betweenResolutions(low, high))
             continue;
         
-        double int1 = reflection->meanIntensity(withCutoff);
-        
-        double int2 = reflection2->meanIntensityWithExclusion(&filename);
-        
-        double weight = reflection->meanPartiality(withCutoff);
-        
-        if (!withCutoff)
-            weight *= weight;
-        
-        if (int1 == 0 || weight == 0 || weight != weight)
+        for (int j = 0; j < reflection->millerCount(); j++)
         {
-            continue;
+            double int1 = 0;
+            double int2 = 0;
+            double weight = 0;
             
+            if (!reverse)
+            {
+                int1 = reflection->meanIntensity();
+                int2 = reflection2->meanIntensityWithExclusion(&filename);
+                weight = reflection->meanPartiality();
+            }
+            else
+            {
+                int1 = reflection->miller(j)->getRawIntensity();
+                int2 = reflection2->meanIntensity() * reflection->miller(j)->getPartiality();
+                weight = 1;
+            }
+            
+            if (int1 == 0 || weight == 0 || weight != weight)
+            {
+                continue;
+                
+            }
+            
+            if (int1 != int1 || int2 != int2)
+                continue;
+            
+            if (int1 + int2 < 0)
+                continue;
+            
+            count++;
+            weights += weight;
+            
+            sum_numerator += fabs(int1 - int2) * weight;
+            sum_denominator += (int1 + int2) * weight / 2;
         }
         
-        if (int1 != int1 || int2 != int2)
-            continue;
-        
-        if (int1 + int2 < 0)
-            continue;
-        
-        count++;
-        weights += weight;
-        
-        sum_numerator += fabs(int1 - int2) * weight;
-        sum_denominator += (int1 + int2) * weight / 2;
+
     }
     
   //  if (!withCutoff)
@@ -632,7 +642,7 @@ void MtzManager::gridSearch(bool silent)
     
     double newerCorrel = (scoreType == ScoreTypeSymmetry) ? rFactorWithManager(RFactorTypeMeas) : correlation(true);
     double partCorrel =  (scoreType == ScoreTypeSymmetry) ? 0 : leastSquaresPartiality(ScoreTypePartialityCorrelation);
-    double rSplitValue = (scoreType == ScoreTypeSymmetry) ? 0 : rSplit(0, maxResolutionAll, true, true);
+    double rSplitValue = (scoreType == ScoreTypeSymmetry) ? 0 : rSplit(0, maxResolutionAll);
     
     this->setRefPartCorrel(partCorrel);
     
