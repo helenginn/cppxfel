@@ -744,7 +744,7 @@ void IOMRefiner::refineOrientationMatrix()
     needsReintegrating = true;
     
     RefinementStrategyPtr lStrategy = RefinementStrategy::userChosenStrategy();
-    //lStrategy->setVerbose(true);
+    lStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
     lStrategy->setEvaluationFunction(lScoreWrapper, this);
     lStrategy->setJobName("Refining in-detector-plane angle for " + getImage()->getFilename());
     lStrategy->addParameter(this, getLRot, setLRot, initialStep, orientationTolerance, "lRot");
@@ -753,7 +753,7 @@ void IOMRefiner::refineOrientationMatrix()
     searchSize = oldSearchSize;
     
     RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
-    //hkStrategy->setVerbose(true);
+    hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
     hkStrategy->setEvaluationFunction(hkScoreWrapper, this);
     hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
     hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
