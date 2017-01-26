@@ -66,10 +66,11 @@ private:
     double orientationTolerance;
     std::ostringstream logged;
     void sendLog(LogLevel priority = LogLevelNormal);
-    double hkScore(bool silent);
+    double hkScore(bool stdev);
     double lScore(bool silent);
-    void recalculateMillers();
+    void recalculateMillers(bool thorough = false);
     static double hkScoreWrapper(void *object);
+    static double hkScoreStdevWrapper(void *object);
     static double lScoreWrapper(void *object);
     double getReflectionWavelengthStdev();
     

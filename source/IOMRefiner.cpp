@@ -433,7 +433,11 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             miller->makeComplexShoebox(wavelength, initialBandwidth, initialMosaicity, initialRlpSize);
         }
         
-        if (needsReintegrating || !roughCalculation || recalculateMillerPositions || complexShoebox)
+        double rawIntensity = miller->getRawIntensity();
+        
+        bool intensityMissing = (rawIntensity != rawIntensity);
+        
+        if (intensityMissing || needsReintegrating || (!intensityMissing && (!roughCalculation || recalculateMillerPositions || complexShoebox)))
         {
             if (recalculateMillerPositions && !needsReintegrating)
             {
@@ -446,7 +450,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             }
         }
         
-        double rawIntensity = miller->getRawIntensity();
+        rawIntensity = miller->getRawIntensity();
         
         if (rawIntensity != rawIntensity)
         {
@@ -618,12 +622,19 @@ void IOMRefiner::writeDatFromSpots(std::string filename)
     dat.close();
 }
 
-void IOMRefiner::recalculateMillers()
+void IOMRefiner::recalculateMillers(bool thorough)
 {
     this->checkAllMillers(maxResolution, testBandwidth, false, true);
 }
 
 double IOMRefiner::hkScoreWrapper(void *object)
+{
+    IOMRefiner *refiner = static_cast<IOMRefiner *>(object);
+    refiner->recalculateMillers();
+    return refiner->hkScore(false);
+}
+
+double IOMRefiner::hkScoreStdevWrapper(void *object)
 {
     IOMRefiner *refiner = static_cast<IOMRefiner *>(object);
     refiner->recalculateMillers();
@@ -638,7 +649,7 @@ double IOMRefiner::lScoreWrapper(void *object)
     return refiner->lScore(true);
 }
 
-double IOMRefiner::hkScore(bool silent)
+double IOMRefiner::hkScore(bool reportStdev)
 {
     vector<double> wavelengths;
     vector<double> throw1; vector<int> throw2;
@@ -671,11 +682,8 @@ double IOMRefiner::hkScore(bool silent)
     }
     
     double refTotal = getTotalReflections();
-    if (refTotal > 100) refTotal = 100;
     
-    stdev /= refTotal;
-    
-    double score = stdev;
+    double score = reportStdev ? stdev : -refTotal;
     
     return score;
 }
@@ -751,14 +759,31 @@ void IOMRefiner::refineOrientationMatrix()
     lStrategy->refine();
 
     searchSize = oldSearchSize;
+    needsReintegrating = false;
     
-    RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
-    hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
-    hkStrategy->setEvaluationFunction(hkScoreWrapper, this);
-    hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
-    hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
-    hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
-    hkStrategy->refine();
+    if (initialStep >= 1.5)
+    {
+        RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
+        hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
+        hkStrategy->setEvaluationFunction(hkScoreWrapper, this);
+        hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
+        hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
+        hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
+        hkStrategy->refine();
+    }
+    
+    this->calculateNearbyMillers(true);
+
+ //   if (false)
+    {
+        RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
+        hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
+        hkStrategy->setEvaluationFunction(hkScoreStdevWrapper, this);
+        hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
+        hkStrategy->addParameter(this, getHRot, setHRot, std::max(0.5, initialStep), orientationTolerance, "hRot");
+        hkStrategy->addCoupledParameter(this, getKRot, setKRot, std::max(0.5, initialStep), orientationTolerance, "kRot");
+        hkStrategy->refine();
+    }
     
     
     bestHRot = hRot;
@@ -1078,8 +1103,6 @@ bool IOMRefiner::isGoodSolution()
         good = false;
         details << "(" << getImage()->getFilename() << ") However, standard deviation too high (" << lastStdev << " vs " << badSolutionStdev << ")" << std::endl;
     }
-    
-    details << "(" << getImage()->getFilename() << ") Decision: " << (good ? "keep." : "throw away.") << std::endl;
     
     Logger::mainLogger->addStream(&details, LogLevelNormal);
     
