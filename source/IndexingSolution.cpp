@@ -150,7 +150,11 @@ bool IndexingSolution::matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2, boo
             double trace = transposedMat->trace();
             
             if (trace < minTrace)
+            {
                 minTrace = trace;
+             //   logged << "Trace with existing solution: " << trace << std::endl;
+             //   Logger::log(logged);
+            }
         }
     }
     
@@ -290,6 +294,13 @@ MatrixPtr IndexingSolution::createSolution()
         sendLog(LogLevelDebug);
 #endif
     }
+    
+    if (modMatrix)
+    {
+        chosenMat->getRotation()->preMultiply(*modMatrix);
+        chosenMat->recalculateOrientationMatrix();
+    }
+    
     return chosenMat;
 }
 

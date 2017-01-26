@@ -90,6 +90,7 @@ public:
         return scoreType;
     }
     
+    
     void combineLists();
     void indexingParameterAnalysis();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);

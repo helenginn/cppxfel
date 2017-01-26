@@ -85,6 +85,17 @@ public:
 
     IndexingSolutionPtr copy();
     ~IndexingSolution();
+    MatrixPtr modMatrix;
+
+    void setModMatrix(MatrixPtr mat)
+    {
+        modMatrix = mat;
+    }
+    
+    MatrixPtr getModMatrix()
+    {
+        return modMatrix;
+    }
     
     static int standardVectorCount()
     {

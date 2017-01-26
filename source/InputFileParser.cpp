@@ -93,8 +93,8 @@ int InputFileParser::processOptions(std::vector<std::string> lines)
 
 void InputFileParser::parse(bool fromPython)
 {
-    Logger::mainLogger = LoggerPtr(new Logger());
-    boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
+ //   Logger::mainLogger = LoggerPtr(new Logger());
+ //   boost::thread thr = boost::thread(Logger::awaitPrintingWrapper, Logger::mainLogger);
 
     parameters = ParametersMap();
 

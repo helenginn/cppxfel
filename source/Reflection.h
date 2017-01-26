@@ -156,6 +156,11 @@ public:
 	{
 		this->millers = millers;
 	}
+    
+    static MatrixPtr getCustomAmbiguity()
+    {
+        return customAmbiguity;
+    }
 
     long unsigned int getReflId()
     {
