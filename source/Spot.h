@@ -24,6 +24,7 @@ private:
     double angleDetectorPlane;
     bool setAngle;
     bool checked;
+    bool isBeamCentre;
     int successfulCommonLines;
     double correctedX; double correctedY;
     double x; double y;
@@ -133,6 +134,11 @@ public:
     double getIntensity()
     {
         return intensity;
+    }
+    
+    void setToBeamCentre()
+    {
+        isBeamCentre = true;
     }
 };
 

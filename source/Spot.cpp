@@ -34,6 +34,7 @@ Spot::Spot(ImagePtr image)
     successfulCommonLines = 0;
     correctedX = -1;
     correctedY = -1;
+    isBeamCentre = false;
     rejected = false;
     x = 0;
     y = 0;
@@ -535,6 +536,11 @@ void Spot::setXYFromEstimatedVector(vec hkl)
 
 std::string Spot::spotLine()
 {
+    if (isBeamCentre)
+    {
+        return;
+    }
+    
     std::ostringstream line;
     
     line << x << "\t" << y << std::endl;

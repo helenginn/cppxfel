@@ -1295,7 +1295,8 @@ void Image::processSpotList()
         
         SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
         newSpot->setXY(getBeamX() - xyVec.h, getBeamY() - xyVec.k);
-        
+        newSpot->setToBeamCentre();
+
         addSpotIfNotMasked(newSpot);
         double tooCloseDistance = 0;
         bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
