@@ -44,7 +44,7 @@ private:
     void refineMidPointZ(DetectorPtr detector, GeometryScoreType type);
     void refineTiltXY(DetectorPtr detector, GeometryScoreType type);
     void refineTiltZ(DetectorPtr detector, GeometryScoreType type);
-    void refineVarious(DetectorPtr detector, GeometryScoreType type);
+    void refineDetector(DetectorPtr detector, GeometryScoreType type);
     
 public:
     GeometryRefiner();

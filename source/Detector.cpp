@@ -20,6 +20,7 @@ int Detector::detectorActive = -1;
 bool Detector::noisy = false;
 ImagePtr Detector::drawImage = ImagePtr();
 DetectorType Detector::detectorType = DetectorTypeMPCCD;
+bool Detector::enabledNudge = false;
 
 // MARK: initialisation and constructors
 
@@ -31,11 +32,14 @@ void Detector::initialiseZeros()
     unarrangedBottomRightY = 0;
     unarrangedMidPointX = 0;
     unarrangedMidPointY = 0;
+    enabledNudge = false;
     
     memset(&arrangedMidPoint.h, 0, sizeof(arrangedMidPoint.h) * 3);
     memset(&slowDirection.h, 0, sizeof(slowDirection.h) * 3);
     memset(&fastDirection.h, 0, sizeof(fastDirection.h) * 3);
     memset(&rotationAngles.h, 0, sizeof(rotationAngles.h) * 3);
+    memset(&nudgeTranslation.h, 0, sizeof(nudgeTranslation.h) * 3);
+    memset(&nudgeRotation.h, 0, sizeof(nudgeRotation.h) * 3);
     
     parent = DetectorPtr();
     rotMat = MatrixPtr(new Matrix());
@@ -55,13 +59,11 @@ Detector::Detector()
 Detector::Detector(double distance, double beamX, double beamY)
 {
     initialiseZeros();
-    
+    double pixDistance = distance / mmPerPixel;
+    arrangedMidPoint = new_vector(-beamX, -beamY, pixDistance);
+
     setSlowDirection(0, 1, 0);
     setFastDirection(1, 0, 0);
-    
-    double pixDistance = distance / mmPerPixel;
-    
-    arrangedMidPoint = new_vector(-beamX, -beamY, pixDistance);
 }
 
 Detector::Detector(DetectorPtr parent, vec arrangedMiddle, std::string tag)
@@ -104,7 +106,7 @@ Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarranged
 
 void Detector::removeMidPointRelativeToParent()
 {
-    vec parentPos = getParent()->midPointOffsetFromParent(false);
+    vec parentPos = getParent()->midPointOffsetFromParent(false, NULL);
     take_vector_away_from_vector(parentPos, &arrangedMidPoint);
 }
 
@@ -147,10 +149,21 @@ bool Detector::directionSanityCheck()
     return (fabs(slowLength - 1.) < 0.05 && fabs(fastLength - 1.) < 0.05);
 }
 
+void Detector::lockNudges()
+{
+    vec modNudge = new_vector(0, 0, 0);
+    vec movement = midPointOffsetFromParent(false, &modNudge, true);
+}
+
 void Detector::updateCurrentRotation()
 {
     MatrixPtr myRotation = MatrixPtr(new Matrix());
     myRotation->rotate(rotationAngles.h, rotationAngles.k, rotationAngles.l);
+    
+    vec rebasedNudge = new_vector(0, 0, 0);
+    midPointOffsetFromParent(true, &rebasedNudge);
+    myRotation->rotate(rebasedNudge.h, rebasedNudge.k, rebasedNudge.l);
+    
     MatrixPtr parentRot = (!isLUCA() ? getParent()->getRotation() : MatrixPtr(new Matrix()));
     
     rotMat = myRotation;
@@ -191,7 +204,76 @@ vec Detector::getRotatedFastDirection()
     return fastRotated;
 }
 
-vec Detector::midPointOffsetFromParent(bool useParent)
+vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNudge)
+{
+    vec myRawMidPoint = rawMidPointOffsetFromParent(useParent);
+    
+    if (!enabledNudge)
+    {
+        if (angles != NULL)
+        {
+            *angles = new_vector(0, 0, 0);
+        }
+        
+        return myRawMidPoint;
+    }
+    
+    vec cross = copy_vector(myRawMidPoint);
+    scale_vector_to_distance(&cross, 1);
+    vec horiz = new_vector(1, 0, -cross.h / cross.l);
+    scale_vector_to_distance(&horiz, 1);
+    
+    vec vert = cross_product_for_vectors(cross, horiz);
+    double distanceFromOrigin = length_of_vector(myRawMidPoint);
+    
+    double matComponents[9] = {horiz.h, vert.h, cross.h,
+        horiz.k, vert.k, cross.k,
+        horiz.l, vert.l, cross.l};
+    
+    MatrixPtr mat1 = MatrixPtr(new Matrix(matComponents));
+    MatrixPtr changeToXYZ = mat1->inverse3DMatrix();
+    
+    vec xyzMovement = copy_vector(nudgeTranslation);
+    changeToXYZ->multiplyVector(&xyzMovement);
+    
+    
+    if (angles != NULL)
+    {
+        vec myAngles = copy_vector(nudgeRotation);
+        double tanHoriz = nudgeTranslation.h / distanceFromOrigin;
+        double tanVert = nudgeTranslation.k / distanceFromOrigin;
+        myAngles.k += atan(tanHoriz);
+        myAngles.h -= atan(tanVert);
+        
+        changeToXYZ->multiplyVector(&myAngles);
+        
+        if (resetNudge)
+        {
+            add_vector_to_vector(&rotationAngles, myAngles);
+            nudgeRotation = new_vector(0, 0, 0);
+        }
+        else
+        {
+            add_vector_to_vector(angles, myAngles);
+        }
+    }
+
+    vec shifted = copy_vector(xyzMovement);
+    add_vector_to_vector(&shifted, myRawMidPoint);
+    scale_vector_to_distance(&shifted, distanceFromOrigin);
+    
+    if (resetNudge)
+    {
+        vec shift = shifted;
+        take_vector_away_from_vector(myRawMidPoint, &shift);
+        take_vector_away_from_vector(shift, &arrangedMidPoint);
+        nudgeTranslation = new_vector(0, 0, 0);
+    }
+    
+    return shifted;
+}
+
+vec Detector::rawMidPointOffsetFromParent(bool useParent)
 {
     if (isLUCA())
     {
@@ -202,23 +284,20 @@ vec Detector::midPointOffsetFromParent(bool useParent)
     
     if (useParent)
     {
-        parentMidPoint = getParent()->midPointOffsetFromParent();
+        parentMidPoint = getParent()->midPointOffsetFromParent(useParent);
     }
     
     vec slow = getParent()->getRotatedSlowDirection();
     vec fast = getParent()->getRotatedFastDirection();
     
-    multiply_vector(&slow, arrangedMidPoint.k);
-    multiply_vector(&fast, arrangedMidPoint.h);
-/*    if (noisy && (getTag() == "q0" || getTag() == "q1"))
-    {
-        logged << "Addition for " << getTag() << " is " << prettyDesc(slow) << " and " << prettyDesc(fast) << std::endl;
-        sendLog();
-    }*/
+    vec midPointAdded = arrangedMidPoint;
     
+    multiply_vector(&slow, midPointAdded.k);
+    multiply_vector(&fast, midPointAdded.h);
+
     add_vector_to_vector(&parentMidPoint, slow);
     add_vector_to_vector(&parentMidPoint, fast);
-    parentMidPoint.l += arrangedMidPoint.l;
+    parentMidPoint.l += midPointAdded.l;
     
     return parentMidPoint;
 }
@@ -333,7 +412,7 @@ void Detector::spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
          * This could probably be improved for speed by
          * storing some pre-calculations automatically. */
         
-        vec cumulative = midPointOffsetFromParent();
+        vec cumulative = midPointOffsetFromParent(true, NULL);
         
         add_vector_to_vector(&cumulative, *arrangedPos);
         
@@ -409,7 +488,7 @@ void Detector::intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *y
     
     /* Need the cumulative midpoint for this panel */
     
-    vec cumulative = midPointOffsetFromParent();
+    vec cumulative = midPointOffsetFromParent(true, NULL);
     
     /* Need offset from centre of the panel */
     take_vector_away_from_vector(cumulative, &absoluteVec);
@@ -429,7 +508,7 @@ void Detector::intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *y
 
 void Detector::intersectionWithRay(vec ray, vec *intersection)
 {
-    vec cumulative = midPointOffsetFromParent();
+    vec cumulative = midPointOffsetFromParent(true, NULL);
     
     double t = cumulative.h * cross.h + cumulative.k * cross.k + cumulative.l * cross.l;
     t /= (cross.h * ray.h + cross.k * ray.k + cross.l * ray.l);

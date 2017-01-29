@@ -135,20 +135,37 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     }
     else
     {
-        for (int j = 0; j < 4; j++)
+        int maxThreads = FileParser::getMaxThreads();
+        boost::thread_group threads;
+        /*
+        for (int i = 0; i < maxThreads; i++)
         {
-            int maxThreads = FileParser::getMaxThreads();
-            boost::thread_group threads;
-            
-            for (int i = 0; i < maxThreads; i++)
-            {
-                boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, j);
-                threads.add_thread(thr);
-            }
-            
-            threads.join_all();
+            boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 0);
+            threads.add_thread(thr);
+        }*/
+        
+        for (int i = 0; i < detectors.size(); i++)
+        {
+            refineDetectorStrategy(detectors[i], 0);
             reportProgress();
         }
+        
+      //  threads.join_all();
+        reportProgress();
+        
+        RefinementStrategyPtr strategy = makeRefiner(Detector::getMaster(), GeometryScoreTypeInterpanel);
+        strategy->setJobName("nudge");
+        
+        for (int i = 0; i < detectors.size(); i++)
+        {
+            strategy->addParameter(&*detectors[i], Detector::getNudgeX, Detector::setNudgeX, 1.0, 0.01, "nudge_x");
+            strategy->addParameter(&*detectors[i], Detector::getNudgeY, Detector::setNudgeY, 1.0, 0.01, "nudge_y");
+            strategy->addParameter(&*detectors[i], Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.001, 0.000001, "nudge_tz");
+        }
+        
+        strategy->refine();
+        Detector::getMaster()->lockNudges();
+        reportProgress();
     }
     
     std::vector<DetectorPtr> nextDetectors;
@@ -177,68 +194,29 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<Det
     }
 }
 
-void GeometryRefiner::refineMidPointXY(DetectorPtr detector, GeometryScoreType type)
+void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType type)
 {
-    RefinementStrategyPtr refinementMap = makeRefiner(detector, type);
+    Detector::getMaster()->enableNudge();
     
-    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointX,
-                                Detector::setArrangedMidPointX, 1.0, 0.01, "midPointX");
-    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointY,
-                                Detector::setArrangedMidPointY, 1.0, 0.01, "midPointY");
+    RefinementStrategyPtr strategy = makeRefiner(detector, type);
+    strategy->setJobName("nudge");
 
-    refinementMap->refine();
-}
-
-void GeometryRefiner::refineMidPointZ(DetectorPtr detector, GeometryScoreType type)
-{
-    RefinementStrategyPtr refinementMap = makeRefiner(detector, type);
+    if (type == GeometryScoreTypeIntrapanel)
+    {
+        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.001, 0.00001, "nudge_tx");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 1.0, 0.1, "nudge_z");
+    }
+    else if (type == GeometryScoreTypeInterpanel)
+    {
+        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 0.001, 0.00001, "nudge_x");
+        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 0.001, 0.00001, "nudge_y");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 1.0, 0.1, "nudge_tz");
+    }
     
-    refinementMap->addParameter(&*detector, Detector::getArrangedMidPointZ,
-                                Detector::setArrangedMidPointZ, 1.0, 0.01, "midPointZ");
+    strategy->refine();
     
-    refinementMap->refine();
-}
-
-void GeometryRefiner::refineTiltXY(DetectorPtr detector, GeometryScoreType type)
-{
-    RefinementStrategyPtr refinementMap = makeRefiner(detector, type);
-    
-    refinementMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.001, 0.00001, "alpha");
-    refinementMap->addParameter(&*detector, Detector::getBeta, Detector::setBeta, 0.001, 0.00001, "beta");
-    
-    refinementMap->refine();
-}
-
-void GeometryRefiner::refineTiltZ(DetectorPtr detector, GeometryScoreType type)
-{
-    RefinementStrategyPtr refinementMap = makeRefiner(detector, type);
-    
-    refinementMap->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.001, 0.00001, "gamma");
-    
-    refinementMap->refine();
-}
-
-void GeometryRefiner::refineVarious(DetectorPtr detector, GeometryScoreType type)
-{
-    RefinementGridSearchPtr gridMap = RefinementGridSearchPtr(new RefinementGridSearch());
-    IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
-    indexManagers.push_back(aManager);
-    aManager->setActiveDetector(detector);
-
-    double origAlpha = Detector::getAlpha(&*detector);
-    double origMidPointX = Detector::getArrangedMidPointX(&*detector);
-    gridMap->setJobName("intrapanel_tiltX_posX");
-    
-    gridMap->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, 0.002, 0.00001);
-    gridMap->addParameter(&*detector, Detector::getArrangedMidPointX, Detector::setArrangedMidPointX, 1.0, 0.1);
-    gridMap->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
-    gridMap->refine();
-    
-    Detector::setAlpha(&*detector, origAlpha);
-    Detector::setArrangedMidPointX(&*detector, origMidPointX);
-    gridMap->setEvaluationFunction(Detector::millerScoreWrapper, &*Detector::getMaster());
-    gridMap->refine();
-    
+    detector->lockNudges();
 }
 
 void GeometryRefiner::refineMasterDetector()
@@ -251,15 +229,7 @@ void GeometryRefiner::refineMasterDetector()
     logged << "***************************************************" << std::endl << std::endl;
     sendLog();
     
-    refineVarious(detector, GeometryScoreTypeIntrapanel);
-    reportProgress();
-    refineMidPointXY(detector, GeometryScoreTypeMiller);
-    reportProgress();
-    refineMidPointZ(detector, GeometryScoreTypeIntrapanel);
-    reportProgress();
-    refineTiltXY(detector, GeometryScoreTypeIntrapanel);
-    reportProgress();
-    refineMidPointXY(detector, GeometryScoreTypeMiller);
+    refineDetector(detector, GeometryScoreTypeIntrapanel);
     reportProgress();
 }
 
@@ -267,45 +237,18 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
 {
     if (strategy == 0)
     {
-        if (!detector->hasChildren() && cycleNum == 1 && Detector::isCSPAD())
-        {
-       //     return;
-        }
-        
-        refineMidPointXY(detector, GeometryScoreTypeMiller);
+        refineDetector(detector, GeometryScoreTypeIntrapanel);
         detector->millerScore(true, false);
     }
     else if (strategy == 1)
     {
-        if (!detector->hasChildren() && Detector::isCSPAD())
-        {
-            return;
-        }
-        
-        refineVarious(detector, GeometryScoreTypeIntrapanel);
-        
-        refineMidPointZ(detector, GeometryScoreTypeIntrapanel);
+        refineDetector(detector, GeometryScoreTypeInterpanel);
         detector->millerScore(true, false);
     }
     else if (strategy == 2)
     {
-        if (!detector->hasChildren() && Detector::isCSPAD())
-        {
-            return;
-        }
-        
-        refineTiltXY(detector, GeometryScoreTypeIntrapanel);
-        detector->millerScore(true, false);
-    }
-    else if (strategy == 3 && cycleNum == 1)
-    {
-        if (!detector->hasChildren() && Detector::isCSPAD())
-        {
-            return;
-        }
-        
-    //    refineTiltZ(detector, GeometryScoreTypeMillerStdev);
-    //    detector->millerScore(true, false);
+        logged << "Strategy not yet implemented" << std::endl;
+        sendLog();
     }
     
 }

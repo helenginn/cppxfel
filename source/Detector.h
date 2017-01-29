@@ -31,6 +31,9 @@ private:
     static ImagePtr drawImage;
     static DetectorType detectorType;
     
+    static bool enabledNudge;
+    bool mustUpdateMidPoint;
+    
     /* MARK: Simple type class members */
     
     /* These map onto coordinates from Cheetah HDF5 */
@@ -57,6 +60,12 @@ private:
      * defined with regards to the top left corner. If there is a Z
      * component then this will mess up the mid point positioning.
      * Fix this later! */
+    
+    /* Horizontal/vertical/closeness shift */
+    vec nudgeTranslation;
+    
+    /* Nudge (angles as per the intraPanel movement) */
+    vec nudgeRotation;
     
     /* This is the basis vectors corresponding to mapped slow-speed axis */
     /* Think: s -> y or vertical */
@@ -103,8 +112,8 @@ private:
     
     void spotCoordToRelativeVec(double unarrangedX, double unarrangedY,
                                 vec *arrangedPos);
-    vec midPointOffsetFromParent(bool useParent = true);
-    void cumulativeMidPoint(vec *cumulative);
+    vec rawMidPointOffsetFromParent(bool useParent = true);
+    vec midPointOffsetFromParent(bool useParent = true, vec *angles = NULL, bool resetNudge = false);
     void removeMidPointRelativeToParent();
 
 public:
@@ -181,6 +190,9 @@ public:
         return arrangedMidPoint;
     }
     
+    /* Scattered ray from crystal hits the centre of the panel
+     * at a certain normal vector... */
+
     void prepareRotationAngles(double alpha, double beta, double gamma)
     {
         rotationAngles.h = alpha;
@@ -345,6 +357,7 @@ public:
     
     static void setArrangedMidPointX(void *object, double newX)
     {
+        static_cast<Detector *>(object)->setUpdateMidPoint();
         static_cast<Detector *>(object)->arrangedMidPoint.h = newX;
     }
     
@@ -355,6 +368,7 @@ public:
     
     static void setArrangedMidPointY(void *object, double newY)
     {
+        static_cast<Detector *>(object)->setUpdateMidPoint();
         static_cast<Detector *>(object)->arrangedMidPoint.k = newY;
     }
     
@@ -365,6 +379,7 @@ public:
     
     static void setArrangedMidPointZ(void *object, double newZ)
     {
+        static_cast<Detector *>(object)->setUpdateMidPoint();
         static_cast<Detector *>(object)->arrangedMidPoint.l = newZ;
     }
     
@@ -406,6 +421,76 @@ public:
         return static_cast<Detector *>(object)->rotationAngles.l;
     }
     
+    static void setNudgeX(void *object, double horiz)
+    {
+        static_cast<Detector *>(object)->nudgeTranslation.h = horiz;
+        static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
+    }
+
+    static double getNudgeX(void *object)
+    {
+        return static_cast<Detector *>(object)->nudgeTranslation.h;
+    }
+    
+    static void setNudgeY(void *object, double vert)
+    {
+        static_cast<Detector *>(object)->nudgeTranslation.k = vert;
+        static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
+    }
+    
+    static double getNudgeY(void *object)
+    {
+        return static_cast<Detector *>(object)->nudgeTranslation.k;
+    }
+    
+    static void setNudgeZ(void *object, double closeness)
+    {
+        static_cast<Detector *>(object)->nudgeTranslation.l = closeness;
+        static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
+    }
+    
+    static double getNudgeZ(void *object)
+    {
+        return static_cast<Detector *>(object)->nudgeTranslation.l;
+    }
+
+    static void setNudgeTiltX(void *object, double horizTilt)
+    {
+        static_cast<Detector *>(object)->nudgeRotation.h = horizTilt;
+        static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
+    }
+    
+    static double getNudgeTiltX(void *object)
+    {
+        return static_cast<Detector *>(object)->nudgeRotation.h;
+    }
+    
+    static void setNudgeTiltY(void *object, double vertTilt)
+    {
+        static_cast<Detector *>(object)->nudgeRotation.k = vertTilt;
+        static_cast<Detector *>(object)->updateCurrentRotation();
+    }
+    
+    static double getNudgeTiltY(void *object)
+    {
+        return static_cast<Detector *>(object)->nudgeRotation.k;
+    }
+    
+    static void setNudgeTiltZ(void *object, double spin)
+    {
+        static_cast<Detector *>(object)->nudgeRotation.l = spin;
+        static_cast<Detector *>(object)->updateCurrentRotation();
+    }
+    
+    static double getNudgeTiltZ(void *object)
+    {
+        return static_cast<Detector *>(object)->nudgeRotation.l;
+    }
+
     static void setNoisy(bool _noisy)
     {
         noisy = _noisy;
@@ -447,7 +532,17 @@ public:
     {
         return (detectorType == DetectorTypeCSPAD);
     }
-
+    
+    void lockNudges();
+    static void enableNudge()
+    {
+        enabledNudge = true;
+    }
+    
+    void setUpdateMidPoint()
+    {
+        mustUpdateMidPoint = true;
+    }
 };
 
 #endif /* defined(__cppxfel__Detector__) */

@@ -17,6 +17,11 @@ void RefinementGridSearch::recursiveEvaluation(ParamList referenceList, ParamLis
     
     if (workingCount < paramCount)
     {
+        if (workingCount == 1)
+        {
+            std::cout << "." << std::flush;
+        }
+        
         for (int i = -gridLength / 2; i <= (int)(gridLength / 2 + 0.5); i++)
         {
             double mean = referenceList[workingCount];
@@ -58,6 +63,8 @@ void RefinementGridSearch::refine()
     ResultMap results;
     recursiveEvaluation(currentValues, ParamList(), &results);
     
+    std::cout << std::endl;
+    
     double minResult = FLT_MAX;
     ParamList minParams;
     
@@ -82,5 +89,5 @@ void RefinementGridSearch::refine()
         (*setter)(objects[i], minParams[i]);
     }
     
-    csv->writeToFile("gridsearch.csv");
+    csv->writeToFile(jobName + "_gridsearch.csv");
 }
