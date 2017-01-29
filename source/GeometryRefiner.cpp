@@ -212,13 +212,14 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     {
         strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.001, 0.00001, "nudge_tx");
         strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 1.0, 0.1, "nudge_z");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 0.2, 0.001, "nudge_z");
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
+        /*
         strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 0.001, 0.00001, "nudge_x");
         strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 0.001, 0.00001, "nudge_y");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 1.0, 0.1, "nudge_tz");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.5, 0.1, "nudge_tz");*/
     }
     
     strategy->refine();
