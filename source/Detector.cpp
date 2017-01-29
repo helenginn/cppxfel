@@ -152,7 +152,7 @@ bool Detector::directionSanityCheck()
 void Detector::lockNudges()
 {
     vec modNudge = new_vector(0, 0, 0);
-    vec movement = midPointOffsetFromParent(false, &modNudge, true);
+    midPointOffsetFromParent(false, &modNudge, true);
 }
 
 void Detector::updateCurrentRotation()
@@ -266,7 +266,7 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     {
         vec shift = shifted;
         take_vector_away_from_vector(myRawMidPoint, &shift);
-        take_vector_away_from_vector(shift, &arrangedMidPoint);
+        add_vector_to_vector(&arrangedMidPoint, shift);
         nudgeTranslation = new_vector(0, 0, 0);
     }
     
