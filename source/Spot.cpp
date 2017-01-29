@@ -538,7 +538,7 @@ std::string Spot::spotLine()
 {
     if (isBeamCentre)
     {
-        return;
+        return std::string("");
     }
     
     std::ostringstream line;
