@@ -160,11 +160,18 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         {
             strategy->addParameter(&*detectors[i], Detector::getNudgeX, Detector::setNudgeX, 1.0, 0.01, "nudge_x");
             strategy->addParameter(&*detectors[i], Detector::getNudgeY, Detector::setNudgeY, 1.0, 0.01, "nudge_y");
-            strategy->addParameter(&*detectors[i], Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.001, 0.000001, "nudge_tz");
+            strategy->addParameter(&*detectors[i], Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.005, 0.000001, "nudge_tz");
         }
         
+        strategy->setCycles(100);
         strategy->refine();
         Detector::getMaster()->lockNudges();
+        
+        for (int i = 0; i < detectors.size(); i++)
+        {
+            detectors[i]->lockNudges();
+        }
+        
         reportProgress();
     }
     

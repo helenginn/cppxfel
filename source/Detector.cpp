@@ -152,7 +152,7 @@ bool Detector::directionSanityCheck()
 void Detector::lockNudges()
 {
     vec modNudge = new_vector(0, 0, 0);
-    midPointOffsetFromParent(false, &modNudge, true);
+    midPointOffsetFromParent(true, &modNudge, true);
 }
 
 void Detector::updateCurrentRotation()
@@ -264,7 +264,7 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     
     if (resetNudge)
     {
-        vec shift = shifted;
+        vec shift = copy_vector(shifted);
         take_vector_away_from_vector(myRawMidPoint, &shift);
         add_vector_to_vector(&arrangedMidPoint, shift);
         nudgeTranslation = new_vector(0, 0, 0);
@@ -314,8 +314,11 @@ void Detector::description(bool propogate)
         logged << " and my parent is " << getParent()->getTag();
     logged  << std::endl << "My corrected midpoint is " << prettyDesc(midPointOffsetFromParent()) << std::endl;
     logged << "My midpoint relative to my parent is " << prettyDesc(midPointOffsetFromParent(false)) << std::endl;
+    logged << "My rotated fast axis is " << std::setprecision(10) << prettyDesc(getRotatedFastDirection()) << std::endl;
+    logged << "My rotated slow axis is " << std::setprecision(10) << prettyDesc(getRotatedSlowDirection()) << std::endl;
     logged << "I am " << (isLUCA() ? "" : "not") << " the master detector." << std::endl;
     logged << "I have " << childrenCount() << " children." << std::endl << std::endl;
+    
     sendLog();
     
     if (propogate && hasChildren())
