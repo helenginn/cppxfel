@@ -59,7 +59,8 @@ GeometryRefiner::GeometryRefiner()
 void GeometryRefiner::refineGeometry()
 {
     Detector::setNoisy(true);
-    
+    Detector::getMaster()->enableNudge();
+
     reportProgress();
     std::vector<DetectorPtr> detectors;
     detectors.push_back(Detector::getMaster());
@@ -163,7 +164,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
             strategy->addParameter(&*detectors[i], Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.005, 0.000001, "nudge_tz");
         }
         
-        strategy->setCycles(100);
         strategy->refine();
         Detector::getMaster()->lockNudges();
         
@@ -203,8 +203,6 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<Det
 
 void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType type)
 {
-    Detector::getMaster()->enableNudge();
-    
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
     strategy->setJobName("nudge");
 
@@ -237,8 +235,32 @@ void GeometryRefiner::refineMasterDetector()
     logged << "***************************************************" << std::endl << std::endl;
     sendLog();
     
+//    gridSearch(detector->getChild(0)->getChild(0));
+    
     refineDetector(detector, GeometryScoreTypeIntrapanel);
     reportProgress();
+}
+
+void GeometryRefiner::gridSearch(DetectorPtr detector)
+{
+    RefinementGridSearchPtr strategy = RefinementGridSearchPtr(new RefinementGridSearch());
+    
+//    strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 0.001, 0.00001, "nudge_tx");
+//    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 0.001, 0.00001, "nudge_ty");
+    strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.05, 0.001, "nudge_tz");
+    
+    strategy->setVerbose(true);
+    strategy->setJobName("Detector " + detector->getTag());
+    
+    IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
+    indexManagers.push_back(aManager);
+    aManager->setActiveDetector(detector);
+    aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
+    strategy->setEvaluationFunction(IndexManager::debugPseudoScore, &*aManager);
+    
+    strategy->refine();
+    
+    exit(0);
 }
 
 void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)

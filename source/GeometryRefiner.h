@@ -40,10 +40,7 @@ private:
     
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
     void reportProgress();
-    void refineMidPointXY(DetectorPtr detector, GeometryScoreType type);
-    void refineMidPointZ(DetectorPtr detector, GeometryScoreType type);
-    void refineTiltXY(DetectorPtr detector, GeometryScoreType type);
-    void refineTiltZ(DetectorPtr detector, GeometryScoreType type);
+    void gridSearch(DetectorPtr detector);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
     
 public:

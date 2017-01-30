@@ -30,6 +30,7 @@ private:
     static bool noisy;
     static ImagePtr drawImage;
     static DetectorType detectorType;
+    static int specialImageCounter;
     
     static bool enabledNudge;
     bool mustUpdateMidPoint;
@@ -55,6 +56,11 @@ private:
     /* This is considered the centre of the panel in arranged space.
      * This should be derived from the arranged top left X/Y */
     vec arrangedMidPoint;
+    
+    /* This is the latest mid point/angles NOT relative to the parent for
+       retrieval if no updates have been made. */
+    vec quickMidPoint;
+    vec quickAngles;
     
     /* Basis vectors can be lifted out of CrystFEL but these will be 
      * defined with regards to the top left corner. If there is a Z
@@ -473,6 +479,7 @@ public:
     {
         static_cast<Detector *>(object)->nudgeRotation.k = vertTilt;
         static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
     }
     
     static double getNudgeTiltY(void *object)
@@ -484,6 +491,7 @@ public:
     {
         static_cast<Detector *>(object)->nudgeRotation.l = spin;
         static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
     }
     
     static double getNudgeTiltZ(void *object)
@@ -539,9 +547,19 @@ public:
         enabledNudge = true;
     }
     
-    void setUpdateMidPoint()
+    static void setUpdateMidPoint()
+    {
+        Detector::getMaster()->setUpdateMidPointForDetector();
+    }
+    
+    void setUpdateMidPointForDetector()
     {
         mustUpdateMidPoint = true;
+        
+        for (int i = 0; i < childrenCount(); i++)
+        {
+            getChild(i)->setUpdateMidPointForDetector();
+        }
     }
 };
 

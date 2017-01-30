@@ -21,6 +21,7 @@
 #include "Reflection.h"
 #include "Miller.h"
 #include "misc.h"
+#include "Detector.h"
 
 IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
@@ -609,6 +610,12 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         image->writeSpotsList();
         image->dropImage();
     }
+}
+
+double IndexManager::debugPseudoScore(void *object)
+{
+    Detector::getMaster()->drawSpecialImage();
+    return pseudoScore(object);
 }
 
 double IndexManager::pseudoScore(void *object)

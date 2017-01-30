@@ -1991,8 +1991,7 @@ void MtzRefiner::combineLists()
 
 void MtzRefiner::powderPattern()
 {
-    loadPanels();
-    this->readMatricesAndImages();
+    loadImageFiles();
     
     if (!indexManager)
         indexManager = new IndexManager(images);

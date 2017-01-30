@@ -12,6 +12,7 @@
 #include "FileParser.h"
 #include "Vector.h"
 #include "Spot.h"
+#include "misc.h"
 #include "CSV.h"
 
 double Detector::mmPerPixel = 0;
@@ -21,6 +22,7 @@ bool Detector::noisy = false;
 ImagePtr Detector::drawImage = ImagePtr();
 DetectorType Detector::detectorType = DetectorTypeMPCCD;
 bool Detector::enabledNudge = false;
+int Detector::specialImageCounter = 0;
 
 // MARK: initialisation and constructors
 
@@ -40,10 +42,13 @@ void Detector::initialiseZeros()
     memset(&rotationAngles.h, 0, sizeof(rotationAngles.h) * 3);
     memset(&nudgeTranslation.h, 0, sizeof(nudgeTranslation.h) * 3);
     memset(&nudgeRotation.h, 0, sizeof(nudgeRotation.h) * 3);
-    
+    memset(&quickMidPoint.h, 0, sizeof(quickMidPoint.h) * 3);
+    memset(&quickAngles.h, 0, sizeof(quickAngles.h) * 3);
+
     parent = DetectorPtr();
     rotMat = MatrixPtr(new Matrix());
     changeOfBasisMat = MatrixPtr(new Matrix());
+    mustUpdateMidPoint = true;
     
     if (mmPerPixel == 0)
     {
@@ -161,7 +166,7 @@ void Detector::updateCurrentRotation()
     myRotation->rotate(rotationAngles.h, rotationAngles.k, rotationAngles.l);
     
     vec rebasedNudge = new_vector(0, 0, 0);
-    midPointOffsetFromParent(true, &rebasedNudge);
+    vec midPoint = midPointOffsetFromParent(true, &rebasedNudge);
     myRotation->rotate(rebasedNudge.h, rebasedNudge.k, rebasedNudge.l);
     
     MatrixPtr parentRot = (!isLUCA() ? getParent()->getRotation() : MatrixPtr(new Matrix()));
@@ -174,6 +179,15 @@ void Detector::updateCurrentRotation()
     
     rotMat->multiplyVector(&slowRotated);
     rotMat->multiplyVector(&fastRotated);
+    
+    if (enabledNudge)
+    {
+        MatrixPtr zMat = MatrixPtr(new Matrix());
+        zMat->rotate(0, 0, nudgeRotation.l);
+        zMat->multiplyVector(&slowRotated);
+        zMat->multiplyVector(&fastRotated);
+        
+    }
     
     vec rotatedSlow = getRotatedSlowDirection();
     vec rotatedFast = getRotatedFastDirection();
@@ -206,6 +220,16 @@ vec Detector::getRotatedFastDirection()
 
 vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNudge)
 {
+    if (enabledNudge && !mustUpdateMidPoint && useParent && !resetNudge)
+    {
+        if (angles != NULL)
+        {
+            *angles = quickAngles;
+        }
+        
+        return quickMidPoint;
+    }
+    
     vec myRawMidPoint = rawMidPointOffsetFromParent(useParent);
     
     if (!enabledNudge)
@@ -239,28 +263,37 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     
     if (angles != NULL)
     {
+        /* Could be buggy [A] */
         vec myAngles = copy_vector(nudgeRotation);
+        myAngles.l = 0;
+        
+        /* Not buggy [B] */
         double tanHoriz = nudgeTranslation.h / distanceFromOrigin;
         double tanVert = nudgeTranslation.k / distanceFromOrigin;
         myAngles.k += atan(tanHoriz);
         myAngles.h -= atan(tanVert);
+        /* End not buggy [B] */
         
+        /* Only not buggy regarding the not buggy [B] bit */
         changeToXYZ->multiplyVector(&myAngles);
         
         if (resetNudge)
         {
             add_vector_to_vector(&rotationAngles, myAngles);
-            nudgeRotation = new_vector(0, 0, 0);
         }
         else
         {
             add_vector_to_vector(angles, myAngles);
+            quickAngles = *angles;
         }
     }
 
     vec shifted = copy_vector(xyzMovement);
     add_vector_to_vector(&shifted, myRawMidPoint);
     scale_vector_to_distance(&shifted, distanceFromOrigin);
+    MatrixPtr zMat = MatrixPtr(new Matrix());
+    zMat->rotate(0, 0, nudgeRotation.l);
+    zMat->multiplyVector(&shifted);
     
     if (resetNudge)
     {
@@ -268,7 +301,11 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         take_vector_away_from_vector(myRawMidPoint, &shift);
         add_vector_to_vector(&arrangedMidPoint, shift);
         nudgeTranslation = new_vector(0, 0, 0);
+        nudgeRotation = new_vector(0, 0, 0);
     }
+    
+    quickMidPoint = shifted;
+    mustUpdateMidPoint = false;
     
     return shifted;
 }
@@ -954,6 +991,12 @@ void Detector::drawSpecialImage(std::string filename)
 {
     if (!drawImage)
         return;
+    
+    if (filename == "")
+    {
+        filename = "special_" + i_to_str(specialImageCounter) + ".png";
+        specialImageCounter++;
+    }
     
     drawImage->drawSpotsOnPNG(filename);
 }

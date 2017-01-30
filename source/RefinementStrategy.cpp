@@ -29,6 +29,9 @@ RefinementStrategyPtr RefinementStrategy::userChosenStrategy()
             break;
     }
     
+    int cycles = FileParser::getKey("NELDER_MEAD_CYCLES", 30);
+    strategy->setCycles(cycles);
+    
     return strategy;
 }
 

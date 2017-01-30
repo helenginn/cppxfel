@@ -97,6 +97,7 @@ public:
     void index();
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
     void refineUnitCell();
+    static double debugPseudoScore(void *object);
     static double pseudoScore(void *object);
     IndexManager(std::vector<ImagePtr>images);
 };

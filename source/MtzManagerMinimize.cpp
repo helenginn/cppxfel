@@ -484,10 +484,8 @@ double MtzManager::minimize()
     bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
     bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
     
-    int maxCycles = FileParser::getKey("NELDER_MEAD_CYCLES", 30);
     int verbosity = FileParser::getKey("VERBOSITY_LEVEL", 0);
     
-    refiner->setCycles(maxCycles);
     refiner->setEvaluationFunction(scoreNelderMead, this);
     refiner->setVerbose((verbosity > 0));
     
