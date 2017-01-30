@@ -1810,6 +1810,11 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         }
     }
     
+    if (modStatus == IndexingSolutionTrialDuplicate || status == IndexingSolutionTrialSuccess)
+    {
+        return IndexingSolutionTrialDuplicate;
+    }
+    
     if (modBetter)
     {
         solutionPtr->setModMatrix(Reflection::getCustomAmbiguity());

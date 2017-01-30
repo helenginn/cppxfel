@@ -383,7 +383,7 @@ void IndexingSolution::pruneSpotVectors(std::vector<SpotVectorPtr> *spotVectors)
 }
 
 void IndexingSolution::removeSpotVectors(std::vector<SpotVectorPtr> *spotVectors)
-{
+{/*
     int count = 0;
     
     for (int i = 0; i < spotVectors->size(); i++)
@@ -399,7 +399,7 @@ void IndexingSolution::removeSpotVectors(std::vector<SpotVectorPtr> *spotVectors
     }
     
     logged << "Removed " << count << " spot vectors which led to a bad solution." << std::endl;
-    sendLog();
+    sendLog();*/
 }
 
 bool IndexingSolution::spotsAreNotTooClose(SpotVectorPtr observedVector)
