@@ -1810,7 +1810,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         }
     }
     
-    if (modStatus == IndexingSolutionTrialDuplicate || status == IndexingSolutionTrialSuccess)
+    if (modStatus == IndexingSolutionTrialDuplicate || modStatus == IndexingSolutionTrialDuplicate)
     {
         return IndexingSolutionTrialDuplicate;
     }
