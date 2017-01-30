@@ -1714,6 +1714,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     {
         logged << "Indexing solution too similar to previous solution. Continuing..." << std::endl;
         sendLog(LogLevelNormal);
+        badSolutions.push_back(solutionPtr);
         solutionPtr->removeSpotVectors(&spotVectors);
         
         return IndexingSolutionTrialDuplicate;
@@ -1741,6 +1742,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         {
             removeRefiner(lastRefiner);
             
+            badSolutions.push_back(solutionPtr);
             logged << "Indexing solution too similar to previous solution after refinement. Continuing..." << std::endl;
             sendLog(LogLevelNormal);
             
