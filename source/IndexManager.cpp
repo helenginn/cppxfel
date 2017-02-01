@@ -622,8 +622,12 @@ double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
-    
+    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     double score = 0;
+    double count = 0;
+    
+    CSVPtr csv = CSVPtr(new CSV(0));
+    csv->setupHistogram(0, maxDistance, step, "Distance", 1, "data");
     
     for (int i = 0; i < me->images.size(); i++)
     {
@@ -648,14 +652,47 @@ double IndexManager::pseudoScore(void *object)
             
             vec->setUpdate();
             double realDistance = vec->distance();
+            double weight = me->lattice->weightForDistance(realDistance);
+            weight -= 1000;
             
-            double weight = me->lattice->weightForDistance(realDistance) / 1000;
+            score += weight;
+            count++;
             
-            score -= weight;
+            //            csv->addOneToFrequency(realDistance, "data");
+            
         }
     }
     
-    return score;
+    /*
+    for (int i = 0; i < csv->entryCount(); i++)
+    {
+        double distance = csv->valueForEntry("Distance", i);
+        double weight = csv->valueForEntry("data", i);
+        int j = 0;
+        
+        for (j = 0; j < me->lattice->orderedDistanceCount(); j++)
+        {
+            if (distance > me->lattice->orderedDistance(j))
+            {
+                break;
+            }
+        }
+        
+        double underDistance = me->lattice->orderedDistance(j - 1);
+        double overDistance = me->lattice->orderedDistance(j);
+        
+        double closest = (overDistance - distance < underDistance - distance) ? overDistance : underDistance;
+        
+        score += (closest - distance) * (closest - distance) * weight;
+        count += weight;
+    }
+    
+    if (count == 0)
+        return FLT_MAX;*/
+    
+    score /= count;
+    
+    return -score;
 }
 
 void IndexManager::powderPattern(std::string csvName, bool force)

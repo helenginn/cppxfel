@@ -93,6 +93,16 @@ void GeometryRefiner::reportProgress()
     lastInterScore = interScore;
     lastIntraScore = intraScore;
     
+    if (intraScore > 0)
+    {
+        intraIncrease *= -1;
+    }
+
+    if (interScore > 0)
+    {
+        interIncrease *= -1;
+    }
+    
     if (refinementEvent > 0 && fabs(interIncrease) < 0.00001 && fabs(intraIncrease)  < 0.00001)
     {
         return;
@@ -235,7 +245,7 @@ void GeometryRefiner::refineMasterDetector()
     logged << "***************************************************" << std::endl << std::endl;
     sendLog();
     
-//    gridSearch(detector->getChild(0)->getChild(0));
+//    gridSearch(detector->getChild(0));
     
     refineDetector(detector, GeometryScoreTypeIntrapanel);
     reportProgress();
@@ -244,10 +254,12 @@ void GeometryRefiner::refineMasterDetector()
 void GeometryRefiner::gridSearch(DetectorPtr detector)
 {
     RefinementGridSearchPtr strategy = RefinementGridSearchPtr(new RefinementGridSearch());
+    Detector::setAlpha(&*Detector::getMaster(), 0.001);
+    Detector::setBeta(&*Detector::getMaster(), 0.001);
     
-//    strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 0.001, 0.00001, "nudge_tx");
+    strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.05, 0.00001, "nudge_tx");
 //    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 0.001, 0.00001, "nudge_ty");
-    strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.05, 0.001, "nudge_tz");
+//    strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.05, 0.001, "nudge_tz");
     
     strategy->setVerbose(true);
     strategy->setJobName("Detector " + detector->getTag());

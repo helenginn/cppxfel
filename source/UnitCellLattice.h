@@ -101,6 +101,11 @@ public:
     {
         setup(a, b, c, alpha, beta, gamma, spaceGroupNum, resolution);
     }
+    
+    CSVPtr getWeightedUnitCell()
+    {
+        return weightedUnitCell;
+    }
 };
 
 #endif /* defined(__cppxfel__UnitCellLattice__) */

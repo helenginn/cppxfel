@@ -398,6 +398,7 @@ public:
     {
         static_cast<Detector *>(object)->rotationAngles.h = newAlpha;
         static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
     }
     
     static double getAlpha(void *object)
@@ -409,6 +410,7 @@ public:
     {
         static_cast<Detector *>(object)->rotationAngles.k = newBeta;
         static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
     }
     
     static double getBeta(void *object)
@@ -420,6 +422,7 @@ public:
     {
         static_cast<Detector *>(object)->rotationAngles.l = newGamma;
         static_cast<Detector *>(object)->updateCurrentRotation();
+        static_cast<Detector *>(object)->setUpdateMidPoint();
     }
     
     static double getGamma(void *object)

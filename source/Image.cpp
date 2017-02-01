@@ -1690,6 +1690,16 @@ bool Image::checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeL
             return true;
     }
     
+    for (int i = 0; i < badSolutions.size(); i++)
+    {
+        MatrixPtr badSol = badSolutions[i]->createSolution();
+        
+        bool similar = IndexingSolution::matrixSimilarToMatrix(newSolution, badSol, true);
+        
+        if (similar)
+            return true;
+    }
+    
     return false;
 }
 
@@ -2662,6 +2672,8 @@ void Image::writePNG(PNGFilePtr file)
         
         minZ -= nudge;
         maxZ += nudge;
+     //   minZ = 909;
+     //   maxZ = 913;
     }
     
     for (int i = 0; i < xDim; i++)
