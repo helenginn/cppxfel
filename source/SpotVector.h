@@ -111,6 +111,11 @@ public:
     {
         return hkl.l;
     }
+    
+    void setSpotDiff(vec transformedHKL)
+    {
+        spotDiff = transformedHKL;
+    }
 };
 
 #endif /* defined(__cppxfel__SpotVector__) */

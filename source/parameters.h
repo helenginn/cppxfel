@@ -291,6 +291,7 @@ typedef enum
     PseudoScoreTypeAll,
     PseudoScoreTypeIntraPanel,
     PseudoScoreTypeInterPanel,
+    PseudoScoreTypeBeamCentre,
 } PseudoScoreType;
 
 typedef enum
