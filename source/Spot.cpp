@@ -34,7 +34,7 @@ Spot::Spot(ImagePtr image)
     successfulCommonLines = 0;
     correctedX = -1;
     correctedY = -1;
-    isBeamCentre = false;
+    _isBeamCentre = false;
     rejected = false;
     x = 0;
     y = 0;
@@ -332,6 +332,14 @@ void Spot::setUpdate()
 
 Coord Spot::getXY()
 {
+    if (isBeamCentre())
+    {
+        double x = Detector::getArrangedMidPointX(&*Detector::getMaster());
+        double y = Detector::getArrangedMidPointY(&*Detector::getMaster());
+        
+        return std::make_pair(x, y);
+    }
+    
     if (Detector::isActive())
     {
         vec arrangedPos = new_vector(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -475,6 +483,13 @@ void Spot::writeDatFromSpots(std::string filename, std::vector<SpotPtr> spots)
 
 vec Spot::estimatedVector()
 {
+    if (_isBeamCentre)
+    {
+        vec reciprocalPos = new_vector(0, 0, 0);
+        
+        return reciprocalPos;
+    }
+    
     if (Detector::isActive())
     {
         vec arrangedPos;
@@ -536,7 +551,7 @@ void Spot::setXYFromEstimatedVector(vec hkl)
 
 std::string Spot::spotLine()
 {
-    if (isBeamCentre)
+    if (_isBeamCentre)
     {
         return std::string("");
     }

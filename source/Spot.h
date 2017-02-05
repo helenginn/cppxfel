@@ -24,7 +24,7 @@ private:
     double angleDetectorPlane;
     bool setAngle;
     bool checked;
-    bool isBeamCentre;
+    bool _isBeamCentre;
     int successfulCommonLines;
     double correctedX; double correctedY;
     double x; double y;
@@ -138,7 +138,12 @@ public:
     
     void setToBeamCentre()
     {
-        isBeamCentre = true;
+        _isBeamCentre = true;
+    }
+    
+    bool isBeamCentre()
+    {
+        return _isBeamCentre;
     }
 };
 

@@ -58,6 +58,7 @@ public:
     double cosineWithVector(SpotVectorPtr spotVector2);
     SpotVectorPtr differenceFromVector(SpotVectorPtr spotVec);
     static SpotVectorPtr vectorBetweenSpotsFromArray(std::vector<SpotVectorPtr> vectors, SpotPtr spot1, SpotPtr spot2);
+    bool usesBeamCentre();
     
     std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
     {

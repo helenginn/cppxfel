@@ -1284,20 +1284,6 @@ void Image::processSpotList()
         
         vector<std::string> spotLines = FileReader::split(spotContents, '\n');
         
-        double x = getBeamX();
-        double y = getBeamY();
-        vec beamXY = new_vector(getBeamX(), getBeamY(), 1);
-        vec newXY = new_vector(x, y, 1);
-        vec xyVec = vector_between_vectors(beamXY, newXY);
-        MatrixPtr rotateMat = MatrixPtr(new Matrix());
-        rotateMat->rotate(0, 0, M_PI);
-        rotateMat->multiplyVector(&xyVec);
-        
-        SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
-        newSpot->setXY(getBeamX() - xyVec.h, getBeamY() - xyVec.k);
-        newSpot->setToBeamCentre();
-
-        addSpotIfNotMasked(newSpot);
         double tooCloseDistance = 0;
         bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
         if (rejectCloseSpots)
@@ -1398,6 +1384,11 @@ void Image::processSpotList()
         logged << "Loaded " << spots.size() << " spots from list " << spotsFile << std::endl;
         sendLog(LogLevelNormal);
     }
+    
+    SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
+    newSpot->setToBeamCentre();
+    
+    addSpotIfNotMasked(newSpot);
     
     double fractionToExclude = FileParser::getKey("EXCLUDE_WEAKEST_SPOT_FRACTION", 0.0);
     

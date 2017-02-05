@@ -294,3 +294,8 @@ double SpotVector::getMinAngleTolerance()
     
     return minAngleTolerance;
 }
+
+bool SpotVector::usesBeamCentre()
+{
+    return (firstSpot->isBeamCentre() || secondSpot->isBeamCentre());
+}
