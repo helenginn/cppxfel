@@ -279,7 +279,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
                 vec hkl = new_vector(h, k, l);
                 lastRotatedMatrix->multiplyVector(&hkl);
                 
-                if (hkl.l > 0)
+                if (hkl.l > 0.01)
                     continue;
                 
                 vec beam = new_vector(0, 0, -1 / wavelength);
