@@ -1831,7 +1831,8 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     sendLog();
 
     IOMRefinerPtr myRefiner = modBetter ? modRefiner : normRefiner;
-
+    myRefiner->setIndexingSolution(solutionPtr);
+    
     int lastRefiner = IOMRefinerCount();
     addIOMRefiner(myRefiner);
     MtzPtr mtz = myRefiner->newMtz(lastRefiner, true);
