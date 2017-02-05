@@ -1570,11 +1570,6 @@ void MtzManager::writeToDat(std::string prefix)
     }
     
     std::string datName = prefix + rootName + ".csv";
-    /*
-    std::ofstream datOutput;
-    datOutput.open(datName);
-    
-    datOutput << this->matrix->description() << std::endl;*/
     
     CSV csv = CSV(11, "h", "k", "l", "wavelength", "intensity", "countingSigma", "xCoord", "yCoord", "partiality", "resolution", "rejectFlags");
     

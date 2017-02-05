@@ -73,6 +73,11 @@ public:
         jobName = job;
     }
     
+    void *getEvaluationObject()
+    {
+        return evaluateObject;
+    }
+    
     virtual void clearParameters()
     {
         getters.clear();

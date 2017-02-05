@@ -2247,7 +2247,7 @@ void MtzRefiner::hitAnalysis()
 
 void MtzRefiner::orientationPlot()
 {
-    GraphDrawer drawer = GraphDrawer(&*reference);
+    GraphDrawer drawer = GraphDrawer(NULL);
     drawer.plotOrientationStats(mtzManagers);
 }
 
