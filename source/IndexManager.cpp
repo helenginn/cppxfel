@@ -649,7 +649,7 @@ double IndexManager::pseudoScore(void *object)
                 continue;
             }
             
-            if (me->activeDetector && !vec->isOnlyFromDetector(me->activeDetector))
+            if (me->activeDetector && !vec->isOnlyFromDetector(me->activeDetector) && !(me->scoreType == PseudoScoreTypeBeamCentre))
             {
                 continue;
             }

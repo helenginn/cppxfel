@@ -2768,16 +2768,6 @@ void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
                 SpotVectorPtr spotVec = it->first;
                 Coord spot1 = spotVec->getFirstSpot()->getXY();
                 Coord spot2 = spotVec->getSecondSpot()->getXY();
-                /*
-                if (spotVec->getFirstSpot()->isBeamCentre())
-                {
-                    spot1 = std::make_pair(cx, cy);
-                }
-
-                if (spotVec->getSecondSpot()->isBeamCentre())
-                {
-                    spot2 = std::make_pair(cx, cy);
-                }*/
 
                 file->drawLine(spot1.first, spot1.second, spot2.first, spot2.second,
                                0.0, 0, 0, 100);
