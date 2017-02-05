@@ -14,13 +14,13 @@
 #include "NelderMead.h"
 #include "IndexManager.h"
 #include "misc.h"
+#include "UnitCellLattice.h"
 
 RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, GeometryScoreType type)
 {
     RefinementStrategyPtr strategy = RefinementStrategy::userChosenStrategy();
     
     strategy->setVerbose(true);
-    strategy->setCycles(30);
     strategy->setJobName("Detector " + detector->getTag());
 
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
@@ -37,6 +37,10 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
             break;
         case GeometryScoreTypeInterpanel:
             aManager->setPseudoScoreType(PseudoScoreTypeInterPanel);
+            strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
+            break;
+        case GeometryScoreTypeBeamCentre:
+            aManager->setPseudoScoreType(PseudoScoreTypeBeamCentre);
             strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
             break;
         case GeometryScoreTypeIntrapanel:
@@ -65,7 +69,7 @@ void GeometryRefiner::refineGeometry()
     std::vector<DetectorPtr> detectors;
     detectors.push_back(Detector::getMaster());
     
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 5; i++)
     {
         cycleNum++;
         geometryCycleForDetector(detectors);
@@ -139,30 +143,34 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     logged << "  Refining detector" << (detectors.size() == 1 ? "" : "s") << ": " << detectorList.str() << std::endl;
     logged << "***************************************************" << std::endl << std::endl;
     sendLog();
+    
+    refineUnitCell();
 
     if (detectors[0]->isLUCA())
     {
         refineMasterDetector();
+        reportProgress();
     }
     else
     {
         int maxThreads = FileParser::getMaxThreads();
         boost::thread_group threads;
-        /*
+        
         for (int i = 0; i < maxThreads; i++)
         {
             boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 0);
             threads.add_thread(thr);
-        }*/
-        
+        }
+        /*
         for (int i = 0; i < detectors.size(); i++)
         {
             refineDetectorStrategy(detectors[i], 0);
             reportProgress();
-        }
+        }*/
         
-      //  threads.join_all();
+        threads.join_all();
         reportProgress();
+        
         
         RefinementStrategyPtr strategy = makeRefiner(Detector::getMaster(), GeometryScoreTypeInterpanel);
         strategy->setJobName("nudge");
@@ -174,16 +182,23 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
             strategy->addParameter(&*detectors[i], Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.005, 0.000001, "nudge_tz");
         }
         
-        strategy->refine();
-        Detector::getMaster()->lockNudges();
-        
-        for (int i = 0; i < detectors.size(); i++)
+        if (detectors.size())
         {
-            detectors[i]->lockNudges();
+            strategy->refine();
+            Detector::getMaster()->lockNudges();
+            
+            for (int i = 0; i < detectors.size(); i++)
+            {
+                detectors[i]->lockNudges();
+            }
+            
+            reportProgress();
         }
         
-        reportProgress();
     }
+
+    refineBeamCentre();
+    reportProgress();
     
     std::vector<DetectorPtr> nextDetectors;
     
@@ -213,21 +228,21 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<Det
 
 void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType type)
 {
+    std::string typeString = (type == GeometryScoreTypeIntrapanel ? "intrapanel" : "beam_centre");
+
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
-    strategy->setJobName("nudge");
+    strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
 
     if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.001, 0.00001, "nudge_tx");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 0.2, 0.001, "nudge_z");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.1, 0.00001, "nudge_tx");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.1, 0.00001, "nudge_ty");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 20.0, 0.001, "nudge_z");
     }
-    else if (type == GeometryScoreTypeInterpanel)
+    else if (type == GeometryScoreTypeBeamCentre)
     {
-        /*
-        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 0.001, 0.00001, "nudge_x");
-        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 0.001, 0.00001, "nudge_y");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.5, 0.1, "nudge_tz");*/
+        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 5.0, 0.00001, "nudge_x");
+        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 5.0, 0.00001, "nudge_y");
     }
     
     strategy->refine();
@@ -239,15 +254,83 @@ void GeometryRefiner::refineMasterDetector()
 {
     DetectorPtr detector = Detector::getMaster();
 
+    refineDetector(detector, GeometryScoreTypeIntrapanel);
+}
+
+void GeometryRefiner::refineBeamCentre()
+{
+    DetectorPtr detector = Detector::getMaster();
+    
     logged << "***************************************************" << std::endl;
     logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
-    logged << "  Refining master only: " << detector->getTag() << std::endl;
+    logged << "  Refining beam centre: " << detector->getTag() << std::endl;
     logged << "***************************************************" << std::endl << std::endl;
     sendLog();
     
-//    gridSearch(detector->getChild(0));
+    refineDetector(detector, GeometryScoreTypeBeamCentre);
+    reportProgress();
+
+
+}
+
+void GeometryRefiner::refineUnitCell()
+{
+    bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+    bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+    bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
+    bool optimisingUnitCellAlpha = FileParser::getKey("OPTIMISING_UNIT_CELL_ALPHA", false);
+    bool optimisingUnitCellBeta = FileParser::getKey("OPTIMISING_UNIT_CELL_BETA", false);
+    bool optimisingUnitCellGamma = FileParser::getKey("OPTIMISING_UNIT_CELL_GAMMA", false);
     
-    refineDetector(detector, GeometryScoreTypeIntrapanel);
+    if (!optimisingUnitCellA && !optimisingUnitCellAlpha &&
+        !optimisingUnitCellB && !optimisingUnitCellBeta &&
+        !optimisingUnitCellC && !optimisingUnitCellGamma)
+    {
+        return;
+    }
+    
+    DetectorPtr detector = Detector::getMaster();
+    
+    logged << "***************************************************" << std::endl;
+    logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
+    logged << "  Refining unit cell: " << detector->getTag() << std::endl;
+    logged << "***************************************************" << std::endl << std::endl;
+    sendLog();
+    
+    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeIntrapanel);
+    strategy->setJobName("Refining unit cell");
+    IndexManager *manager = static_cast<IndexManager *>(strategy->getEvaluationObject());
+
+    if (optimisingUnitCellA)
+    {
+        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellA, UnitCellLattice::setUnitCellA, 0.1, 0.00001, "unit_cell_a");
+    }
+    if (optimisingUnitCellB)
+    {
+        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellB, UnitCellLattice::setUnitCellB, 0.1, 0.00001, "unit_cell_b");
+    }
+    if (optimisingUnitCellC)
+    {
+        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellC, UnitCellLattice::setUnitCellC, 0.1, 0.00001, "unit_cell_c");
+    }
+
+    if (optimisingUnitCellAlpha)
+    {
+        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellAlpha, UnitCellLattice::setUnitCellAlpha, 0.1, 0.00001, "unit_cell_alpha");
+    }
+    if (optimisingUnitCellBeta)
+    {
+        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellBeta, UnitCellLattice::setUnitCellBeta, 0.1, 0.00001, "unit_cell_beta");
+    }
+    if (optimisingUnitCellGamma)
+    {
+        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellGamma, UnitCellLattice::setUnitCellGamma, 0.1, 0.00001, "unit_cell_gamma");
+    }
+    
+    strategy->setCycles(15);
+    
+    strategy->refine();
+    detector->lockNudges();
     reportProgress();
 }
 
@@ -282,17 +365,6 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
         refineDetector(detector, GeometryScoreTypeIntrapanel);
         detector->millerScore(true, false);
     }
-    else if (strategy == 1)
-    {
-        refineDetector(detector, GeometryScoreTypeInterpanel);
-        detector->millerScore(true, false);
-    }
-    else if (strategy == 2)
-    {
-        logged << "Strategy not yet implemented" << std::endl;
-        sendLog();
-    }
-    
 }
 
 void GeometryRefiner::setImages(std::vector<ImagePtr> newImages)

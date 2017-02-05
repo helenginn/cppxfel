@@ -19,6 +19,7 @@ typedef enum
     GeometryScoreTypeMillerStdev,
     GeometryScoreTypeIntrapanel,
     GeometryScoreTypeInterpanel,
+    GeometryScoreTypeBeamCentre,
     
 } GeometryScoreType;
 
@@ -37,6 +38,7 @@ private:
     double lastInterScore;
     double lastIntraScore;
     void refineMasterDetector();
+    void refineBeamCentre();
     
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
     void reportProgress();
@@ -47,6 +49,7 @@ public:
     GeometryRefiner();
     
     void refineGeometry();
+    void refineUnitCell();
     
     void setImages(std::vector<ImagePtr> newImages);
     
