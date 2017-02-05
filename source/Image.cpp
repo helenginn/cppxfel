@@ -2741,3 +2741,54 @@ void Image::writePNG(PNGFilePtr file)
     //    std::cout << std::endl;
     }
 }
+
+void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
+{
+    std::string filename = getBasename() + "_vec.png";
+    int height = FileParser::getKey("PNG_HEIGHT", 2400);
+    PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
+    writePNG(file);
+    int cx, cy;
+    file->getCentre(&cx, &cy);
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
+        {
+            IOMRefinerPtr refiner = images[i]->getIOMRefiner(j);
+            IndexingSolutionPtr solution = refiner->getIndexingSolution();
+            
+            if (!solution)
+                continue;
+            
+            SpotVectorMap::iterator it = solution->spotVectors.begin();
+            
+            for (int k = 0; k < solution->spotVectorCount(); k++)
+            {
+                SpotVectorPtr spotVec = it->first;
+                Coord spot1 = spotVec->getFirstSpot()->getXY();
+                Coord spot2 = spotVec->getSecondSpot()->getXY();
+                /*
+                if (spotVec->getFirstSpot()->isBeamCentre())
+                {
+                    spot1 = std::make_pair(cx, cy);
+                }
+
+                if (spotVec->getSecondSpot()->isBeamCentre())
+                {
+                    spot2 = std::make_pair(cx, cy);
+                }*/
+
+                file->drawLine(spot1.first, spot1.second, spot2.first, spot2.second,
+                               0.0, 0, 0, 100);
+                
+                it++;
+            }
+        }
+    }
+    
+    file->writeImageOutput();
+    
+    logged << "Written file " << filename << std::endl;
+    sendLog();
+}

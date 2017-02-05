@@ -121,6 +121,7 @@ public:
     void plotIntegrationWindows();
     
     void writePNGs(int total = 0);
+    void takeTwoPNG();
 };
 
 #endif /* MTZREFINER_H_ */

@@ -324,6 +324,13 @@ void InputFileParser::parse(bool fromPython)
                 refiner->plotIntegrationWindows();
             }
             
+            if (line == "TAKETWO_PNG")
+            {
+                understood = true;
+                refiner->takeTwoPNG();
+            }
+            
+            
             if (!understood)
             {
                 log << "Skipping line " << line << std::endl;

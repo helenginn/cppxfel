@@ -210,6 +210,7 @@ public:
     virtual void findIndexingSolutions();
     void compileDistancesFromSpots(double maxReciprocalDistance = 0, double tooCloseDistance = 0, bool filter = false);
     void filterSpotVectors();
+    void plotTakeTwoVectors(std::vector<ImagePtr> images);
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     void updateAllSpots();
     void clusterCountWithSpotNumber(int spotNum);

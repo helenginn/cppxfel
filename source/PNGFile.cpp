@@ -277,6 +277,31 @@ void PNGFile::drawCircleAroundPixel(int x, int y, float radius, float transparen
     }
 }
 
+void PNGFile::drawLine(int x1, int y1, int x2, int y2, float transparency, png_byte red, png_byte green, png_byte blue)
+{
+    moveCoordRelative(&x1, &y1);
+    moveCoordRelative(&x2, &y2);
+    double xTravel = x2 - x1 + 0.7;
+    double yTravel = y2 - y1 + 0.7;
+    double *bigger = (fabs(yTravel) > fabs(xTravel)) ? &yTravel : &xTravel;
+    double *smaller = (fabs(yTravel) < fabs(xTravel)) ? &yTravel : &xTravel;
+    
+    const double bigShift = 0.5;
+    int intervals = *bigger / bigShift + 0.5;
+    double smallShift = *smaller / intervals;
+    
+    double xCurr = x1;
+    double yCurr = y1;
+    
+    for (int i = 0; i < intervals; i++)
+    {
+        setPixelColour(xCurr, yCurr, red, green, blue, 1 - transparency);
+        xCurr += (xTravel > yTravel) ? bigShift : smallShift;
+        yCurr += (yTravel > xTravel) ? bigShift : smallShift;
+    }
+    
+}
+
 void PNGFile::drawShoeboxAroundPixel(int x, int y, ShoeboxPtr shoebox)
 {
     moveCoordRelative(&x, &y);

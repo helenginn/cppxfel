@@ -2302,5 +2302,18 @@ void MtzRefiner::writePNGs(int total)
             }
         }
     }
+}
+
+void MtzRefiner::takeTwoPNG()
+{
+    ImagePtr image = Detector::getSpecialImage();
     
+    if (!image)
+    {
+        logged << "No images/special image loaded, cannot do TakeTwo vector plot." << std::endl;
+        sendLog();
+        return;
+    }
+    
+    image->plotTakeTwoVectors(images);
 }

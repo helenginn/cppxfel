@@ -47,6 +47,7 @@ public:
     void process();
     void setPixelColour(int x, int y, png_byte red, png_byte green, png_byte blue, float transparency = 1);
     void setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue);
+    void drawLine(int x1, int y1, int x2, int y2, float transparency, png_byte red, png_byte green, png_byte blue);
     void drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue, float thickness = 3);
     void drawShoeboxAroundPixel(int x, int y, ShoeboxPtr shoebox);
     static void HSB_to_RGB(float hue, float sat, float bright,
@@ -58,6 +59,12 @@ public:
     {
         centreX = newX;
         centreY = newY;
+    }
+    
+    void getCentre(int *x, int *y)
+    {
+        *x = centreX;
+        *y = centreY;
     }
 };
 
