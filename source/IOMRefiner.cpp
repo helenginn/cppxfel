@@ -437,17 +437,15 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         bool intensityMissing = (rawIntensity != rawIntensity);
         
-        if (intensityMissing || needsReintegrating || (!intensityMissing && (!roughCalculation || recalculateMillerPositions || complexShoebox)))
+        if (!roughCalculation || intensityMissing || needsReintegrating || (!intensityMissing && (recalculateMillerPositions || complexShoebox)))
         {
-            if (recalculateMillerPositions && !needsReintegrating)
+            if (!roughCalculation || (recalculateMillerPositions && !needsReintegrating))
             {
                 int x, y;
                 miller->positionOnDetector(lastRotatedMatrix, &x, &y, false);
             }
-            else
-            {
-                miller->integrateIntensity(lastRotatedMatrix);
-            }
+            
+            miller->integrateIntensity(lastRotatedMatrix);
         }
         
         rawIntensity = miller->getRawIntensity();
@@ -515,6 +513,17 @@ bool IOMRefiner::millerWithinBandwidth(MillerPtr miller)
 {
     double minBandwidth = getImage()->getWavelength() * (1 - testBandwidth * 2);
     double maxBandwidth = getImage()->getWavelength() * (1 + testBandwidth * 2);
+    
+    if (FileParser::hasKey("WAVELENGTH_RANGE"))
+    {
+        std::vector<double> range = FileParser::getKey("WAVELENGTH_RANGE", std::vector<double>());
+        
+        if (range.size() >= 2)
+        {
+            minBandwidth = range[0];
+            maxBandwidth = range[1];
+        }
+    }
     
     double wavelength = miller->getWavelength();
     
@@ -671,19 +680,28 @@ double IOMRefiner::hkScore(bool reportStdev)
     
     bool unbalanced = FileParser::getKey("UNBALANCED_REFLECTIONS", false);
     double stdev = 0;
+    double mean = getWavelength();
     
     if (unbalanced)
     {
-        stdev = standard_deviation(&wavelengths, NULL, getWavelength());
+        mean = weighted_mean(&wavelengths);
     }
-    else
+    
+    double pythagSum = 0;
+    
+    for (int i = 0; i < wavelengths.size(); i++)
     {
-        stdev = standard_deviation(&wavelengths);
+        pythagSum += fabs(wavelengths[i] - mean);
     }
     
     double refTotal = getTotalReflections();
     
-    double score = reportStdev ? stdev : -refTotal;
+    pythagSum /= wavelengths.size();
+    
+    double score = reportStdev ? pythagSum : -refTotal;
+    
+    logged << "Score is " << score << " from " << wavelengths.size() << " reflections" << std::endl;
+    sendLog(LogLevelDetailed);
     
     return score;
 }
@@ -793,6 +811,12 @@ void IOMRefiner::refineOrientationMatrix()
     needsReintegrating = true;
     checkAllMillers(maxResolution, testBandwidth);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
+    
+    matrix = lastRotatedMatrix;
+    
+    hRot = 0;
+    kRot = 0;
+    lRot = 0;
 }
 
 /*
