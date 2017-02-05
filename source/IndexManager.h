@@ -90,6 +90,10 @@ public:
         return scoreType;
     }
     
+    UnitCellLatticePtr getLattice()
+    {
+        return lattice;
+    }
     
     void combineLists();
     void indexingParameterAnalysis();

@@ -21,6 +21,7 @@ using scitbx::vec3;
 class UnitCellLattice : public FreeLattice
 {
 private:
+    static UnitCellLatticePtr mainLattice;
     CSym::CCP4SPG *spaceGroup;
     MatrixPtr unitCellMatrix;
     MatrixPtr unitCellOnly;
@@ -34,11 +35,28 @@ private:
     std::vector<SpotVectorPtr> uniqueSymVectors;
     void addConvolutedPeak(CSVPtr csv, double mean, double stdev, double weight);
     CSVPtr weightedUnitCell;
+    void updateUnitCellData();
+    void lockUnitCellDimensions(double *a, double *b, double *c, double *alpha, double *beta, double *gamma);
+  
+    double _aDim;
+    double _bDim;
+    double _cDim;
+    double _alpha;
+    double _beta;
+    double _gamma;
+    
+    UnitCellLattice(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0) : FreeLattice()
+    {
+        setup(a, b, c, alpha, beta, gamma, spaceGroupNum, resolution);
+    }
+
 public:
     void setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0);
     void refineUnitCell(PowderHistogram histogram);
     void getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax);
     void weightUnitCell();
+    
+    static UnitCellLatticePtr getMainLattice();
     
     int standardVectorCount()
     {
@@ -97,14 +115,76 @@ public:
         return spotVectors;
     }
     
-    UnitCellLattice(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0) : FreeLattice()
-    {
-        setup(a, b, c, alpha, beta, gamma, spaceGroupNum, resolution);
-    }
     
     CSVPtr getWeightedUnitCell()
     {
         return weightedUnitCell;
+    }
+    
+    static double getUnitCellA(void *object)
+    {
+        return static_cast<UnitCellLattice *>(object)->_aDim;
+    }
+    
+    static void setUnitCellA(void *object, double newDim)
+    {
+        static_cast<UnitCellLattice *>(object)->_aDim = newDim;
+        static_cast<UnitCellLattice *>(object)->updateUnitCellData();
+    }
+    
+    static double getUnitCellB(void *object)
+    {
+        return static_cast<UnitCellLattice *>(object)->_bDim;
+    }
+    
+    static void setUnitCellB(void *object, double newDim)
+    {
+        static_cast<UnitCellLattice *>(object)->_bDim = newDim;
+        static_cast<UnitCellLattice *>(object)->updateUnitCellData();
+    }
+    
+    static double getUnitCellC(void *object)
+    {
+        return static_cast<UnitCellLattice *>(object)->_cDim;
+    }
+    
+    static void setUnitCellC(void *object, double newDim)
+    {
+        static_cast<UnitCellLattice *>(object)->_cDim = newDim;
+        static_cast<UnitCellLattice *>(object)->updateUnitCellData();
+    }
+    
+    static double getUnitCellAlpha(void *object)
+    {
+        return static_cast<UnitCellLattice *>(object)->_alpha;
+    }
+    
+    static void setUnitCellAlpha(void *object, double newDim)
+    {
+        static_cast<UnitCellLattice *>(object)->_alpha = newDim;
+        static_cast<UnitCellLattice *>(object)->updateUnitCellData();
+    }
+    
+    static double getUnitCellBeta(void *object)
+    {
+        return static_cast<UnitCellLattice *>(object)->_beta;
+    }
+    
+    static void setUnitCellBeta(void *object, double newDim)
+    {
+        static_cast<UnitCellLattice *>(object)->_beta = newDim;
+        static_cast<UnitCellLattice *>(object)->updateUnitCellData();
+    }
+    
+    static double getUnitCellGamma(void *object)
+    {
+        return static_cast<UnitCellLattice *>(object)->_gamma;
+    }
+    
+    static void setUnitCellGamma(void *object, double newDim)
+    {
+        static_cast<UnitCellLattice *>(object)->_gamma = newDim;
+        static_cast<UnitCellLattice *>(object)->updateUnitCellData();
     }
 };
 

@@ -86,9 +86,8 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     solutionAngleSpread = FileParser::getKey("SOLUTION_ANGLE_SPREAD", 10.0);
     
     int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
-    lattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
-                                                     unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
-
+    lattice = UnitCellLattice::getMainLattice();
+    
     double resolution = 1 / FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
     lattice->getMaxMillerIndicesForResolution(resolution, &maxMillerIndexTrialH, &maxMillerIndexTrialK, &maxMillerIndexTrialL);
     maxDistance = 0;

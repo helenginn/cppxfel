@@ -802,7 +802,7 @@ void GraphDrawer::plotPartialityStats(int h, int k, int l)
 void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 {
     CCP4SPG *spaceGroup = mtzs[0]->getLowGroup();
-    UnitCellLattice lattice = UnitCellLattice(100, 100, 100, 90, 90, 90, spaceGroup->spg_num);
+    UnitCellLatticePtr lattice = UnitCellLattice::getMainLattice();
     
     std::ofstream pdbLog;
     pdbLog.open("plot.pdb");
@@ -811,9 +811,9 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
     {
         MatrixPtr matrix = mtzs[i]->getMatrix()->getRotation();
         
-        for (int j = 0; j < lattice.symOperatorCount(); j++)
+        for (int j = 0; j < lattice->symOperatorCount(); j++)
         {
-            MatrixPtr op = lattice.symOperator(j);
+            MatrixPtr op = lattice->symOperator(j);
             
             MatrixPtr mat2 = matrix->copy();
             vec test = new_vector(1, 0, 0);
@@ -896,11 +896,11 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
     double resol = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 3.0);
     std::vector<double> unitCell = mtzs[0]->getUnitCell();
     
-    UnitCellLattice lattice = UnitCellLattice(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5], mtzs[0]->getLowGroup()->spg_num);
+    UnitCellLatticePtr lattice = UnitCellLattice::getMainLattice();
     
     int hMax, kMax, lMax;
     
-    lattice.getMaxMillerIndicesForResolution(resol, &hMax, &kMax, &lMax);
+    lattice->getMaxMillerIndicesForResolution(resol, &hMax, &kMax, &lMax);
     
     for (int i = -hMax; i < hMax; i++)
     {

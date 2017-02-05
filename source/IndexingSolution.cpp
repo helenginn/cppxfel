@@ -104,8 +104,7 @@ void IndexingSolution::setupStandardVectors()
     
     maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 4);
     
-    lattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
-                                                     unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
+    lattice = UnitCellLattice::getMainLattice();
     
     newReflection = new Reflection();
     newReflection->setUnitCellDouble(&unitCell[0]);

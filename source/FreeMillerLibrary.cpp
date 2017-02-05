@@ -63,8 +63,7 @@ FreeMillerLibrary::FreeMillerLibrary(std::string filename, double maxResolution)
         exit(1);
     }
     
-    UnitCellLatticePtr lattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
-                                                     unitCell[3], unitCell[4], unitCell[5], spaceGroup, maxResolution));
+    UnitCellLatticePtr lattice = UnitCellLattice::getMainLattice();
     
     for (int i = 0; i < lattice->standardVectorCount(); i++)
     {
