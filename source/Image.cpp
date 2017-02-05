@@ -2555,10 +2555,10 @@ void Image::drawSpotsOnPNG(std::string filename)
         file->drawCircleAroundPixel(coord.first, coord.second, 10, 1, 0, 0, 0);
     }
     
+    file->writeImageOutput();
+    
     logged << "Written file " << filename << " (stdev of pixel intensities: " << stdev << ")" << std::endl;
     sendLog();
-    
-    file->writeImageOutput();
 }
 
 void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green, char blue)
@@ -2638,10 +2638,10 @@ void Image::drawCrystalsOnPNG(int crystalNum)
         }
     }
     
+    file->writeImageOutput();
+    
     logged << "Written file " << filename << std::endl;
     sendLog();
-    
-    file->writeImageOutput();
 }
 
 void Image::writePNG(PNGFilePtr file)
