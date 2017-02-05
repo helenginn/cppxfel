@@ -521,6 +521,10 @@ public:
     /* Special image functions */
     
     static void drawSpecialImage(std::string filename = "");
+    static ImagePtr getSpecialImage()
+    {
+        return drawImage;
+    }
     
     /* Resolution fun */
     

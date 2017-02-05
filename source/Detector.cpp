@@ -258,16 +258,15 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     MatrixPtr changeToXYZ = mat1->inverse3DMatrix();
     
     vec xyzMovement = copy_vector(nudgeTranslation);
+    xyzMovement.l = 0;
     changeToXYZ->multiplyVector(&xyzMovement);
     
     
     if (angles != NULL)
     {
-        /* Could be buggy [A] */
         vec myAngles = copy_vector(nudgeRotation);
         myAngles.l = 0;
         
-        /* Not buggy [B] */
         double tanHoriz = nudgeTranslation.h / distanceFromOrigin;
         double tanVert = nudgeTranslation.k / distanceFromOrigin;
         myAngles.k += atan(tanHoriz);
@@ -289,12 +288,20 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     }
 
     vec shifted = copy_vector(xyzMovement);
+    
     add_vector_to_vector(&shifted, myRawMidPoint);
     scale_vector_to_distance(&shifted, distanceFromOrigin);
     MatrixPtr zMat = MatrixPtr(new Matrix());
     zMat->rotate(0, 0, nudgeRotation.l);
     zMat->multiplyVector(&shifted);
     
+    /* Now we deal with the nudgeZ */
+    xyzMovement = new_vector(0, 0, nudgeTranslation.l);
+    changeToXYZ->multiplyVector(&xyzMovement);
+    add_vector_to_vector(&shifted, xyzMovement);
+    
+    mustUpdateMidPoint = false;
+
     if (resetNudge)
     {
         vec shift = copy_vector(shifted);
@@ -302,10 +309,10 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         add_vector_to_vector(&arrangedMidPoint, shift);
         nudgeTranslation = new_vector(0, 0, 0);
         nudgeRotation = new_vector(0, 0, 0);
+        mustUpdateMidPoint = true;
     }
     
     quickMidPoint = shifted;
-    mustUpdateMidPoint = false;
     
     return shifted;
 }
