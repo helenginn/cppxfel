@@ -331,6 +331,7 @@ void IOMRefiner::calculateNearbyMillers(bool rough)
     needsReintegrating = true;
 }
 
+/* merge with others... */
 void IOMRefiner::lockUnitCellDimensions()
 {
     double spgNum = spaceGroup->spg_num;
