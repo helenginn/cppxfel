@@ -626,7 +626,7 @@ void Spot::addToMask(int *mask, int width, int height)
             
             int position = width * yShifted + xShifted;
             
-            if (position > width * height)
+            if (position > width * height || position < 0)
             {
                 continue;
             }
