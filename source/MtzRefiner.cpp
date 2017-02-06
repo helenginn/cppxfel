@@ -1949,8 +1949,8 @@ void MtzRefiner::findSpotsThread(MtzRefiner *me, int offset)
 
 void MtzRefiner::index()
 {
-    loadPanels();
-    this->readMatricesAndImages();
+    loadImageFiles();
+    
     logged << "N: Total images loaded: " << images.size() << std::endl;
     sendLog();
     
