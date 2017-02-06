@@ -634,22 +634,24 @@ double IndexManager::pseudoScore(void *object)
         {
             SpotVectorPtr vec = me->images[i]->spotVector(j);
             
+            bool bc = vec->usesBeamCentre();
+            
             if (me->scoreType == PseudoScoreTypeIntraPanel && !vec->isIntraPanelVector())
             {
                 continue;
             }
             
-            if (me->scoreType == PseudoScoreTypeInterPanel && vec->isIntraPanelVector())
+            if (!bc && me->scoreType == PseudoScoreTypeInterPanel && vec->isIntraPanelVector())
             {
                 continue;
             }
             
-            if (me->scoreType == PseudoScoreTypeBeamCentre && !vec->usesBeamCentre())
+            if (me->scoreType == PseudoScoreTypeBeamCentre && !bc)
             {
                 continue;
             }
             
-            if (me->activeDetector && !vec->isOnlyFromDetector(me->activeDetector) && !(me->scoreType == PseudoScoreTypeBeamCentre))
+            if (me->activeDetector && !bc && !vec->isOnlyFromDetector(me->activeDetector) && !(me->scoreType == PseudoScoreTypeBeamCentre))
             {
                 continue;
             }

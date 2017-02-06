@@ -232,17 +232,19 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
 
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
     strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
+    
+    double zNudge = (detector->isLUCA() ? 2.0 : 0.2);
 
     if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.1, 0.00001, "nudge_tx");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.1, 0.00001, "nudge_ty");
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 20.0, 0.001, "nudge_z");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.001, 0.00001, "nudge_tx");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, zNudge, 0.001, "nudge_z");
     }
     else if (type == GeometryScoreTypeBeamCentre)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 5.0, 0.00001, "nudge_x");
-        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 5.0, 0.00001, "nudge_y");
+        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 2.0, 0.00001, "nudge_x");
+        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_y");
     }
     
     strategy->refine();
