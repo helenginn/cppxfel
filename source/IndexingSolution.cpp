@@ -445,6 +445,21 @@ bool IndexingSolution::vectorSolutionsAreCompatible(SpotVectorPtr observedVector
         
         MatrixPtr newSolution = createSolution(observedVector, myVector, standardVector);
         
+        for (SpotVectorMatrixMap2D::iterator jt = matrices.begin(); jt != matrices.end() && count < 5; jt++)
+        {
+            for (SpotVectorMatrixMap::iterator kt = jt->second.begin(); kt != jt->second.end(); kt++)
+            {
+                MatrixPtr mat = kt->second;
+                
+                if (!IndexingSolution::matrixSimilarToMatrix(newSolution, mat))
+                {
+                    return false;
+                }
+            }
+            
+            count++;
+        }
+       /*
         double theta, phi, psi;
         
         newSolution->eulerAngles(&theta, &phi, &psi);
@@ -458,7 +473,7 @@ bool IndexingSolution::vectorSolutionsAreCompatible(SpotVectorPtr observedVector
         if (!similar)
             return false;
         
-        count++;
+        count++;*/
     }
     
     return true;
