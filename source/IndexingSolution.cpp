@@ -32,7 +32,7 @@ double IndexingSolution::distanceTolerance = 4000;
 double IndexingSolution::distanceToleranceReciprocal = 0.0025;
 double IndexingSolution::angleTolerance = 1.0 * M_PI / 180;
 double IndexingSolution::solutionAngleSpread = 8.0 * M_PI / 180;
-double IndexingSolution::approximateCosineDelta = 0.012;
+double IndexingSolution::approximateCosineDelta = 0.017;
 UnitCellLatticePtr IndexingSolution::lattice;
 Reflection *IndexingSolution::newReflection;
 bool IndexingSolution::notSetup = true;
