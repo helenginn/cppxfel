@@ -337,6 +337,10 @@ int Image::valueAt(int x, int y)
     
     //PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
     DetectorPtr det = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
+    
+    if (!det)
+        return 0;
+    
     double panelGain = det->getGain();
     
     return rawValue * panelGain;

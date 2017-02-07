@@ -331,6 +331,10 @@ void Spot::recentreInWindow(int windowPadding)
         {
             int myX = xy.first + i;
             int myY = xy.second + j;
+            
+            if (thisImage->accepted(myX, myY))
+                continue;
+            
             int pixelIntensity = thisImage->valueAt(myX, myY);
             
             if (pixelIntensity <= 10)
