@@ -11,7 +11,6 @@
 #include <vector>
 #include "Image.h"
 #include "parameters.h"
-#include "Panel.h"
 #include "Vector.h"
 #include "LoggableObject.h"
 
@@ -45,18 +44,13 @@ public:
 	virtual ~Spot();
 
     static void spotsAndVectorsToResolution(double lowRes, double highRes, std::vector<SpotPtr> spots, std::vector<SpotVectorPtr> spotVectors, std::vector<SpotPtr> *lowResSpots, std::vector<SpotVectorPtr> *lowResSpotVectors);
-    double weight();
-	double maximumLift(ImagePtr image, int x, int y, bool ignoreCovers);
-	double maximumLift(ImagePtr image, int x, int y);
-	void makeProbe(int height, int background, int size, int backPadding = 0);
+    void makeProbe(int height, int background, int size, int backPadding = 0);
     void addToMask(int *mask, int width, int height);
 	void setXY(double x, double y);
     void setXYFromEstimatedVector(vec hkl);
 	double scatteringAngle(ImagePtr image = ImagePtr());
 	bool isAcceptable(ImagePtr image);
-	static void sortSpots(vector<Spot *> *spots);
-	static bool spotComparison(Spot *a, Spot *b);
-    double angleFromSpotToCentre(double centreX, double centreY);
+	double angleFromSpotToCentre(double centreX, double centreY);
     double angleInPlaneOfDetector(double centreX = 0, double centreY = 0, vec upBeam = new_vector(0, 1, 0));
     double resolution();
     bool isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees);

@@ -259,7 +259,7 @@ int IndexManager::indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset)
                     
                     double resultantAngle = 0;
                     
-                    MatrixPtr secondTwizzleMatrix = closest_rotation_matrix(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
+                    MatrixPtr secondTwizzleMatrix = closest_rotmat_analytical(rotatedObservedVec2, simulatedVec2, firstAxisUnit, &resultantAngle);
                     
                     if (resultantAngle > angleTolerance)
                         continue;
@@ -555,7 +555,7 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
             
             image->findIndexingSolutions();
             
-            std::vector<MtzPtr> mtzs = image->getLastMtzs();
+            std::vector<MtzPtr> mtzs = image->currentMtzs();
             
             mtzSubset->reserve(mtzSubset->size() + mtzs.size());
             mtzSubset->insert(mtzSubset->begin(), mtzs.begin(), mtzs.end());

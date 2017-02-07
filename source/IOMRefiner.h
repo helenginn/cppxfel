@@ -87,7 +87,6 @@ public:
 			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
 
 	static void duplicateSpots(vector<ImagePtr>images);
-	void writeDatFromSpots(std::string filename);
 	
 	double minimizeParameter(double *meanStep, double *param, int whichAxis = 0);
 	void minimizeTwoParameters(double *meanStep1, double *meanStep2,

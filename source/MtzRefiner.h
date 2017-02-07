@@ -10,7 +10,6 @@
 
 #include "parameters.h"
 #include "MtzManager.h"
-#include "PanelParser.h"
 #include "LoggableObject.h"
 #include <scitbx/mat3.h>
 
@@ -23,8 +22,6 @@ private:
 	MtzPtr reference;
     MtzPtr referencePtr;
 	vector<ImagePtr> images;
-    static bool hasPanelParser;
-    PanelParser *panelParser;
     static int imageLimit;
     static int imageMax(size_t lineCount);
     static void singleLoadImages(std::string *filename, vector<ImagePtr> *newImages, int offset);
@@ -48,7 +45,6 @@ public:
 
     void index();
     void powderPattern();
-    void hitAnalysis();
 	bool loadInitialMtz(bool force = false);
     void indexingParameterAnalysis();
     
@@ -56,8 +52,7 @@ public:
 	void cycleThread(int offset);
 	static void cycleThreadWrapper(MtzRefiner *object, int offset);
 
-    void refineSymmetry();
-	void refine();
+    void refine();
 	void refineCycle(bool once = false);
 	void readMatricesAndMtzs();
     void refineMetrology(bool global);
@@ -113,7 +108,6 @@ public:
     void writeAllNewOrientations();
     void writeNewOrientations(bool includeRots = false, bool detailed = false);
     void removeSigmaValues();
-    void radialAverage();
     void integrateSpots();
     void linearScaling();
     

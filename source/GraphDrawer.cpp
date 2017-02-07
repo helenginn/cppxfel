@@ -15,7 +15,7 @@
 #include <map>
 #include <sstream>
 #include <tuple>
-#include "Panel.h"
+#include "Detector.h"
 #include <fstream>
 #include <cctbx/miller/sym_equiv.h>
 #include <cctbx/miller/asu.h>
@@ -968,11 +968,13 @@ void GraphDrawer::cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h, int k,
                 int xStart = xGrid * (windowPadding * 2 + 3) + 2;
                 int yStart = yGrid * (windowPadding * 2 + 3) + 2;
                 
-                PanelPtr panel = Panel::panelForMiller(&*miller);
-                Coord bestShift = panel->shiftForMiller(&*miller);
+                double shiftedX, shiftedY;
+                DetectorPtr detector = Detector::getMaster()->spotCoordForMiller(miller, &shiftedX, &shiftedY);
                 
-                double shiftedX = miller->getLastX() + bestShift.first;
-                double shiftedY = miller->getLastY() + bestShift.second;
+                if (!detector)
+                {
+                    continue;
+                }
                 
                 logged << "Found Miller on " << mtz->getFilename() << " - will be plotting at (" << shiftedX << ", " << shiftedY << ")" << std::endl;
                 Logger::log(logged);

@@ -55,18 +55,6 @@ bool within_vicinity(vec vec1, vec vec2, double maxD)
     return true;
 }
 
-void setFloatingPointErrorZerosToZero(vec *vec1, double limit)
-{
-    if (fabs(vec1->h) < limit)
-        vec1->h = 0;
-
-    if (fabs(vec1->k) < limit)
-        vec1->k = 0;
-
-    if (fabs(vec1->l) < limit)
-        vec1->l = 0;
-}
-
 vec vector_between_vectors(vec vec1, vec vec2)
 {
 	vec vec;
@@ -89,14 +77,6 @@ void add_vector_to_vector(vec *vec1, vec vec2)
 	(*vec1).h += vec2.h;
 	(*vec1).k += vec2.k;
 	(*vec1).l += vec2.l;
-}
-
-vec perpendicular_for_vectors(vec vec1, vec vec2)
-{
-    vec perp = cross_product_for_vectors(vec1, vec2);
-    scale_vector_to_distance(&perp, 1);
-    
-    return perp;
 }
 
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2)
@@ -174,110 +154,6 @@ MatrixPtr closest_rotmat_analytical(vec vec1, vec vec2,
     mat->rotateRoundUnitVector(axis, bestAngle);
     
     return mat;
-}
-
-/** DON'T USE THIS ANYMORE! **/
-MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle)
-{
-    bool close = false;
-    
-    // we want to minimise the angle between the vectors rotating round chosen axis. This is the starting value
-    double lastCosAngle = fabs(angleBetweenVectors(vec1, vec2));
-    MatrixPtr mat = MatrixPtr(new Matrix());
-    
-    // we step by this amount on each iteration.
-    double step = 0.5 * M_PI / 180;
-    
-    // in case we start going in the wrong direction, we can switch direction once
-    bool switchedOnce = false;
-    
-    // for very fine angles when we are closer to the solution
-    bool divided = false;
-    
-    int cycles = 0;
-   
-    double totalStep = 0;
-    
-    while (!close && cycles < 20000)
-    {
-        mat->rotateRoundUnitVector(chosenCrossProduct, step);
-        vec vec1Copy = copy_vector(vec1);
-        mat->multiplyVector(&vec1Copy);
-        double cosTheta = cosineBetweenVectors(vec1Copy, vec2);
-        
-        if (cosTheta < lastCosAngle)
-        {
-            if (switchedOnce)
-                close = true;
-            
-            step = -step;
-            switchedOnce = true;
-        }
-        
-        if (cosTheta > 0.95 && !divided)
-        {
-            step /= 10;
-            divided = true;
-        }
-        
-        totalStep += step;
-        lastCosAngle = cosTheta;
-        
-        cycles++;
-    }
-    
-    *resultantAngle = acos(lastCosAngle);
-    
-    return mat;
-    
-}
-
-MatrixPtr rotation_between_vectors_custom_cross(vec vec1, vec vec2, vec chosenCrossProduct)
-{
-    scale_vector_to_distance(&vec1, 1);
-    scale_vector_to_distance(&vec2, 1);
-    scale_vector_to_distance(&chosenCrossProduct, 1);
-    
-    MatrixPtr vx = MatrixPtr(new Matrix());
-    MatrixPtr vxSquared = MatrixPtr(new Matrix());
-    double c = cosineBetweenVectors(vec1, vec2);
-    
-    
-    vec v = cross_product_for_vectors(vec1, vec2);// chosenCrossProduct;
-    
-    vx = MatrixPtr(new Matrix());
-    vx->components[0] = 0;
-    vx->components[1] = v.l;
-    vx->components[2] = -v.k;
-    vx->components[4] = -v.l;
-    vx->components[5] = 0;
-    vx->components[6] = v.h;
-    vx->components[8] = v.k;
-    vx->components[9] = -v.h;
-    vx->components[10] = 0;
-    
-    vxSquared = vx->copy();
-    vxSquared->multiply(*vx);
-    
-    vec vxvec1 = copy_vector(vec1);
-    vx->multiplyVector(&vxvec1);
-    
-    vec vxSquaredVec1 = copy_vector(vec1);
-    vxSquared->multiplyVector(&vxSquaredVec1);
-    
-    vec vec3 = vec2;
-    take_vector_away_from_vector(vxvec1, &vec3);
-    take_vector_away_from_vector(vec1, &vec3);
-    
-    
-    double scale = (1 - c);
-    vxSquared->multiply(scale);
-    
-    MatrixPtr rotation = MatrixPtr(new Matrix());
-    rotation->add(vx);
-    rotation->add(vxSquared);
-    
-    return rotation;
 }
 
 vec cross_product_for_vectors(vec vec1, vec vec2)
@@ -398,16 +274,6 @@ double getEwaldSphereNoMatrix(vec index)
 	double ewald_wavelength = 1 / ewald_radius;
 
 	return ewald_wavelength;
-}
-
-double getEwaldWeightForAxis(vec index, bool isH)
-{
-    vec axisVec = isH ? new_vector(1, 0, 0) : new_vector(0, 1, 0);
-    vec indexVec = new_vector(index.h, index.k, 0);
-    
-    double cos = cosineBetweenVectors(axisVec, indexVec);
-    
-    return 1 - fabs(cos);
 }
 
 double cartesian_to_distance(double x, double y)
@@ -764,10 +630,12 @@ double weighted_mean(vector<double> *means, vector<double> *weights)
 	return sum / weight_sum;
 }
 
+
 bool higher(double mean1, double mean2)
 {
     return mean1 > mean2;
 }
+
 
 double median(vector<double> *means)
 {

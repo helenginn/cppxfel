@@ -77,55 +77,6 @@ bool Spot::isAcceptable(ImagePtr image)
 	return true;
 }
 
-double Spot::weight()
-{
-	return maximumLift(getParentImage(), x, y, true);
-}
-
-double Spot::maximumLift(ImagePtr image, int x, int y)
-{
-	return maximumLift(getParentImage(), x, y, false);
-}
-
-double Spot::maximumLift(ImagePtr image, int x, int y, bool ignoreCovers)
-{
-	int length = (int)probe.size();
-	int tolerance = (length - 1) / 2;
-
-	double minDifference = FLT_MAX;
-	double penultimate = FLT_MAX;
-
-	for (int i = x - tolerance; i < x + tolerance; i++)
-	{
-		for (int j = y - tolerance; j < y + tolerance; j++)
-		{
-			double imageValue = image->valueAt(i, j);
-
-			if (image->coveredBySpot(i, j) && !ignoreCovers)
-			{
-				imageValue = 0;
-			}
-
-			if (imageValue == 0)
-				continue;
-
-			int probeX = i - x + tolerance;
-			int probeY = j - y + tolerance;
-			double probeValue = probe[probeX][probeY];
-
-			double difference = (imageValue - probeValue);
-
-			if (difference < minDifference)
-			{
-				penultimate = minDifference;
-				minDifference = difference;
-			}
-		}
-	}
-
-	return (penultimate > 0 && penultimate != FLT_MAX ? penultimate : 0);
-}
-
 double Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int round)
 {
     int focusedX = trialX;
@@ -296,32 +247,10 @@ double Spot::angleInPlaneOfDetector(double centreX, double centreY, vec upBeam)
     vec centre = new_vector(centreX, centreY, 0);
     vec spotVec = new_vector(getX(), getY(), 0);
     vec spotVecFromCentre = vector_between_vectors(centre, spotVec);
-    /*
-    if (centreX == 679.5 && centreY == 843.75)
-    {
-        std::ostringstream logged;
-        logged << "spotXY:\t" << getX() << "\t" << getY() << std::endl;
-        logged << "beam:\t" << getParentImage()->getBeamX() << "\t" << getParentImage()->getBeamY() << std::endl;
-        logged << "upBeam:\t" << upBeam.h << "\t" << upBeam.k << std::endl;
-        logged << "centreXY:\t" << centreX << "\t" << centreY << std::endl;
-        logged << "spotFromCentre:\t" << spotVecFromCentre.h << "\t" << spotVecFromCentre.k << std::endl;
-        Logger::mainLogger->addStream(&logged);
-    }*/
     
     angleDetectorPlane = angleBetweenVectors(upBeam, spotVecFromCentre);
     
     return angleDetectorPlane;
-}
-
-void Spot::sortSpots(vector<Spot *> *spots)
-{
-	std::cout << "Sorting spots" << std::endl;
-	std::sort(spots->begin(), spots->end(), spotComparison);
-}
-
-bool Spot::spotComparison(Spot *a, Spot *b)
-{
-	return (a->weight() > b->weight());
 }
 
 void Spot::setUpdate()
@@ -350,31 +279,12 @@ Coord Spot::getXY()
         return std::make_pair(x, y);
     }
     
-    if (Detector::isActive())
-    {
-        vec arrangedPos = new_vector(FLT_MAX, FLT_MAX, FLT_MAX);
-        
-        DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
-        
-        return std::make_pair(arrangedPos.h, arrangedPos.k);
-    }
     
-    Coord shift = Panel::translationShiftForSpot(this);
-    Coord swivelShift = Panel::swivelShiftForSpot(this);
+    vec arrangedPos = new_vector(FLT_MAX, FLT_MAX, FLT_MAX);
     
-    if (shift.first == FLT_MAX)
-    {
-        shift.first = 0;
-        shift.second = 0;
-        swivelShift.first = 0;
-        swivelShift.second = 0;
-    }
-
-    Coord translated = std::make_pair(x - shift.first, y - shift.second);
-    translated.first += swivelShift.first;
-    translated.second += swivelShift.second;
+    DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
     
-    return translated;
+    return std::make_pair(arrangedPos.h, arrangedPos.k);
 }
 
 double Spot::getX(bool update)

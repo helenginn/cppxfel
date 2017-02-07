@@ -16,7 +16,7 @@
 #include "StatisticsManager.h"
 #include "Reflection.h"
 #include "Miller.h"
-#include "Panel.h"
+#include "Detector.h"
 #include "Image.h"
 #include "Hdf5Image.h"
 #include "Hdf5ManagerProcessing.h"
@@ -1579,17 +1579,9 @@ void MtzManager::writeToDat(std::string prefix)
         for (int j = 0; j < aReflection->millerCount(); j++)
         {
             MillerPtr miller = aReflection->miller(j);
-            double shiftX = miller->getShift().first;
-            double shiftY = miller->getShift().second;
-            double lastX = miller->getLastX();
-            double lastY = miller->getLastY();
-            Coord bestShift = std::make_pair(0, 0);
             
-            if (Panel::shouldUsePanelInfo())
-                bestShift = Panel::shiftForMiller(&*miller);
-            
-            double combinedX = shiftX + lastX + bestShift.first;
-            double combinedY = shiftY + lastY + bestShift.second;
+            double combinedX, combinedY;
+            DetectorPtr det = Detector::getMaster()->spotCoordForMiller(miller, &combinedX, &combinedY);
             
             double rejectionFlags = miller->getRejectionFlags();
             
@@ -1768,22 +1760,6 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
     
     logged << filename << ": I/sigI cutoff rejected reflections over " << cutoffResolution << " Å." << std::endl;
     sendLog();
-}
-
-
-bool MtzManager::checkUnitCell(double trueA, double trueB, double trueC, double tolerance)
-{
-    double *cellDims = new double[3];
-    matrix->unitCellLengths(&cellDims);
-    
-    if (cellDims[0] < trueA - tolerance || cellDims[0] > trueA + tolerance)
-        return false;
-    if (cellDims[1] < trueB - tolerance || cellDims[1] > trueB + tolerance)
-        return false;
-    if (cellDims[2] < trueC - tolerance || cellDims[2] > trueC + tolerance)
-        return false;
-    
-    return true;
 }
 
 std::string MtzManager::getParamLine()

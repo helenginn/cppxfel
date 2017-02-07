@@ -13,7 +13,6 @@
 #include "FileReader.h"
 #include "Logger.h"
 #include "FileParser.h"
-#include "Panel.h"
 #include "misc.h"
 #include "Shoebox.h"
 #include "Spot.h"
@@ -140,17 +139,8 @@ void Image::setUpIOMRefiner(MatrixPtr matrix)
     indexers.push_back(indexer);
 }
 
-void Image::setUpIOMRefiner(MatrixPtr unitcell, MatrixPtr rotation)
-{
-    IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(shared_from_this(), MatrixPtr(new Matrix())));
-    
-    indexers.push_back(indexer);
-}
-
 Image::~Image()
 {
-//    std::cout << "Deallocating image." << std::endl;
-    
     data.clear();
     vector<int>().swap(data);
     
@@ -177,17 +167,6 @@ void Image::addMask(int startX, int startY, int endX, int endY)
     masks.push_back(mask);
 }
 
-void Image::addSpotCover(int startX, int startY, int endX, int endY)
-{
-    vector<int> mask = vector<int>();
-    
-    mask.push_back(startX);
-    mask.push_back(startY);
-    mask.push_back(endX);
-    mask.push_back(endY);
-    
-    spotCovers.push_back(mask);
-}
 
 void Image::applyMaskToImages(vector<ImagePtr> images, int startX,
                               int startY, int endX, int endY)
@@ -293,21 +272,6 @@ void Image::dropImage()
         getIOMRefiner(i)->dropMillers();
 }
 
-bool Image::coveredBySpot(int x, int y)
-{
-    for (int i = 0; i < spotCovers.size(); i++)
-    {
-        int startX = spotCovers[i][0];
-        int startY = spotCovers[i][1];
-        int endX = spotCovers[i][2];
-        int endY = spotCovers[i][3];
-        
-        if (x >= startX && x <= endX && y >= startY && y <= endY)
-            return true;
-    }
-    
-    return false;
-}
 
 void Image::addValueAt(int x, int y, int addedValue)
 {
@@ -371,11 +335,9 @@ int Image::valueAt(int x, int y)
 {
     double rawValue = rawValueAt(x, y);
     
-    PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
-    double panelGain = detectorGain;
-    
-    if (panel)
-        panelGain *= panel->getGainScale();
+    //PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
+    DetectorPtr det = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
+    double panelGain = det->getGain();
     
     return rawValue * panelGain;
 }
@@ -405,39 +367,6 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
     
     *x = newX;
     *y = newY;
-}
-
-void Image::focusOnMaximum(int *x, int *y, int tolerance, double shiftX, double shiftY)
-{
-    int newX = *x;
-    int newY = *y;
-    int midValue = valueAt(newX, newY);
-    
-    for (int i = *x - tolerance; i <= *x + tolerance; i++)
-    {
-        for (int j = *y - tolerance; j <= *y + tolerance; j++)
-        {
-            if (valueAt(i, j) > midValue)
-            {
-                newX = i;
-                newY = j;
-                midValue = valueAt(i, j);
-            }
-        }
-    }
-    
-  //  if (tolerance > 0 && accepted(newX, newY))
-  //      printBox(newX, newY, tolerance);
-    
-    *x = newX;
-    *y = newY;
-}
-
-int Image::shoeboxLength()
-{
-    double totalSize = 7;
-    
-    return totalSize;
 }
 
 Mask Image::flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
@@ -502,44 +431,6 @@ void Image::dumpImage()
     imgStream.close();
 }
 
-// @TODO
-bool Image::checkShoebox(ShoeboxPtr shoebox, int x, int y)
-{
-    int slowSide = 0;
-    int fastSide = 0;
-    
-    shoebox->sideLengths(&slowSide, &fastSide);
-    
-    int centreX = 0;
-    int centreY = 0;
-    
-    shoebox->centre(&centreX, &centreY);
-    
-    int zeroCount = 0;
-    int count = 0;
-    
-    for (int i = 0; i < slowSide; i++)
-    {
-        int panelPixelX = (i - centreX) + x;
-        
-        for (int j = 0; j < fastSide; j++)
-        {
-            int panelPixelY = (j - centreY) + y;
-            
-            if (!accepted(panelPixelX, panelPixelY))
-            {
-                return false;
-            }
-            
-            count++;
-            if (valueAt(panelPixelX, panelPixelY) == 0)
-                zeroCount++;
-        }
-    }
-    
-    return true;
-}
-
 std::pair<double, double> Image::reciprocalCoordinatesToPixels(vec hkl, double myWavelength)
 {
     if (myWavelength == 0)
@@ -579,27 +470,6 @@ vec Image::millimetresToReciprocalCoordinates(double xmm, double ymm)
     reciprocalCrystalVec.k *= -1;
     
     return reciprocalCrystalVec;
-}
-
-void Image::printBox(int x, int y, int tolerance)
-{
-    std::ostringstream logged;
-    
-    logged << "Print box at (" << x << ", " << y << "), radius " << tolerance << std::endl;
-    
-    for (int i = x - tolerance; i <= x + tolerance; i++)
-    {
-        for (int j = y - tolerance; j <= y + tolerance; j++)
-        {
-            logged << valueAt(i, j) << "\t";
-        }
-        logged << std::endl;
-    }
-    
-    logged << std::endl;
-    
-    Logger::mainLogger->addStream(&logged, LogLevelNormal);
-    
 }
 
 double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, float *error)
@@ -726,30 +596,8 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, floa
     
     double backgroundInSignal = 0;
     
- //   double lowestPoint = FLT_MAX;
- //   double highestPoint = -FLT_MAX;
     std::vector<double> corners;
-    /*
-     corners.push_back(p * (startX) + q * (startY) + r);
-     corners.push_back(p * (startX + slowSide) + q * (startY) + r);
-     corners.push_back(p * (startX) + q * (startY + fastSide) + r);
-     corners.push_back(p * (startX + slowSide) + q * (startY + fastSide) + r);
-     
-     for (int i = 0; i < corners.size(); i++)
-     {
-     if (corners[i] < lowestPoint)
-     lowestPoint = corners[i];
-     if (corners[i] > highestPoint)
-     highestPoint = corners[i];
-     }
-     
-     double topHeight = (highestPoint - lowestPoint);
-     
-     double bottomVolume = lowestPoint * slowSide * fastSide;
-     double topVolume = 0.5 * topHeight * slowSide * fastSide;
-     
-     backgroundInSignal = topVolume + bottomVolume;
-     */
+    
     double foreground = 0;
     int num = 0;
     
@@ -891,10 +739,7 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int to
     
     if (tolerance > 0)
     {
-        if (pinPoint)
-            focusOnMaximum(&x1, &y1, tolerance);
-        else
-            focusOnAverageMax(&x1, &y1, tolerance, 1, shoebox->isEven());
+        focusOnAverageMax(&x1, &y1, tolerance, 1, shoebox->isEven());
     }
     
     double integral = integrateWithShoebox(x1, y1, shoebox, error);
@@ -910,15 +755,6 @@ bool Image::accepted(int x, int y)
         
         if (!detector)
             return false;
-    }
-    else
-    {
-        PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
-        
-        if (!panel)
-        {
-            return false;
-        }
     }
     
     double value = rawValueAt(x, y);
@@ -943,22 +779,6 @@ bool Image::accepted(int x, int y)
         return false;
     
     return true;
-}
-
-void Image::index()
-{
-    if (indexers.size() == 0)
-    {
-        logged << "No orientation matrices, cannot index/integrate." << std::endl;
-        sendLog();
-        return;
-    }
-    
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->checkAllMillers(indexers[i]->getMaxResolution(),
-                                     indexers[i]->getTestBandwidth());
-    }
 }
 
 void Image::refineOrientations()
@@ -1145,31 +965,6 @@ unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
     }
     
     return max;
-}
-
-bool Image::checkUnitCell(double trueA, double trueB, double trueC, double tolerance)
-{
-    for (int i = 0; i < IOMRefinerCount(); i++)
-    {
-        bool isOk = true;
-        double *cellDims = new double[3];
-        getIOMRefiner(i)->getMatrix()->unitCellLengths(&cellDims);
-        
-        if (cellDims[0] < trueA - tolerance || cellDims[0] > trueA + tolerance)
-            isOk = false;
-        if (cellDims[1] < trueB - tolerance || cellDims[1] > trueB + tolerance)
-            isOk = false;
-        if (cellDims[2] < trueC - tolerance || cellDims[2] > trueC + tolerance)
-            isOk = false;
-        
-        if (!isOk)
-        {
-            indexers.erase(indexers.begin() + i);
-            i--;
-        }
-    }
-    
-    return IOMRefinerCount() > 0;
 }
 
 void Image::updateAllSpots()
@@ -1370,11 +1165,6 @@ void Image::processSpotList()
             << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
             sendLog(LogLevelDebug);
             
-            if (!Detector::isActive() && Panel::panelForSpot(&*newSpot) == PanelPtr())
-            {
-                add = false;
-            }
-            
             if (add)
             {
                 addSpotIfNotMasked(newSpot);
@@ -1412,26 +1202,6 @@ void Image::processSpotList()
     loadedSpots = true;
 }
 
-
-void Image::rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements)
-{
-    double maxRes = 1.0;
-    
-    for (int i = 0; i < spots.size(); i++)
-    {
-        vec spotPos = spots[i]->estimatedVector();
-        bool goodSpot = (spots[i]->successfulLineCount() > 0);
-        
-        if (length_of_vector(spotPos) > 1 / maxRes)
-            continue;
-        
-        rotationMatrix->multiplyVector(&spotPos);
-        spotPositions->push_back(spotPos);
-        
-        std::string element = goodSpot ? "N" : "O";
-        spotElements->push_back(element);
-    }
-}
 
 bool Image::acceptableSpotCount()
 {
@@ -2204,22 +1974,6 @@ void Image::findIndexingSolutions()
     dropImage();
 }
 
-std::vector<MtzPtr> Image::getLastMtzs()
-{
-    std::vector<MtzPtr> mtzs;
-    
-    for (int i = 0; i < IOMRefinerCount(); i++)
-    {
-        MtzPtr lastMtz = getIOMRefiner(i)->getLastMtz();
-        
-        if (lastMtz)
-        {
-            mtzs.push_back(lastMtz);
-        }
-    }
-    
-    return mtzs;
-}
 
 void Image::writeSpotsList(std::string spotFile)
 {
@@ -2247,14 +2001,6 @@ void Image::writeSpotsList(std::string spotFile)
     Spot::writeDatFromSpots(spotDat, spots);
 }
 
-void Image::reset()
-{
-    clearIOMRefiners();
-    failedRefiners.clear();
-    minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
-    
-    processSpotList();
-}
 
 double Image::resolutionAtPixel(double x, double y)
 {
@@ -2325,110 +2071,6 @@ void Image::excludeWeakestSpots(double fraction)
     
 }
 
-void Image::radialAverage()
-{
-    double maxIntegratedResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 3.5);
-    double minIntegratedResolution = FileParser::getKey("MIN_INTEGRATED_RESOLUTION", 100);
-    double binCount = FileParser::getKey("BINS", 100);
-    
-    std::vector<double> bins;
-    StatisticsManager::generateResolutionBins(minIntegratedResolution, maxIntegratedResolution, binCount, &bins);
-    
-    std::vector<double> intensities = std::vector<double>(bins.size(), 0);
-    std::vector<double> counts = std::vector<double>(bins.size(), 0);
-    std::vector<double> subtracted = std::vector<double>(bins.size(), 0);
-    
-    for (int i = 0; i < xDim; i++)
-    {
-        for (int j = 0; j < yDim; j++)
-        {
-            double resolution = 1 / resolutionAtPixel(i, j);
-            double value = valueAt(i, j);
-            
-            for (int k = 0; k < bins.size() - 1; k++)
-            {
-                if ((resolution < bins[k]) && (resolution > bins[k + 1]))
-                {
-                    intensities[k] += value;
-                    counts[k] += 1;
-                }
-            }
-        }
-    }
-    
-    for (int i = 0; i < bins.size(); i++)
-    {
-        intensities[i] /= counts[i];
-    }
-    
-    double buffer = binCount * 0.1;
-    double bufferRatio = 3;
-    logged << "Buffer size set to: " << buffer << std::endl;
-    sendLog();
-    
-    for (int i = buffer; i < intensities.size() - buffer; i++)
-    {
-        std::vector<double> intensityPortion, binsPortion;
-        
-        for (int j = i - buffer; j < i + buffer; j++)
-        {
-            if (j < i + (buffer / bufferRatio) && j > i - (buffer / bufferRatio))
-            {
-                continue;
-            }
-            
-            binsPortion.push_back(bins[j]);
-            intensityPortion.push_back(intensities[j]);
-        }
-        
-        for (int j = 0; j < binsPortion.size(); j++)
-        {
-            logged << binsPortion[j] << "\t" << intensityPortion[j] << std::endl;
-        }
-        
-        sendLog();
-        
-        std::vector<double> coeffs = polyfit(binsPortion, intensityPortion, 2);
-        
-        double backgroundSum = 0;
-        
-        for (int j = i - buffer / bufferRatio; j < i + buffer / bufferRatio; j++)
-        {
-            double x = bins[j];
-            backgroundSum += coeffs[2] * pow(x, 2) + coeffs[1] * x + coeffs[0];
-        }
-        
-        backgroundSum /= buffer * 2 / bufferRatio;
-        
-        subtracted[i] = intensities[i] - backgroundSum;
-    }
-    
-    CSV csv = CSV(2, "1 over d squared", "Average intensity");
-    
-    for (int i = 0; i < bins.size(); i++)
-    {
-        double bFacRes = 1 / bins[i];
-        csv.addEntry(0, bFacRes, subtracted[i]);
-    }
-    
-    csv.writeToFile("sub-" + getFilename() + ".csv");
-    
-    CSV csv2 = CSV(2, "1 over d squared", "Average intensity");
-    
-    for (int i = 0; i < bins.size(); i++)
-    {
-        double bFacRes = 1 / bins[i];
-        csv2.addEntry(0, bFacRes, intensities[i]);
-    }
-    
-    csv2.writeToFile("rad-" + getFilename() + ".csv");
-    
-    logged << "Written csv: sub-" << getFilename() << ".csv" << std::endl;
-    sendLog();
-    
-    dropImage();
-}
-
 double Image::standardDeviationOfPixels()
 {
     std::vector<double> values;
@@ -2447,96 +2089,6 @@ double Image::standardDeviationOfPixels()
     }
     
     return standard_deviation(&values);
-}
-
-void Image::clusterCountWithSpotNumber(int spotNum)
-{
-    double minDistance = IndexingSolution::getMinDistance();
-    
-    if (!loadedSpots)
-    {
-        processSpotList();
-    }
-    
-    if (spots.size() < 3)
-    {
-        return;
-    }
-    
-    std::vector<int> results = std::vector<int>(spotNum + 1, 0);
-    std::vector<SpotPtr> allSpotsIncluded;
-    
-    logged << getFilename() << "\t";
-    
-    for (int i = 0; i < spots.size() - 2; i++)
-    {
-        SpotPtr spot1 = spots[i];
-        for (int j = i + 1; j < spots.size() - 1; j++)
-        {
-            SpotPtr spot2 = spots[j];
-            
-            SpotVectorPtr vector = SpotVectorPtr(new SpotVector(spot1, spot2));
-            std::vector<SpotPtr> includedSpots;
-            
-            if (vector->distance() < minDistance)
-            {
-                includedSpots.push_back(spot1);
-                includedSpots.push_back(spot2);
-                allSpotsIncluded.push_back(spot1);
-                allSpotsIncluded.push_back(spot2);
-                
-                for (int k = j + 1; k < spots.size(); k++)
-                {
-                    SpotPtr spot3 = spots[k];
-                    bool ok = true;
-                    
-                    std::vector<SpotPtr>::iterator possibleSpot = std::find(allSpotsIncluded.begin(), allSpotsIncluded.end(), spot3);
-                    
-                    if (possibleSpot != allSpotsIncluded.end())
-                    {
-                        continue;
-                    }
-                    
-                    for (int l = 0; l < includedSpots.size(); l++)
-                    {
-                        SpotVectorPtr checkVec = SpotVectorPtr(new SpotVector(includedSpots[l], spot3));
-                        
-                        if (checkVec->distance() > minDistance)
-                        {
-                            ok = false;
-                        }
-                    }
-                    
-                    if (ok)
-                    {
-                        includedSpots.push_back(spot3);
-                        allSpotsIncluded.push_back(spot3);
-                    }
-                    
-                    if (includedSpots.size() == spotNum)
-                    {
-                        break;
-                    }
-                }
-                
-                size_t clusterSize = includedSpots.size();
-                
-                results[clusterSize]++;
-                includedSpots.clear();
-            }
-        }
-    }
-
-    logged << spots.size() << "\t";
-    
-    for (int i = 2; i < spotNum + 1; i++)
-    {
-        logged << results[i] << "\t";
-    }
-    
-    logged << std::endl;
-    
-    sendLog();
 }
 
 void Image::drawSpotsOnPNG(std::string filename)
@@ -2584,19 +2136,6 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
                 vec intersection = myMiller->getShiftedRay();
                 
                 pngCoord = std::make_pair(intersection.h, intersection.k);
-            }
-            else
-            {
-                PanelPtr panel = Panel::panelForMiller(&*myMiller);
-                
-                if (!panel)
-                    continue;
-                
-                double correctedX = myMiller->getCorrectedX();
-                double correctedY = myMiller->getCorrectedY();
-                
-                Coord corrected = std::pair<double, double>(correctedX, correctedY);
-                pngCoord = panel->spotToMillerCoord(corrected);
             }
             
             bool strong = myMiller->reachesThreshold();
@@ -2658,7 +2197,6 @@ void Image::writePNG(PNGFilePtr file)
     
     double threshold = FileParser::getKey("PNG_THRESHOLD", defaultThreshold);
     
-    PanelPtr lastPanel = PanelPtr();
     DetectorPtr lastDetector = DetectorPtr();
     double minZ = 0;
     double maxZ = 0;
@@ -2670,8 +2208,6 @@ void Image::writePNG(PNGFilePtr file)
         
         minZ -= nudge;
         maxZ += nudge;
-     //   minZ = 909;
-     //   maxZ = 913;
     }
     
     for (int i = 0; i < xDim; i++)
@@ -2687,9 +2223,6 @@ void Image::writePNG(PNGFilePtr file)
             float brightness = 1 - std::min(value, threshold) / threshold;
             
             Coord coord = std::make_pair(i, j);
-            
-            PanelPtr panel = lastPanel;
-        //    PanelPtr mask = lastMask;
             
             DetectorPtr detector = lastDetector;
             
@@ -2719,32 +2252,7 @@ void Image::writePNG(PNGFilePtr file)
                 
                 continue;
             }
-            
-            if (panel)
-            {
-                Coord shifted = lastPanel->spotToMillerCoord(coord);
-                
-                if (!panel->isMillerCoordInPanel(shifted) || Panel::spotCoordFallsInMask(shifted))
-                {
-                    panel = Panel::panelForSpotCoord(coord);
-                }
-            }
-            else
-            {
-                panel = Panel::panelForSpotCoord(coord);
-            }
-            
-            if (panel)
-            {
-                lastPanel = panel;
-          //      lastMask = mask;
-                
-                Coord realPosition = panel->realCoordsForImageCoord(coord);
-                file->setPixelColourRelative(realPosition.first, realPosition.second, pixelValue, pixelValue, pixelValue);
-            }
         }
-        
-    //    std::cout << std::endl;
     }
 }
 

@@ -22,8 +22,7 @@
 #include "FileParser.h"
 #include "parameters.h"
 #include "FileReader.h"
-#include "PanelParser.h"
-#include "Panel.h"
+
 #include "Logger.h"
 #include "MtzGrouper.h"
 #include "MtzMerger.h"
@@ -32,7 +31,6 @@
 #include "GeometryParser.h"
 #include "GeometryRefiner.h"
 
-bool MtzRefiner::hasPanelParser;
 int MtzRefiner::imageLimit;
 int MtzRefiner::cycleNum;
 
@@ -41,9 +39,6 @@ int MtzRefiner::cycleNum;
 MtzRefiner::MtzRefiner()
 {
     // TODO Auto-generated constructor stub
-    panelParser = NULL;
-    
-    hasPanelParser = false;
     int logInt = FileParser::getKey("VERBOSITY_LEVEL", 0);
     Logger::mainLogger->changePriorityLevel((LogLevel)logInt);
     
@@ -404,76 +399,6 @@ void MtzRefiner::refineCycle(bool once)
     
 }
 
-
-// MARK: Symmetry-related reflection refinement
-
-void MtzRefiner::refineSymmetry()
-{
-    readMatricesAndMtzs();
-    
-    std::cout << "N: Total images loaded: " << mtzManagers.size() << std::endl;
-    
-    std::cout << "Refining images using symmetry: " << std::endl;
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        int symmCount = mtzManagers[i]->symmetryRelatedReflectionCount();
-        int paramCount = mtzManagers[i]->refinedParameterCount();
-        
-        if (symmCount < paramCount * 8 && paramCount > 30)
-        {
-            mtzManagers[i]->setRejected(true);
-            continue;
-        }
-        
-        std::cout << mtzManagers[i]->getFilename() << "\t" << symmCount << "\t" << paramCount << std::endl;
-        
-        mtzManagers[i]->setDefaultScoreType(ScoreTypeSymmetry);
-    }
-    
-    refineCycle(true);
-    
-    MtzManager::setReference(&*reference);
-    
-    int defaultScoreInt = FileParser::getKey("DEFAULT_TARGET_FUNCTION",
-                                             (int) DEFAULT_SCORE_TYPE);
-    ScoreType desiredScoreType = (ScoreType) defaultScoreInt;
-    
-    double spotSum = 0;
-    double mosaicitySum = 0;
-    int count = 0;
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        double spotSize = fabs(mtzManagers[i]->getSpotSize());
-        double mosaicity = fabs(mtzManagers[i]->getMosaicity());
-        
-        if (mtzManagers[i]->isRejected() == false)
-        {
-            spotSum += spotSize;
-            mosaicitySum += mosaicity;
-            count++;
-        }
-    }
-    
-    spotSum /= count;
-    mosaicitySum /= count;
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        if (mtzManagers[i]->isRejected())
-        {
-            mtzManagers[i]->setSpotSize(spotSum);
-            mtzManagers[i]->setMosaicity(mosaicitySum);
-            mtzManagers[i]->setRejected(false);
-        }
-        
-        mtzManagers[i]->setOptimisingOrientation(true);
-        mtzManagers[i]->setOptimisingWavelength(true);
-        
-        mtzManagers[i]->setDefaultScoreType(desiredScoreType);
-    }
-}
 
 // MARK: Loading data
 
@@ -1655,8 +1580,6 @@ void MtzRefiner::integrate()
     
     threads.join_all();
     
-    Panel::finaliseMillerArrays();
-    
     int total = 0;
     
     for (int i = 0; i < maxThreads; i++)
@@ -1749,31 +1672,6 @@ void MtzRefiner::loadPanels(bool mustFail)
         
         return;
     }
-    
-    std::string panelList = FileParser::getKey("PANEL_LIST", std::string(""));
-    
-    panelParser = new PanelParser(panelList);
-    
-    if (panelList != "" && Panel::panelCount() == 0)
-    {
-        std::cout << "Loading panels" << std::endl;
-        panelParser->parse();
-        hasPanelParser = true;
-    }
-    else if (panelList == "" && mustFail)
-    {
-        logged << "No panel list provided. Exiting as all reflections will be rejected."
-        << std::endl;
-        sendLog(LogLevelNormal, true);
-    }
-    else if (Panel::panelCount() > 0)
-    {
-        logged <<  "Panels already present" << std::endl;
-        sendLog();
-        return;
-    }
-    
-    
 }
 
 void MtzRefiner::findSteps()
@@ -2021,36 +1919,6 @@ void MtzRefiner::indexingParameterAnalysis()
 // MARK: SACLA stuff for April 2016
 
 
-void MtzRefiner::radialAverageThread(MtzRefiner *me, int offset)
-{
-    double maxThreads = FileParser::getMaxThreads();
-    
-    for (int i = offset; i < me->images.size(); i += maxThreads)
-    {
-        me->images[i]->radialAverage();
-    }
-}
-
-void MtzRefiner::radialAverage()
-{
-    loadPanels();
-    this->readMatricesAndImages();
-    std::cout << "N: Total images loaded: " << images.size() << std::endl;
-    double maxThreads = FileParser::getMaxThreads();
-    
-    boost::thread_group threads;
-    
-    for (int i = 0; i < maxThreads; i++)
-    {
-        boost::thread *thr = new boost::thread(radialAverageThread, this, i);
-        threads.add_thread(thr);
-    }
-    
-    threads.join_all();
-    
-    std::cout << "Finished radial averages." << std::endl;
-}
-
 void MtzRefiner::integrateSpotsThread(MtzRefiner *me, int offset)
 {
     double maxThreads = FileParser::getMaxThreads();
@@ -2142,56 +2010,12 @@ void MtzRefiner::refineMetrology(bool global)
         
         return;
     }
-    
-    int count = 0;
-    bool againstPseudo = FileParser::getKey("REFINE_AGAINST_PSEUDO", false);
-    
-    if (againstPseudo)
-    {
-        powderPattern();
-    }
-    
-    else
-    {
-        for (int i = 0; i < images.size(); i++)
-        {
-            if (images[i]->IOMRefinerCount())
-            {
-                images[i]->valueAt(100, 100); // trigger load into memory!
-                count++;
-            }
-        }
-    }
-    
-    logged << "Loaded " << count << " images into memory! Now refining..." << std::endl;
-    
-    if (global)
-    {
-        
-        Panel::detectorStepSearch(againstPseudo, images);
-    }
-    else
-    {
-        logged << "Panel plots from before refinement:" << std::endl;
-        sendLog();
-        Panel::plotAll(PlotTypeAbsolute);
-        Panel::printToFile("new_panels.txt");
-    }
-    
-    if ((global && !againstPseudo) || !global)
-    {
-        logged << "Panel plots from after refinement:" << std::endl;
-        sendLog();
-        
-        Panel::plotAll(PlotTypeAbsolute);
-    }
 }
 
 MtzRefiner::~MtzRefiner()
 {
     //    std::cout << "Deallocating MtzRefiner." << std::endl;
     
-    delete panelParser;
     mtzManagers.clear();
     
     images.clear();
@@ -2234,14 +2058,6 @@ void MtzRefiner::applyUnrefinedPartiality()
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         mtzManagers[i]->applyUnrefinedPartiality();
-    }
-}
-
-void MtzRefiner::hitAnalysis()
-{
-    for (int i = 0; i < images.size(); i++)
-    {
-        images[i]->clusterCountWithSpotNumber(4);
     }
 }
 

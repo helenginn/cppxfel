@@ -93,7 +93,6 @@ private:
     
     BeamPtr beam;
     ImageWeakPtr image;
-    PanelWeakPtr lastPanel;
     DetectorWeakPtr lastDetector;
     IOMRefinerWeakPtr refiner;
     ShoeboxPtr shoebox;
@@ -139,7 +138,6 @@ public:
 	void makeScalesPermanent();
     void integrateIntensity(MatrixPtr transformedMatrix);
     vec getTransformedHKL(double hRot, double kRot);
-    double getEwaldWeight(double hRot, double kRot, bool isH);
     
 	bool accepted(void);
 	bool isFree()
@@ -430,16 +428,6 @@ public:
     ImagePtr getImage()
     {
         return image.lock();
-    }
-    
-    PanelPtr getPanel()
-    {
-        return lastPanel.lock();
-    }
-    
-    void setPanel(PanelPtr newPanel)
-    {
-        lastPanel = newPanel;
     }
     
     void setCorrectingPolarisation(bool on)

@@ -28,6 +28,8 @@ int Detector::specialImageCounter = 0;
 
 void Detector::initialiseZeros()
 {
+    gain = 1;
+    
     unarrangedTopLeftX = 0;
     unarrangedTopLeftY = 0;
     unarrangedBottomRightX = 0;
@@ -81,6 +83,51 @@ Detector::Detector(DetectorPtr parent, vec arrangedMiddle, std::string tag)
     arrangedMidPoint = arrangedMiddle;
     setParent(parent);
     setTag(tag);
+}
+
+Detector::Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBottomRight,
+                   double angle, double offsetX, double offsetY, double gain)
+{
+    initialiseZeros();
+    setParent(parent);
+    
+    double rad = -angle * M_PI / 180;
+    
+    vec slowAxis = new_vector(0, 1, 0);
+    vec fastAxis = new_vector(1, 0, 0);
+    
+    MatrixPtr mat = MatrixPtr(new Matrix());
+    mat->rotate2D(rad);
+    
+    mat->multiplyVector(&slowAxis);
+    mat->multiplyVector(&fastAxis);
+    
+    setSlowDirection(slowAxis.h, slowAxis.k, slowAxis.l);
+    setFastDirection(fastAxis.h, fastAxis.k, fastAxis.l);
+    
+    arrangedMidPoint = new_vector((arrangedTopLeft.first + arrangedBottomRight.first) / 2,
+                                  (arrangedTopLeft.second + arrangedBottomRight.second) / 2, 0);
+    
+    vec topLeft = new_vector(arrangedTopLeft.first, arrangedTopLeft.second, 0);
+    vec bottomRight = new_vector(arrangedBottomRight.first, arrangedBottomRight.second, 0);
+    vec reverseOffset = new_vector(offsetX, offsetY, 0);
+    
+    take_vector_away_from_vector(arrangedMidPoint, &topLeft);
+    take_vector_away_from_vector(arrangedMidPoint, &bottomRight);
+    
+    mat->multiplyVector(&topLeft);
+    mat->multiplyVector(&bottomRight);
+    
+    add_vector_to_vector(&topLeft, arrangedMidPoint);
+    add_vector_to_vector(&bottomRight, arrangedMidPoint);
+    
+    add_vector_to_vector(&topLeft, reverseOffset);
+    add_vector_to_vector(&bottomRight, reverseOffset);
+    
+    setUnarrangedTopLeft(std::min(topLeft.h, bottomRight.h), std::min(topLeft.k, bottomRight.k));
+    setUnarrangedBottomRight(std::max(topLeft.h, bottomRight.h), std::max(topLeft.k, bottomRight.k));
+    
+    removeMidPointRelativeToParent();
 }
 
 Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarrangedBottomRight,

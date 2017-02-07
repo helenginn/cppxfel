@@ -31,6 +31,7 @@ private:
     static ImagePtr drawImage;
     static DetectorType detectorType;
     static int specialImageCounter;
+    double gain;
     
     static bool enabledNudge;
     bool mustUpdateMidPoint;
@@ -129,6 +130,10 @@ public:
     /* For master panel: initialising using detector distance, beamX, beamY */
     /* Then set Detector::masterPanel to this pointer */
     Detector(double distance, double beamX, double beamY);
+    
+    /* For interpreting old panels.txt data */
+    Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBottomRight,
+             double angle, double offsetX, double offsetY, double gain);
     
     /* For children panels, using initialisation variables from CrystFEL */
     /* Follow with parent->addChild to complete the process */
@@ -567,6 +572,16 @@ public:
         {
             getChild(i)->setUpdateMidPointForDetector();
         }
+    }
+    
+    double getGain()
+    {
+        return gain;
+    }
+    
+    void setGain(double _gain)
+    {
+        gain = _gain;
     }
 };
 

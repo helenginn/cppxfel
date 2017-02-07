@@ -30,6 +30,7 @@ private:
     SpotVectorMatrixMap2D matrices;
     static UnitCellLatticePtr lattice;
     static std::mutex setupMutex;
+    int lastUsed;
     
     bool vectorAgreesWithExistingVectors(SpotVectorPtr observedVector, SpotVectorPtr standardVector);
     static bool vectorMatchesVector(SpotVectorPtr firstVector, SpotVectorPtr secondVector, std::vector<SpotVectorPtr> *firstMatch, std::vector<SpotVectorPtr> *secondMatch);
@@ -80,7 +81,6 @@ public:
     std::vector<double> totalAngles();
     std::vector<double> totalDistanceTrusts();
     bool spotsAreNotTooClose(SpotVectorPtr observedVector);
-    static void reset();
     SpotVectorMap spotVectors;
 
     IndexingSolutionPtr copy();

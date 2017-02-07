@@ -5,7 +5,6 @@
  *      Author: helenginn
  */
 
-#include "Panel.h"
 #include "Miller.h"
 #include "MtzManager.h"
 
@@ -605,15 +604,6 @@ double Miller::getWavelength(MatrixPtr transformedMatrix)
     return wavelength;
 }
 
-double Miller::getEwaldWeight(double hRot, double kRot, bool isH)
-{
-    double weight = 0;
-    vec hkl = getTransformedHKL(hRot, kRot);
-    weight = getEwaldWeightForAxis(hkl, isH);
-    
-    return weight;
-}
-
 double Miller::getWeight(bool cutoff, WeightType weighting)
 {
     if (!this->accepted() && cutoff)
@@ -1086,116 +1076,6 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         
         return;
     }
-    
-    if (!transformedMatrix)
-    {
-        transformedMatrix = getMatrix();
-    }
-
-    vec hkl = new_vector(h, k, l);
-    transformedMatrix->multiplyVector(&hkl);
-    double tmp = hkl.k;
-    hkl.k = hkl.h;
-    hkl.h = -tmp;
-
-    
-    std::pair<double, double> coord = getImage()->reciprocalCoordinatesToPixels(hkl, individualWavelength ? wavelength : 0);
-    
-    lastX = int(coord.first);
-    lastY = int(coord.second);
-    
-    *x = -INT_MAX;
-    *y = -INT_MAX;
-    
-    PanelPtr panel = Panel::panelForMiller(this);
-    
-    
-    int intLastX = int(coord.first);
-    int intLastY = int(coord.second);
-    
-    if (even)
-    {
-        intLastX = round(coord.first);
-        intLastY = round(coord.second);
-    }
-    
-    lastX = coord.first;
-    lastY = coord.second;
-
-    if (!Panel::shouldUsePanelInfo())
-    {
-        if (!panel)
-            return;
-        
-        if (!getIOMRefiner())
-            return;
-
-        int search = getIOMRefiner()->getSearchSize();
-        getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
-        
-        shift = std::make_pair(intLastX + 0.5 - coord.first, intLastY + 0.5 - coord.second);
-        
-        *x = intLastX;
-        *y = intLastY;
-        
-        lastPeakX = intLastX;
-        lastPeakY = intLastY;
-    }
-    else
-    {
-        if (!panel)
-            return;
-
-        if (!getIOMRefiner())
-            return;
-        
-        int search = getIOMRefiner()->getSearchSize();
-        Coord bestShift = panel->shiftForMiller(this);
-        
-        if (bestShift.first != FLT_MAX)
-        {
-            double shiftedX = lastX + bestShift.first;
-            double shiftedY = lastY + bestShift.second;
-            
-            int xInt, yInt;
-            
-            if (shouldSearch || (correctedX == 0 && correctedY == 0))
-            {
-                xInt = shiftedX;
-                yInt = shiftedY;
-            
-                getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
-            }
-            else
-            {
-                xInt = correctedX;
-                yInt = correctedY;
-            }
-            
-            shift = std::make_pair(xInt + 0.5 - shiftedX, yInt + 0.5 - shiftedY);
-            
-            *x = xInt;
-            *y = yInt;
-            
-            lastPeakX = xInt;
-            lastPeakY = yInt;
-        }
-        else
-        {
-            if (!getIOMRefiner())
-                return;
-
-            int search = getIOMRefiner()->getSearchSize();
-            
-            getImage()->focusOnAverageMax(&intLastX, &intLastY, search, peakSize, even);
-            
-            *x = intLastX;
-            *y = intLastY;
-        }
-    }
-    
-    correctedX = *x;
-    correctedY = *y;
 }
 
 vec Miller::getShiftedRay()

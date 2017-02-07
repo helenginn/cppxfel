@@ -14,7 +14,6 @@
 #include <iostream>
 #include "misc.h"
 #include <fstream>
-#include "Panel.h"
 #include "FileParser.h"
 #include "Miller.h"
 #include "Hdf5Crystal.h"
@@ -189,7 +188,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
             
             bool strong = millers[j]->reachesThreshold();
             
-            double weight = whichAxis == 0 ? 1 : millers[j]->getEwaldWeight(hRot, kRot, whichAxis == 1);
+            double weight = 1;
             
             total += weight;
             if (strong)
@@ -608,30 +607,6 @@ void IOMRefiner::duplicateSpots(vector<ImagePtr> images)
     std::cout << "Spots removed: " << spotsRemoved << std::endl;
 }
 
-void IOMRefiner::writeDatFromSpots(std::string filename)
-{
-    std::ofstream dat;
-    dat.open(filename);
-    int count = 0;
-    
-    for (int i = 0; i < expectedSpots && i < spots.size(); i++)
-    {
-        //	if (spots[i]->isAcceptable(image))
-        //	{
-        dat << "0\t0\t0\t1\t1\t1\t" << spots[i]->getX() << "\t" << spots[i]->getY()
-        << "\t1" << std::endl;
-        
-        std::cout << "Spot lift " << spots[i]->weight() << std::endl;
-        
-        count++;
-        //	}
-    }
-    
-    std::cout << count << " spots remain on image." << std::endl;
-    
-    dat.close();
-}
-
 void IOMRefiner::recalculateMillers(bool thorough)
 {
     this->checkAllMillers(maxResolution, testBandwidth, false, true);
@@ -699,7 +674,7 @@ double IOMRefiner::hkScore(bool reportStdev)
     
     pythagSum /= wavelengths.size();
     
-    double score = reportStdev ? pythagSum : -refTotal;
+    double score = reportStdev ? pythagSum / refTotal : -refTotal;
     
     logged << "Score is " << score << " from " << wavelengths.size() << " reflections" << std::endl;
     sendLog(LogLevelDetailed);
@@ -1214,8 +1189,6 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         
         ReflectionPtr found = ReflectionPtr();
         mtz->findReflectionWithId(index, &found);
-        
-        Panel::addMillerToPanelArray(miller);
         
         if (found != NULL)
         {

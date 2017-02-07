@@ -240,12 +240,6 @@ void InputFileParser::parse(bool fromPython)
                 refiner->writeNewOrientations(true, true);
             }
             
-            if (line == "REFINE_WITH_SYMMETRY")
-            {
-                understood = true;
-                refiner->refineSymmetry();
-            }
-            
             if (line == "INITIAL_MERGE")
             {
                 understood = true;
@@ -294,22 +288,10 @@ void InputFileParser::parse(bool fromPython)
                 refiner->combineLists();
             }
             
-            if (line == "RADIAL_AVERAGE")
-            {
-                understood = true;
-                refiner->radialAverage();
-            }
-            
             if (line == "WRITE_PNGS")
             {
                 understood = true;
                 refiner->writePNGs();
-            }
-            
-            if (line == "HIT_ANALYSIS")
-            {
-                understood = true;
-                refiner->hitAnalysis();
             }
             
             if (line == "PLOT_INTENSITIES")

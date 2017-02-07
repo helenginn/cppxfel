@@ -148,12 +148,6 @@ typedef enum
 
 typedef enum
 {
-    PanelTagNormal = 0,
-    PanelTagBad = 1,
-} PanelTag;
-
-typedef enum
-{
     RejectReasonNone = 0, // not rejected
     RejectReasonMerge = 1 << 0,
     RejectReasonPartiality = 1 << 1,
@@ -174,9 +168,9 @@ typedef enum
 {
     GeometryFormatCppxfel = 0,
     GeometryFormatCrystFEL = 1,
+    GeometryFormatPanelList = 2,
 } GeometryFormat;
 
-class Panel;
 class Detector;
 class SolventMask;
 class Logger;
@@ -222,10 +216,8 @@ typedef boost::shared_ptr<Reflection> ReflectionPtr;
 typedef boost::weak_ptr<Reflection> ReflectionWeakPtr;
 typedef boost::shared_ptr<Shoebox>ShoeboxPtr;
 typedef boost::shared_ptr<Spot> SpotPtr;
-typedef boost::shared_ptr<Panel>PanelPtr;
 typedef boost::shared_ptr<Detector>DetectorPtr;
 typedef boost::weak_ptr<Detector>DetectorWeakPtr;
-typedef boost::weak_ptr<Panel>PanelWeakPtr;
 typedef boost::shared_ptr<SolventMask> SolventMaskPtr;
 typedef boost::shared_ptr<MtzManager> MtzPtr;
 typedef boost::shared_ptr<Hdf5Crystal> Hdf5CrystalPtr;

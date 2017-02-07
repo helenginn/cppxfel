@@ -31,18 +31,12 @@ vec vector_between_vectors(vec vec1, vec vec2);
 void take_vector_away_from_vector(vec vec1, vec *vec2);
 void multiply_vector(vec *vec, double mult);
 void scale_vector_to_distance(vec *vec, double new_distance);
-vec perpendicular_for_vectors(vec vec1, vec vec2);
 MatrixPtr rotation_between_vectors(vec vec1, vec vec2);
-MatrixPtr rotation_between_vectors_custom_cross(vec vec1, vec vec2, vec chosenCrossProduct);
 
-MatrixPtr closest_rotation_matrix(vec vec1, vec vec2, vec chosenCrossProduct, double *resultantAngle);
 MatrixPtr closest_rotmat_analytical(vec vec1, vec vec2,
                                     vec axis, double *resultantAngle, bool addPi = true);
 
-void setFloatingPointErrorZerosToZero(vec *vec1, double limit = 10e-8);
-
 double getEwaldSphereNoMatrix(vec index);
-double getEwaldWeightForAxis(vec index, bool isH);
 double cdf(double x, double mean, double sigma);
 double _cdf(double x);
 double normal_distribution(double x, double mean, double sigma);

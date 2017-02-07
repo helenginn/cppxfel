@@ -24,6 +24,7 @@ private:
     DetectorPtr makeDetectorFromPanelMap(PanelMap map, DetectorPtr parent);
     void parseCrystFELLines(std::vector<std::string> lines);
     void parseCppxfelLines(std::vector<std::string> lines);
+    void parsePanelListLines(std::vector<std::string> lines);
     
     DetectorPtr makeDetector(int min_fs, int min_ss, int max_fs, int max_ss,
                              double ss_x, double ss_y, double ss_z,

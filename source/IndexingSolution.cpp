@@ -40,11 +40,6 @@ bool IndexingSolution::finishedSetup = false;
 bool IndexingSolution::checkingCommonSpots = true;
 std::mutex IndexingSolution::setupMutex;
 
-void IndexingSolution::reset()
-{
-    notSetup = true;
-    setupStandardVectors();
-}
 
 void IndexingSolution::setupStandardVectors()
 {
@@ -527,7 +522,7 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
 {
     int added = 0;
     
-    for (int i = 0; i < possibleVectors->size() && i < 3000; i++)
+    for (int i = lastUsed; i < possibleVectors->size() && i < lastUsed + 3000; i++)
     {
         SpotVectorPtr possibleVector = (*possibleVectors)[i];
         bool commonSpots = false;
@@ -590,6 +585,7 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
                 
                 possibleVectors->erase(possibleVectors->begin() + i);
                 i--;
+                lastUsed = i;
                 
                 if (added == limit && limit > 0)
                     return added;
@@ -679,6 +675,7 @@ IndexingSolutionPtr IndexingSolution::copy()
     newPtr->averageTheta = averageTheta;
     newPtr->averagePhi = averagePhi;
     newPtr->averagePsi = averagePsi;
+    newPtr->lastUsed = lastUsed;
     
     return newPtr;
 }
@@ -694,6 +691,7 @@ IndexingSolution::IndexingSolution(SpotVectorPtr firstVector, SpotVectorPtr seco
     averagePhi = 0;
     averagePsi = 0;
     matrixCount = 0;
+    lastUsed = 0;
     
     addVectorToList(firstVector, firstMatch);
     addVectorToList(secondVector, secondMatch);

@@ -163,7 +163,6 @@ public:
 	void excludePartialityOutliers();  // delete
 
     MatrixPtr matrix;
-    bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
     
 	void setFilename(std::string name);  // classify
     std::string getFilename(void);  // classify

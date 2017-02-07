@@ -43,6 +43,87 @@ DetectorPtr GeometryParser::makeDetector(int min_fs, int min_ss, int max_fs, int
     return segment;
 }
 
+void GeometryParser::parsePanelListLines(std::vector<std::string> lines)
+{
+    logged << "Warning: 'panels list' definition of prior days of cppxfel is woefully incomplete." << std::endl;
+    logged << "If you can parse in a CrystFEL or cppxfel (version 2) geometry file instead, this" << std::endl;
+    logged << "is highly recommended." << std::endl;
+    
+    double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
+    std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(2, 0));
+    
+    DetectorPtr master = DetectorPtr(new Detector(detectorDistance, beamCentre[0], beamCentre[1]));
+    Detector::setMaster(master);
+    
+    for (int i = 0; i < lines.size(); i++)
+    {
+        std::string line = lines[i];
+        
+        double x1 = 0;
+        double x2 = 0;
+        double y1 = 0;
+        double y2 = 0;
+        double o1 = 0;
+        double o2 = 0;
+        double sw = 0;
+        double gain = 1;
+        
+        trim(line);
+        
+        if (line[0] == '#')
+        {
+            continue;
+        }
+
+        std::vector<std::string> components = FileReader::split(line, ' ');
+        
+        if (!components.size())
+            continue;
+        
+        if (components[0] == "PANEL")
+        {
+            std::string panelNum = "panel" + i_to_str(i);
+            Coord arrangedTopLeft, arrangedBottomRight;
+            
+            
+            if (components.size() >= 5)
+            {
+                x1 = atof(components[1].c_str());
+                y1 = atof(components[2].c_str());
+                x2 = atof(components[3].c_str());
+                y2 = atof(components[4].c_str());
+                
+                arrangedTopLeft = std::make_pair(x1, y1);
+                arrangedBottomRight = std::make_pair(x2, y2);
+            }
+            
+            if (components.size() >= 7)
+            {
+                o1 = atof(components[5].c_str());
+                o2 = atof(components[6].c_str());
+            }
+            
+            if (components.size() >= 10)
+            {
+                sw = atof(components[9].c_str());
+            }
+            
+            if (components.size() >= 11)
+            {
+                gain = atof(components[10].c_str());
+            }
+            
+            DetectorPtr segment = DetectorPtr(new Detector(master, arrangedTopLeft, arrangedBottomRight, sw, o1, o2, gain));
+            
+            segment->setRotationAngles(0, 0, 0);
+            segment->setTag(panelNum);
+            master->addChild(segment);
+        }
+    }
+    
+    Detector::getMaster()->applyRotations();
+}
+
 void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
 {
     std::vector<std::string> panelStack;
@@ -433,6 +514,10 @@ void GeometryParser::parse()
     else if (format == GeometryFormatCppxfel)
     {
         parseCppxfelLines(lines);
+    }
+    else if (format == GeometryFormatPanelList)
+    {
+        parsePanelListLines(lines);
     }
     
     Detector::fullDescription();

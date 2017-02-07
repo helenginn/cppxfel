@@ -225,6 +225,7 @@ double SpotVector::getMinDistanceTolerance()
     double resolution = getResolution();
     
     double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+    
     //double mosaicity = FileParser::getKey("INITIAL_MOSAICITY", 0.0);
     double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.);
@@ -299,3 +300,4 @@ bool SpotVector::usesBeamCentre()
 {
     return (firstSpot->isBeamCentre() || secondSpot->isBeamCentre());
 }
+

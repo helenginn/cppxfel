@@ -80,13 +80,11 @@ private:
 	vector<vector<int> > masks;
 	vector<vector<int> > spotCovers;
 
-	int shoeboxLength();
 	Mask flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
     double integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, float *error);
     double integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *error);
 	double integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, float *error);
-	bool checkShoebox(ShoeboxPtr shoebox, int x, int y);
-    double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
+	double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
     IndexingSolutionStatus testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
     IndexingSolutionPtr biggestFailedSolution;
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
@@ -125,25 +123,17 @@ public:
 			double distance = 0);
 	void focusOnSpot(int *x, int *y, int tolerance1, int tolerance2);
 	void focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2 = 1, bool even = false);
-    void focusOnMaximum(int *x, int *y, int tolerance = 0, double shiftX = 0, double shiftY = 0);
-	void dropImage();
+    void dropImage();
     void newImage();
 	virtual ~Image();
 	void setUpIOMRefiner(MatrixPtr matrix);
-    void setUpIOMRefiner(MatrixPtr unitcell, MatrixPtr rotation);
-	std::string filenameRoot();
-	void printBox(int x, int y, int tolerance);
+    std::string filenameRoot();
 	void addMask(int startX, int startY, int endX, int endY);
-	void addSpotCover(int startX, int startY, int endX, int endY);
-	bool coveredBySpot(int x, int y);
 	static void applyMaskToImages(vector<ImagePtr> images, int startX,
 			int startY, int endX, int endY);
     std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
-    void reset();
     void findSpots();
 
-    void rotatedSpotPositions(MatrixPtr rotationMatrix, std::vector<vec> *spotPositions, std::vector<std::string> *spotElements);
-    void radialAverage();
     void integrateSpots();
     void drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red = 0, char green = 0, char blue = 0);
     void drawCrystalsOnPNG(int crystalNum);
@@ -189,11 +179,9 @@ public:
 	bool accepted(int x, int y);
 	double intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int tolerance = 0);
 
-	void index();
 	void refineIndexing(MtzManager *reference);
 	void refineOrientations();
 	vector<MtzPtr> currentMtzs();
-    std::vector<MtzPtr> getLastMtzs();
 	bool isLoaded();
     
     void setSpaceGroup(CSym::CCP4SPG *spg);
@@ -205,15 +193,12 @@ public:
     void setTestBandwidth(double bandwidth);
     void setOrientationTolerance(double newTolerance);
     
-    bool checkUnitCell(double trueA, double trueB, double trueC, double tolerance);
-    
     virtual void findIndexingSolutions();
     void compileDistancesFromSpots(double maxReciprocalDistance = 0, double tooCloseDistance = 0, bool filter = false);
     void filterSpotVectors();
     void plotTakeTwoVectors(std::vector<ImagePtr> images);
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
     void updateAllSpots();
-    void clusterCountWithSpotNumber(int spotNum);
     bool acceptableSpotCount();
 
     void addSpotIfNotMasked(SpotPtr newSpot);
