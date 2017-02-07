@@ -545,6 +545,7 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
             if (myVector == possibleVector)
             {
                 duplicates = true;
+                break;
             }
         }
         
