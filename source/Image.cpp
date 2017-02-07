@@ -2078,6 +2078,7 @@ void Image::findIndexingSolutions()
         sendLog();
     }
     
+    bool reachedTime = false;
     bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
     compileDistancesFromSpots(0, 0, alwaysFilterSpots);
     if (spotVectors.size() == 0)
@@ -2158,10 +2159,8 @@ void Image::findIndexingSolutions()
             
             if (seconds > indexingTimeLimit)
             {
-                logged << "N: Time limit reached on image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
-                sendLog();
-                
-                return;
+                reachedTime = true;
+                break;
             }
         }
         
@@ -2184,6 +2183,13 @@ void Image::findIndexingSolutions()
             {
                 spotVectors = biggestFailedSolutionVectors;
                 biggestFailedSolution = IndexingSolutionPtr();
+            }
+            
+            if (reachedTime)
+            {
+                logged << "N: Time limit reached on image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
+                sendLog();
+                return;
             }
         }
         else
