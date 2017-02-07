@@ -1652,6 +1652,14 @@ void MtzRefiner::loadPanels(bool mustFail)
 {
     bool useNewDetectorFormat = Detector::isActive();
     
+    if (!useNewDetectorFormat && mustFail)
+    {
+        logged << "DETECTOR_LIST has not been provided." << std::endl;
+        FileParser::printCommandInfo("DETECTOR_LIST");
+        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        return;
+    }
+    
     if (useNewDetectorFormat)
     {
         if (Detector::getMaster())
