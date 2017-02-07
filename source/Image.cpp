@@ -1574,9 +1574,9 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     
     if (scramble)
     {
-        //   std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
+        std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
         
-        std::random_shuffle(spotVectors.begin(), spotVectors.end());
+       // std::random_shuffle(spotVectors.begin(), spotVectors.end());
     }
     
     logged << "(" << filename << ") " << spotCount() << " spots produced " << spotVectorCount() << " spot vectors." << std::endl;
