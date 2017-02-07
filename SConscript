@@ -82,8 +82,6 @@ source = [
 'source/MtzManagerRefine.cpp',
 'source/MtzRefiner.cpp',
 'source/NelderMead.cpp',
-'source/Panel.cpp',
-'source/PanelParser.cpp',
 'source/PNGFile.cpp',
 'source/PythonExt.cpp',
 'source/Reflection.cpp',
