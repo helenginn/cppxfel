@@ -57,8 +57,6 @@ Image::Image(std::string filename, double wavelength,
     shortData = vector<short>();
     mmPerPixel = FileParser::getKey("MM_PER_PIXEL", MM_PER_PIXEL);
     
-    metrologyMoveThreshold = FileParser::getKey("METROLOGY_MOVE_THRESHOLD", 1.0);
-    
     shouldMaskValue = FileParser::hasKey("IMAGE_MASKED_VALUE");
     shouldMaskUnderValue = FileParser::hasKey("IMAGE_IGNORE_UNDER_VALUE");
     

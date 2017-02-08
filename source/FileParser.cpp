@@ -404,6 +404,7 @@ void FileParser::generateHelpList()
     helpMap["VERBOSITY_LEVEL"] = "Sets the level of output to the terminal. Default normal.";
     helpMap["MAX_THREADS"] = "Sets maximum number of threads to use during threaded functionality. Generally set equal to the number of cores on the machine (unless you know each core can support more than one thread).";
     helpMap["MATRIX_LIST_VERSION"] = "Mostly for backwards compatibility. V2 is suitable for pickle-based data, V3 is auto-picked up and suitable for Cheetah output from the all-*.dat file.";
+    helpMap["ORIENTATION_MATRIX_LIST"] = "The name of the file containing list of images (and/or their metadata and any determined crystal orientation matrices). If using HDF5 format, this list is optional (images can be loaded directly from HDF5). However it is available if you wish to load in only certain images from the HDF5 file, or reprocess indexed results. These are also created as a result of indexing, integration and so on. However if you wish to load in raw pixel streams (4-byte or 2-byte streams from .img files), this is necessary to know which files to load.\n\nA very basic version of the contents of the file, just to load the images (e.g. images.dat) would be:\n\nimage LCLS_2013_Mar16_r0003_094913_1368f\nimage LCLS_2013_Mar16_r0003_094916_13a9a\nimage LCLS_2013_Mar16_r0003_094918_13d9d\nimage LCLS_2013_Mar16_r0003_094921_1410c\nimage LCLS_2013_Mar16_r0003_094923_1443f\nimage LCLS_2013_Mar16_r0003_094925_14757\n\nThis should omit the file extension (.img) if loading from raw streams.";
     helpMap["INITIAL_MTZ"] = "MTZ used as a starting reference data set in place of an initial merge. Useful for small numbers of images or to break the indexing ambiguity.";
     helpMap["IMAGE_LIMIT"] = "Only attempt to load x images from the list of images specified in ORIENTATION_MATRIX_LIST or number of images found in HDF5_SOURCE_FILES. Default 0 (no limit).";
     helpMap["NEW_MATRIX_LIST"] = "Filename for the set of matrix lists (all-x) which may be produced from a round of integration or post-refinement. No default. At the moment other forms (refine-x, integrate-x and merge-x) are supported for back compatibility.";
@@ -683,7 +684,6 @@ void FileParser::generateFunctionList()
     parserMap["ABSOLUTE_INTENSITY"] = simpleBool;
 	parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;
     parserMap["METROLOGY_SEARCH_SIZE_BIG"] = simpleInt;
-    parserMap["METROLOGY_MOVE_THRESHOLD"] = simpleFloat;
     parserMap["FOCUS_ON_PEAK_SIZE"] = simpleInt;
 	parserMap["SHOEBOX_FOREGROUND_PADDING"] = simpleInt;
 	parserMap["SHOEBOX_NEITHER_PADDING"] = simpleInt;
@@ -781,8 +781,6 @@ void FileParser::generateFunctionList()
     parserMap["FROM_TIFFS"] = simpleBool;
     
     parserMap["PIXEL_TOLERANCE"] = simpleFloat;
-    parserMap["MINIMUM_CIRCLE_SPOTS"] = simpleInt;
-    parserMap["MAX_UNIT_CELL"] = simpleFloat;
     parserMap["RANDOM_SEED"] = simpleInt;
     
     parserMap["PNG_TOTAL"] = simpleInt;

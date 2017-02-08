@@ -45,7 +45,6 @@ private:
 	virtual void loadImage();
     vector<IOMRefinerPtr> indexers;
     vector<IOMRefinerPtr> failedRefiners;
-    double metrologyMoveThreshold;
     bool shouldMaskValue;
     bool shouldMaskUnderValue;
     int maskedValue;
