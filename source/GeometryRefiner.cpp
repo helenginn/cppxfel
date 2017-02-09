@@ -195,6 +195,9 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         threads.add_thread(thr);
     }
     
+    threads.join_all();
+    reportProgress();
+    
     if (detectors[0]->isLUCA())
     {
         refineMasterDetector();
@@ -203,7 +206,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     
     refineUnitCell();
     
-    threads.join_all();
     reportProgress();
 }
 
