@@ -203,6 +203,8 @@ bool Detector::directionSanityCheck()
 
 void Detector::lockNudges()
 {
+    return;
+    
     vec modNudge = new_vector(0, 0, 0);
     midPointOffsetFromParent(true, &modNudge, true);
     
@@ -317,7 +319,7 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     if (angles != NULL)
     {
         vec myAngles = copy_vector(nudgeRotation);
-        myAngles.l = 0;
+//        myAngles.l = 0;
         
         double tanHoriz = nudgeTranslation.h / distanceFromOrigin;
         double tanVert = nudgeTranslation.k / distanceFromOrigin;
@@ -343,9 +345,9 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     
     add_vector_to_vector(&shifted, myRawMidPoint);
     scale_vector_to_distance(&shifted, distanceFromOrigin);
-    MatrixPtr zMat = MatrixPtr(new Matrix());
+/*    MatrixPtr zMat = MatrixPtr(new Matrix());
     zMat->rotate(0, 0, nudgeRotation.l);
-    zMat->multiplyVector(&shifted);
+    zMat->multiplyVector(&shifted);*/
     
     /* Now we deal with the nudgeZ */
     xyzMovement = new_vector(0, 0, nudgeTranslation.l);

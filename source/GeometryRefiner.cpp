@@ -82,7 +82,7 @@ void GeometryRefiner::reportProgress()
     Detector::drawSpecialImage(filename);
     
     double intraScore = IndexManager::pseudoScore(&*manager);
-    manager->setPseudoScoreType(PseudoScoreTypeInterPanel);
+    manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
     double interScore = IndexManager::pseudoScore(&*manager);
     manager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
     
@@ -150,6 +150,7 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     if (detectors[0]->isLUCA())
     {
         refineMasterDetector();
+        Detector::getMaster()->lockNudges();
         reportProgress();
     }
     else
@@ -201,6 +202,7 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     if (detectors[0]->isLUCA())
     {
         refineMasterDetector();
+        Detector::getMaster()->lockNudges();
         reportProgress();
     }
     
@@ -247,12 +249,17 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
         strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.001, 0.00001, "nudge_tx");
         strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
         strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, zNudge, 0.001, "nudge_z");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.001, 0.000001, "nudge_tz");
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 1.0, 0.01, "nudge_x");
-        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 1.0, 0.01, "nudge_y");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.005, 0.000001, "nudge_tz");
+        for (int i = 0; i < detector->childrenCount(); i++)
+        {
+            DetectorPtr child = detector->getChild(i);
+            strategy->addParameter(&*child, Detector::getNudgeX, Detector::setNudgeX, 0.2, 0.01, "nudge_x");
+            strategy->addParameter(&*child, Detector::getNudgeY, Detector::setNudgeY, 0.2, 0.01, "nudge_y");
+     //       strategy->addParameter(&*child, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.001, 0.000001, "nudge_tz");
+        }
     }
     else if (type == GeometryScoreTypeBeamCentre)
     {
@@ -261,8 +268,6 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     }
     
     strategy->refine();
-    
-    detector->lockNudges();
 }
 
 void GeometryRefiner::refineMasterDetector()
@@ -377,12 +382,17 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
 {
     if (strategy == 0)
     {
+        if (!detector->hasChildren())
+        {
+            return;
+        }
+        
         refineDetector(detector, GeometryScoreTypeIntrapanel);
         detector->millerScore(true, false);
     }
     else if (strategy == 1)
     {
-        if (!detector->hasChildren())
+        if (!detector->hasChildren() || !detector->getChild(0)->hasChildren())
         {
             return;
         }

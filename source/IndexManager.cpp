@@ -641,7 +641,7 @@ double IndexManager::pseudoScore(void *object)
                 continue;
             }
             
-            if (!bc && me->scoreType == PseudoScoreTypeInterPanel && vec->isIntraPanelVector())
+            if (!bc && (me->scoreType == PseudoScoreTypeInterPanel || me->scoreType == PseudoScoreTypeAllInterPanel) && vec->isIntraPanelVector())
             {
                 continue;
             }

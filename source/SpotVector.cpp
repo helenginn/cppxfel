@@ -272,7 +272,17 @@ bool SpotVector::spansChildrenOfDetector(DetectorPtr parent)
     DetectorPtr onePanel = firstSpot->getDetector();
     DetectorPtr twoPanel = secondSpot->getDetector();
     
-    if (!(onePanel->getParent() == parent && twoPanel->getParent() == parent))
+    if (!onePanel || !twoPanel)
+    {
+        return false;
+    }
+    
+    if (!(onePanel->getParent() == parent && (twoPanel->getParent() == parent)))
+    {
+        return false;
+    }
+    
+    if (!(parent->isAncestorOf(onePanel) && parent->isAncestorOf(twoPanel)))
     {
         return false;
     }
