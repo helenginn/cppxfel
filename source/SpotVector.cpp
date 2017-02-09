@@ -267,6 +267,24 @@ bool SpotVector::isIntraPanelVector()
     return (onePanel == twoPanel);
 }
 
+bool SpotVector::spansChildrenOfDetector(DetectorPtr parent)
+{
+    DetectorPtr onePanel = firstSpot->getDetector();
+    DetectorPtr twoPanel = secondSpot->getDetector();
+    
+    if (!(onePanel->getParent() == parent && twoPanel->getParent() == parent))
+    {
+        return false;
+    }
+    
+    if (onePanel == twoPanel)
+    {
+        return false;
+    }
+    
+    return true;
+}
+
 bool SpotVector::isOnlyFromDetector(DetectorPtr detector)
 {
     DetectorPtr onePanel = firstSpot->getDetector();

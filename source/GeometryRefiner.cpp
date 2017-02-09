@@ -131,7 +131,8 @@ void GeometryRefiner::reportProgress()
 void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detectors)
 {
     std::ostringstream detectorList;
-    
+    int maxThreads = FileParser::getMaxThreads();
+
     for (int j = 0; j < detectors.size(); j++)
     {
         detectorList << detectors[j]->getTag() << " ";
@@ -153,7 +154,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     }
     else
     {
-        int maxThreads = FileParser::getMaxThreads();
         boost::thread_group threads;
         
         for (int i = 0; i < maxThreads; i++)
@@ -161,39 +161,11 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
             boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 0);
             threads.add_thread(thr);
         }
-        /*
-        for (int i = 0; i < detectors.size(); i++)
-        {
-            refineDetectorStrategy(detectors[i], 0);
-            reportProgress();
-        }*/
         
         threads.join_all();
         reportProgress();
         
-        
-        RefinementStrategyPtr strategy = makeRefiner(Detector::getMaster(), GeometryScoreTypeInterpanel);
-        strategy->setJobName("nudge");
-        
-        for (int i = 0; i < detectors.size(); i++)
-        {
-            strategy->addParameter(&*detectors[i], Detector::getNudgeX, Detector::setNudgeX, 1.0, 0.01, "nudge_x");
-            strategy->addParameter(&*detectors[i], Detector::getNudgeY, Detector::setNudgeY, 1.0, 0.01, "nudge_y");
-            strategy->addParameter(&*detectors[i], Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.005, 0.000001, "nudge_tz");
-        }
-        
-        if (detectors.size())
-        {
-            strategy->refine();
-            Detector::getMaster()->lockNudges();
-            
-            for (int i = 0; i < detectors.size(); i++)
-            {
-                detectors[i]->lockNudges();
-            }
-            
-            reportProgress();
-        }
+        Detector::getMaster()->lockNudges();
         
     }
 
@@ -214,6 +186,25 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     {
         geometryCycleForDetector(nextDetectors);
     }
+    
+    boost::thread_group threads;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 1);
+        threads.add_thread(thr);
+    }
+    
+    if (detectors[0]->isLUCA())
+    {
+        refineMasterDetector();
+        reportProgress();
+    }
+    
+    refineUnitCell();
+    
+    threads.join_all();
+    reportProgress();
 }
 
 void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy)
@@ -228,8 +219,22 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<Det
 
 void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType type)
 {
-    std::string typeString = (type == GeometryScoreTypeIntrapanel ? "intrapanel" : "beam_centre");
-
+    std::string typeString = "";
+    
+    switch (type) {
+        case GeometryScoreTypeBeamCentre:
+            typeString = "beam_centre";
+            break;
+        case GeometryScoreTypeInterpanel:
+            typeString = "interpanel";
+            break;
+        case GeometryScoreTypeIntrapanel:
+            typeString = "intrapanel";
+            break;
+        default:
+            break;
+    }
+    
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
     strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
     
@@ -240,6 +245,12 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
         strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.001, 0.00001, "nudge_tx");
         strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
         strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, zNudge, 0.001, "nudge_z");
+    }
+    else if (type == GeometryScoreTypeInterpanel)
+    {
+        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 1.0, 0.01, "nudge_x");
+        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 1.0, 0.01, "nudge_y");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.005, 0.000001, "nudge_tz");
     }
     else if (type == GeometryScoreTypeBeamCentre)
     {
@@ -365,6 +376,16 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
     if (strategy == 0)
     {
         refineDetector(detector, GeometryScoreTypeIntrapanel);
+        detector->millerScore(true, false);
+    }
+    else if (strategy == 1)
+    {
+        if (!detector->hasChildren())
+        {
+            return;
+        }
+        
+        refineDetector(detector, GeometryScoreTypeInterpanel);
         detector->millerScore(true, false);
     }
 }

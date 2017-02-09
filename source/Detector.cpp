@@ -205,6 +205,11 @@ void Detector::lockNudges()
 {
     vec modNudge = new_vector(0, 0, 0);
     midPointOffsetFromParent(true, &modNudge, true);
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        getChild(i)->lockNudges();
+    }
 }
 
 void Detector::updateCurrentRotation()

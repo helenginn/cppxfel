@@ -645,7 +645,12 @@ double IndexManager::pseudoScore(void *object)
             {
                 continue;
             }
-            
+
+            if (me->scoreType == PseudoScoreTypeInterPanel && vec->spansChildrenOfDetector(me->activeDetector))
+            {
+                continue;
+            }
+
             if (me->scoreType == PseudoScoreTypeBeamCentre && !bc)
             {
                 continue;
