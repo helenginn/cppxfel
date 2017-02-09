@@ -560,9 +560,6 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
             makeDetectorFromPanelMap(panelMaps[i], pairs[qNum][pairNum]);
         }
     }
-
-    master->setRotationAngles(0, 0, 0);
-    master->fixMidpoints();
 }
 
 void GeometryParser::parse()
@@ -589,6 +586,9 @@ void GeometryParser::parse()
         parsePanelListLines(lines);
     }
     
+    Detector::getMaster()->setRotationAngles(0, 0, 0);
+    Detector::getMaster()->fixMidpoints();
+
     writeToFile("converted.cgeom");
     
     Detector::fullDescription();

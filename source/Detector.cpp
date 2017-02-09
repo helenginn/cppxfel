@@ -1072,15 +1072,21 @@ void Detector::fixMidpoints()
         return;
     }
     
+    if (isLUCA())
+    {
+        setUpdateMidPoint();
+        return;
+    }
+    
     vec aveMidpoint = new_vector(0, 0, 0);
     
     for (int i = 0; i < childrenCount(); i++)
     {
-        vec myMidpoint = getChild(i)->midPointOffsetFromParent();
+        vec myMidpoint = getChild(i)->midPointOffsetFromParent(false);
         add_vector_to_vector(&aveMidpoint, myMidpoint);
     }
     
-    multiply_vector(&aveMidpoint, 1 / childrenCount());
+    multiply_vector(&aveMidpoint, 1 / (double)childrenCount());
     
     setArrangedMidPoint(aveMidpoint);
     
