@@ -467,19 +467,19 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
         std::vector<std::vector<DetectorPtr> > pairs;
         /* Top right */
         
-        DetectorPtr q0 = DetectorPtr(new Detector(q0_1, new_vector(+441, +441, 0), "q0"));
+        DetectorPtr q0 = DetectorPtr(new Detector(q0_1, new_vector(0, 0, 0), "q0"));
         q0_1->addChild(q0);
         quarters.push_back(q0);
 
-        DetectorPtr q1 = DetectorPtr(new Detector(q0_1, new_vector(+441, +441, 0), "q1"));
+        DetectorPtr q1 = DetectorPtr(new Detector(q0_1, new_vector(0, 0, 0), "q1"));
         q0_1->addChild(q1);
         quarters.push_back(q1);
 
-        DetectorPtr q2 = DetectorPtr(new Detector(q2_3, new_vector(+441, +441, 0), "q2"));
+        DetectorPtr q2 = DetectorPtr(new Detector(q2_3, new_vector(0, 0, 0), "q2"));
         q2_3->addChild(q2);
         quarters.push_back(q2);
 
-        DetectorPtr q3 = DetectorPtr(new Detector(q2_3, new_vector(+441, +441, 0), "q3"));
+        DetectorPtr q3 = DetectorPtr(new Detector(q2_3, new_vector(0, 0, 0), "q3"));
         q2_3->addChild(q3);
         quarters.push_back(q3);
 
@@ -489,53 +489,53 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
             DetectorPtr qX = quarters[i];
             std::string qXName = qX->getTag();
             
-            DetectorPtr qXa0_8 = DetectorPtr(new Detector(qX, new_vector(+441, +441, 0), qXName + "a0_8"));
+            DetectorPtr qXa0_8 = DetectorPtr(new Detector(qX, new_vector(0, 0, 0), qXName + "a0_8"));
             qX->addChild(qXa0_8);
             
-            DetectorPtr qXa0_3 = DetectorPtr(new Detector(qXa0_8, new_vector(+441, +441, 0), qXName + "a0_3"));
+            DetectorPtr qXa0_3 = DetectorPtr(new Detector(qXa0_8, new_vector(0, 0, 0), qXName + "a0_3"));
             qXa0_8->addChild(qXa0_3);
             
-            DetectorPtr qXa0_1 = DetectorPtr(new Detector(qXa0_3, new_vector(+441, +441, 0), qXName + "a0_1")); //
+            DetectorPtr qXa0_1 = DetectorPtr(new Detector(qXa0_3, new_vector(0, 0, 0), qXName + "a0_1")); //
             qXa0_3->addChild(qXa0_1);
             pairs[i].push_back(qXa0_1);
             
-            DetectorPtr qXa2_3 = DetectorPtr(new Detector(qXa0_3, new_vector(+441, +441, 0), qXName + "a2_3")); //
+            DetectorPtr qXa2_3 = DetectorPtr(new Detector(qXa0_3, new_vector(0, 0, 0), qXName + "a2_3")); //
             qXa0_3->addChild(qXa2_3);
             pairs[i].push_back(qXa2_3);
             
-            DetectorPtr qXa4_7 = DetectorPtr(new Detector(qXa0_8, new_vector(+441, +441, 0), qXName + "a4_7"));
+            DetectorPtr qXa4_7 = DetectorPtr(new Detector(qXa0_8, new_vector(0, 0, 0), qXName + "a4_7"));
             qXa0_8->addChild(qXa4_7);
             
-            DetectorPtr qXa4_5 = DetectorPtr(new Detector(qXa4_7, new_vector(+441, +441, 0), qXName + "a4_5")); //
+            DetectorPtr qXa4_5 = DetectorPtr(new Detector(qXa4_7, new_vector(0, 0, 0), qXName + "a4_5")); //
             qXa4_7->addChild(qXa4_5);
             pairs[i].push_back(qXa4_5);
 
-            DetectorPtr qXa6_7 = DetectorPtr(new Detector(qXa4_7, new_vector(+441, +441, 0), qXName + "a6_7")); //
+            DetectorPtr qXa6_7 = DetectorPtr(new Detector(qXa4_7, new_vector(0, 0, 0), qXName + "a6_7")); //
             qXa4_7->addChild(qXa6_7);
             pairs[i].push_back(qXa6_7);
 
-            DetectorPtr qXa8_15 = DetectorPtr(new Detector(qX, new_vector(+441, +441, 0), qXName + "a8_15"));
+            DetectorPtr qXa8_15 = DetectorPtr(new Detector(qX, new_vector(0, 0, 0), qXName + "a8_15"));
             qX->addChild(qXa8_15);
             
-            DetectorPtr qXa8_11 = DetectorPtr(new Detector(qXa8_15, new_vector(+441, +441, 0), qXName + "a8_11"));
+            DetectorPtr qXa8_11 = DetectorPtr(new Detector(qXa8_15, new_vector(0, 0, 0), qXName + "a8_11"));
             qXa8_15->addChild(qXa8_11);
             
-            DetectorPtr qXa8_9 = DetectorPtr(new Detector(qXa8_11, new_vector(+441, +441, 0), qXName + "a8_9")); //
+            DetectorPtr qXa8_9 = DetectorPtr(new Detector(qXa8_11, new_vector(0, 0, 0), qXName + "a8_9")); //
             qXa8_11->addChild(qXa8_9);
             pairs[i].push_back(qXa8_9);
 
-            DetectorPtr qXa10_11 = DetectorPtr(new Detector(qXa8_11, new_vector(+441, +441, 0), qXName + "a10_11")); //
+            DetectorPtr qXa10_11 = DetectorPtr(new Detector(qXa8_11, new_vector(0, 0, 0), qXName + "a10_11")); //
             qXa8_11->addChild(qXa10_11);
             pairs[i].push_back(qXa10_11);
 
-            DetectorPtr qXa12_15 = DetectorPtr(new Detector(qXa8_15, new_vector(+441, +441, 0), qXName + "a12_15"));
+            DetectorPtr qXa12_15 = DetectorPtr(new Detector(qXa8_15, new_vector(0, 0, 0), qXName + "a12_15"));
             qXa8_15->addChild(qXa12_15);
             
-            DetectorPtr qXa12_13 = DetectorPtr(new Detector(qXa12_15, new_vector(+441, +441, 0), qXName + "a12_13")); //
+            DetectorPtr qXa12_13 = DetectorPtr(new Detector(qXa12_15, new_vector(0, 0, 0), qXName + "a12_13")); //
             qXa12_15->addChild(qXa12_13);
             pairs[i].push_back(qXa12_13);
 
-            DetectorPtr qXa14_15 = DetectorPtr(new Detector(qXa12_15, new_vector(+441, +441, 0), qXName + "a14_15")); //
+            DetectorPtr qXa14_15 = DetectorPtr(new Detector(qXa12_15, new_vector(0, 0, 0), qXName + "a14_15")); //
             qXa12_15->addChild(qXa14_15);
             pairs[i].push_back(qXa14_15);
 
@@ -562,6 +562,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     }
 
     master->setRotationAngles(0, 0, 0);
+    master->fixMidpoints();
 }
 
 void GeometryParser::parse()

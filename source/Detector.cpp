@@ -1059,3 +1059,35 @@ void Detector::drawSpecialImage(std::string filename)
     
     drawImage->drawSpotsOnPNG(filename);
 }
+
+void Detector::fixMidpoints()
+{
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        getChild(i)->fixMidpoints();
+    }
+    
+    if (!childrenCount())
+    {
+        return;
+    }
+    
+    vec aveMidpoint = new_vector(0, 0, 0);
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        vec myMidpoint = getChild(i)->midPointOffsetFromParent();
+        add_vector_to_vector(&aveMidpoint, myMidpoint);
+    }
+    
+    multiply_vector(&aveMidpoint, 1 / childrenCount());
+    
+    setArrangedMidPoint(aveMidpoint);
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        vec childPoint = getChild(i)->getArrangedMidPoint();
+        take_vector_away_from_vector(aveMidpoint, &childPoint);
+        getChild(i)->setArrangedMidPoint(childPoint);
+    }
+}

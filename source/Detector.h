@@ -196,6 +196,11 @@ public:
     
     void setArrangedTopLeft(double newX, double newY, double newZ);
     
+    void setArrangedMidPoint(vec midpoint)
+    {
+        arrangedMidPoint = midpoint;
+    }
+    
     vec getArrangedMidPoint()
     {
         return arrangedMidPoint;
@@ -312,6 +317,7 @@ public:
     // MARK: apply rotations bottom up
     
     void applyRotations();
+    void fixMidpoints();
     void rearrangeCoord(std::pair<float, float> *aShift);
     
     // MARK: Spot coord to absolute vec
