@@ -1888,11 +1888,11 @@ void Image::findIndexingSolutions()
     
     while (lastWasSuccessful)
     {
-        for (int i = 0; i < spotVectors.size() - 1 && i < maxSearch && continuing && indexingFailureCount < 10; i++)
+        for (int i = 1; i < spotVectors.size() && i < maxSearch && continuing && indexingFailureCount < 10; i++)
         {
             SpotVectorPtr spotVector1 = spotVectors[i];
             
-            for (int j = i + 1; j < spotVectors.size() && continuing && indexingFailureCount < 10; j++)
+            for (int j = 0; j < i && continuing && indexingFailureCount < 10; j++)
             {
                 SpotVectorPtr spotVector2 = spotVectors[j];
                 
