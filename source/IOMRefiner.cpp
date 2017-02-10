@@ -392,6 +392,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     }
     
     logged << "Checking " << chosenMillerArray->size() << " reflections." << std::endl;
+    sendLog(LogLevelDetailed);
     
     for (int i = 0; i < chosenMillerArray->size(); i++)
     {
@@ -437,15 +438,15 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         bool intensityMissing = (rawIntensity != rawIntensity);
         
-        if (!roughCalculation || intensityMissing || needsReintegrating || (!intensityMissing && (recalculateMillerPositions || complexShoebox)))
+        if (!roughCalculation || intensityMissing || needsReintegrating || complexShoebox)
         {
-            if (!roughCalculation || (recalculateMillerPositions && !needsReintegrating))
-            {
-                int x, y;
-                miller->positionOnDetector(lastRotatedMatrix, &x, &y, false);
-            }
-            
             miller->integrateIntensity(lastRotatedMatrix);
+        }
+
+        if (recalculateMillerPositions)
+        {
+            int x, y;
+            miller->positionOnDetector(lastRotatedMatrix, &x, &y, false);
         }
         
         rawIntensity = miller->getRawIntensity();
@@ -703,6 +704,7 @@ double IOMRefiner::lScore(bool silent)
     
     logged << "Average shift: " << averageShift << std::endl;
     sendLog(LogLevelDetailed);
+    
     return averageShift;
 }
 
@@ -742,8 +744,8 @@ void IOMRefiner::refineOrientationMatrix()
     
     // FIXME: read support for unit cell dimensions
     
+    recalculateMillerPositions = true;
     searchSize = bigSize;
-    needsReintegrating = true;
     
     RefinementStrategyPtr lStrategy = RefinementStrategy::userChosenStrategy();
     lStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
@@ -753,8 +755,8 @@ void IOMRefiner::refineOrientationMatrix()
     lStrategy->refine();
 
     searchSize = oldSearchSize;
-    needsReintegrating = false;
-    
+    recalculateMillerPositions = false;
+
     if (initialStep >= 1.5)
     {
         RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();

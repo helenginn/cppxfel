@@ -1830,7 +1830,7 @@ void Image::findIndexingSolutions()
 
     std::vector<IndexingSolutionPtr> solutions;
     
-    int maxSearch = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 1000);
+    int maxSearch = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 2000);
     
     if (IOMRefinerCount() > 0)
     {
@@ -1892,7 +1892,7 @@ void Image::findIndexingSolutions()
         {
             SpotVectorPtr spotVector1 = spotVectors[i];
             
-            for (int j = 0; j < i && continuing && indexingFailureCount < 10; j++)
+            for (int j = 0; j < i && j < spotVectors.size() && continuing && indexingFailureCount < 10; j++)
             {
                 SpotVectorPtr spotVector2 = spotVectors[j];
                 
@@ -1911,6 +1911,12 @@ void Image::findIndexingSolutions()
                         }
                         
                         logged << "(" << getFilename() << ") now on " << spotVectors.size() << " vectors." << std::endl;
+                        
+                        if (status == IndexingSolutionTrialSuccess)
+                        {
+                            i = 1;
+                            j = 0;
+                        }
                     }
                     
                     if (successes >= maxSuccesses || IOMRefinerCount() >= maxLattices)
