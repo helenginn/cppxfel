@@ -203,15 +203,13 @@ bool Detector::directionSanityCheck()
 
 void Detector::lockNudges()
 {
-    return;
-    
-    vec modNudge = new_vector(0, 0, 0);
-    midPointOffsetFromParent(true, &modNudge, true);
-    
     for (int i = 0; i < childrenCount(); i++)
     {
         getChild(i)->lockNudges();
     }
+    
+    vec modNudge = new_vector(0, 0, 0);
+    midPointOffsetFromParent(true, &modNudge, true);
 }
 
 void Detector::updateCurrentRotation()
@@ -219,8 +217,10 @@ void Detector::updateCurrentRotation()
     MatrixPtr myRotation = MatrixPtr(new Matrix());
     myRotation->rotate(rotationAngles.h, rotationAngles.k, rotationAngles.l);
     
+    mustUpdateMidPoint = true;
     vec rebasedNudge = new_vector(0, 0, 0);
-    vec midPoint = midPointOffsetFromParent(true, &rebasedNudge);
+    midPointOffsetFromParent(true, &rebasedNudge);
+    
     myRotation->rotate(rebasedNudge.h, rebasedNudge.k, rebasedNudge.l);
     
     MatrixPtr parentRot = (!isLUCA() ? getParent()->getRotation() : MatrixPtr(new Matrix()));
@@ -286,6 +286,13 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     
     vec myRawMidPoint = rawMidPointOffsetFromParent(useParent);
     
+    vec parentedMidPoint = copy_vector(myRawMidPoint);
+    
+    if (!useParent)
+    {
+        parentedMidPoint = rawMidPointOffsetFromParent(true);
+    }
+    
     if (!enabledNudge)
     {
         if (angles != NULL)
@@ -296,33 +303,33 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         return myRawMidPoint;
     }
     
-    vec cross = copy_vector(myRawMidPoint);
+    vec cross = copy_vector(parentedMidPoint);
     scale_vector_to_distance(&cross, 1);
     vec horiz = new_vector(1, 0, -cross.h / cross.l);
     scale_vector_to_distance(&horiz, 1);
     
     vec vert = cross_product_for_vectors(cross, horiz);
-    double distanceFromOrigin = length_of_vector(myRawMidPoint);
     
-    double matComponents[9] = {horiz.h, vert.h, cross.h,
-        horiz.k, vert.k, cross.k,
-        horiz.l, vert.l, cross.l};
+    double matComponents[9] = {vert.h, horiz.h, cross.h,
+        vert.k, horiz.k, cross.k,
+        vert.l, horiz.l, cross.l};
     
     MatrixPtr mat1 = MatrixPtr(new Matrix(matComponents));
     MatrixPtr changeToXYZ = mat1->inverse3DMatrix();
     
     vec xyzMovement = copy_vector(nudgeTranslation);
     xyzMovement.l = 0;
-    changeToXYZ->multiplyVector(&xyzMovement);
     
+    changeToXYZ->multiplyVector(&xyzMovement);
+    double distanceFromOrigin = length_of_vector(parentedMidPoint);
     
     if (angles != NULL)
     {
         vec myAngles = copy_vector(nudgeRotation);
 //        myAngles.l = 0;
         
-        double tanHoriz = nudgeTranslation.h / distanceFromOrigin;
-        double tanVert = nudgeTranslation.k / distanceFromOrigin;
+        double tanHoriz = nudgeTranslation.k / distanceFromOrigin;
+        double tanVert = nudgeTranslation.h / distanceFromOrigin;
         myAngles.k += atan(tanHoriz);
         myAngles.h -= atan(tanVert);
         /* End not buggy [B] */
@@ -342,8 +349,8 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     }
 
     vec shifted = copy_vector(xyzMovement);
-    
-    add_vector_to_vector(&shifted, myRawMidPoint);
+
+    add_vector_to_vector(&shifted, parentedMidPoint);
     scale_vector_to_distance(&shifted, distanceFromOrigin);
 /*    MatrixPtr zMat = MatrixPtr(new Matrix());
     zMat->rotate(0, 0, nudgeRotation.l);
@@ -359,14 +366,32 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     if (resetNudge)
     {
         vec shift = copy_vector(shifted);
-        take_vector_away_from_vector(myRawMidPoint, &shift);
+        take_vector_away_from_vector(parentedMidPoint, &shift);
+        
+        getChangeOfBasis()->multiplyVector(&shift);
+        
         add_vector_to_vector(&arrangedMidPoint, shift);
         nudgeTranslation = new_vector(0, 0, 0);
         nudgeRotation = new_vector(0, 0, 0);
         mustUpdateMidPoint = true;
+        
+        if (useParent)
+        {
+            shifted = copy_vector(parentedMidPoint);
+            add_vector_to_vector(&shifted, arrangedMidPoint);
+        }
+        else
+        {
+            shifted = copy_vector(arrangedMidPoint);
+        }
     }
     
     quickMidPoint = shifted;
+    
+    if (!useParent)
+    {
+        take_vector_away_from_vector(parentedMidPoint, &shifted);
+    }
     
     return shifted;
 }
@@ -414,6 +439,13 @@ void Detector::description(bool propogate)
     logged << "My midpoint relative to my parent is " << prettyDesc(midPointOffsetFromParent(false)) << std::endl;
     logged << "My rotated fast axis is " << std::setprecision(10) << prettyDesc(getRotatedFastDirection()) << std::endl;
     logged << "My rotated slow axis is " << std::setprecision(10) << prettyDesc(getRotatedSlowDirection()) << std::endl;
+
+    if (!hasChildren())
+    {
+        vec intersection;
+        spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedTopLeftY, &intersection);
+        logged << "My top left corner maps to " << prettyDesc(intersection) << std::endl;
+    }
     logged << "I am " << (isLUCA() ? "" : "not") << " the master detector." << std::endl;
     logged << "I have " << childrenCount() << " children." << std::endl << std::endl;
     
@@ -513,7 +545,7 @@ void Detector::spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
          * This could probably be improved for speed by
          * storing some pre-calculations automatically. */
         
-        vec cumulative = midPointOffsetFromParent(true, NULL);
+        vec cumulative = midPointOffsetFromParent();
         
         add_vector_to_vector(&cumulative, *arrangedPos);
         
