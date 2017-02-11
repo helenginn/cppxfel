@@ -69,8 +69,8 @@ void GeometryRefiner::refineGeometry()
      logged << "********* TEST **********" << std::endl;
     sendLog();
     
-    Detector::setAlpha(&*(Detector::getMaster()), 0.1);
-    Detector::setArrangedMidPointX(&*(Detector::getMaster()), 5.0);
+//    Detector::setAlpha(&*(Detector::getMaster()), 0.1);
+//    Detector::setArrangedMidPointX(&*(Detector::getMaster()), 5.0);
 /*    Detector::getMaster()->description();
     Detector::getMaster()->getChild(0)->getChild(0)->getChild(1)->getChild(0)->getChild(0)->getChild(0)->description();
     Detector::setNudgeTiltX(&*(Detector::getMaster()), 0.005);
