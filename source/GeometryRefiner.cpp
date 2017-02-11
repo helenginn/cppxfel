@@ -64,8 +64,36 @@ void GeometryRefiner::refineGeometry()
 {
     Detector::setNoisy(true);
     Detector::getMaster()->enableNudge();
-
+    
+    
+     logged << "********* TEST **********" << std::endl;
+    sendLog();
+    
+    Detector::setAlpha(&*(Detector::getMaster()), 0.1);
+    Detector::setArrangedMidPointX(&*(Detector::getMaster()), 5.0);
+/*    Detector::getMaster()->description();
+    Detector::getMaster()->getChild(0)->getChild(0)->getChild(1)->getChild(0)->getChild(0)->getChild(0)->description();
+    Detector::setNudgeTiltX(&*(Detector::getMaster()), 0.005);
+    Detector::setNudgeTiltY(&*(Detector::getMaster()), 0.5);
+    Detector::setNudgeTiltZ(&*(Detector::getMaster()), 0.005);
+    logged << "Setting nudge stuff" << std::endl;
+    sendLog();
+    Detector::getMaster()->description();
+    //Detector::getMaster()->getChild(0)->getChild(0)->getChild(1)->getChild(0)->getChild(0)->getChild(0)->description();
+    logged << "Locking nudges now" << std::endl;
+    sendLog();
+    Detector::getMaster()->lockNudges();
+    Detector::getMaster()->description();
+    //Detector::getMaster()->getChild(0)->getChild(0)->getChild(1)->getChild(0)->getChild(0)->getChild(0)->description();
+    */
+    
+  //  gridSearch(Detector::getMaster());
+    
+    
+ //   exit(0);
+     
     reportProgress();
+    
     std::vector<DetectorPtr> detectors;
     detectors.push_back(Detector::getMaster());
     
@@ -357,13 +385,15 @@ void GeometryRefiner::refineUnitCell()
 void GeometryRefiner::gridSearch(DetectorPtr detector)
 {
     RefinementGridSearchPtr strategy = RefinementGridSearchPtr(new RefinementGridSearch());
-    Detector::setAlpha(&*Detector::getMaster(), 0.001);
-    Detector::setBeta(&*Detector::getMaster(), 0.001);
+ //   Detector::setAlpha(&*Detector::getMaster(), 0.001);
+ //   Detector::setBeta(&*Detector::getMaster(), 0.001);
     
-    strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.05, 0.00001, "nudge_tx");
-//    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 0.001, 0.00001, "nudge_ty");
+//    strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.05, 0.00001, "nudge_tx");
+    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_x");
+    strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 2.0, 0.00001, "nudge_y");
 //    strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.05, 0.001, "nudge_tz");
     
+    strategy->setGridLength(5);
     strategy->setVerbose(true);
     strategy->setJobName("Detector " + detector->getTag());
     
@@ -371,8 +401,26 @@ void GeometryRefiner::gridSearch(DetectorPtr detector)
     indexManagers.push_back(aManager);
     aManager->setActiveDetector(detector);
     aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
-    strategy->setEvaluationFunction(IndexManager::debugPseudoScore, &*aManager);
+    strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
     
+    strategy->refine();
+    
+    logged << "****** PRELOCK ******" << std::endl;
+    sendLog();
+    Detector::getMaster()->fullDescription();
+    logged << "Intrapanel: " << IndexManager::pseudoScore(&*aManager);
+    sendLog();
+    
+    Detector::getMaster()->lockNudges();
+
+    logged << "****** POSTLOCK ******" << std::endl;
+    sendLog();
+    Detector::setNudgeTiltX(&*(Detector::getMaster()), 0);
+    Detector::getMaster()->fullDescription();
+    logged << "Intrapanel: " << IndexManager::pseudoScore(&*aManager);
+    sendLog();
+    
+    strategy->setJobName("job2");
     strategy->refine();
     
     exit(0);

@@ -210,6 +210,7 @@ void Detector::lockNudges()
     
     vec modNudge = new_vector(0, 0, 0);
     midPointOffsetFromParent(true, &modNudge, true);
+    updateCurrentRotation();
 }
 
 void Detector::updateCurrentRotation()
@@ -219,7 +220,7 @@ void Detector::updateCurrentRotation()
     
     mustUpdateMidPoint = true;
     vec rebasedNudge = new_vector(0, 0, 0);
-    midPointOffsetFromParent(true, &rebasedNudge);
+    vec midpoint = midPointOffsetFromParent(true, &rebasedNudge);
     
     myRotation->rotate(rebasedNudge.h, rebasedNudge.k, rebasedNudge.l);
     
@@ -240,7 +241,6 @@ void Detector::updateCurrentRotation()
         zMat->rotate(0, 0, nudgeRotation.l);
         zMat->multiplyVector(&slowRotated);
         zMat->multiplyVector(&fastRotated);
-        
     }
     
     vec rotatedSlow = getRotatedSlowDirection();
@@ -274,6 +274,13 @@ vec Detector::getRotatedFastDirection()
 
 vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNudge)
 {
+    if (!enabledNudge)
+    {
+        vec myRawMidPoint = rawMidPointOffsetFromParent(useParent);
+        
+        return myRawMidPoint;
+    }
+    
     if (enabledNudge && !mustUpdateMidPoint && useParent && !resetNudge)
     {
         if (angles != NULL)
@@ -284,24 +291,7 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         return quickMidPoint;
     }
     
-    vec myRawMidPoint = rawMidPointOffsetFromParent(useParent);
-    
-    vec parentedMidPoint = copy_vector(myRawMidPoint);
-    
-    if (!useParent)
-    {
-        parentedMidPoint = rawMidPointOffsetFromParent(true);
-    }
-    
-    if (!enabledNudge)
-    {
-        if (angles != NULL)
-        {
-            *angles = new_vector(0, 0, 0);
-        }
-        
-        return myRawMidPoint;
-    }
+    vec parentedMidPoint = rawMidPointOffsetFromParent(true);
     
     vec cross = copy_vector(parentedMidPoint);
     scale_vector_to_distance(&cross, 1);
@@ -330,16 +320,17 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         
         double tanHoriz = nudgeTranslation.k / distanceFromOrigin;
         double tanVert = nudgeTranslation.h / distanceFromOrigin;
-        myAngles.k += atan(tanHoriz);
-        myAngles.h -= atan(tanVert);
+        myAngles.k -= atan(tanVert);
+        myAngles.h += atan(tanHoriz);
         /* End not buggy [B] */
         
-        /* Only not buggy regarding the not buggy [B] bit */
         changeToXYZ->multiplyVector(&myAngles);
+        //changeOfBasisMat->multiplyVector(&myAngles);
         
         if (resetNudge)
         {
             add_vector_to_vector(&rotationAngles, myAngles);
+            *angles = new_vector(0, 0, 0);
         }
         else
         {
@@ -366,31 +357,31 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     if (resetNudge)
     {
         vec shift = copy_vector(shifted);
+        
         take_vector_away_from_vector(parentedMidPoint, &shift);
         
-        getChangeOfBasis()->multiplyVector(&shift);
+        MatrixPtr change = (isLUCA() ? MatrixPtr(new Matrix()) : getParent()->getChangeOfBasis());
+        change->multiplyVector(&shift);
         
         add_vector_to_vector(&arrangedMidPoint, shift);
         nudgeTranslation = new_vector(0, 0, 0);
         nudgeRotation = new_vector(0, 0, 0);
-        mustUpdateMidPoint = true;
-        
-        if (useParent)
-        {
-            shifted = copy_vector(parentedMidPoint);
-            add_vector_to_vector(&shifted, arrangedMidPoint);
-        }
-        else
-        {
-            shifted = copy_vector(arrangedMidPoint);
-        }
     }
-    
-    quickMidPoint = shifted;
-    
+   
     if (!useParent)
     {
-        take_vector_away_from_vector(parentedMidPoint, &shifted);
+        vec myParentMidPoint = new_vector(0, 0, 0);
+        
+        if (!isLUCA())
+        {
+            myParentMidPoint = getParent()->midPointOffsetFromParent();
+        }
+        
+        take_vector_away_from_vector(myParentMidPoint, &shifted);
+    }
+    else
+    {
+        quickMidPoint = shifted;
     }
     
     return shifted;

@@ -27,6 +27,11 @@ public:
         cycleNum = 1;
     };
     
+    void setGridLength(int length)
+    {
+        gridLength = length;
+    }
+    
     void recursiveEvaluation(ParamList referenceList, ParamList workingList, ResultMap *results);
     virtual void refine();
 };
