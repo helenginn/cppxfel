@@ -334,7 +334,7 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         }
         else
         {
-            add_vector_to_vector(angles, myAngles);
+            *angles = copy_vector(myAngles);
             quickAngles = *angles;
         }
     }
