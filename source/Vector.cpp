@@ -254,8 +254,7 @@ void multiply_vector(vec *vec, double mult)
 
 void scale_vector_to_distance(vec *vector, double new_distance)
 {
-	double distance = sqrt(
-			pow(vector->h, 2) + pow(vector->k, 2) + pow(vector->l, 2));
+	double distance = length_of_vector(*vector);
 
 	double scale = new_distance / distance;
 

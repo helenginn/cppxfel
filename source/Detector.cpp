@@ -49,7 +49,9 @@ void Detector::initialiseZeros()
 
     parent = DetectorPtr();
     rotMat = MatrixPtr(new Matrix());
+    nudgeMat = MatrixPtr(new Matrix());
     changeOfBasisMat = MatrixPtr(new Matrix());
+    fixedBasis = MatrixPtr(new Matrix());
     mustUpdateMidPoint = true;
     
     if (mmPerPixel == 0)
@@ -105,6 +107,8 @@ Detector::Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBott
     setSlowDirection(slowAxis.h, slowAxis.k, slowAxis.l);
     setFastDirection(fastAxis.h, fastAxis.k, fastAxis.l);
     
+    updateCurrentRotation();
+
     arrangedMidPoint = new_vector((arrangedTopLeft.first + arrangedBottomRight.first) / 2,
                                   (arrangedTopLeft.second + arrangedBottomRight.second) / 2, 0);
     
@@ -126,8 +130,6 @@ Detector::Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBott
     
     setUnarrangedTopLeft(std::min(topLeft.h, bottomRight.h), std::min(topLeft.k, bottomRight.k));
     setUnarrangedBottomRight(std::max(topLeft.h, bottomRight.h), std::max(topLeft.k, bottomRight.k));
-    
-    removeMidPointRelativeToParent();
 }
 
 Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarrangedBottomRight,
@@ -141,6 +143,10 @@ Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarranged
     setSlowDirection(slowDir.h, slowDir.k, slowDir.l);
     setFastDirection(fastDir.h, fastDir.k, fastDir.l);
     
+    slowRotated = slowDirection;
+    fastRotated = fastDirection;
+    rotateAxisRecursive();
+
     if (lastIsMiddle)
     {
         arrangedMidPoint = _arrangedTopLeft;
@@ -149,18 +155,8 @@ Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarranged
     {
         setArrangedTopLeft(_arrangedTopLeft.h, _arrangedTopLeft.k, _arrangedTopLeft.l);
     }
-    
-    if (parent && !parent->isLUCA())
-    {
-        removeMidPointRelativeToParent();
-    }
 }
 
-void Detector::removeMidPointRelativeToParent()
-{
-    vec parentPos = getParent()->midPointOffsetFromParent(false, NULL);
-    take_vector_away_from_vector(parentPos, &arrangedMidPoint);
-}
 
 // MARK: Housekeeping and additional initialisation
 
@@ -203,61 +199,101 @@ bool Detector::directionSanityCheck()
 
 void Detector::lockNudges()
 {
-    for (int i = 0; i < childrenCount(); i++)
+    getMaster()->rotateAxisRecursive(true);
+}
+
+void Detector::recalculateChangeOfBasis(vec *fastAxis, vec *slowAxis)
+{
+    changeOfBasisMat = calculateChangeOfBasis(fastAxis, slowAxis, invBasisMat);
+}
+
+MatrixPtr Detector::calculateChangeOfBasis(vec *fastAxis, vec *slowAxis, MatrixPtr inv)
+{
+    cross = cross_product_for_vectors(*fastAxis, *slowAxis);
+    double matComponents[9] = {fastAxis->h, slowAxis->h, cross.h,
+        fastAxis->k, slowAxis->k, cross.k,
+        fastAxis->l, slowAxis->l, cross.l};
+    MatrixPtr mat = MatrixPtr(new Matrix(matComponents));
+    memcpy(inv->components, mat->components, 16 * sizeof(double));
+    return inv->inverse3DMatrix();
+}
+
+void Detector::addToBasisChange(vec angles)
+{
+    vec genFast = new_vector(1, 0, 0);
+    vec genSlow = new_vector(0, 1, 0);
+    
+    rotMat->setIdentity();
+    rotMat->rotate(angles.h, angles.k, angles.l);
+    
+    rotMat->multiplyVector(&genFast);
+    rotMat->multiplyVector(&genSlow);
+    
+    MatrixPtr invBasis = MatrixPtr(new Matrix());
+    calculateChangeOfBasis(&genFast, &genSlow, invBasis);
+    changeOfBasisMat->multiply(*invBasis);
+    invBasisMat = changeOfBasisMat->inverse3DMatrix();
+}
+
+
+void Detector::rotateAxisRecursive(bool fix)
+{
+    if (!fix)
     {
-        getChild(i)->lockNudges();
+        changeOfBasisMat = fixedBasis->copy();
+    }
+    else
+    {
+        changeOfBasisMat->setIdentity();
     }
     
-    vec modNudge = new_vector(0, 0, 0);
-    midPointOffsetFromParent(true, &modNudge, true);
-    updateCurrentRotation();
+    if (!isLUCA() && !fix)
+    {
+        MatrixPtr mat = getParent()->getChangeOfBasis();
+        changeOfBasisMat->multiply(*mat);
+    }
+    
+    addToBasisChange(rotationAngles);
+    
+    if (enabledNudge)
+    {
+        vec rebasedNudge = new_vector(0, 0, 0);
+        mustUpdateMidPoint = true;
+        midPointOffsetFromParent(true, &rebasedNudge, fix);
+
+        addToBasisChange(rebasedNudge);
+    }
+    
+    if (fix)
+    {
+        fixedBasis->copyComponents(changeOfBasisMat);
+        
+        if (!isLUCA())
+        {
+            MatrixPtr mat = getParent()->getChangeOfBasis();
+            changeOfBasisMat->multiply(*mat);
+        }
+        
+        memset(&rotationAngles.h, 0, sizeof(rotationAngles.h) * 3);
+        memset(&nudgeTranslation.h, 0, sizeof(nudgeTranslation.h) * 3);
+        memset(&nudgeRotation.h, 0, sizeof(nudgeRotation.h) * 3);
+    }
+    
+    slowRotated = slowDirection;
+    changeOfBasisMat->multiplyVector(&slowRotated);
+    fastRotated = fastDirection;
+    changeOfBasisMat->multiplyVector(&fastRotated);
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        getChild(i)->rotateAxisRecursive();
+    }
+
 }
 
 void Detector::updateCurrentRotation()
 {
-    MatrixPtr myRotation = MatrixPtr(new Matrix());
-    myRotation->rotate(rotationAngles.h, rotationAngles.k, rotationAngles.l);
-    
-    mustUpdateMidPoint = true;
-    vec rebasedNudge = new_vector(0, 0, 0);
-    vec midpoint = midPointOffsetFromParent(true, &rebasedNudge);
-    
-    myRotation->rotate(rebasedNudge.h, rebasedNudge.k, rebasedNudge.l);
-    
-    MatrixPtr parentRot = (!isLUCA() ? getParent()->getRotation() : MatrixPtr(new Matrix()));
-    
-    rotMat = myRotation;
-    rotMat->preMultiply(*parentRot);
-    
-    slowRotated = copy_vector(slowDirection);
-    fastRotated = copy_vector(fastDirection);
-    
-    rotMat->multiplyVector(&slowRotated);
-    rotMat->multiplyVector(&fastRotated);
-    
-    if (enabledNudge)
-    {
-        MatrixPtr zMat = MatrixPtr(new Matrix());
-        zMat->rotate(0, 0, nudgeRotation.l);
-        zMat->multiplyVector(&slowRotated);
-        zMat->multiplyVector(&fastRotated);
-    }
-    
-    vec rotatedSlow = getRotatedSlowDirection();
-    vec rotatedFast = getRotatedFastDirection();
-    cross = cross_product_for_vectors(rotatedFast, rotatedSlow);
-    
-    double matComponents[9] = {rotatedFast.h, rotatedSlow.h, cross.h,
-        rotatedFast.k, rotatedSlow.k, cross.k,
-        rotatedFast.l, rotatedSlow.l, cross.l};
-                                    
-    MatrixPtr mat1 = MatrixPtr(new Matrix(matComponents));
-    changeOfBasisMat = mat1->inverse3DMatrix();
-    
-    for (int i = 0; i < childrenCount(); i++)
-    {
-        getChild(i)->updateCurrentRotation();
-    }
+    rotateAxisRecursive();
 }
 
 // Housekeeping calculations
@@ -300,12 +336,12 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     
     vec vert = cross_product_for_vectors(cross, horiz);
     
-    double matComponents[9] = {vert.h, horiz.h, cross.h,
-        vert.k, horiz.k, cross.k,
-        vert.l, horiz.l, cross.l};
+    double matComponents[9] = {horiz.h, vert.h, cross.h,
+        horiz.k, vert.k, cross.k,
+        horiz.l, vert.l, cross.l};
     
-    MatrixPtr mat1 = MatrixPtr(new Matrix(matComponents));
-    MatrixPtr changeToXYZ = mat1->inverse3DMatrix();
+    MatrixPtr changeToXYZ = MatrixPtr(new Matrix(matComponents));
+    MatrixPtr changeToXYZInv = changeToXYZ->inverse3DMatrix();
     
     vec xyzMovement = copy_vector(nudgeTranslation);
     xyzMovement.l = 0;
@@ -320,34 +356,26 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         
         double tanHoriz = nudgeTranslation.k / distanceFromOrigin;
         double tanVert = nudgeTranslation.h / distanceFromOrigin;
-        myAngles.k -= atan(tanVert);
-        myAngles.h += atan(tanHoriz);
+        myAngles.h -= atan(tanHoriz);
+        myAngles.k += atan(tanVert);
         /* End not buggy [B] */
         
         changeToXYZ->multiplyVector(&myAngles);
-        //changeOfBasisMat->multiplyVector(&myAngles);
         
-        if (resetNudge)
-        {
-            add_vector_to_vector(&rotationAngles, myAngles);
-            *angles = new_vector(0, 0, 0);
-        }
-        else
-        {
-            *angles = copy_vector(myAngles);
-            quickAngles = *angles;
-        }
+        *angles = copy_vector(myAngles);
+        quickAngles = *angles;
     }
 
     vec shifted = copy_vector(xyzMovement);
 
     add_vector_to_vector(&shifted, parentedMidPoint);
     scale_vector_to_distance(&shifted, distanceFromOrigin);
-/*    MatrixPtr zMat = MatrixPtr(new Matrix());
+
+    // add back in at some point
+    /*    MatrixPtr zMat = MatrixPtr(new Matrix());
     zMat->rotate(0, 0, nudgeRotation.l);
     zMat->multiplyVector(&shifted);*/
     
-    /* Now we deal with the nudgeZ */
     xyzMovement = new_vector(0, 0, nudgeTranslation.l);
     changeToXYZ->multiplyVector(&xyzMovement);
     add_vector_to_vector(&shifted, xyzMovement);
@@ -360,12 +388,9 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         
         take_vector_away_from_vector(parentedMidPoint, &shift);
         
-        MatrixPtr change = (isLUCA() ? MatrixPtr(new Matrix()) : getParent()->getChangeOfBasis());
-        change->multiplyVector(&shift);
-        
+        changeOfBasisMat->multiplyVector(&nudgeRotation);
+        add_vector_to_vector(&rotationAngles, nudgeRotation);
         add_vector_to_vector(&arrangedMidPoint, shift);
-        nudgeTranslation = new_vector(0, 0, 0);
-        nudgeRotation = new_vector(0, 0, 0);
     }
    
     if (!useParent)
@@ -416,6 +441,17 @@ vec Detector::rawMidPointOffsetFromParent(bool useParent)
     return parentMidPoint;
 }
 
+void Detector::removeMidPointRelativeToParent()
+{
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        getChild(i)->removeMidPointRelativeToParent();
+    }
+    
+    vec parentPos = getParent()->midPointOffsetFromParent(false, NULL);
+    take_vector_away_from_vector(parentPos, &arrangedMidPoint);
+}
+
 void Detector::fullDescription()
 {
     Detector::getMaster()->description(true);
@@ -426,18 +462,30 @@ void Detector::description(bool propogate)
     logged << "I am detector " << getTag();
     if (!isLUCA())
         logged << " and my parent is " << getParent()->getTag();
-    logged  << std::endl << "My corrected midpoint is " << prettyDesc(midPointOffsetFromParent()) << std::endl;
+    vec rebasedNudge = new_vector(0, 0, 0);
+    vec midpoint = midPointOffsetFromParent(true, &rebasedNudge);
+    logged  << std::endl << "My raw midpoint is " << prettyDesc(arrangedMidPoint) << std::endl;
+    logged  << std::endl << "My corrected midpoint is " << prettyDesc(midpoint) << std::endl;
+    logged << "Distance of midpoint from origin is " << length_of_vector(midpoint) << " z = " << midpoint.l << std::endl;
     logged << "My midpoint relative to my parent is " << prettyDesc(midPointOffsetFromParent(false)) << std::endl;
+    logged << "My rotation angles are " << std::setprecision(10) << prettyDesc(rotationAngles) << std::endl;
     logged << "My rotated fast axis is " << std::setprecision(10) << prettyDesc(getRotatedFastDirection()) << std::endl;
     logged << "My rotated slow axis is " << std::setprecision(10) << prettyDesc(getRotatedSlowDirection()) << std::endl;
-
+    
     if (!hasChildren())
     {
         vec intersection;
         spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedTopLeftY, &intersection);
         logged << "My top left corner maps to " << prettyDesc(intersection) << std::endl;
     }
-    logged << "I am " << (isLUCA() ? "" : "not") << " the master detector." << std::endl;
+    
+    if (enabledNudge)
+    {
+        logged << "Rebased nudge from nudge translation is " << prettyDesc(rebasedNudge) << std::endl;
+        logged << "Nudge translation is " << prettyDesc(nudgeTranslation) << " and rotation is " << prettyDesc(nudgeRotation) << std::endl;
+        sendLog();
+    }
+    
     logged << "I have " << childrenCount() << " children." << std::endl << std::endl;
     
     sendLog();
@@ -780,15 +828,6 @@ std::string indents(int indentCount)
     return indent;
 }
 
-void Detector::applyRotations()
-{
-    for (int i = 0; i < childrenCount(); i++)
-    {
-        getChild(i)->applyRotations();
-    }
-    
-    updateCurrentRotation();
-}
 
 std::string Detector::writeGeometryFile(int indentCount)
 {
@@ -800,18 +839,15 @@ std::string Detector::writeGeometryFile(int indentCount)
     output << indents(indentCount + 1) << "min_ss = " << unarrangedTopLeftY << std::endl;
     output << indents(indentCount + 1) << "max_fs = " << unarrangedBottomRightX << std::endl;
     output << indents(indentCount + 1) << "max_ss = " << unarrangedBottomRightY << std::endl;
-    output << indents(indentCount + 1) << "fs_x = " << fastDirection.h << std::endl;
-    output << indents(indentCount + 1) << "fs_y = " << fastDirection.k << std::endl;
-    output << indents(indentCount + 1) << "fs_z = " << fastDirection.l << std::endl;
-    output << indents(indentCount + 1) << "ss_x = " << slowDirection.h << std::endl;
-    output << indents(indentCount + 1) << "ss_y = " << slowDirection.k << std::endl;
-    output << indents(indentCount + 1) << "ss_z = " << slowDirection.l << std::endl;
+    output << indents(indentCount + 1) << "fs_x = " << fastRotated.h << std::endl;
+    output << indents(indentCount + 1) << "fs_y = " << fastRotated.k << std::endl;
+    output << indents(indentCount + 1) << "fs_z = " << fastRotated.l << std::endl;
+    output << indents(indentCount + 1) << "ss_x = " << slowRotated.h << std::endl;
+    output << indents(indentCount + 1) << "ss_y = " << slowRotated.k << std::endl;
+    output << indents(indentCount + 1) << "ss_z = " << slowRotated.l << std::endl;
     output << indents(indentCount + 1) << "midpoint_x = " << arrangedMidPoint.h << std::endl;
     output << indents(indentCount + 1) << "midpoint_y = " << arrangedMidPoint.k << std::endl;
     output << indents(indentCount + 1) << "midpoint_z = " << arrangedMidPoint.l << std::endl;
-    output << indents(indentCount + 1) << "alpha = " << rotationAngles.h << std::endl;
-    output << indents(indentCount + 1) << "beta = " << rotationAngles.k << std::endl;
-    output << indents(indentCount + 1) << "gamma = " << rotationAngles.l << std::endl;
 
     for (int i = 0; i < childrenCount(); i++)
     {
@@ -1108,6 +1144,7 @@ void Detector::fixMidpoints()
     for (int i = 0; i < childrenCount(); i++)
     {
         vec myMidpoint = getChild(i)->midPointOffsetFromParent(false);
+        getChangeOfBasis()->multiplyVector(&myMidpoint);
         add_vector_to_vector(&aveMidpoint, myMidpoint);
     }
     

@@ -97,7 +97,10 @@ private:
     std::vector<DetectorPtr> children;
     DetectorWeakPtr parent;
     MatrixPtr rotMat;
+    MatrixPtr nudgeMat;
     MatrixPtr changeOfBasisMat;
+    MatrixPtr invBasisMat;
+    MatrixPtr fixedBasis;
     
     // MARK: keeping track of millers, etc.
     std::vector<MillerWeakPtr> millers;
@@ -113,7 +116,6 @@ private:
     void initialiseZeros();
     void updateUnarrangedMidPoint();
     bool directionSanityCheck();
-    void updateCurrentRotation();
     
     // MARK: private calculations
     
@@ -122,6 +124,8 @@ private:
     vec rawMidPointOffsetFromParent(bool useParent = true);
     vec midPointOffsetFromParent(bool useParent = true, vec *angles = NULL, bool resetNudge = false);
     void removeMidPointRelativeToParent();
+    void addToBasisChange(vec angles);
+    void fixBasisChange();
 
 public:
     /* Initialise all variables to zero */
@@ -181,8 +185,6 @@ public:
         slowDirection.h = newX;
         slowDirection.k = newY;
         slowDirection.l = newZ;
-        
-        updateCurrentRotation();
     }
     
     void setFastDirection(double newX, double newY, double newZ)
@@ -190,8 +192,6 @@ public:
         fastDirection.h = newX;
         fastDirection.k = newY;
         fastDirection.l = newZ;
-
-        updateCurrentRotation();
     }
     
     void setArrangedTopLeft(double newX, double newY, double newZ);
@@ -222,8 +222,6 @@ public:
         rotationAngles.h = alpha;
         rotationAngles.k = beta;
         rotationAngles.l = gamma;
-        
-        updateCurrentRotation();
     }
     
     void setTag(std::string newTag)
@@ -244,6 +242,9 @@ public:
     double halfSlow();
     double halfFast();
     
+    MatrixPtr calculateChangeOfBasis(vec *fastAxis, vec *slowAxis, MatrixPtr inv);
+    void recalculateChangeOfBasis(vec *fastAxis, vec *slowAxis);
+    
     MatrixPtr getChangeOfBasis()
     {
         return changeOfBasisMat;
@@ -253,6 +254,13 @@ public:
     {
         return rotMat;
     }
+    
+    MatrixPtr getNudgeMat()
+    {
+        return nudgeMat;
+    }
+    
+    void rotateAxisRecursive(bool fix = false);
     
     // MARK: Public family functions
     
@@ -316,8 +324,11 @@ public:
     
     // MARK: apply rotations bottom up
     
-    void applyRotations();
+    void updateCurrentRotation();
+
+    // MARK: Fix midpoints of mid-level panels
     void fixMidpoints();
+    
     void rearrangeCoord(std::pair<float, float> *aShift);
     
     // MARK: Spot coord to absolute vec

@@ -60,6 +60,7 @@ public:
     Matrix(double *components);
     Matrix(scitbx::mat3<double> unitcell, scitbx::mat3<double> rotation);
     MatrixPtr copy(void);
+    void copyComponents(MatrixPtr mat2);
     void printDescription(bool detailed = false);
     std::string description(bool detailed = false, bool submatrix = false);
     Matrix inverse2DMatrix();

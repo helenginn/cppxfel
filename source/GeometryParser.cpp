@@ -115,13 +115,10 @@ void GeometryParser::parsePanelListLines(std::vector<std::string> lines)
             
             DetectorPtr segment = DetectorPtr(new Detector(master, arrangedTopLeft, arrangedBottomRight, sw, o1, o2, gain));
             
-            segment->setRotationAngles(0, 0, 0);
             segment->setTag(panelNum);
             master->addChild(segment);
         }
     }
-    
-    Detector::getMaster()->applyRotations();
 }
 
 void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
@@ -275,7 +272,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
             gamma = atof(components[2].c_str());
     }
     
-    Detector::getMaster()->applyRotations();
+    Detector::getMaster()->updateCurrentRotation();
 }
 
 DetectorPtr GeometryParser::makeDetectorFromPanelMap(PanelMap panelMap, DetectorPtr parent)
@@ -325,7 +322,6 @@ DetectorPtr GeometryParser::makeDetectorFromPanelMap(PanelMap panelMap, Detector
     DetectorPtr segment = DetectorPtr(new Detector(parent, topLeft, bottomRight,
                                                    slowAxis, fastAxis, arrangedTopLeft));
     
-    segment->setRotationAngles(0, 0, 0);
     segment->setTag(name);
     parent->addChild(segment);
 
@@ -456,10 +452,10 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
         Detector::setDetectorType(DetectorTypeCSPAD);
 
         std::vector<DetectorPtr> quarters;
-        DetectorPtr q0_1 = DetectorPtr(new Detector(master, new_vector(0, +441, 0), "q0_1"));
+        DetectorPtr q0_1 = DetectorPtr(new Detector(master, new_vector(0, 0, 0), "q0_1"));
         master->addChild(q0_1);
 
-        DetectorPtr q2_3 = DetectorPtr(new Detector(master, new_vector(0, +441, 0), "q2_3"));
+        DetectorPtr q2_3 = DetectorPtr(new Detector(master, new_vector(0, 0, 0), "q2_3"));
         master->addChild(q2_3);
 
         // hard coded for now - convert to some kind of input
@@ -560,6 +556,9 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
             makeDetectorFromPanelMap(panelMaps[i], pairs[qNum][pairNum]);
         }
     }
+    
+    Detector::getMaster()->updateCurrentRotation();
+    Detector::getMaster()->fixMidpoints();
 }
 
 void GeometryParser::parse()
@@ -586,9 +585,6 @@ void GeometryParser::parse()
         parsePanelListLines(lines);
     }
     
-    Detector::getMaster()->setRotationAngles(0, 0, 0);
-    Detector::getMaster()->fixMidpoints();
-
     writeToFile("converted.cgeom");
     
     Detector::fullDescription();
