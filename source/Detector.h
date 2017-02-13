@@ -139,10 +139,13 @@ public:
     Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBottomRight,
              double angle, double offsetX, double offsetY, double gain);
     
-    /* For children panels, using initialisation variables from CrystFEL */
+    /* For children panels, just setting parent */
     /* Follow with parent->addChild to complete the process */
-    Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarrangedBottomRight,
-             vec slowDir, vec fastDir, vec arrangedTopLeft, bool lastIsMiddle = false);
+    Detector(DetectorPtr parent);
+    
+    /* using initialisation variables from CrystFEL */
+    void initialise(Coord unarrangedTopLeft, Coord unarrangedBottomRight,
+                    vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle = false);
     
     /* For detectors who have children and are not the master */
     Detector(DetectorPtr parent, vec arrangedMiddle, std::string tag);

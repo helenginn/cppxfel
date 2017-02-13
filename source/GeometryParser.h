@@ -26,7 +26,7 @@ private:
     void parseCppxfelLines(std::vector<std::string> lines);
     void parsePanelListLines(std::vector<std::string> lines);
     
-    DetectorPtr makeDetector(int min_fs, int min_ss, int max_fs, int max_ss,
+    DetectorPtr makeDetector(DetectorPtr parent, int min_fs, int min_ss, int max_fs, int max_ss,
                              double ss_x, double ss_y, double ss_z,
                              double fs_x, double fs_y, double fs_z,
                              double midpoint_x, double midpoint_y, double midpoint_z,

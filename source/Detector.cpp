@@ -132,12 +132,16 @@ Detector::Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBott
     setUnarrangedBottomRight(std::max(topLeft.h, bottomRight.h), std::max(topLeft.k, bottomRight.k));
 }
 
-Detector::Detector(DetectorPtr parent, Coord unarrangedTopLeft, Coord unarrangedBottomRight,
-                   vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle)
+Detector::Detector(DetectorPtr parent)
 {
     initialiseZeros();
     
     setParent(parent);
+}
+
+void Detector::initialise(Coord unarrangedTopLeft, Coord unarrangedBottomRight,
+                   vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle)
+{
     setUnarrangedTopLeft(unarrangedTopLeft.first, unarrangedTopLeft.second);
     setUnarrangedBottomRight(unarrangedBottomRight.first, unarrangedBottomRight.second);
     setSlowDirection(slowDir.h, slowDir.k, slowDir.l);
@@ -831,6 +835,18 @@ std::string indents(int indentCount)
 
 std::string Detector::writeGeometryFile(int indentCount)
 {
+    lockNudges();
+    
+    MatrixPtr underlyingBasis = MatrixPtr(new Matrix());
+    MatrixPtr tmpBasis = calculateChangeOfBasis(&fastDirection, &slowDirection, underlyingBasis);
+    underlyingBasis->preMultiply(*fixedBasis);
+    
+    vec myFast = new_vector(1, 0, 0);
+    vec mySlow = new_vector(0, 1, 0);
+    
+    underlyingBasis->multiplyVector(&myFast);
+    underlyingBasis->multiplyVector(&mySlow);
+    
     std::ostringstream output;
     
     output << indents(indentCount) << "panel " << getTag() << std::endl;
@@ -839,12 +855,12 @@ std::string Detector::writeGeometryFile(int indentCount)
     output << indents(indentCount + 1) << "min_ss = " << unarrangedTopLeftY << std::endl;
     output << indents(indentCount + 1) << "max_fs = " << unarrangedBottomRightX << std::endl;
     output << indents(indentCount + 1) << "max_ss = " << unarrangedBottomRightY << std::endl;
-    output << indents(indentCount + 1) << "fs_x = " << fastRotated.h << std::endl;
-    output << indents(indentCount + 1) << "fs_y = " << fastRotated.k << std::endl;
-    output << indents(indentCount + 1) << "fs_z = " << fastRotated.l << std::endl;
-    output << indents(indentCount + 1) << "ss_x = " << slowRotated.h << std::endl;
-    output << indents(indentCount + 1) << "ss_y = " << slowRotated.k << std::endl;
-    output << indents(indentCount + 1) << "ss_z = " << slowRotated.l << std::endl;
+    output << indents(indentCount + 1) << "fs_x = " << myFast.h << std::endl;
+    output << indents(indentCount + 1) << "fs_y = " << myFast.k << std::endl;
+    output << indents(indentCount + 1) << "fs_z = " << myFast.l << std::endl;
+    output << indents(indentCount + 1) << "ss_x = " << mySlow.h << std::endl;
+    output << indents(indentCount + 1) << "ss_y = " << mySlow.k << std::endl;
+    output << indents(indentCount + 1) << "ss_z = " << mySlow.l << std::endl;
     output << indents(indentCount + 1) << "midpoint_x = " << arrangedMidPoint.h << std::endl;
     output << indents(indentCount + 1) << "midpoint_y = " << arrangedMidPoint.k << std::endl;
     output << indents(indentCount + 1) << "midpoint_z = " << arrangedMidPoint.l << std::endl;

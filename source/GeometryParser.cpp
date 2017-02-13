@@ -22,7 +22,7 @@ GeometryParser::GeometryParser(std::string aFilename, GeometryFormat aFormat)
     format = aFormat;
 }
 
-DetectorPtr GeometryParser::makeDetector(int min_fs, int min_ss, int max_fs, int max_ss,
+DetectorPtr GeometryParser::makeDetector(DetectorPtr parent, int min_fs, int min_ss, int max_fs, int max_ss,
                                          double ss_x, double ss_y, double ss_z,
                                          double fs_x, double fs_y, double fs_z,
                                          double midpoint_x, double midpoint_y, double midpoint_z,
@@ -35,8 +35,13 @@ DetectorPtr GeometryParser::makeDetector(int min_fs, int min_ss, int max_fs, int
     vec fastAxis = new_vector(fs_x, fs_y, fs_z);
     vec middle = new_vector(midpoint_x, midpoint_y, midpoint_z);
     
-    DetectorPtr segment = DetectorPtr(new Detector(DetectorPtr(), topLeft, bottomRight,
-                                                   slowAxis, fastAxis, middle, true));
+    DetectorPtr segment = DetectorPtr(new Detector(parent));
+    
+    if (parent)
+    {
+        parent->addChild(segment);
+    }
+    segment->initialise(topLeft, bottomRight, slowAxis, fastAxis, middle, true);
     
     segment->prepareRotationAngles(alpha, beta, gamma);
     
@@ -189,20 +194,25 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
                 
                 if (!(components[0] == "panel" && detectorStack.size() == panelStack.size()))
                 {
-                    DetectorPtr segment = makeDetector(min_fs, min_ss, max_fs, max_ss,
+                    
+                    DetectorPtr parent = DetectorPtr();
+                    
+                    if (Detector::getMaster())
+                    {
+                        parent = detectorStack[detectorStack.size() - 1];
+                    }
+                    
+                    std::string tag = panelStack[panelStack.size() - 1];
+                    DetectorPtr segment = makeDetector(parent, min_fs, min_ss, max_fs, max_ss,
                                                        ss_x, ss_y, ss_z, fs_x, fs_y, fs_z,
                                                        midpoint_x, midpoint_y, midpoint_z,
                                                        alpha, beta, gamma);
-                    segment->setTag(panelStack[panelStack.size() - 1]);
+                    segment->setTag(tag);
+                    
                     
                     if (!Detector::getMaster())
                     {
                         Detector::setMaster(segment);
-                    }
-                    else
-                    {
-                        DetectorPtr lastDetector = detectorStack[detectorStack.size() - 1];
-                        lastDetector->addChild(segment);
                     }
                     
                     detectorStack.push_back(segment);
@@ -319,8 +329,8 @@ DetectorPtr GeometryParser::makeDetectorFromPanelMap(PanelMap panelMap, Detector
     vec slowAxis = new_vector(ss_x, ss_y, ss_z);
     vec arrangedTopLeft = new_vector(corner_x, corner_y, 0);
     
-    DetectorPtr segment = DetectorPtr(new Detector(parent, topLeft, bottomRight,
-                                                   slowAxis, fastAxis, arrangedTopLeft));
+    DetectorPtr segment = DetectorPtr(new Detector(parent));
+    segment->initialise(topLeft, bottomRight, slowAxis, fastAxis, arrangedTopLeft);
     
     segment->setTag(name);
     parent->addChild(segment);

@@ -152,7 +152,6 @@ void GeometryRefiner::reportProgress()
 
     manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
     GeometryParser geomParser = GeometryParser("whatever", GeometryFormatCppxfel);
-    Detector::getMaster()->lockNudges();
     geomParser.writeToFile("new_" + i_to_str(refinementEvent) + ".cppxfel_geom");
     refinementEvent++;
     
@@ -195,8 +194,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         
         threads.join_all();
         reportProgress();
-        
-        Detector::getMaster()->lockNudges();
         
     }
 
@@ -405,8 +402,6 @@ void GeometryRefiner::gridSearch(DetectorPtr detector)
     Detector::getMaster()->fullDescription();
     logged << "Intrapanel: " << IndexManager::pseudoScore(&*aManager) << std::endl;
     sendLog();
-    
-    Detector::getMaster()->lockNudges();
 
     logged << "****** POSTLOCK ******" << std::endl;
     sendLog();
