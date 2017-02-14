@@ -788,6 +788,7 @@ void FileParser::generateFunctionList()
     parserMap["PNG_SHOEBOX"] = simpleBool;
     parserMap["PNG_ALL_LATTICES"] = simpleBool;
     parserMap["PNG_HEIGHT"] = simpleInt;
+    parserMap["DRAW_GEOMETRY_PNGS"] = simpleBool;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
     
     parserMap["DETECTOR_LIST"] = simpleString;

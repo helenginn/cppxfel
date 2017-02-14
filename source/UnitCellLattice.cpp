@@ -41,7 +41,7 @@ void UnitCellLattice::addConvolutedPeak(CSVPtr csv, double mean, double stdev, d
     for (double x = -stdev * stdevMult / 2; x < stdev * stdevMult / 2; x += step)
     {
         //double y = normal_distribution(x, 0, stdev) / totalIntervals;
-        double y = super_gaussian(x, 0, stdev / 4, 0.8);
+        double y = super_gaussian(x, 0, stdev / 3, 1.0);
         csv->addOneToFrequency(x + mean, "Perfect frequency", y * weight);
     }
 }

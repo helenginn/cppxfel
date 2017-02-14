@@ -263,18 +263,8 @@ Coord Spot::getXY()
 {
     if (isBeamCentre())
     {
-        double x, y;
-        
-        if (Detector::isActive())
-        {
-        x = Detector::getArrangedMidPointX(&*Detector::getMaster());
-        y = Detector::getArrangedMidPointY(&*Detector::getMaster());
-        }
-        else
-        {
-            x = getParentImage()->getBeamX();
-            y = getParentImage()->getBeamY();
-        }
+        x = getParentImage()->getBeamX();
+        y = getParentImage()->getBeamY();
         
         return std::make_pair(x, y);
     }

@@ -99,6 +99,11 @@ void Hdf5Image::loadCrystals()
 
 void Hdf5Image::loadImage()
 {
+    if (isLoaded())
+    {
+        return;
+    }
+    
     Hdf5ManagerCheetahPtr manager = getManager();
     
     if (!manager)
@@ -171,6 +176,12 @@ void Hdf5Image::loadImage()
     {
         dumpImage();
     }
+    
+    int totalPixels = xDim * yDim;
+    
+    overlapMask = vector<signed char>(totalPixels, 0);
+    generalMask = vector<signed char>(totalPixels, -1);
+    perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
 }
 
 Hdf5ManagerCheetahPtr Hdf5Image::getManager()

@@ -23,6 +23,7 @@ ImagePtr Detector::drawImage = ImagePtr();
 DetectorType Detector::detectorType = DetectorTypeMPCCD;
 bool Detector::enabledNudge = false;
 int Detector::specialImageCounter = 0;
+std::mutex Detector::threadMutex;
 
 // MARK: initialisation and constructors
 
@@ -259,17 +260,24 @@ void Detector::addToBasisChange(vec angles, MatrixPtr chosenMat)
 void Detector::rotateAxisRecursive(bool fix)
 {
     MatrixPtr tempNewChange = MatrixPtr(new Matrix());
-    MatrixPtr chosen = fix ? tempNewChange : changeOfBasisMat;
     
-    changeOfBasisMat = fixedBasis->copy();
+    changeOfBasisMat->copyComponents(fixedBasis);
     
-    if (!isLUCA() && !fix)
+    if (fix)
     {
+        tempNewChange->copyComponents(changeOfBasisMat);
+    }
+    
+    if (!isLUCA())
+    {
+        std::lock_guard<std::mutex> lg(threadMutex);
+        
         MatrixPtr mat = getParent()->getChangeOfBasis();
         changeOfBasisMat->multiply(*mat);
     }
     
-    addToBasisChange(rotationAngles);
+    addToBasisChange(rotationAngles, changeOfBasisMat);
+    addToBasisChange(rotationAngles, tempNewChange);
     
     if (enabledNudge)
     {
@@ -278,17 +286,12 @@ void Detector::rotateAxisRecursive(bool fix)
         midPointOffsetFromParent(true, &rebasedNudge, fix);
 
         addToBasisChange(rebasedNudge);
+        addToBasisChange(rebasedNudge, tempNewChange);
     }
     
     if (fix)
     {
-        fixedBasis->copyComponents(changeOfBasisMat);
-        
-        if (!isLUCA())
-        {
-            MatrixPtr mat = getParent()->getChangeOfBasis();
-            changeOfBasisMat->multiply(*mat);
-        }
+        fixedBasis->copyComponents(tempNewChange);
         
         memset(&rotationAngles.h, 0, sizeof(rotationAngles.h) * 3);
         memset(&nudgeTranslation.h, 0, sizeof(nudgeTranslation.h) * 3);
@@ -1132,7 +1135,6 @@ void Detector::drawSpecialImage(std::string filename)
     if (!drawImage)
         return;
     
-    return;
     if (filename == "")
     {
         filename = "special_" + i_to_str(specialImageCounter) + ".png";

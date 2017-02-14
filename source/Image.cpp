@@ -143,7 +143,7 @@ Image::~Image()
     vector<int>().swap(data);
     
     overlapMask.clear();
-    vector<unsigned char>().swap(overlapMask);
+    vector<signed char>().swap(overlapMask);
     
     /*
     spots.clear();
@@ -193,7 +193,13 @@ void Image::setImageData(vector<int> newData)
 
 void Image::newImage()
 {
-    data = std::vector<int>(xDim * yDim, 0);
+    int totalPixels = xDim * yDim;
+    
+    data = std::vector<int>(totalPixels, 0);
+    overlapMask = vector<signed char>(totalPixels, 0);
+    generalMask = vector<signed char>(totalPixels, -1);
+    perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
+
 }
 
 void Image::loadImage()
@@ -228,7 +234,9 @@ void Image::loadImage()
         else
             shortData.resize(memblock.size() / sizeof(short));
         
-        overlapMask = vector<unsigned char>(memblock.size(), 0);
+        overlapMask = vector<signed char>(memblock.size(), 0);
+        generalMask = vector<signed char>(memblock.size(), -1);
+        perPixelDetectors = vector<DetectorPtr>(memblock.size(), DetectorPtr());
         
         logged << "Image size: " << memblock.size() << " for image: "
         << filename << std::endl;
@@ -264,7 +272,8 @@ void Image::dropImage()
     vector<short>().swap(shortData);
     
     overlapMask.clear();
-    vector<unsigned char>().swap(overlapMask);
+    vector<signed char>().swap(overlapMask);
+    vector<signed char>().swap(generalMask);
     
     for (int i = 0; i < IOMRefinerCount(); i++)
         getIOMRefiner(i)->dropMillers();
@@ -331,13 +340,44 @@ int Image::rawValueAt(int x, int y)
 
 int Image::valueAt(int x, int y)
 {
-    double rawValue = rawValueAt(x, y);
+    loadImage();
     
-    //PanelPtr panel = Panel::panelForSpotCoord(std::make_pair(x, y));
-    DetectorPtr det = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
+    int pos = y * xDim + x;
     
-    if (!det)
+    if (pos > xDim * yDim)
+    {
         return 0;
+    }
+    
+    signed char maskValue = generalMask[pos];
+    
+    DetectorPtr det;
+    
+    if (maskValue > 0)
+    {
+        det = perPixelDetectors[pos];
+    }
+    else if (maskValue < 0)
+    {
+        det = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
+        
+        bool isDet = (det != DetectorPtr());
+        
+        generalMask[pos] = isDet;
+        perPixelDetectors[pos] = det;
+        
+        if (!isDet)
+        {
+            return 0;
+        }
+    }
+    
+    if (maskValue == 0)
+    {
+        return 0;
+    }
+    
+    double rawValue = rawValueAt(x, y);
     
     double panelGain = det->getGain();
     
@@ -398,6 +438,15 @@ double Image::weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
 
 void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
 {
+    if (images.size() == 0)
+    {
+        return;
+    }
+    
+    images[0]->loadImage();
+    
+    xDim = images[0]->getXDim();
+    yDim = images[0]->getYDim();
     newImage();
     
     for (int i = 0; i < images.size(); i++)
@@ -406,7 +455,7 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
         {
             for (int k = 0; k < xDim; k++)
             {
-                addValueAt(k, j, images[i]->valueAt(k, j));
+                addValueAt(k, j, images[i]->rawValueAt(k, j));
             }
         }
         
@@ -934,14 +983,15 @@ void Image::incrementOverlapMask(int x, int y, ShoeboxPtr shoebox)
     }
 }
 
-unsigned char Image::overlapAt(int x, int y)
+signed char Image::maskValueAt(signed char *firstByte, int x, int y)
 {
     int position = y * yDim + x;
+    int maxSize = xDim * yDim;
     
-    if (position < 0 || position >= overlapMask.size())
+    if (position < 0 || position >= maxSize)
         return 0;
     
-    return overlapMask[position];
+    return firstByte[position];
 }
 
 unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
@@ -961,8 +1011,10 @@ unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
     {
         for (int j = startY; j < startY + fastSide; j++)
         {
-            if (overlapAt(x, y) > max)
-                max = overlapAt(x, y);
+            if (maskValueAt(&overlapMask[0], x, y) > max)
+            {
+                max = maskValueAt(&overlapMask[0], x, y);
+            }
         }
     }
     

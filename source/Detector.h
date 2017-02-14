@@ -13,6 +13,7 @@
 #include "parameters.h"
 #include "LoggableObject.h"
 #include "FileParser.h"
+#include <mutex>
 
 typedef enum
 {
@@ -32,6 +33,7 @@ private:
     static DetectorType detectorType;
     static int specialImageCounter;
     double gain;
+    static std::mutex threadMutex;
     
     static bool enabledNudge;
     bool mustUpdateMidPoint;
@@ -538,6 +540,11 @@ public:
     
     static void setDrawImage(ImagePtr image)
     {
+        if (!FileParser::getKey("DRAW_GEOMETRY_PNGS", true))
+        {
+            return;
+        }
+        
         drawImage = image;
     }
     
