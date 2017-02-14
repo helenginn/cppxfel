@@ -23,7 +23,6 @@ ImagePtr Detector::drawImage = ImagePtr();
 DetectorType Detector::detectorType = DetectorTypeMPCCD;
 bool Detector::enabledNudge = false;
 int Detector::specialImageCounter = 0;
-std::mutex Detector::threadMutex;
 
 // MARK: initialisation and constructors
 
@@ -157,6 +156,7 @@ void Detector::initialise(Coord unarrangedTopLeft, Coord unarrangedBottomRight,
     
     if (!isLUCA())
     {
+        std::lock_guard<std::mutex> lg(getParent()->threadMutex);
         MatrixPtr parentBasis = getParent()->getChangeOfBasis();
         fixedBasis->multiply(*parentBasis->inverse3DMatrix());
     }
@@ -271,8 +271,8 @@ void Detector::rotateAxisRecursive(bool fix)
     
     if (!isLUCA())
     {
-        std::lock_guard<std::mutex> lg(threadMutex);
-        
+        std::lock_guard<std::mutex> lg(getParent()->threadMutex);
+
         MatrixPtr mat = getParent()->getChangeOfBasis();
         changeOfBasisMat->multiply(*mat);
     }
@@ -419,6 +419,7 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         
         if (!isLUCA())
         {
+            std::lock_guard<std::mutex> lg(getParent()->threadMutex);
             myParentMidPoint = getParent()->midPointOffsetFromParent();
         }
         
@@ -441,14 +442,18 @@ vec Detector::rawMidPointOffsetFromParent(bool useParent)
     
     vec parentMidPoint = new_vector(0, 0, 0);
     
-    if (useParent)
-    {
-        parentMidPoint = getParent()->midPointOffsetFromParent(useParent);
-    }
+    vec slow, fast, cross;
     
-    vec slow = getParent()->getRotatedSlowDirection();
-    vec fast = getParent()->getRotatedFastDirection();
-    vec cross = cross_product_for_vectors(fast, slow);
+    {
+        if (useParent)
+        {
+            parentMidPoint = getParent()->midPointOffsetFromParent(useParent);
+        }
+        
+        slow = getParent()->getRotatedSlowDirection();
+        fast = getParent()->getRotatedFastDirection();
+        cross = cross_product_for_vectors(fast, slow);
+    }
     
     vec midPointAdded = arrangedMidPoint;
     
@@ -470,6 +475,7 @@ void Detector::removeMidPointRelativeToParent()
         getChild(i)->removeMidPointRelativeToParent();
     }
     
+    std::lock_guard<std::mutex> lg(getParent()->threadMutex);
     vec parentPos = getParent()->midPointOffsetFromParent(false, NULL);
     take_vector_away_from_vector(parentPos, &arrangedMidPoint);
 }
