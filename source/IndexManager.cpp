@@ -674,33 +674,6 @@ double IndexManager::pseudoScore(void *object)
         }
     }
     
-    /*
-    for (int i = 0; i < csv->entryCount(); i++)
-    {
-        double distance = csv->valueForEntry("Distance", i);
-        double weight = csv->valueForEntry("data", i);
-        int j = 0;
-        
-        for (j = 0; j < me->lattice->orderedDistanceCount(); j++)
-        {
-            if (distance > me->lattice->orderedDistance(j))
-            {
-                break;
-            }
-        }
-        
-        double underDistance = me->lattice->orderedDistance(j - 1);
-        double overDistance = me->lattice->orderedDistance(j);
-        
-        double closest = (overDistance - distance < underDistance - distance) ? overDistance : underDistance;
-        
-        score += (closest - distance) * (closest - distance) * weight;
-        count += weight;
-    }
-    
-    if (count == 0)
-        return FLT_MAX;*/
-    
     score /= count;
     
     return -score;

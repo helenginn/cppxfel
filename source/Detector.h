@@ -33,7 +33,7 @@ private:
     static DetectorType detectorType;
     static int specialImageCounter;
     double gain;
-    static std::mutex threadMutex;
+    std::mutex threadMutex;
     
     static bool enabledNudge;
     bool mustUpdateMidPoint;
