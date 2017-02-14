@@ -109,11 +109,11 @@ void GeometryRefiner::reportProgress()
     {
         interIncrease *= -1;
     }
-    
+    /*
     if (refinementEvent > 0 && fabs(interIncrease) < 0.00001 && fabs(intraIncrease)  < 0.00001)
     {
         return;
-    }
+    }*/
     
     logged << "N: Progress score (event " << refinementEvent << ", intra-panel): " << intraScore
     << " (" << (intraIncrease > 0 ? "+" : "") << intraIncrease << "% from last round) " << std::endl;
@@ -242,9 +242,9 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     if (type == GeometryScoreTypeIntrapanel)
     {
         strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.001, 0.00001, "nudge_tx");
-            strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
-            strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, zNudge, 0.001, "nudge_z");
-        //        strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.001, 0.000001, "nudge_tz");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, zNudge, 0.001, "nudge_z");
+        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.001, 0.000001, "tilt_z");
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
