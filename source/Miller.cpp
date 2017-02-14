@@ -988,6 +988,7 @@ void Miller::applyPolarisation(double wavelength)
         rawIntensity *= l + 1;
 }
 
+// CCTBX_REWRITE: here
 bool Miller::positiveFriedel(bool *positive, int *_isym)
 {
     int h = getH();

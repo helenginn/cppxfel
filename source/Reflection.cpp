@@ -228,6 +228,7 @@ void Reflection::setSpaceGroup(int spaceGroupNum)
         flipMatrices.push_back(matrixForAmbiguity(i));
     }
     
+    // CCTBX_REWRITE: here
     spaceGroup = space_group(hallSymbol);
     spgType = cctbx::sgtbx::space_group_type(spaceGroup);
     asymmetricUnit = asu(spgType);
@@ -245,6 +246,7 @@ int Reflection::reflectionIdForCoordinates(int h, int k, int l)
     return index;
 }
 
+// CCTBX_REWRITE: here
 int Reflection::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
 {
     int h = cctbxMiller[0];
@@ -254,6 +256,7 @@ int Reflection::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
     return reflectionIdForCoordinates(h, k, l);
 }
 
+// CCTBX_REWRITE: here
 void Reflection::generateReflectionIds()
 {
     if (millerCount() == 0)
@@ -283,6 +286,7 @@ void Reflection::generateReflectionIds()
     }
 }
 
+// CCTBX_REWRITE: here
 void Reflection::setUnitCellDouble(double *theUnitCell)
 {
     scitbx::af::double6 params;

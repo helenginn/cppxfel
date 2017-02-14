@@ -16,13 +16,7 @@
 #include <sstream>
 #include <iomanip>
 #include "parameters.h"
-#include <cctbx/miller.h>
-#include <cctbx/uctbx.h>
-#include <scitbx/vec3.h>
 #include <cctbx/sgtbx/space_group.h>
-#include <cctbx/sgtbx/rt_mx.h>
-#include <cctbx/sgtbx/rot_mx.h>
-#include <cctbx/crystal_orientation.h>
 #include "Logger.h"
 //#include <boost/python.hpp>
 #include "FileParser.h"
@@ -213,6 +207,8 @@ MatrixPtr Matrix::getNegativeCopy()
     
     return newMat;
 }
+
+// CCTBX_REWRITE: here
 
 void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma, bool orthogonal)
 {
@@ -498,22 +494,9 @@ void Matrix::assignFromCctbxMatrix(scitbx::mat3<double> newMat)
     assignFromCctbxMatrix(this, newMat);
 }
 
+// CCTBX_REWRITE: here
 void Matrix::assignFromCctbxMatrix(Matrix *changeMat, scitbx::mat3<double> newMat)
 {
-    /*
-     changeMat->components[0] = newMat(0, 0);
-     changeMat->components[4] = newMat(0, 1);
-     changeMat->components[8] = newMat(0, 2);
-     
-     changeMat->components[1] = newMat(1, 0);
-     changeMat->components[5] = newMat(1, 1);
-     changeMat->components[9] = newMat(1, 2);
-     
-     changeMat->components[2] = newMat(2, 0);
-     changeMat->components[6] = newMat(2, 1);
-     changeMat->components[10] = newMat(2, 2);
-     */
-    
     changeMat->components[0] = newMat(0, 0);
     changeMat->components[4] = newMat(1, 0);
     changeMat->components[8] = newMat(2, 0);
@@ -526,6 +509,8 @@ void Matrix::assignFromCctbxMatrix(Matrix *changeMat, scitbx::mat3<double> newMa
     changeMat->components[6] = newMat(1, 2);
     changeMat->components[10] = newMat(2, 2);
 }
+
+// CCTBX_REWRITE: here
 
 void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma)
 {
@@ -975,6 +960,7 @@ double invertValue(double topLeft, double bottomRight, double topRight, double b
     return topLeft * bottomRight - bottomLeft * topRight;
 }
 
+// CCTBX_REWRITE: here
 MatrixPtr Matrix::inverse3DMatrix()
 {
     scitbx::mat3<double> inverse;
@@ -994,6 +980,7 @@ MatrixPtr Matrix::inverse3DMatrix()
     
 }
 
+// CCTBX_REWRITE: here
 double Matrix::determinant()
 {
     scitbx::mat3<double> cctbxMat = cctbxMatrix();
@@ -1052,6 +1039,7 @@ void Matrix::translation(double **vector)
     
 }
 
+// CCTBX_REWRITE: here
 cctbx::miller::index<double> Matrix::multiplyIndex(cctbx::miller::index<> *index)
 {
     int h = index->as_tiny()[0];
