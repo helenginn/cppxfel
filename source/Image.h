@@ -41,8 +41,7 @@ private:
 	std::string filename;
     std::vector<MtzPtr> mtzs;
     
-    vector<unsigned char> overlapMask;
-	virtual void loadImage();
+    virtual void loadImage();
     vector<IOMRefinerPtr> indexers;
     vector<IOMRefinerPtr> failedRefiners;
     bool shouldMaskValue;
@@ -99,7 +98,10 @@ protected:
     virtual bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
     int minimumSolutionNetworkCount;
     bool loadedSpots;
-
+    vector<signed char> overlapMask;
+    vector<signed char> generalMask;
+    vector<DetectorPtr> perPixelDetectors;
+    
     // this really ought to be a template
     vector<short> shortData;
     vector<int> data;
@@ -116,7 +118,7 @@ public:
     virtual vec pixelsToReciprocalCoordinates(double xPix, double yPix);
     virtual vec millimetresToReciprocalCoordinates(double xmm, double ymm);
     
-    unsigned char overlapAt(int x, int y);
+    signed char maskValueAt(signed char *firstByte, int x, int y);
     unsigned char maximumOverlapMask(int x, int y, ShoeboxPtr shoebox);
 	Image(std::string filename = "", double wavelength = 0,
 			double distance = 0);

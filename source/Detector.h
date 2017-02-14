@@ -13,6 +13,7 @@
 #include "parameters.h"
 #include "LoggableObject.h"
 #include "FileParser.h"
+#include <mutex>
 
 typedef enum
 {
@@ -32,6 +33,7 @@ private:
     static DetectorType detectorType;
     static int specialImageCounter;
     double gain;
+    static std::mutex threadMutex;
     
     static bool enabledNudge;
     bool mustUpdateMidPoint;
@@ -124,7 +126,7 @@ private:
     vec rawMidPointOffsetFromParent(bool useParent = true);
     vec midPointOffsetFromParent(bool useParent = true, vec *angles = NULL, bool resetNudge = false);
     void removeMidPointRelativeToParent();
-    void addToBasisChange(vec angles);
+    void addToBasisChange(vec angles, MatrixPtr chosenMat = MatrixPtr());
     void fixBasisChange();
 
 public:
@@ -145,7 +147,7 @@ public:
     
     /* using initialisation variables from CrystFEL */
     void initialise(Coord unarrangedTopLeft, Coord unarrangedBottomRight,
-                    vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle = false);
+                    vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle = false, bool ghost = false);
     
     /* For detectors who have children and are not the master */
     Detector(DetectorPtr parent, vec arrangedMiddle, std::string tag);
@@ -318,7 +320,11 @@ public:
     static void setMaster(DetectorPtr newMaster)
     {
         masterPanel = newMaster;
-        newMaster->setTag("master");
+        
+        if (newMaster)
+        {
+            newMaster->setTag("master");
+        }
     }
 
     /* Return resolution histogram */
@@ -534,6 +540,11 @@ public:
     
     static void setDrawImage(ImagePtr image)
     {
+        if (!FileParser::getKey("DRAW_GEOMETRY_PNGS", true))
+        {
+            return;
+        }
+        
         drawImage = image;
     }
     
@@ -554,7 +565,7 @@ public:
     /* Resolution fun */
     
     double spotCoordToResolution(double unarrangedX, double unarrangedY, double wavelength);
-    void resolutionOrZLimits(double *min, double *max, double wavelength, int type);
+    void resolutionOrZLimits(double *min, double *max, double wavelength, int type, CSVPtr csv = CSVPtr());
     void zLimits(double *min, double *max);
     void resolutionLimits(double *min, double *max, double wavelength);
     

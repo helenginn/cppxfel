@@ -114,6 +114,7 @@ public:
     void plotIntensities();
     void plotIntegrationWindows();
     
+    void imageToDetectorMap();
     void writePNGs(int total = 0);
     void takeTwoPNG();
 };

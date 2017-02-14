@@ -26,7 +26,7 @@ DetectorPtr GeometryParser::makeDetector(DetectorPtr parent, int min_fs, int min
                                          double ss_x, double ss_y, double ss_z,
                                          double fs_x, double fs_y, double fs_z,
                                          double midpoint_x, double midpoint_y, double midpoint_z,
-                                         double alpha, double beta, double gamma)
+                                         double alpha, double beta, double gamma, bool ghost)
 {
     Coord topLeft = std::make_pair(min_fs, min_ss);
     Coord bottomRight = std::make_pair(max_fs, max_ss);
@@ -41,7 +41,7 @@ DetectorPtr GeometryParser::makeDetector(DetectorPtr parent, int min_fs, int min
     {
         parent->addChild(segment);
     }
-    segment->initialise(topLeft, bottomRight, slowAxis, fastAxis, middle, true);
+    segment->initialise(topLeft, bottomRight, slowAxis, fastAxis, middle, true, ghost);
     
     segment->prepareRotationAngles(alpha, beta, gamma);
     
@@ -150,7 +150,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
     double alpha = 0;
     double beta = 0;
     double gamma = 0;
-
+    bool ghost = false;
     
     for (int i = 0; i < lines.size(); i++)
     {
@@ -206,7 +206,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
                     DetectorPtr segment = makeDetector(parent, min_fs, min_ss, max_fs, max_ss,
                                                        ss_x, ss_y, ss_z, fs_x, fs_y, fs_z,
                                                        midpoint_x, midpoint_y, midpoint_z,
-                                                       alpha, beta, gamma);
+                                                       alpha, beta, gamma, ghost);
                     segment->setTag(tag);
                     
                     
@@ -280,6 +280,9 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
             beta = atof(components[2].c_str());
         if (components[0] == "gamma")
             gamma = atof(components[2].c_str());
+        
+        if (components[0] == "ghost")
+            ghost = (strcmp(components[2].c_str(), "true") == 0);
     }
     
     Detector::getMaster()->updateCurrentRotation();
@@ -586,7 +589,8 @@ void GeometryParser::parse()
     {
         parseCrystFELLines(lines);
     }
-    else if (format == GeometryFormatCppxfel)
+    
+    if (format == GeometryFormatCppxfel)
     {
         parseCppxfelLines(lines);
     }
@@ -595,13 +599,15 @@ void GeometryParser::parse()
         parsePanelListLines(lines);
     }
     
-    writeToFile("converted.cgeom");
-    
+    filename = "converted.cgeom";
+    writeToFile(filename);
+
     Detector::fullDescription();
 }
 
 void GeometryParser::writeToFile(std::string newName)
 {
+    Detector::getMaster()->lockNudges();
     std::string geometry = Detector::getMaster()->writeGeometryFile();
     
     std::ofstream file;

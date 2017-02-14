@@ -664,7 +664,7 @@ double IndexManager::pseudoScore(void *object)
             vec->setUpdate();
             double realDistance = vec->distance();
             double weight = me->lattice->weightForDistance(realDistance);
-            weight -= 1000;
+     //       weight -= 1000;
             
             score += weight;
             count++;

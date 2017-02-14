@@ -64,42 +64,15 @@ void GeometryRefiner::refineGeometry()
 {
     Detector::setNoisy(true);
     Detector::getMaster()->enableNudge();
-    /*
-    
-     logged << "********* TEST **********" << std::endl;
-    sendLog();
-    
-//    Detector::setAlpha(&*(Detector::getMaster()), 0.1);
-//    Detector::setArrangedMidPointX(&*(Detector::getMaster()), 5.0);
-    Detector::setBeta(&*(Detector::getMaster()->getChild(0)), 0.01);
-    Detector::getMaster()->fullDescription();
- //   Detector::drawSpecialImage("test1.png");
-    
-  //  Detector::setNudgeTiltZ(&*(Detector::getMaster()), 0.005);
-    logged << "Setting nudge stuff" << std::endl;
-    sendLog();
-//    Detector::setNudgeY(&*(Detector::getMaster()), 8.0);
-    //Detector::getMaster()->getChild(0)->getChild(0)->getChild(1)->getChild(0)->getChild(0)->getChild(0)->description();
-    logged << "Locking nudges now" << std::endl;
-    sendLog();
-    Detector::getMaster()->fullDescription();
-
-//   Detector::getMaster()->lockNudges();
-//    Detector::getMaster()->description();
-    //Detector::getMaster()->getChild(0)->getChild(0)->getChild(1)->getChild(0)->getChild(0)->getChild(0)->description();
-    
- //   Detector::drawSpecialImage("test2.png");
-    
-    gridSearch(Detector::getMaster());
-    
-    exit(0);*/
      
     reportProgress();
     
     std::vector<DetectorPtr> detectors;
     detectors.push_back(Detector::getMaster());
     
-    for (int i = 0; i < 5; i++)
+    int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
+    
+    for (int i = 0; i < maxCycles; i++)
     {
         cycleNum++;
         geometryCycleForDetector(detectors);
@@ -194,7 +167,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         
         threads.join_all();
         reportProgress();
-        
     }
 
     refineBeamCentre();

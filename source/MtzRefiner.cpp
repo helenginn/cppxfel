@@ -2015,8 +2015,6 @@ void MtzRefiner::refineMetrology(bool global)
         GeometryRefiner refiner = GeometryRefiner();
         refiner.setImages(images);
         refiner.refineGeometry();
-        
-        return;
     }
 }
 
@@ -2140,4 +2138,13 @@ void MtzRefiner::takeTwoPNG()
     }
     
     image->plotTakeTwoVectors(images);
+}
+
+void MtzRefiner::imageToDetectorMap()
+{
+    if (images.size())
+    {
+        double min, max;
+        Detector::getMaster()->zLimits(&min, &max);
+    }
 }

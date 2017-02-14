@@ -294,6 +294,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->writePNGs();
             }
             
+            if (line == "IMAGE_TO_DETECTOR_MAP")
+            {
+                understood = true;
+                refiner->imageToDetectorMap();
+            }
+            
             if (line == "PLOT_INTENSITIES")
             {
                 understood = true;
