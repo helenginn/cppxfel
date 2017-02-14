@@ -904,11 +904,16 @@ void Detector::resolutionLimits(double *min, double *max, double wavelength)
 
 void Detector::zLimits(double *min, double *max)
 {
-    resolutionOrZLimits(min, max, 0, 1);
+    CSVPtr csv = CSVPtr(new CSV(5, "x", "y", "h", "k", "l"));
+
+    resolutionOrZLimits(min, max, 0, 1, csv);
+    
+    std::string geometryList = FileParser::getKey("DETECTOR_LIST", std::string("error"));
+    csv->writeToFile("image_to_detector_map_" + geometryList + ".csv");
 }
 
 // type = 0 = resolution, type = 1 = z limits
-void Detector::resolutionOrZLimits(double *min, double *max, double wavelength, int type)
+void Detector::resolutionOrZLimits(double *min, double *max, double wavelength, int type, CSVPtr csv)
 {
     if (isLUCA())
     {
@@ -922,7 +927,7 @@ void Detector::resolutionOrZLimits(double *min, double *max, double wavelength, 
         {
             double myChildMin = FLT_MAX;
             double myChildMax = -FLT_MAX;
-            getChild(i)->resolutionOrZLimits(&myChildMin, &myChildMax, wavelength, type);
+            getChild(i)->resolutionOrZLimits(&myChildMin, &myChildMax, wavelength, type, csv);
             updateMinMax(min, max, myChildMin);
             updateMinMax(min, max, myChildMax);
         }
@@ -956,15 +961,19 @@ void Detector::resolutionOrZLimits(double *min, double *max, double wavelength, 
         vec arrangedPos = new_vector(0, 0, 0);
         spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedTopLeftY, &arrangedPos);
         updateMinMax(&lowZ, &highZ, arrangedPos.l);
+        csv->addEntry(5, (double)unarrangedTopLeftX, (double)unarrangedTopLeftY, arrangedPos.h, arrangedPos.k, arrangedPos.l);
         
         spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedBottomRightY, &arrangedPos);
         updateMinMax(&lowZ, &highZ, arrangedPos.l);
+        csv->addEntry(5, (double)unarrangedTopLeftX, (double)unarrangedBottomRightY, arrangedPos.h, arrangedPos.k, arrangedPos.l);
         
         spotCoordToAbsoluteVec(unarrangedBottomRightX, unarrangedTopLeftY, &arrangedPos);
         updateMinMax(&lowZ, &highZ, arrangedPos.l);
+        csv->addEntry(5, (double)unarrangedBottomRightX, (double)unarrangedTopLeftY, arrangedPos.h, arrangedPos.k, arrangedPos.l);
 
         spotCoordToAbsoluteVec(unarrangedBottomRightX, unarrangedBottomRightY, &arrangedPos);
         updateMinMax(&lowZ, &highZ, arrangedPos.l);
+        csv->addEntry(5, (double)unarrangedBottomRightX, (double)unarrangedBottomRightY, arrangedPos.h, arrangedPos.k, arrangedPos.l);
         
         *min = lowZ;
         *max = highZ;

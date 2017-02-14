@@ -2359,3 +2359,4 @@ void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
     logged << "Written file " << filename << std::endl;
     sendLog();
 }
+

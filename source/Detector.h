@@ -565,7 +565,7 @@ public:
     /* Resolution fun */
     
     double spotCoordToResolution(double unarrangedX, double unarrangedY, double wavelength);
-    void resolutionOrZLimits(double *min, double *max, double wavelength, int type);
+    void resolutionOrZLimits(double *min, double *max, double wavelength, int type, CSVPtr csv = CSVPtr());
     void zLimits(double *min, double *max);
     void resolutionLimits(double *min, double *max, double wavelength);
     
