@@ -17,10 +17,6 @@
 #include <tuple>
 #include "Detector.h"
 #include <fstream>
-#include <cctbx/miller/sym_equiv.h>
-#include <cctbx/miller/asu.h>
-#include <cctbx/miller.h>
-#include <cctbx/sgtbx/space_group.h>
 #include "Reflection.h"
 #include "Miller.h"
 #include "UnitCellLattice.h"

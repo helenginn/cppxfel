@@ -16,11 +16,6 @@
 #include "UnitCellLattice.h"
 #include "Reflection.h"
 
-using cctbx::sgtbx::space_group;
-using cctbx::sgtbx::rt_mx;
-using cctbx::sgtbx::rot_mx;
-using cctbx::uctbx::unit_cell;
-
 int IndexingSolution::spaceGroupNum = 0;
 CSym::CCP4SPG *IndexingSolution::spaceGroup = NULL;
 std::vector<double> IndexingSolution::unitCell;

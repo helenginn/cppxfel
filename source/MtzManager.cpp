@@ -672,6 +672,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     
     char *hallSymbol = ccp4spg_symbol_Hall(low_group);
     
+    // CCTBX_REWRITE: here
     space_group spaceGroup = space_group(hallSymbol);
     space_group_type spgType = space_group_type(spaceGroup);
     asu asymmetricUnit = asu(spgType);
