@@ -561,14 +561,21 @@ bool Detector::isAncestorOf(DetectorPtr detector)
         return true;
     }
     
+    if (ancestorMap.count(detector))
+    {
+        return ancestorMap[detector];
+    }
+    
     for (int i = 0; i < childrenCount(); i++)
     {
         if (getChild(i)->isAncestorOf(detector))
         {
+            ancestorMap[detector] = true;
             return true;
         }
     }
     
+    ancestorMap[detector] = false;
     return false;
 }
 

@@ -21,6 +21,8 @@ typedef enum
     DetectorTypeMPCCD,
 } DetectorType;
 
+typedef std::map<DetectorPtr, bool> AncestorMap;
+
 class Detector : public LoggableObject, public boost::enable_shared_from_this<Detector>
 {
 private:
@@ -103,6 +105,9 @@ private:
     MatrixPtr changeOfBasisMat;
     MatrixPtr invBasisMat;
     MatrixPtr fixedBasis;
+    
+    /* Ancestor map for quick access for previously asked "are you my ancestor"? */
+    AncestorMap ancestorMap;
     
     // MARK: keeping track of millers, etc.
     std::vector<MillerWeakPtr> millers;
