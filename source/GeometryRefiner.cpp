@@ -64,42 +64,13 @@ void GeometryRefiner::refineGeometry()
 {
     Detector::setNoisy(true);
     Detector::getMaster()->enableNudge();
-    /*
-    
-     logged << "********* TEST **********" << std::endl;
-    sendLog();
-    
-//    Detector::setAlpha(&*(Detector::getMaster()), 0.1);
-//    Detector::setArrangedMidPointX(&*(Detector::getMaster()), 5.0);
-    Detector::setBeta(&*(Detector::getMaster()->getChild(0)), 0.01);
-    Detector::getMaster()->fullDescription();
- //   Detector::drawSpecialImage("test1.png");
-    
-  //  Detector::setNudgeTiltZ(&*(Detector::getMaster()), 0.005);
-    logged << "Setting nudge stuff" << std::endl;
-    sendLog();
-//    Detector::setNudgeY(&*(Detector::getMaster()), 8.0);
-    //Detector::getMaster()->getChild(0)->getChild(0)->getChild(1)->getChild(0)->getChild(0)->getChild(0)->description();
-    logged << "Locking nudges now" << std::endl;
-    sendLog();
-    Detector::getMaster()->fullDescription();
-
-//   Detector::getMaster()->lockNudges();
-//    Detector::getMaster()->description();
-    //Detector::getMaster()->getChild(0)->getChild(0)->getChild(1)->getChild(0)->getChild(0)->getChild(0)->description();
-    
- //   Detector::drawSpecialImage("test2.png");
-    
-    gridSearch(Detector::getMaster());
-    
-    exit(0);*/
      
     reportProgress();
     
     std::vector<DetectorPtr> detectors;
     detectors.push_back(Detector::getMaster());
     
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 10; i++)
     {
         cycleNum++;
         geometryCycleForDetector(detectors);
@@ -152,6 +123,7 @@ void GeometryRefiner::reportProgress()
 
     manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
     GeometryParser geomParser = GeometryParser("whatever", GeometryFormatCppxfel);
+    Detector::getMaster()->lockNudges();
     geomParser.writeToFile("new_" + i_to_str(refinementEvent) + ".cppxfel_geom");
     refinementEvent++;
     
@@ -195,6 +167,7 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         threads.join_all();
         reportProgress();
         
+        Detector::getMaster()->lockNudges();
     }
 
     refineBeamCentre();

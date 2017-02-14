@@ -140,17 +140,28 @@ Detector::Detector(DetectorPtr parent)
 }
 
 void Detector::initialise(Coord unarrangedTopLeft, Coord unarrangedBottomRight,
-                   vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle)
+                   vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle, bool ghost)
 {
     setUnarrangedTopLeft(unarrangedTopLeft.first, unarrangedTopLeft.second);
     setUnarrangedBottomRight(unarrangedBottomRight.first, unarrangedBottomRight.second);
     setSlowDirection(slowDir.h, slowDir.k, slowDir.l);
     setFastDirection(fastDir.h, fastDir.k, fastDir.l);
     
-    slowRotated = slowDirection;
-    fastRotated = fastDirection;
+    if (ghost)
+    {
+        calculateChangeOfBasis(&fastDir, &slowDir, fixedBasis);
+        setFastDirection(1, 0, 0);
+        setSlowDirection(0, 1, 0);
+    }
+    
+    if (!isLUCA())
+    {
+        MatrixPtr parentBasis = getParent()->getChangeOfBasis();
+        fixedBasis->multiply(*parentBasis->inverse3DMatrix());
+    }
+    
     rotateAxisRecursive();
-
+    
     if (lastIsMiddle)
     {
         arrangedMidPoint = _arrangedTopLeft;
@@ -222,8 +233,13 @@ MatrixPtr Detector::calculateChangeOfBasis(vec *fastAxis, vec *slowAxis, MatrixP
     return inv->inverse3DMatrix();
 }
 
-void Detector::addToBasisChange(vec angles)
+void Detector::addToBasisChange(vec angles, MatrixPtr chosenMat)
 {
+    if (!chosenMat)
+    {
+        chosenMat = changeOfBasisMat;
+    }
+    
     vec genFast = new_vector(1, 0, 0);
     vec genSlow = new_vector(0, 1, 0);
     
@@ -235,21 +251,17 @@ void Detector::addToBasisChange(vec angles)
     
     MatrixPtr invBasis = MatrixPtr(new Matrix());
     calculateChangeOfBasis(&genFast, &genSlow, invBasis);
-    changeOfBasisMat->multiply(*invBasis);
-    invBasisMat = changeOfBasisMat->inverse3DMatrix();
+    chosenMat->multiply(*invBasis);
+    invBasisMat = chosenMat->inverse3DMatrix();
 }
 
 
 void Detector::rotateAxisRecursive(bool fix)
 {
-    if (!fix)
-    {
-        changeOfBasisMat = fixedBasis->copy();
-    }
-    else
-    {
-        changeOfBasisMat->setIdentity();
-    }
+    MatrixPtr tempNewChange = MatrixPtr(new Matrix());
+    MatrixPtr chosen = fix ? tempNewChange : changeOfBasisMat;
+    
+    changeOfBasisMat = fixedBasis->copy();
     
     if (!isLUCA() && !fix)
     {
@@ -290,7 +302,7 @@ void Detector::rotateAxisRecursive(bool fix)
     
     for (int i = 0; i < childrenCount(); i++)
     {
-        getChild(i)->rotateAxisRecursive();
+        getChild(i)->rotateAxisRecursive(fix);
     }
 
 }
@@ -432,15 +444,17 @@ vec Detector::rawMidPointOffsetFromParent(bool useParent)
     
     vec slow = getParent()->getRotatedSlowDirection();
     vec fast = getParent()->getRotatedFastDirection();
+    vec cross = cross_product_for_vectors(fast, slow);
     
     vec midPointAdded = arrangedMidPoint;
     
     multiply_vector(&slow, midPointAdded.k);
     multiply_vector(&fast, midPointAdded.h);
+    multiply_vector(&cross, midPointAdded.l);
 
     add_vector_to_vector(&parentMidPoint, slow);
     add_vector_to_vector(&parentMidPoint, fast);
-    parentMidPoint.l += midPointAdded.l;
+    add_vector_to_vector(&parentMidPoint, cross);
     
     return parentMidPoint;
 }
@@ -835,18 +849,7 @@ std::string indents(int indentCount)
 
 std::string Detector::writeGeometryFile(int indentCount)
 {
-    lockNudges();
-    
-    MatrixPtr underlyingBasis = MatrixPtr(new Matrix());
-    MatrixPtr tmpBasis = calculateChangeOfBasis(&fastDirection, &slowDirection, underlyingBasis);
-    underlyingBasis->preMultiply(*fixedBasis);
-    
-    vec myFast = new_vector(1, 0, 0);
-    vec mySlow = new_vector(0, 1, 0);
-    
-    underlyingBasis->multiplyVector(&myFast);
-    underlyingBasis->multiplyVector(&mySlow);
-    
+  //  lockNudges();
     std::ostringstream output;
     
     output << indents(indentCount) << "panel " << getTag() << std::endl;
@@ -855,15 +858,16 @@ std::string Detector::writeGeometryFile(int indentCount)
     output << indents(indentCount + 1) << "min_ss = " << unarrangedTopLeftY << std::endl;
     output << indents(indentCount + 1) << "max_fs = " << unarrangedBottomRightX << std::endl;
     output << indents(indentCount + 1) << "max_ss = " << unarrangedBottomRightY << std::endl;
-    output << indents(indentCount + 1) << "fs_x = " << myFast.h << std::endl;
-    output << indents(indentCount + 1) << "fs_y = " << myFast.k << std::endl;
-    output << indents(indentCount + 1) << "fs_z = " << myFast.l << std::endl;
-    output << indents(indentCount + 1) << "ss_x = " << mySlow.h << std::endl;
-    output << indents(indentCount + 1) << "ss_y = " << mySlow.k << std::endl;
-    output << indents(indentCount + 1) << "ss_z = " << mySlow.l << std::endl;
+    output << indents(indentCount + 1) << "fs_x = " << fastRotated.h << std::endl;
+    output << indents(indentCount + 1) << "fs_y = " << fastRotated.k << std::endl;
+    output << indents(indentCount + 1) << "fs_z = " << fastRotated.l << std::endl;
+    output << indents(indentCount + 1) << "ss_x = " << slowRotated.h << std::endl;
+    output << indents(indentCount + 1) << "ss_y = " << slowRotated.k << std::endl;
+    output << indents(indentCount + 1) << "ss_z = " << slowRotated.l << std::endl;
     output << indents(indentCount + 1) << "midpoint_x = " << arrangedMidPoint.h << std::endl;
     output << indents(indentCount + 1) << "midpoint_y = " << arrangedMidPoint.k << std::endl;
     output << indents(indentCount + 1) << "midpoint_z = " << arrangedMidPoint.l << std::endl;
+    output << indents(indentCount + 1) << "ghost = " << (hasChildren() ? "true" : "false") << std::endl;
 
     for (int i = 0; i < childrenCount(); i++)
     {
@@ -1128,6 +1132,7 @@ void Detector::drawSpecialImage(std::string filename)
     if (!drawImage)
         return;
     
+    return;
     if (filename == "")
     {
         filename = "special_" + i_to_str(specialImageCounter) + ".png";

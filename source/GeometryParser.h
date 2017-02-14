@@ -30,7 +30,7 @@ private:
                              double ss_x, double ss_y, double ss_z,
                              double fs_x, double fs_y, double fs_z,
                              double midpoint_x, double midpoint_y, double midpoint_z,
-                             double alpha, double beta, double gamma);
+                             double alpha, double beta, double gamma, bool ghost);
 public:
     GeometryParser(std::string aFilename, GeometryFormat aFormat = GeometryFormatCrystFEL);
     

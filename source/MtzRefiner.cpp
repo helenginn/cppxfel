@@ -2015,8 +2015,6 @@ void MtzRefiner::refineMetrology(bool global)
         GeometryRefiner refiner = GeometryRefiner();
         refiner.setImages(images);
         refiner.refineGeometry();
-        
-        return;
     }
 }
 

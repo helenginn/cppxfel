@@ -124,7 +124,7 @@ private:
     vec rawMidPointOffsetFromParent(bool useParent = true);
     vec midPointOffsetFromParent(bool useParent = true, vec *angles = NULL, bool resetNudge = false);
     void removeMidPointRelativeToParent();
-    void addToBasisChange(vec angles);
+    void addToBasisChange(vec angles, MatrixPtr chosenMat = MatrixPtr());
     void fixBasisChange();
 
 public:
@@ -145,7 +145,7 @@ public:
     
     /* using initialisation variables from CrystFEL */
     void initialise(Coord unarrangedTopLeft, Coord unarrangedBottomRight,
-                    vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle = false);
+                    vec slowDir, vec fastDir, vec _arrangedTopLeft, bool lastIsMiddle = false, bool ghost = false);
     
     /* For detectors who have children and are not the master */
     Detector(DetectorPtr parent, vec arrangedMiddle, std::string tag);
@@ -318,7 +318,11 @@ public:
     static void setMaster(DetectorPtr newMaster)
     {
         masterPanel = newMaster;
-        newMaster->setTag("master");
+        
+        if (newMaster)
+        {
+            newMaster->setTag("master");
+        }
     }
 
     /* Return resolution histogram */

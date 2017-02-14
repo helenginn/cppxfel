@@ -35,11 +35,13 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
 void UnitCellLattice::addConvolutedPeak(CSVPtr csv, double mean, double stdev, double weight)
 {
     double totalIntervals = 300;
-    double step = (stdev * 6) / totalIntervals;
+    double stdevMult = 10;
+    double step = (stdev * stdevMult) / totalIntervals;
     
-    for (double x = -stdev * 3; x < stdev * 3; x += step)
+    for (double x = -stdev * stdevMult / 2; x < stdev * stdevMult / 2; x += step)
     {
-        double y = normal_distribution(x, 0, stdev) / totalIntervals;
+        //double y = normal_distribution(x, 0, stdev) / totalIntervals;
+        double y = super_gaussian(x, 0, stdev / 4, 0.8);
         csv->addOneToFrequency(x + mean, "Perfect frequency", y * weight);
     }
 }
