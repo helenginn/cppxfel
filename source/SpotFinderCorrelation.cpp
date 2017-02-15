@@ -12,7 +12,7 @@
 
 void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
 {
-    bool verbose = (FileParser::getKey("VERBOSITY_LEVEL", 0) > 0);
+    bool verbose = (FileParser::getKey("VERBOSITY_LEVEL", 0) > 1);
     
     int xDim = this->image->getXDim();
     int yDim = this->image->getYDim();
