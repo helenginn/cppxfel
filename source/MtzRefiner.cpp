@@ -2018,6 +2018,13 @@ void MtzRefiner::refineMetrology(bool global)
     }
 }
 
+void MtzRefiner::reportMetrology()
+{
+    GeometryRefiner refiner = GeometryRefiner();
+    refiner.setImages(images);
+    refiner.reportProgress();
+}
+
 MtzRefiner::~MtzRefiner()
 {
     //    std::cout << "Deallocating MtzRefiner." << std::endl;

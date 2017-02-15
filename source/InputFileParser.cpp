@@ -167,10 +167,10 @@ void InputFileParser::parse(bool fromPython)
                 refiner->refine();
 			}
             
-            if (line == "REFINE_GLOBAL_GEOMETRY")
+            if (line == "REPORT_GEOMETRY")
             {
                 understood = true;
-                refiner->refineMetrology(true);
+                refiner->reportMetrology();
             }
             
             if (line == "REFINE_METROLOGY" || line == "REFINE_GEOMETRY")
