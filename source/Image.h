@@ -100,7 +100,7 @@ protected:
     bool loadedSpots;
     vector<signed char> overlapMask;
     vector<signed char> generalMask;
-    vector<DetectorPtr> perPixelDetectors;
+    static vector<DetectorPtr> perPixelDetectors;
     
     // this really ought to be a template
     vector<short> shortData;

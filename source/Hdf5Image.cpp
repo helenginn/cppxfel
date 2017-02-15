@@ -181,7 +181,9 @@ void Hdf5Image::loadImage()
     
     overlapMask = vector<signed char>(totalPixels, 0);
     generalMask = vector<signed char>(totalPixels, -1);
-    perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
+    
+    if (!perPixelDetectors.size())
+        perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
 }
 
 Hdf5ManagerCheetahPtr Hdf5Image::getManager()
