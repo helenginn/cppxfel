@@ -88,6 +88,7 @@ void GeometryRefiner::reportProgress()
     double intraScore = IndexManager::pseudoScore(&*manager);
     manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
     double interScore = IndexManager::pseudoScore(&*manager);
+    manager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
     
     double intraIncrease = 100;
     double interIncrease = 100;
@@ -109,11 +110,6 @@ void GeometryRefiner::reportProgress()
     {
         interIncrease *= -1;
     }
-    /*
-    if (refinementEvent > 0 && fabs(interIncrease) < 0.00001 && fabs(intraIncrease)  < 0.00001)
-    {
-        return;
-    }*/
     
     logged << "N: Progress score (event " << refinementEvent << ", intra-panel): " << intraScore
     << " (" << (intraIncrease > 0 ? "+" : "") << intraIncrease << "% from last round) " << std::endl;
