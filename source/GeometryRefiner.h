@@ -41,7 +41,6 @@ private:
     void refineBeamCentre();
     
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
-    void reportProgress();
     void gridSearch(DetectorPtr detector);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
     
@@ -49,6 +48,7 @@ public:
     GeometryRefiner();
     
     void refineGeometry();
+    void reportProgress();
     void refineUnitCell();
     
     void setImages(std::vector<ImagePtr> newImages);
