@@ -107,12 +107,16 @@ finalise:
 // Hue should be between 0 and 360 degrees (rainbow)
 // Saturation between 0 and 1
 // Brightness between 0 and 1
-void PNGFile::HSB_to_RGB(float hue, float sat, float bright,
+void PNGFile::HSB_to_RGB(float hue, float sat, float bright, // or light
                          png_byte *red, png_byte *green, png_byte *blue)
 {
     double c = bright * sat;
-    double x = c * (1 - fabs(fmod((hue / 60), 2) - 1));
     double m = bright - c;
+    
+    //double c = (1 - fabs(2 * bright - 1)) * sat;
+    //double m = bright - c;
+    
+    double x = c * (1 - fabs(fmod((hue / 60), 2) - 1));
     
     double tempRed, tempGreen, tempBlue;
     
