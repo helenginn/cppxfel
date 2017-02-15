@@ -345,7 +345,7 @@ int Image::valueAt(int x, int y)
     
     int pos = y * xDim + x;
     
-    if (pos > xDim * yDim)
+    if (pos > xDim * yDim || pos < 0)
     {
         return 0;
     }
@@ -364,8 +364,8 @@ int Image::valueAt(int x, int y)
         
         bool isDet = (det != DetectorPtr());
         
-        generalMask[pos] = isDet;
         perPixelDetectors[pos] = det;
+        generalMask[pos] = isDet;
         
         if (!isDet)
         {
@@ -374,6 +374,11 @@ int Image::valueAt(int x, int y)
     }
     
     if (maskValue == 0)
+    {
+        return 0;
+    }
+    
+    if (!det)
     {
         return 0;
     }
