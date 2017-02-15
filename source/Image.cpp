@@ -31,6 +31,7 @@
 double Image::globalDetectorDistance = 0;
 double Image::globalBeamX = INT_MAX;
 double Image::globalBeamY = INT_MAX;
+std::vector<DetectorPtr> Image::perPixelDetectors;
 
 Image::Image(std::string filename, double wavelength,
              double distance)
