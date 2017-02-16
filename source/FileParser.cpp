@@ -741,6 +741,7 @@ void FileParser::generateFunctionList()
     parserMap["ONE_INDEXING_CYCLE_ONLY"] = simpleBool;
     parserMap["NEW_INDEXING_METHOD"] = simpleBool;
     parserMap["MAX_RECIPROCAL_DISTANCE"] = simpleFloat;
+    parserMap["MAXIMUM_ANGLE_DISTANCE"] = simpleFloat;
     parserMap["ALWAYS_FILTER_SPOTS"] = simpleBool;
     parserMap["MINIMUM_NEIGHBOURS"] = simpleInt;
     parserMap["MINIMUM_SOLUTION_NETWORK_COUNT"] = simpleInt;
@@ -789,6 +790,7 @@ void FileParser::generateFunctionList()
     parserMap["PNG_ALL_LATTICES"] = simpleBool;
     parserMap["PNG_HEIGHT"] = simpleInt;
     parserMap["DRAW_GEOMETRY_PNGS"] = simpleBool;
+    parserMap["DISTANCE_VS_ANGLE_FRACTION"] = simpleFloat;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
     
     parserMap["DETECTOR_LIST"] = simpleString;
