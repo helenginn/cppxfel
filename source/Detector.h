@@ -27,6 +27,7 @@ class Detector : public LoggableObject, public boost::enable_shared_from_this<De
 {
 private:
     /* MARK: static simple types */
+    IndexManagerPtr _manager;
     static int detectorActive;
     static double mmPerPixel;
     static DetectorPtr masterPanel;
@@ -635,6 +636,13 @@ public:
     static ImagePtr getSpecialImage()
     {
         return drawImage;
+    }
+    
+    /* Active index manager */
+    
+    void setIndexManager(IndexManagerPtr manager)
+    {
+        _manager = manager;
     }
     
     /* Resolution fun */

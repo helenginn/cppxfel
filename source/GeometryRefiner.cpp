@@ -24,8 +24,8 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
     strategy->setJobName("Detector " + detector->getTag());
 
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
-    indexManagers.push_back(aManager);
     aManager->setActiveDetector(detector);
+    detector->setIndexManager(aManager);
     
     switch (type)
     {
@@ -412,7 +412,5 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
 void GeometryRefiner::setImages(std::vector<ImagePtr> newImages)
 {
     images = newImages;
-    manager = IndexManagerPtr(new IndexManager(images));
-    manager->powderPattern("geom_refinement_event_0_start.csv", false);
-    
+    manager = IndexManagerPtr(new IndexManager(images));    
 }
