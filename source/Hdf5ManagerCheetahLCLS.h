@@ -31,7 +31,7 @@ public:
                                                    std::string("entry_1/data_1/experiment_identifier"));
         dataAddress = FileParser::getKey("CHEETAH_DATA_ADDRESSES", std::string("entry_1/data_1/data"));
         wavelengthAddress = FileParser::getKey("CHEETAH_WAVELENGTH_ADDRESSES", std::string("LCLS/photon_wavelength_A"));
-        identifiersFromAddress(&imagePaths, idAddress);
+        identifiersFromAddress(&imagePathMap, &imagePaths, idAddress);
         prepareWavelengths();
     }
     

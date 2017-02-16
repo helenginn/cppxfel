@@ -26,6 +26,7 @@ class Hdf5ManagerCheetah : public Hdf5Manager
 protected:
     static std::vector<Hdf5ManagerCheetahPtr> cheetahManagers;
     std::vector<std::string> imagePaths;
+    std::map<std::string, int> imagePathMap;
     static std::mutex readingPaths;
     
 public:

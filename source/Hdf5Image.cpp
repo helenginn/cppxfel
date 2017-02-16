@@ -183,7 +183,10 @@ void Hdf5Image::loadImage()
     generalMask = vector<signed char>(totalPixels, -1);
     
     if (!perPixelDetectors.size())
+    {
+        std::lock_guard<std::mutex> lg(setupMutex);
         perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
+    }
 }
 
 Hdf5ManagerCheetahPtr Hdf5Image::getManager()

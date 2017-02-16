@@ -91,6 +91,7 @@ protected:
     int xDim;
     int yDim;
     
+    static std::mutex setupMutex;
     double standardDeviationOfPixels();
     std::vector<SpotPtr> spots;
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, IOMRefinerPtr *refiner);
