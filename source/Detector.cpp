@@ -46,6 +46,7 @@ void Detector::initialiseZeros()
     memset(&nudgeRotation.h, 0, sizeof(nudgeRotation.h) * 3);
     memset(&quickMidPoint.h, 0, sizeof(quickMidPoint.h) * 3);
     memset(&quickAngles.h, 0, sizeof(quickAngles.h) * 3);
+    memset(&poke.h, 0, sizeof(poke.h) * 3);
 
     parent = DetectorPtr();
     rotMat = MatrixPtr(new Matrix());
@@ -372,7 +373,7 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     if (angles != NULL)
     {
         vec myAngles = copy_vector(nudgeRotation);
-//        myAngles.l = 0;
+        myAngles.l = 0;
         
         double tanHoriz = nudgeTranslation.k / distanceFromOrigin;
         double tanVert = nudgeTranslation.h / distanceFromOrigin;
@@ -381,6 +382,7 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         /* End not buggy [B] */
         
         changeToXYZ->multiplyVector(&myAngles);
+        myAngles.l += nudgeRotation.l;
         
         *angles = copy_vector(myAngles);
         quickAngles = *angles;
@@ -392,9 +394,9 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
     scale_vector_to_distance(&shifted, distanceFromOrigin);
 
     // add back in at some point
-    /*    MatrixPtr zMat = MatrixPtr(new Matrix());
+    MatrixPtr zMat = MatrixPtr(new Matrix());
     zMat->rotate(0, 0, nudgeRotation.l);
-    zMat->multiplyVector(&shifted);*/
+    zMat->multiplyVector(&shifted);
     
     xyzMovement = new_vector(0, 0, nudgeTranslation.l);
     changeToXYZ->multiplyVector(&xyzMovement);
@@ -1058,9 +1060,6 @@ double Detector::millerScore(bool ascii, bool stdev)
 {
     if (!millers.size())
     {
-        logged << "No integrated images so cannot use reflection predictions as a scoring function." << std::endl;
-        sendLog();
-        
         return 0;
     }
     
@@ -1181,7 +1180,7 @@ void Detector::fixMidpoints()
     
     if (isLUCA())
     {
-        setUpdateMidPoint();
+        setUpdateMidPointForDetector();
         return;
     }
     

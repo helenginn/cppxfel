@@ -21,7 +21,7 @@
 #include "Reflection.h"
 #include "LoggableObject.h"
 #include <mutex>
-
+#include "Detector.h"
 
 class IndexManager : LoggableObject
 {
@@ -36,7 +36,7 @@ protected:
     MatrixPtr unitCellMatrixInverse;
     Reflection *newReflection;
     CSym::CCP4SPG *spaceGroup;
-    DetectorPtr activeDetector;
+    DetectorWeakPtr _activeDetector;
     int spaceGroupNum;
     std::vector<MtzPtr> mtzs;
     double minimumTrustDistance;
@@ -48,6 +48,10 @@ protected:
     std::mutex indexMutex;
     bool modifyParameters();
     PseudoScoreType scoreType;
+    double proportionDistance;
+    static double pseudoDistanceScore(void *object);
+    static double pseudoAngleScore(void *object);
+    CSVPtr angleCSV;
     
     void updateAllSpots();
     bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
@@ -59,6 +63,20 @@ protected:
     PowderHistogram generatePowderHistogram(int intraPanel = -1, int perfectPadding = 0);
     std::vector<VectorDistance> vectorDistances;
     std::vector<IOMRefinerPtr> consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both);
+    PseudoScoreType checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec2);
+    bool checkVector(SpotVectorPtr spotVector, bool permissive = false);
+    
+    DetectorPtr getActiveDetector()
+    {
+        DetectorPtr det = _activeDetector.lock();
+        if (!det)
+        {
+            det = Detector::getMaster();
+        }
+        
+        return det;
+    }
+    
 public:
     ImagePtr getImage(int i)
     {
@@ -77,7 +95,7 @@ public:
     
     void setActiveDetector(DetectorPtr detector)
     {
-        activeDetector = detector;
+        _activeDetector = detector;
     }
     
     void setPseudoScoreType(PseudoScoreType type)
@@ -95,14 +113,21 @@ public:
         return lattice;
     }
     
+    void setProportionDistance(double newProp)
+    {
+        proportionDistance = newProp;
+    }
+    
     void combineLists();
     void indexingParameterAnalysis();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
+    void pseudoAngleCSV();
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
     void refineUnitCell();
-    static double debugPseudoScore(void *object);
+    
     static double pseudoScore(void *object);
+    static double debugPseudoScore(void *object);
     IndexManager(std::vector<ImagePtr>images);
 };
 

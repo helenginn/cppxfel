@@ -91,9 +91,11 @@ public:
         }
         else if (interval > 0)
         {
-            for (double i = start; i < end; i += interval)
+            double value = start;
+            while (value <= end)
             {
-                addPartialEntry(1, i);
+                addPartialEntry(1, value);
+                value += interval;
             }
         }
     }

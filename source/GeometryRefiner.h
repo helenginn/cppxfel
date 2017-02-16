@@ -27,7 +27,6 @@ class GeometryRefiner : public LoggableObject
 {
 private:
     std::vector<ImagePtr> images;
-    std::vector<IndexManagerPtr> indexManagers;
     IndexManagerPtr manager;
     int refinementEvent;
     int cycleNum;
@@ -37,6 +36,8 @@ private:
     void geometryCycleForDetector(std::vector<DetectorPtr> detectors);
     double lastInterScore;
     double lastIntraScore;
+    double lastIntraAngleScore;
+    double lastInterAngleScore;
     void refineMasterDetector();
     void refineBeamCentre();
     

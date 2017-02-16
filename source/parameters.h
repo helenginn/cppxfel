@@ -280,6 +280,7 @@ typedef enum
 
 typedef enum
 {
+    PseudoScoreTypeInvalid,
     PseudoScoreTypeAll,
     PseudoScoreTypeIntraPanel,
     PseudoScoreTypeInterPanel,

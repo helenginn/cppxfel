@@ -24,8 +24,8 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
     strategy->setJobName("Detector " + detector->getTag());
 
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
-    indexManagers.push_back(aManager);
     aManager->setActiveDetector(detector);
+    detector->setIndexManager(aManager);
     
     switch (type)
     {
@@ -58,19 +58,23 @@ GeometryRefiner::GeometryRefiner()
     cycleNum = 0;
     lastIntraScore = 0;
     lastInterScore = 0;
+    lastInterAngleScore = 0;
+    lastIntraAngleScore = 0;
 }
 
 void GeometryRefiner::refineGeometry()
 {
     Detector::setNoisy(true);
     Detector::getMaster()->enableNudge();
-     
+    
     reportProgress();
     
     std::vector<DetectorPtr> detectors;
     detectors.push_back(Detector::getMaster());
     
     int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
+    
+ //   gridSearch(Detector::getMaster()->getChild(0));
     
     for (int i = 0; i < maxCycles; i++)
     {
@@ -83,40 +87,52 @@ void GeometryRefiner::reportProgress()
 {
     std::string filename = "special_image_" + i_to_str(refinementEvent) + ".png";
     Detector::drawSpecialImage(filename);
-    
+
+    manager->setProportionDistance(1.0);
     manager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
-    double intraScore = IndexManager::pseudoScore(&*manager);
+    double intraScore = -IndexManager::pseudoScore(&*manager);
     manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
-    double interScore = IndexManager::pseudoScore(&*manager);
+    double interScore = -IndexManager::pseudoScore(&*manager);
+    
+    manager->setProportionDistance(0.0);
     manager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
+    double intraAngle = -IndexManager::pseudoScore(&*manager);
+    manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
+    double interAngle = -IndexManager::pseudoScore(&*manager);
     
     double intraIncrease = 100;
     double interIncrease = 100;
+    double intraAngleIncrease = 100;
+    double interAngleIncrease = 100;
     double mScore = Detector::getMaster()->millerScore(true, false);
     double sScore = Detector::getMaster()->millerScore(false, true);
     
     interIncrease = 100 * (interScore - lastInterScore) / interScore;
     intraIncrease = 100 * (intraScore - lastIntraScore) / intraScore;
+    interAngleIncrease = 100 * (interAngle - lastInterAngleScore) / interAngle;
+    intraAngleIncrease = 100 * (intraAngle - lastIntraAngleScore) / intraAngle;
     
     lastInterScore = interScore;
     lastIntraScore = intraScore;
+    lastInterAngleScore = interAngle;
+    lastIntraAngleScore = intraAngle;
     
-    if (intraScore > 0)
-    {
-        intraIncrease *= -1;
-    }
 
-    if (interScore > 0)
-    {
-        interIncrease *= -1;
-    }
-    
-    logged << "N: Progress score (event " << refinementEvent << ", intra-panel): " << intraScore
+    logged << "N: Progress score (event " << refinementEvent << ", intra-panel-dist): " << intraScore
     << " (" << (intraIncrease > 0 ? "+" : "") << intraIncrease << "% from last round) " << std::endl;
-    logged << "N: Progress score (event " << refinementEvent << ", inter-panel): " << interScore
+    logged << "N: Progress score (event " << refinementEvent << ", inter-panel-dist): " << interScore
     << " (" << (interIncrease > 0 ? "+" : "") << interIncrease << "% from last round)" << std::endl;
-    logged << "N: Progress score (event " << refinementEvent << ", miller mean): " << mScore << std::endl;
-    logged << "N: Progress score (event " << refinementEvent << ", miller stdev): " << sScore << std::endl;
+    
+    logged << "N: Progress score (event " << refinementEvent << ", intra-panel-angle): " << intraAngle
+    << " (" << (intraAngleIncrease > 0 ? "+" : "") << intraAngleIncrease << "% from last round) " << std::endl;
+    logged << "N: Progress score (event " << refinementEvent << ", inter-panel-angle): " << interAngle
+    << " (" << (interAngleIncrease > 0 ? "+" : "") << interAngleIncrease << "% from last round)" << std::endl;
+    
+    if (mScore > 0 || sScore > 0)
+    {
+        logged << "N: Progress score (event " << refinementEvent << ", miller mean): " << mScore << std::endl;
+        logged << "N: Progress score (event " << refinementEvent << ", miller stdev): " << sScore << std::endl;
+    }
     sendLog();
 
     manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
@@ -150,6 +166,7 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     {
         refineMasterDetector();
         reportProgress();
+        refineBeamCentre();
     }
     else
     {
@@ -164,8 +181,6 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         threads.join_all();
         reportProgress();
     }
-
-    refineBeamCentre();
     
     std::vector<DetectorPtr> nextDetectors;
     
@@ -197,6 +212,7 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     {
         refineMasterDetector();
         reportProgress();
+        refineBeamCentre();
     }
     
     refineUnitCell();
@@ -233,32 +249,34 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
     strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
     
-    double zNudge = (detector->isLUCA() ? 2.0 : 0.2);
+    double transNudge = (detector->isLUCA() ? 2.0 : 0.2);
+    double tiltNudge = 0.001;
+    double zTiltNudge = 0.0002;
 
     if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, 0.001, 0.00001, "nudge_tx");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, 0.001, 0.00001, "nudge_ty");
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, zNudge, 0.001, "nudge_z");
-        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.001, 0.000001, "tilt_z");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.00001, "nudge_tx");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.00001, "nudge_ty");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, transNudge, 0.001, "nudge_z");
+        
+        if (!detector->isLUCA())
+            strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, zTiltNudge, 0.000001, "tilt_z");
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
-        for (int i = 0; i < detector->childrenCount(); i++)
-        {
-            DetectorPtr child = detector->getChild(i);
-            strategy->addParameter(&*child, Detector::getNudgeX, Detector::setNudgeX, 0.2, 0.01, "nudge_x");
-            strategy->addParameter(&*child, Detector::getNudgeY, Detector::setNudgeY, 0.2, 0.01, "nudge_y");
-     //       strategy->addParameter(&*child, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.001, 0.000001, "nudge_tz");
-        }
+        detector->resetPoke();
+        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, 0.2, 0.01, "poke_x");
+        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, 0.2, 0.01, "poke_y");
+        strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, zTiltNudge, 0.000001, "poke_z");
     }
     else if (type == GeometryScoreTypeBeamCentre)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, 2.0, 0.00001, "nudge_x");
-        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_y");
+        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, transNudge, 0.00001, "nudge_x");
+        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, transNudge, 0.00001, "nudge_y");
     }
     
     strategy->refine();
+    detector->resetPoke();
 }
 
 void GeometryRefiner::refineMasterDetector()
@@ -349,22 +367,21 @@ void GeometryRefiner::gridSearch(DetectorPtr detector)
  //   Detector::setBeta(&*Detector::getMaster(), 0.001);
     
 //    strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.05, 0.00001, "nudge_tx");
-    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_x");
-    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_y");
-//    strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.05, 0.001, "nudge_tz");
+//    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_x");
+//    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_y");
+    strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.01, 0.001, "nudge_tz");
     
     strategy->setGridLength(11);
-    strategy->setVerbose(true);
+    strategy->setVerbose(false);
     strategy->setJobName("Detector " + detector->getTag());
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
-    indexManagers.push_back(aManager);
     aManager->setActiveDetector(detector);
     aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
-    strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
+    strategy->setEvaluationFunction(IndexManager::debugPseudoScore, &*aManager);
     
     strategy->refine();
-    
+    /*
     logged << "****** PRELOCK ******" << std::endl;
     sendLog();
     Detector::getMaster()->fullDescription();
@@ -380,7 +397,7 @@ void GeometryRefiner::gridSearch(DetectorPtr detector)
     
     strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
     strategy->setJobName("job2");
-    strategy->refine();
+    strategy->refine();*/
     
     exit(0);
 }
@@ -412,7 +429,5 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
 void GeometryRefiner::setImages(std::vector<ImagePtr> newImages)
 {
     images = newImages;
-    manager = IndexManagerPtr(new IndexManager(images));
-    manager->powderPattern("geom_refinement_event_0_start.csv", false);
-    
+    manager = IndexManagerPtr(new IndexManager(images));    
 }

@@ -27,6 +27,7 @@ class Detector : public LoggableObject, public boost::enable_shared_from_this<De
 {
 private:
     /* MARK: static simple types */
+    IndexManagerPtr _manager;
     static int detectorActive;
     static double mmPerPixel;
     static DetectorPtr masterPanel;
@@ -75,9 +76,16 @@ private:
     /* Horizontal/vertical/closeness shift */
     vec nudgeTranslation;
     
+    /* Nudge translation (x, y) and nudge rotation (z) which would be
+       applied (equal but opposite) to the expected two child panels.
+       In the spirit of ridiculous terminology, I am calling this a poke.
+     */
+    
+    vec poke;
+    
     /* Nudge (angles as per the intraPanel movement) */
     vec nudgeRotation;
-    
+
     /* This is the basis vectors corresponding to mapped slow-speed axis */
     /* Think: s -> y or vertical */
     vec slowDirection;
@@ -399,7 +407,7 @@ public:
     
     static void setArrangedMidPointX(void *object, double newX)
     {
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
         static_cast<Detector *>(object)->arrangedMidPoint.h = newX;
     }
     
@@ -410,7 +418,7 @@ public:
     
     static void setArrangedMidPointY(void *object, double newY)
     {
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
         static_cast<Detector *>(object)->arrangedMidPoint.k = newY;
     }
     
@@ -421,7 +429,7 @@ public:
     
     static void setArrangedMidPointZ(void *object, double newZ)
     {
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
         static_cast<Detector *>(object)->arrangedMidPoint.l = newZ;
     }
     
@@ -434,7 +442,7 @@ public:
     {
         static_cast<Detector *>(object)->rotationAngles.h = newAlpha;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
     static double getAlpha(void *object)
@@ -446,7 +454,7 @@ public:
     {
         static_cast<Detector *>(object)->rotationAngles.k = newBeta;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
     static double getBeta(void *object)
@@ -458,7 +466,7 @@ public:
     {
         static_cast<Detector *>(object)->rotationAngles.l = newGamma;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
     static double getGamma(void *object)
@@ -470,7 +478,7 @@ public:
     {
         static_cast<Detector *>(object)->nudgeTranslation.h = horiz;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
 
     static double getNudgeX(void *object)
@@ -482,7 +490,7 @@ public:
     {
         static_cast<Detector *>(object)->nudgeTranslation.k = vert;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
     static double getNudgeY(void *object)
@@ -494,7 +502,7 @@ public:
     {
         static_cast<Detector *>(object)->nudgeTranslation.l = closeness;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
     static double getNudgeZ(void *object)
@@ -506,7 +514,7 @@ public:
     {
         static_cast<Detector *>(object)->nudgeRotation.h = horizTilt;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
     static double getNudgeTiltX(void *object)
@@ -518,7 +526,7 @@ public:
     {
         static_cast<Detector *>(object)->nudgeRotation.k = vertTilt;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
     static double getNudgeTiltY(void *object)
@@ -530,12 +538,75 @@ public:
     {
         static_cast<Detector *>(object)->nudgeRotation.l = spin;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPoint();
+        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
     static double getNudgeTiltZ(void *object)
     {
         return static_cast<Detector *>(object)->nudgeRotation.l;
+    }
+
+    static double getPokeX(void *object)
+    {
+        return static_cast<Detector *>(object)->poke.h;
+    }
+
+    static double getPokeY(void *object)
+    {
+        return static_cast<Detector *>(object)->poke.k;
+    }
+
+    static double getPokeZ(void *object)
+    {
+        return static_cast<Detector *>(object)->poke.l;
+    }
+
+    void resetPoke()
+    {
+        poke.h = 0;
+        poke.k = 0;
+        poke.l = 0;
+    }
+    
+    void setPokeN(int pokeNum, double pokeValue)
+    {
+        for (int i = 0; i < 1; i++)
+        {
+            int modifier = (i == 0) ? -1 : 1;
+            if (pokeNum == 0)
+            {
+                poke.h = pokeValue;
+                setNudgeX(&*getChild(i), modifier * pokeValue);
+            }
+            else if (pokeNum == 1)
+            {
+                poke.k = pokeValue;
+                setNudgeY(&*getChild(i), modifier * pokeValue);
+            }
+            else if (pokeNum == 2)
+            {
+                poke.l = pokeValue;
+                setNudgeTiltZ(&*getChild(i), modifier * pokeValue);
+            }
+            
+            getChild(i)->updateCurrentRotation();
+            getChild(i)->setUpdateMidPointForDetector();
+        }
+    }
+    
+    static void setPokeX(void *object, double pokeValue)
+    {
+        static_cast<Detector *>(object)->setPokeN(0, pokeValue);
+    }
+
+    static void setPokeY(void *object, double pokeValue)
+    {
+        static_cast<Detector *>(object)->setPokeN(1, pokeValue);
+    }
+
+    static void setPokeZ(void *object, double pokeValue)
+    {
+        static_cast<Detector *>(object)->setPokeN(2, pokeValue);
     }
 
     static void setNoisy(bool _noisy)
@@ -567,6 +638,13 @@ public:
         return drawImage;
     }
     
+    /* Active index manager */
+    
+    void setIndexManager(IndexManagerPtr manager)
+    {
+        _manager = manager;
+    }
+    
     /* Resolution fun */
     
     double spotCoordToResolution(double unarrangedX, double unarrangedY, double wavelength);
@@ -593,11 +671,6 @@ public:
     static void enableNudge()
     {
         enabledNudge = true;
-    }
-    
-    static void setUpdateMidPoint()
-    {
-        Detector::getMaster()->setUpdateMidPointForDetector();
     }
     
     void setUpdateMidPointForDetector()

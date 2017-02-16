@@ -92,7 +92,7 @@ void CSV::addPartialEntry(int dummy, ...)
         newEntry.push_back(value);
     }
     
-    int difference = newEntry.size() < headers.size();
+    int difference = (int)(headers.size() - newEntry.size());
     
     while (difference > 0)
     {

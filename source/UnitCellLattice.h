@@ -35,9 +35,11 @@ private:
     std::vector<SpotVectorPtr> uniqueSymVectors;
     void addConvolutedPeak(CSVPtr csv, double mean, double stdev, double weight);
     CSVPtr weightedUnitCell;
+    CSVPtr weightedAngles;
     void updateUnitCellData();
     void lockUnitCellDimensions(double *a, double *b, double *c, double *alpha, double *beta, double *gamma);
-  
+    double distanceToAngleRatio;
+    
     double _aDim;
     double _bDim;
     double _cDim;
@@ -109,6 +111,7 @@ public:
     }
     
     double weightForDistance(double distance);
+    double weightForAngle(double angle);
     
     std::vector<SpotVectorPtr> getStandardVectors()
     {
