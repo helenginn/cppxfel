@@ -1059,9 +1059,6 @@ double Detector::millerScore(bool ascii, bool stdev)
 {
     if (!millers.size())
     {
-        logged << "No integrated images so cannot use reflection predictions as a scoring function." << std::endl;
-        sendLog();
-        
         return 0;
     }
     
