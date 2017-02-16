@@ -531,13 +531,14 @@ void Hdf5Manager::groupsWithPrefix(std::vector<std::string> *list, std::string p
     }
 }
 
-void Hdf5Manager::identifiersFromAddress(std::vector<std::string> *list, std::string idAddress)
+void Hdf5Manager::identifiersFromAddress(std::map<std::string, int> *map, std::vector<std::string> *list, std::string idAddress)
 {
     char *buffer;
     int idSizes = hdf5MallocBytesForDataset(idAddress, (void **)&buffer);
     dataForAddress(idAddress, (void **)&buffer);
     // nah you need to make this memspace thingy
     int lastStart = 0;
+    int count = 0;
     
     for (int i = 0; i < idSizes; i++)
     {
@@ -549,6 +550,8 @@ void Hdf5Manager::identifiersFromAddress(std::vector<std::string> *list, std::st
             if (anId.size() > 0)
             {
                 list->push_back(anId);
+                (*map)[lastComponent(anId)] = count;
+                count++;
             }
         }
     }

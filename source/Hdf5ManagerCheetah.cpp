@@ -97,15 +97,11 @@ std::string Hdf5ManagerCheetah::addressForImage(std::string imageName)
     // maybe imageName has .img extension, so let's get rid of it
     std::string baseName = getBaseFilename(imageName);
     
-    for (int i = 0; i < imagePaths.size(); i++)
+    if (!imagePathMap.count(baseName))
     {
-        std::string lastName = lastComponent(imagePaths[i]);
-        
-        if (lastName == baseName)
-        {
-            return imagePaths[i];
-        }
+        return "";
     }
     
-    return "";
+    int index = imagePathMap[baseName];
+    return imagePaths[index];
 }

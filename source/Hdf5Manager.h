@@ -68,7 +68,7 @@ public:
     bool createDataset(std::string address, int nDimensions, hsize_t *dims, hid_t type);
     bool writeDataset(std::string address, void **buffer, hid_t type);
     bool dataForAddress(std::string address, void **buffer, int offset = -1);
-    void identifiersFromAddress(std::vector<std::string> *list, std::string idAddress);
+    void identifiersFromAddress(std::map<std::string, int> *map, std::vector<std::string> *list, std::string idAddress);
     virtual bool getImageSize(std::string dataAddress, int *dims);
     
     template <class Value>
