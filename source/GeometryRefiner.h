@@ -36,6 +36,8 @@ private:
     void geometryCycleForDetector(std::vector<DetectorPtr> detectors);
     double lastInterScore;
     double lastIntraScore;
+    double lastIntraAngleScore;
+    double lastInterAngleScore;
     void refineMasterDetector();
     void refineBeamCentre();
     

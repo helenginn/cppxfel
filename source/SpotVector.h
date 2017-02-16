@@ -23,6 +23,7 @@ private:
     double approxResolution;
     double minDistanceTolerance;
     double minAngleTolerance;
+    double firstDistance;
     
     std::vector<SpotVectorPtr> sameLengthStandardVectors;
     vec hkl;
@@ -60,6 +61,7 @@ public:
     static SpotVectorPtr vectorBetweenSpotsFromArray(std::vector<SpotVectorPtr> vectors, SpotPtr spot1, SpotPtr spot2);
     bool usesBeamCentre();
     bool spansChildrenOfDetector(DetectorPtr parent);
+    bool originalDistanceLessThan(double threshold);
     
     std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
     {

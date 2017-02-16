@@ -27,6 +27,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
     images = newImages;
     scoreType = PseudoScoreTypeIntraPanel;
+    proportionDistance = FileParser::getKey("DISTANCE_VS_ANGLE_FRACTION", 1.0);
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -617,16 +618,85 @@ double IndexManager::debugPseudoScore(void *object)
     return pseudoScore(object);
 }
 
+bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
+{
+    bool bc = vec->usesBeamCentre();
+    bool isInterPanel = (scoreType == PseudoScoreTypeInterPanel || scoreType == PseudoScoreTypeAllInterPanel);
+    DetectorPtr activeDetector = getActiveDetector();
+    
+    if (!activeDetector)
+    {
+        activeDetector = Detector::getMaster();
+    }
+    
+    if (isInterPanel && vec->isIntraPanelVector() && !permissive)
+    {
+        return false;
+    }
+    
+    if (scoreType == PseudoScoreTypeAllInterPanel && bc && !permissive)
+    {
+        return false;
+    }
+    
+    if (scoreType == PseudoScoreTypeAllInterPanel)
+    {
+        return true;
+    }
+    
+    if (scoreType == PseudoScoreTypeBeamCentre && bc)
+    {
+        return true;
+    }
+    
+    if (bc)
+    {
+        return false;
+    }
+    
+    if (isInterPanel && permissive)
+    {
+        return false;
+    }
+
+    if (scoreType == PseudoScoreTypeIntraPanel)
+    {
+        if (!vec->isIntraPanelVector())
+        {
+            return false;
+        }
+        
+        if (vec->isOnlyFromDetector(activeDetector))
+        {
+            return true;
+        }
+    }
+    
+    if (scoreType == PseudoScoreTypeInterPanel && vec->spansChildrenOfDetector(activeDetector))
+    {
+        return true;
+    }
+
+    return false;
+}
+
 double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
-    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
-    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
+    double angleScore = (me->proportionDistance < 0.999) ? pseudoAngleScore(object) : 0;
+    double distanceScore = (me->proportionDistance > 0.0001) ? pseudoDistanceScore(object) : 0;
+    
+    angleScore *= (1 - me->proportionDistance);
+    distanceScore *= me->proportionDistance;
+    
+    return angleScore + distanceScore;
+}
+
+double IndexManager::pseudoDistanceScore(void *object)
+{
+    IndexManager *me = static_cast<IndexManager *>(object);
     double score = 0;
     double count = 0;
-    
-    CSVPtr csv = CSVPtr(new CSV(0));
-    csv->setupHistogram(0, maxDistance, step, "Distance", 1, "data");
     
     for (int i = 0; i < me->images.size(); i++)
     {
@@ -634,29 +704,7 @@ double IndexManager::pseudoScore(void *object)
         {
             SpotVectorPtr vec = me->images[i]->spotVector(j);
             
-            bool bc = vec->usesBeamCentre();
-            
-            if (me->scoreType == PseudoScoreTypeIntraPanel && !vec->isIntraPanelVector())
-            {
-                continue;
-            }
-            
-            if (!bc && (me->scoreType == PseudoScoreTypeInterPanel || me->scoreType == PseudoScoreTypeAllInterPanel) && vec->isIntraPanelVector())
-            {
-                continue;
-            }
-
-            if (me->scoreType == PseudoScoreTypeInterPanel && vec->spansChildrenOfDetector(me->activeDetector))
-            {
-                continue;
-            }
-
-            if (me->scoreType == PseudoScoreTypeBeamCentre && !bc)
-            {
-                continue;
-            }
-            
-            if (me->activeDetector && !bc && !vec->isOnlyFromDetector(me->activeDetector) && !(me->scoreType == PseudoScoreTypeBeamCentre))
+            if (!me->checkVector(vec))
             {
                 continue;
             }
@@ -668,15 +716,216 @@ double IndexManager::pseudoScore(void *object)
             
             score += weight;
             count++;
-            
-            //            csv->addOneToFrequency(realDistance, "data");
-            
         }
     }
     
     score /= count;
     
     return -score;
+}
+
+void IndexManager::pseudoAngleCSV()
+{
+    double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
+    
+    angleCSV = CSVPtr(new CSV(0));
+    angleCSV->setupHistogram(0, 90, 0.05, "Angle", 3, "all", "intra-angle", "inter-angle");
+    
+    for (int i = 0; i < images.size(); i++)
+    {
+        for (int j = 0; j < images[i]->spotVectorCount(); j++)
+        {
+            SpotVectorPtr vec1 = images[i]->spotVector(j);
+            
+            if (!vec1->originalDistanceLessThan(angleDistance))
+                continue;
+            
+            for (int k = 0; k < j; k++)
+            {
+                SpotVectorPtr vec2 = images[i]->spotVector(k);
+                
+                if (!vec2->originalDistanceLessThan(angleDistance))
+                    continue;
+                
+                if (k == j)
+                {
+                    continue;
+                }
+                
+                double angle = vec1->angleWithVector(vec2);
+                
+                angle *= 180 / M_PI;
+                angle = (angle > 90) ? 180 - angle : angle;
+                
+                double weight = lattice->weightForDistance(vec1->distance());
+                weight *= lattice->weightForDistance(vec2->distance());
+
+                angleCSV->addOneToFrequency(angle, "all", weight);
+                
+                if (vec1->isIntraPanelVector() && vec2->isIntraPanelVector())
+                {
+                    angleCSV->addOneToFrequency(angle, "intra-angle", weight);
+                }
+                else
+                {
+                    angleCSV->addOneToFrequency(angle, "inter-angle", weight);
+                }
+            }
+        }
+    }
+}
+
+PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec2)
+{
+    DetectorPtr activeDetector = getActiveDetector();
+    DetectorPtr brother = activeDetector->getChild(0);
+    DetectorPtr sister = activeDetector->getChild(1);
+    bool isInterPanel = scoreType == PseudoScoreTypeAllInterPanel || scoreType == PseudoScoreTypeInterPanel;
+    
+    if (!checkVector(vec1, true))
+    {
+        return PseudoScoreTypeInvalid;
+    }
+
+    if (!checkVector(vec2, true))
+    {
+        return PseudoScoreTypeInvalid;
+    }
+    
+    if (!isInterPanel)
+    {
+        if (!(vec1->isIntraPanelVector() && vec2->isIntraPanelVector()))
+        {
+            return PseudoScoreTypeInvalid;
+        }
+        
+        if (vec1->getFirstSpot()->getDetector() != vec2->getFirstSpot()->getDetector())
+        {
+            return PseudoScoreTypeInvalid;
+        }
+        
+        return PseudoScoreTypeIntraPanel;
+    }
+    else
+    {
+        bool vec1Okay = false;
+        bool vec2Okay = false;
+        
+        if (!vec1->isIntraPanelVector())
+        {
+            vec1Okay = true;
+        }
+
+        if (!vec2->isIntraPanelVector())
+        {
+            vec2Okay = true;
+        }
+        
+        if (vec1Okay || vec2Okay)
+        {
+            return PseudoScoreTypeInterPanel;
+        }
+        
+        DetectorPtr dec1 = vec1->getFirstSpot()->getDetector();
+        DetectorPtr dec2 = vec2->getFirstSpot()->getDetector();
+        
+        vec1Okay = true;
+        vec2Okay = true;
+        
+        if (!brother || (brother->isAncestorOf(dec1) && brother->isAncestorOf(dec2)))
+        {
+            vec1Okay = false;
+        }
+        
+        if (!sister || (sister->isAncestorOf(dec1) && sister->isAncestorOf(dec2)))
+        {
+            vec2Okay = false;
+        }
+        
+        if (dec1 != dec2 && scoreType == PseudoScoreTypeAllInterPanel)
+        {
+            return PseudoScoreTypeAllInterPanel;
+        }
+        
+        if (vec1Okay || vec2Okay)
+        {
+            return PseudoScoreTypeInterPanel;
+        }
+    }
+    
+    return PseudoScoreTypeInvalid;
+}
+
+double IndexManager::pseudoAngleScore(void *object)
+{
+    IndexManager *me = static_cast<IndexManager *>(object);
+    DetectorPtr activeDetector = me->getActiveDetector();
+    
+    double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
+    double score = 0;
+    double count = 0;
+    
+    for (int i = 0; i < me->images.size(); i++)
+    {
+        for (int j = 0; j < me->images[i]->spotVectorCount(); j++)
+        {
+            SpotVectorPtr vec1 = me->images[i]->spotVector(j);
+            
+            if (!vec1->originalDistanceLessThan(angleDistance))
+                continue;
+            
+            vec1->calculateDistance();
+            double distanceWeight1 = me->lattice->weightForDistance(vec1->distance());
+            
+            if (distanceWeight1 <= 0)
+                continue;
+            
+            if (vec1->usesBeamCentre())
+                continue;
+            
+            for (int k = 0; k < j; k++)
+            {
+                SpotVectorPtr vec2 = me->images[i]->spotVector(k);
+                vec2->calculateDistance();
+                
+                if (vec2->usesBeamCentre())
+                    continue;
+
+                if (!vec2->originalDistanceLessThan(angleDistance))
+                    continue;
+
+                if (k == j)
+                {
+                    continue;
+                }
+                
+                if (me->checkVectors(vec1, vec2) != me->scoreType)
+                {
+                    continue;
+                }
+                
+                double vec1Distance = vec1->distance();
+                double vec2Distance = vec2->distance();
+                
+                double angle = vec1->angleWithVector(vec2);
+                
+                angle *= 180 / M_PI;
+                angle = (angle > 90) ? 180 - angle : angle;
+                
+                double angleWeight = me->lattice->weightForAngle(angle);
+                double distanceWeight2 = me->lattice->weightForDistance(vec2Distance);
+                
+                if (distanceWeight2 <= 0)
+                    continue;
+                
+                score += distanceWeight1 * distanceWeight2 * angleWeight / 10000000;
+                count += distanceWeight1 * distanceWeight2 / 10000000;
+            }
+        }
+    }
+    
+    score /= count;
+    return -score;// * 1000000;
 }
 
 void IndexManager::powderPattern(std::string csvName, bool force)
@@ -787,6 +1036,12 @@ void IndexManager::powderPattern(std::string csvName, bool force)
         powder.addEntry(0, distance, freq, perfect, intrapanel, interpanel);
     }
     
+    pseudoAngleCSV();
+    
+    if (angleCSV)
+    {
+        angleCSV->writeToFile("angle_" + csvName);
+    }
     powder.writeToFile(csvName);
     logged << "Written to " << csvName << std::endl;
     sendLog();

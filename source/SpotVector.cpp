@@ -46,6 +46,7 @@ SpotVector::SpotVector(SpotPtr first, SpotPtr second)
         return;
     
     calculateDistance();
+    firstDistance = cachedDistance;
 }
 
 void SpotVector::calculateUnitVector()
@@ -277,11 +278,6 @@ bool SpotVector::spansChildrenOfDetector(DetectorPtr parent)
         return false;
     }
     
-    if (!(onePanel->getParent() == parent && (twoPanel->getParent() == parent)))
-    {
-        return false;
-    }
-    
     if (!(parent->isAncestorOf(onePanel) && parent->isAncestorOf(twoPanel)))
     {
         return false;
@@ -327,5 +323,10 @@ double SpotVector::getMinAngleTolerance()
 bool SpotVector::usesBeamCentre()
 {
     return (firstSpot->isBeamCentre() || secondSpot->isBeamCentre());
+}
+
+bool SpotVector::originalDistanceLessThan(double threshold)
+{
+    return (firstDistance < threshold);
 }
 

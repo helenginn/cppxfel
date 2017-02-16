@@ -40,7 +40,6 @@ void UnitCellLattice::addConvolutedPeak(CSVPtr csv, double mean, double stdev, d
     
     for (double x = -stdev * stdevMult / 2; x < stdev * stdevMult / 2; x += step)
     {
-        //double y = normal_distribution(x, 0, stdev) / totalIntervals;
         double y = super_gaussian(x, 0, stdev / 3, 1.0);
         csv->addOneToFrequency(x + mean, "Perfect frequency", y * weight);
     }
@@ -50,8 +49,15 @@ void UnitCellLattice::weightUnitCell()
 {
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
-    CSVPtr csv = CSVPtr(new CSV(0));
-    csv->setupHistogram(0, maxDistance, step, "Distance", 1, "Perfect frequency");
+    CSVPtr distCSV = CSVPtr(new CSV(0));
+    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+    double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
+    distCSV->setupHistogram(0, maxDistance, step, "Distance", 1, "Perfect frequency");
+    CSVPtr angleCSV = CSVPtr(new CSV(0));
+    angleCSV->setupHistogram(0, 90, 0.05, "Angle", 1, "Perfect frequency");
+    
+    double distTotal = 0;
+    double angleTotal = 0;
     
     for (int i = 0; i < uniqueSymVectorCount(); i++)
     {
@@ -64,11 +70,39 @@ void UnitCellLattice::weightUnitCell()
         inverse *= maxDistance;
         double stdev = rlpSize / 2;
         
-        addConvolutedPeak(csv, distance, stdev, inverse);
+        addConvolutedPeak(distCSV, distance, stdev, inverse);
+        distTotal += inverse;
+        
+        if (distance > maxAngleDistance)
+            continue;
+        
+        inverse /= uniqueSymVectorCount() * standardVectorCount();
+        
+        for (int j = 0; j < standardVectorCount(); j++)
+        {
+            if (j == i)
+                continue;
+            
+            double jDistance = standardVector(j)->distance();
+            
+            if (jDistance > maxAngleDistance)
+                continue;
+            
+            double angle = standardVector(j)->angleWithVector(uniqueSymVector(i));
+            
+            angle *= 180 / M_PI;
+            angle = (angle > 90) ? 180 - angle : angle;
+            
+            addConvolutedPeak(angleCSV, angle, 0.3, inverse);
+            angleTotal += inverse;
+        }
     }
     
-    csv->writeToFile("perfect_unit_cell.csv");
-    weightedUnitCell = csv;
+    angleCSV->writeToFile("perfect_angles.csv");
+    distCSV->writeToFile("perfect_unit_cell.csv");
+    weightedUnitCell = distCSV;
+    weightedAngles = angleCSV;
+    distanceToAngleRatio = distTotal / angleTotal;
 }
 
 void UnitCellLattice::updateUnitCellData()
@@ -215,6 +249,12 @@ double UnitCellLattice::weightForDistance(double distance)
 {
     return weightedUnitCell->valueForHistogramEntry("Perfect frequency", distance);
 }
+
+double UnitCellLattice::weightForAngle(double angle)
+{
+    return weightedAngles->valueForHistogramEntry("Perfect frequency", angle) * distanceToAngleRatio;
+}
+
 
 void UnitCellLattice::lockUnitCellDimensions(double *a, double *b, double *c, double *alpha, double *beta, double *gamma)
 {
