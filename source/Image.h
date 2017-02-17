@@ -40,6 +40,7 @@ private:
     int pixelCountCutoff;
 	std::string filename;
     std::vector<MtzPtr> mtzs;
+    int highScore;
     
     virtual void loadImage();
     vector<IOMRefinerPtr> indexers;
@@ -90,6 +91,12 @@ private:
 protected:
     int xDim;
     int yDim;
+    
+    void addHighScore(int score)
+    {
+        highScore += score;
+    }
+    
     
     static std::mutex setupMutex;
     double standardDeviationOfPixels();
@@ -147,7 +154,12 @@ public:
 	const std::string& getFilename() const
 	{
 		return filename;
-	}
+    }
+    
+    int getHighScore()
+    {
+        return highScore;
+    }
 
 	void setFilename(const std::string& filename)
 	{
