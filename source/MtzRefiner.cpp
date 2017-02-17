@@ -1717,6 +1717,11 @@ void MtzRefiner::writeAllNewOrientations()
         std::string imageName = images[i]->getBasename();
         allMats << "image " << imageName << std::endl;
         
+        if (image->getHighScore() > 0)
+        {
+            integrateMats << "score " << image->getHighScore() << std::endl;
+        }
+
         for (int j = 0; j < images[i]->mtzCount(); j++)
         {
             MtzPtr mtz = images[i]->mtz(j);

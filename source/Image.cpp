@@ -46,6 +46,7 @@ Image::Image(std::string filename, double wavelength,
     beamY = INT_MAX;
     
     spotsFile = "";
+    highScore = 0;
     
     if (dims.size())
     {
@@ -455,6 +456,7 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
     xDim = images[0]->getXDim();
     yDim = images[0]->getYDim();
     newImage();
+    std::vector<ImagePtr> maxes = std::vector<ImagePtr>(xDim * yDim, ImagePtr());
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -462,11 +464,24 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
         {
             for (int k = 0; k < xDim; k++)
             {
-                addValueAt(k, j, images[i]->rawValueAt(k, j));
+                int pos = j * yDim + k;
+                double rawValue = images[i]->rawValueAt(k, j);
+                double myValue = rawValueAt(k, j);
+                
+                if (rawValue > myValue)
+                {
+                    maxes[pos] = images[i];
+                    addValueAt(k, j, images[i]->rawValueAt(k, j));
+                }
             }
         }
         
         images[i]->dropImage();
+    }
+    
+    for (int i = 0; i < maxes.size(); i++)
+    {
+        maxes[i]->addHighScore(data[i]);
     }
     
     loadedSpots = true;
