@@ -481,7 +481,10 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
     
     for (int i = 0; i < maxes.size(); i++)
     {
-        maxes[i]->addHighScore(data[i]);
+        if (maxes[i])
+        {
+            maxes[i]->addHighScore(data[i]);
+        }
     }
     
     loadedSpots = true;
