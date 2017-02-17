@@ -100,7 +100,6 @@ void DIALSImage::addSpots(std::vector<vec3<double> > rays)
         vec hkl = scitbxVec3ToCppxfelVec(ray);
         
         SpotPtr spot = SpotPtr(new Spot(shared_from_this()));
-        spot->setXYFromEstimatedVector(hkl);
         
         spots.push_back(spot);
     }

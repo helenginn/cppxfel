@@ -87,7 +87,6 @@ private:
     IndexingSolutionStatus testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
     IndexingSolutionPtr biggestFailedSolution;
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
-    double resolutionAtPixel(double x, double y);
 protected:
     int xDim;
     int yDim;
@@ -107,7 +106,7 @@ protected:
     int minimumSolutionNetworkCount;
     bool loadedSpots;
     vector<signed char> overlapMask;
-    vector<signed char> generalMask;
+    static vector<signed char> generalMask;
     static vector<DetectorPtr> perPixelDetectors;
     
     // this really ought to be a template
@@ -122,9 +121,6 @@ public:
     void incrementOverlapMask(int x, int y);
     virtual void processSpotList();
     virtual void writeSpotsList(std::string spotFile = "");
-    virtual std::pair<double, double> reciprocalCoordinatesToPixels(vec hkl, double myWavelength = 0);
-    virtual vec pixelsToReciprocalCoordinates(double xPix, double yPix);
-    virtual vec millimetresToReciprocalCoordinates(double xmm, double ymm);
     
     signed char maskValueAt(signed char *firstByte, int x, int y);
     unsigned char maximumOverlapMask(int x, int y, ShoeboxPtr shoebox);
@@ -142,6 +138,7 @@ public:
 			int startY, int endX, int endY);
     std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
     void findSpots();
+    double resolutionAtPixel(double x, double y);
 
     void integrateSpots();
     void drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red = 0, char green = 0, char blue = 0);

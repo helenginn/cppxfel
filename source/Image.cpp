@@ -32,6 +32,7 @@ double Image::globalDetectorDistance = 0;
 double Image::globalBeamX = INT_MAX;
 double Image::globalBeamY = INT_MAX;
 std::vector<DetectorPtr> Image::perPixelDetectors;
+vector<signed char> Image::generalMask;
 std::mutex Image::setupMutex;
 
 Image::Image(std::string filename, double wavelength,
@@ -200,8 +201,13 @@ void Image::newImage()
     
     data = std::vector<int>(totalPixels, 0);
     overlapMask = vector<signed char>(totalPixels, 0);
-    generalMask = vector<signed char>(totalPixels, -1);
-    perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
+    
+    if (!perPixelDetectors.size())
+    {
+        std::lock_guard<std::mutex> lg(setupMutex);
+        perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
+        generalMask = vector<signed char>(totalPixels, -1);
+    }
 
 }
 
@@ -238,8 +244,13 @@ void Image::loadImage()
             shortData.resize(memblock.size() / sizeof(short));
         
         overlapMask = vector<signed char>(memblock.size(), 0);
-        generalMask = vector<signed char>(memblock.size(), -1);
-        perPixelDetectors = vector<DetectorPtr>(memblock.size(), DetectorPtr());
+        
+        if (!perPixelDetectors.size())
+        {
+            std::lock_guard<std::mutex> lg(setupMutex);
+            generalMask = vector<signed char>(memblock.size(), -1);
+            perPixelDetectors = vector<DetectorPtr>(memblock.size(), DetectorPtr());
+        }
         
         logged << "Image size: " << memblock.size() << " for image: "
         << filename << std::endl;
@@ -276,7 +287,6 @@ void Image::dropImage()
     
     overlapMask.clear();
     vector<signed char>().swap(overlapMask);
-    vector<signed char>().swap(generalMask);
     
     for (int i = 0; i < IOMRefinerCount(); i++)
         getIOMRefiner(i)->dropMillers();
@@ -366,13 +376,19 @@ int Image::valueAt(int x, int y)
         
         bool isDet = (det != DetectorPtr());
         
-        perPixelDetectors[pos] = det;
-        generalMask[pos] = isDet;
+        if (setupMutex.try_lock())
+        {
+            perPixelDetectors[pos] = det;
+            generalMask[pos] = isDet;
+            
+            setupMutex.unlock();
+        }
         
         if (!isDet)
         {
             return 0;
         }
+    
     }
     
     if (maskValue == 0)
@@ -464,7 +480,7 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
         {
             for (int k = 0; k < xDim; k++)
             {
-                int pos = j * yDim + k;
+                int pos = j * xDim + k;
                 double rawValue = images[i]->rawValueAt(k, j);
                 double myValue = rawValueAt(k, j);
                 
@@ -479,13 +495,34 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
         images[i]->dropImage();
     }
     
-    for (int i = 0; i < maxes.size(); i++)
+    findSpots();
+    std::map<ImagePtr, int> imageSpotMap;
+    
+    for (int i = 0; i < spotCount(); i++)
     {
-        if (maxes[i])
+        int x = spot(i)->getRawXY().first;
+        int y = spot(i)->getRawXY().second;
+        int pos = y * xDim + x;
+        
+        if (maxes[pos])
         {
-            maxes[i]->addHighScore(data[i]);
+            logged << "Spot for image " << maxes[pos]->getFilename() << " (" << x << ", " << y << ")" << std::endl;
+            if (!imageSpotMap.count(maxes[pos]))
+            {
+                imageSpotMap[maxes[pos]] = 0;
+            }
+            imageSpotMap[maxes[pos]]++;
         }
     }
+    
+    for (std::map<ImagePtr, int>::iterator it = imageSpotMap.begin(); it != imageSpotMap.end(); it++)
+    {
+        logged << it->first->getFilename() << "\t" << it->second << std::endl;
+    }
+
+    sendLog();
+    
+    sendLog();
     
     loadedSpots = true;
     
@@ -505,47 +542,6 @@ void Image::dumpImage()
     imgStream.write(start, size);
     
     imgStream.close();
-}
-
-std::pair<double, double> Image::reciprocalCoordinatesToPixels(vec hkl, double myWavelength)
-{
-    if (myWavelength == 0)
-    {
-        myWavelength = wavelength;
-    }
-    double x_mm = (-hkl.h * getDetectorDistance() / (1 / myWavelength + hkl.l));
-    double y_mm = (hkl.k * getDetectorDistance() / (1 / myWavelength + hkl.l));
-    
-    double x_coord = getBeamX() - x_mm / mmPerPixel;
-    double y_coord = getBeamY() - y_mm / mmPerPixel;
-    
-    return std::make_pair(x_coord, y_coord);
-}
-
-vec Image::pixelsToReciprocalCoordinates(double xPix, double yPix)
-{
-    double mmX = xPix * getMmPerPixel();
-    double mmY = yPix * getMmPerPixel();
-    
-    return millimetresToReciprocalCoordinates(mmX, mmY);
-}
-
-vec Image::millimetresToReciprocalCoordinates(double xmm, double ymm)
-{
-    double mmBeamX = getBeamX() * getMmPerPixel();
-    double mmBeamY = getBeamY() * getMmPerPixel();
-    
-    vec crystalVec = new_vector(mmBeamX, mmBeamY, 0 - getDetectorDistance());
-    vec spotVec = new_vector(xmm, ymm, 0);
-    vec reciprocalCrystalVec = new_vector(0, 0, 0 - 1 / getWavelength());
-    
-    vec crystalToSpot = vector_between_vectors(crystalVec, spotVec);
-    scale_vector_to_distance(&crystalToSpot, 1 / getWavelength());
-    add_vector_to_vector(&reciprocalCrystalVec, crystalToSpot);
-    
-    reciprocalCrystalVec.k *= -1;
-    
-    return reciprocalCrystalVec;
 }
 
 double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, float *error)
@@ -1177,28 +1173,8 @@ void Image::processSpotList()
                 continue;
             
             double x = 0; double y = 0;
-            
-            if (spotsAreReciprocalCoordinates)
-            {
-                double k = atof(components[0].c_str());
-                double h = atof(components[1].c_str());
-                double l = atof(components[2].c_str());
-                
-                vec hkl = new_vector(h, k, l);
-                
-                Coord coord = reciprocalCoordinatesToPixels(hkl);
-                
-                x = coord.first;
-                y = coord.second;
-                
-                logged << "Coord:\t" << h << "\t" << k << "\t" << l << "\t" << x << "\t" << y << std::endl;
-                sendLog();
-            }
-            else
-            {
-                x = atof(components[0].c_str());
-                y = atof(components[1].c_str());
-            }
+            x = atof(components[0].c_str());
+            y = atof(components[1].c_str());
             
             vec beamXY = new_vector(getBeamX(), getBeamY(), 1);
             vec newXY = new_vector(x, y, 1);
@@ -2089,7 +2065,10 @@ void Image::writeSpotsList(std::string spotFile)
 
 double Image::resolutionAtPixel(double x, double y)
 {
-    vec reciprocal = pixelsToReciprocalCoordinates(x, y);
+    vec reciprocal;
+    Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(x, y, &reciprocal);
+    scale_vector_to_distance(&reciprocal, 1 / getWavelength());
+    reciprocal.l -= 1 / getWavelength();
     return length_of_vector(reciprocal);
 }
 
