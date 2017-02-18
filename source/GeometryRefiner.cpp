@@ -314,6 +314,9 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
         case GeometryScoreTypeIntrapanel:
             typeString = "intrapanel";
             break;
+        case GeometryScoreTypeAngleConsistency:
+            typeString = "angle_consistency";
+            break;
         default:
             break;
     }
