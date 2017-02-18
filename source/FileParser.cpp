@@ -840,7 +840,7 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
     else if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL" && upperCommand != "MASK" && upperCommand != "SOLVENT_MASK")
     {
         logged << "Error: do not understand command " << upperCommand << std::endl;
-        sendLog();
+        sendLogAndExit();
     }
     
     ParserFunction function = parserMap[upperCommand];
