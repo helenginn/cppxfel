@@ -790,6 +790,7 @@ void FileParser::generateFunctionList()
     parserMap["PNG_ALL_LATTICES"] = simpleBool;
     parserMap["PNG_HEIGHT"] = simpleInt;
     parserMap["DRAW_GEOMETRY_PNGS"] = simpleBool;
+    parserMap["SWEEP_DETECTOR_DISTANCE"] = doubleVector;
     parserMap["DISTANCE_VS_ANGLE_FRACTION"] = simpleFloat;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
     

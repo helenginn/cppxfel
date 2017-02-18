@@ -645,6 +645,11 @@ public:
         _manager = manager;
     }
     
+    IndexManagerPtr getIndexManager()
+    {
+        return _manager;
+    }
+    
     /* Resolution fun */
     
     double spotCoordToResolution(double unarrangedX, double unarrangedY, double wavelength);

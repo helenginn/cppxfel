@@ -57,6 +57,7 @@ public:
     std::string description();
     void addSimilarLengthStandardVectors(std::vector<SpotVectorPtr> standardVectors, double tolerance);
     double cosineWithVector(SpotVectorPtr spotVector2);
+    double cosineWithVertical();
     SpotVectorPtr differenceFromVector(SpotVectorPtr spotVec);
     static SpotVectorPtr vectorBetweenSpotsFromArray(std::vector<SpotVectorPtr> vectors, SpotPtr spot1, SpotPtr spot2);
     bool usesBeamCentre();

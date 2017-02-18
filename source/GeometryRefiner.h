@@ -19,6 +19,9 @@ typedef enum
     GeometryScoreTypeMillerStdev,
     GeometryScoreTypeIntrapanel,
     GeometryScoreTypeInterpanel,
+    GeometryScoreTypeInterAngle,
+    GeometryScoreTypeIntraAngle,
+    GeometryScoreTypeAngleConsistency,
     GeometryScoreTypeBeamCentre,
     
 } GeometryScoreType;
@@ -31,6 +34,7 @@ private:
     int refinementEvent;
     int cycleNum;
     void refineDetectorStrategy(DetectorPtr detector, int strategy);
+    static void refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int strategy);
     static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy);
     void refineGeometryCycle();
     void geometryCycleForDetector(std::vector<DetectorPtr> detectors);
@@ -42,7 +46,7 @@ private:
     void refineBeamCentre();
     
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
-    void gridSearch(DetectorPtr detector);
+    void gridSearch(DetectorPtr detector, double start, double end);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
     
 public:

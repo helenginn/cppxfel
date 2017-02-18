@@ -112,6 +112,7 @@ public:
     
     double weightForDistance(double distance);
     double weightForAngle(double angle);
+    double weightForCosine(double cosine);
     
     std::vector<SpotVectorPtr> getStandardVectors()
     {

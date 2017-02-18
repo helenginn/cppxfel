@@ -92,6 +92,11 @@ double SpotVector::cosineWithVector(SpotVectorPtr spotVector2)
     return cosineBetweenUnitVectors(spotVector2->getUnitVector(), unitSpotDiff);
 }
 
+double SpotVector::cosineWithVertical()
+{
+    return cosineBetweenUnitVectors(getUnitVector(), new_vector(0, 1, 0));
+}
+
 bool SpotVector::isCloseToSpotVector(SpotVectorPtr spotVector2, double maxDistance)
 {
     vec spotDiff2 = spotVector2->getVector();

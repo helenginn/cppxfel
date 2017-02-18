@@ -54,7 +54,14 @@ void UnitCellLattice::weightUnitCell()
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
     distCSV->setupHistogram(0, maxDistance, step, "Distance", 1, "Perfect frequency");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
-    angleCSV->setupHistogram(0, 90, 0.05, "Angle", 1, "Perfect frequency");
+    angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
+    
+    for (int i = 0; i < angleCSV->entryCount(); i++)
+    {
+        double angle = angleCSV->valueForEntry("Angle", i);
+        double cosine = cos(angle * M_PI / 180);
+        angleCSV->setValueForEntry(i, "Cosine", cosine);
+    }
     
     double distTotal = 0;
     double angleTotal = 0;
@@ -253,6 +260,11 @@ double UnitCellLattice::weightForDistance(double distance)
 double UnitCellLattice::weightForAngle(double angle)
 {
     return weightedAngles->valueForHistogramEntry("Perfect frequency", angle) * distanceToAngleRatio;
+}
+
+double UnitCellLattice::weightForCosine(double cosine)
+{
+    return weightedAngles->valueForHistogramEntry("Perfect frequency", cosine, "Cosine") * distanceToAngleRatio;
 }
 
 

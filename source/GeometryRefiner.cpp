@@ -47,6 +47,10 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
             aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
             strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
             break;
+        case GeometryScoreTypeAngleConsistency:
+            aManager->setPseudoScoreType(PseudoScoreTypeAngleConsistency);
+            strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
+            break;
     }
     
     return strategy;
@@ -74,7 +78,39 @@ void GeometryRefiner::refineGeometry()
     
     int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
     
- //   gridSearch(Detector::getMaster()->getChild(0));
+    std::vector<double> sweepDetectorDistance = FileParser::getKey("SWEEP_DETECTOR_DISTANCE", std::vector<double>());
+    
+    if (sweepDetectorDistance.size() >= 2)
+    {
+        
+        double start = sweepDetectorDistance[0];
+        double end = sweepDetectorDistance[1];
+        
+        if (end < start)
+        {
+            end = sweepDetectorDistance[0];
+            start = sweepDetectorDistance[1];
+        }
+        
+        logged << "***********************************************" << std::endl;
+        logged << "Doing a detector distance sweep from " << start << " to " << end << " mm." << std::endl;
+        logged << "***********************************************" << std::endl;
+        sendLog();
+        
+        double mmPerPixel = FileParser::getKey("MM_PER_PIXEL", 0.11);
+
+        end /= mmPerPixel;
+        start /= mmPerPixel;
+        
+        gridSearch(Detector::getMaster(), start, end);
+        double newDistance = Detector::getArrangedMidPointZ(&*Detector::getMaster());
+        
+        logged << "**** Grid search done ****" << std::endl;
+        logged << "**** New detector distance: " << newDistance * mmPerPixel << " mm. ****" << std::endl;
+        sendLog();
+        
+        reportProgress();
+    }
     
     for (int i = 0; i < maxCycles; i++)
     {
@@ -146,8 +182,7 @@ void GeometryRefiner::reportProgress()
 void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detectors)
 {
     std::ostringstream detectorList;
-    int maxThreads = FileParser::getMaxThreads();
-
+    
     for (int j = 0; j < detectors.size(); j++)
     {
         detectorList << detectors[j]->getTag() << " ";
@@ -170,16 +205,8 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     }
     else
     {
-        boost::thread_group threads;
-        
-        for (int i = 0; i < maxThreads; i++)
-        {
-            boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 0);
-            threads.add_thread(thr);
-        }
-        
-        threads.join_all();
-        reportProgress();
+        refineDetectorStrategyWrapper(this, detectors, 0);
+        refineDetectorStrategyWrapper(this, detectors, 1);
     }
     
     std::vector<DetectorPtr> nextDetectors;
@@ -197,16 +224,7 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         geometryCycleForDetector(nextDetectors);
     }
     
-    boost::thread_group threads;
-    
-    for (int i = 0; i < maxThreads; i++)
-    {
-        boost::thread *thr = new boost::thread(refineDetectorWrapper, this, detectors, i, 1);
-        threads.add_thread(thr);
-    }
-    
-    threads.join_all();
-    reportProgress();
+    refineDetectorStrategyWrapper(this, detectors, 2);
     
     if (detectors[0]->isLUCA())
     {
@@ -218,9 +236,36 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     refineUnitCell();
 }
 
+void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int strategy)
+{
+    int maxThreads = FileParser::getMaxThreads();
+    
+    if (strategy == 1)
+    {
+        maxThreads = 1;
+    }
+    
+    boost::thread_group threads;
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(refineDetectorWrapper, me, detectors, i, strategy);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+    me->reportProgress();
+
+}
+
 void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy)
 {
     int maxThreads = FileParser::getMaxThreads();
+    
+    if (strategy == 1)
+    {
+        maxThreads = 1;
+    }
     
     for (int i = offset; i < detectors.size(); i += maxThreads)
     {
@@ -249,24 +294,27 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
     strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
     
-    double transNudge = (detector->isLUCA() ? 2.0 : 0.2);
+    double transNudge = detector->isLUCA() ? 2.0 : 0.2;
     double tiltNudge = 0.001;
     double zTiltNudge = 0.0002;
-
-    if (type == GeometryScoreTypeIntrapanel)
+    
+    if (type == GeometryScoreTypeAngleConsistency)
+    {
+        detector->getIndexManager()->setProportionDistance(0.0);
+        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, zTiltNudge, 0.000001, "tilt_z");
+    }
+    else if (type == GeometryScoreTypeIntrapanel)
     {
         strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.00001, "nudge_tx");
         strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.00001, "nudge_ty");
         strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, transNudge, 0.001, "nudge_z");
         
-        if (!detector->isLUCA())
-            strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, zTiltNudge, 0.000001, "tilt_z");
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
         detector->resetPoke();
-        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, 0.2, 0.01, "poke_x");
-        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, 0.2, 0.01, "poke_y");
+        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, 0.1, 0.01, "poke_x");
+        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, 0.1, 0.01, "poke_y");
         strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, zTiltNudge, 0.000001, "poke_z");
     }
     else if (type == GeometryScoreTypeBeamCentre)
@@ -360,46 +408,26 @@ void GeometryRefiner::refineUnitCell()
     reportProgress();
 }
 
-void GeometryRefiner::gridSearch(DetectorPtr detector)
+void GeometryRefiner::gridSearch(DetectorPtr detector, double start, double end)
 {
+    double step = 0.2;
+    double middle = (end + start) / 2;
+    Detector::setArrangedMidPointZ(&*detector, middle);
+    double confidence = (end - start) / step / 2;
+    
     RefinementGridSearchPtr strategy = RefinementGridSearchPtr(new RefinementGridSearch());
- //   Detector::setAlpha(&*Detector::getMaster(), 0.001);
- //   Detector::setBeta(&*Detector::getMaster(), 0.001);
+    strategy->addParameter(&*detector, Detector::getArrangedMidPointZ, Detector::setArrangedMidPointZ, step, 0.1, "nudge_z");
     
-//    strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, 0.05, 0.00001, "nudge_tx");
-//    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_x");
-//    strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, 2.0, 0.00001, "nudge_y");
-    strategy->addParameter(&*detector, Detector::getNudgeTiltZ, Detector::setNudgeTiltZ, 0.01, 0.001, "nudge_tz");
-    
-    strategy->setGridLength(11);
-    strategy->setVerbose(false);
-    strategy->setJobName("Detector " + detector->getTag());
+    strategy->setGridLength(confidence * 2 + 1);
+    strategy->setVerbose(true);
+    strategy->setJobName("Wide sweep detector " + detector->getTag());
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
     aManager->setActiveDetector(detector);
     aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
-    strategy->setEvaluationFunction(IndexManager::debugPseudoScore, &*aManager);
+    strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
     
     strategy->refine();
-    /*
-    logged << "****** PRELOCK ******" << std::endl;
-    sendLog();
-    Detector::getMaster()->fullDescription();
-    logged << "Intrapanel: " << IndexManager::pseudoScore(&*aManager) << std::endl;
-    sendLog();
-
-    logged << "****** POSTLOCK ******" << std::endl;
-    sendLog();
-    Detector::setNudgeTiltX(&*(Detector::getMaster()), 0);
-    Detector::getMaster()->fullDescription();
-    logged << "Intrapanel: " << IndexManager::pseudoScore(&*aManager) << std::endl;
-    sendLog();
-    
-    strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
-    strategy->setJobName("job2");
-    strategy->refine();*/
-    
-    exit(0);
 }
 
 void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
@@ -412,9 +440,17 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
         }
         
         refineDetector(detector, GeometryScoreTypeIntrapanel);
-        detector->millerScore(true, false);
     }
     else if (strategy == 1)
+    {
+        if (!detector->hasChildren())
+        {
+            return;
+        }
+        
+        refineDetector(detector, GeometryScoreTypeAngleConsistency);
+    }
+    else if (strategy == 2)
     {
         if (!detector->hasChildren() || !detector->getChild(0)->hasChildren())
         {
@@ -422,7 +458,6 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
         }
         
         refineDetector(detector, GeometryScoreTypeInterpanel);
-        detector->millerScore(true, false);
     }
 }
 

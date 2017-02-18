@@ -44,10 +44,14 @@ void RefinementGridSearch::recursiveEvaluation(ParamList referenceList, ParamLis
     
     double result = (*evaluationFunction)(evaluateObject);
     (*results)[workingList] = result;
+    
+    reportProgress((*evaluationFunction)(evaluateObject));
 }
 
 void RefinementGridSearch::refine()
 {
+    RefinementStrategy::refine();
+    
     ParamList currentValues;
     CSVPtr csv = CSVPtr(new CSV());
 
@@ -90,4 +94,6 @@ void RefinementGridSearch::refine()
     }
     
     csv->writeToFile(jobName + "_gridsearch.csv");
+    
+    finish();
 }

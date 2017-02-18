@@ -151,7 +151,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
         if (!silent)
             logged << "h k l\tFirst intensity\tSecond intensity\tResolution" << std::endl;
         
-        csv = CSV(6, "h", "k", "l", "First intensity", "Second intensity", "Resolution");
+        CSVPtr csv = CSVPtr (new CSV(6, "h", "k", "l", "First intensity", "Second intensity", "Resolution"));
         
 		for (int i = 0; i < num; i++)
 		{
@@ -174,15 +174,15 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
             
             double resolution = 1 / reflections1[i]->getResolution();
 
-            csv.addEntry(0, (double)h, (double)k, (double)l, int1, int2, resolution);
+            csv->addEntry(0, (double)h, (double)k, (double)l, int1, int2, resolution);
 			
             if (!silent)
                 logged << h << " " << k << " " << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << std::endl;
 		}
 
         if (!silent)
-            csv.writeToFile("correlation.csv");
-        csv.plotColumns(3, 4);
+            csv->writeToFile("correlation.csv");
+        csv->plotColumns(3, 4);
         
         logged << "Data logged to correlation.csv" << std::endl;
         Logger::mainLogger->addStream(&logged);
