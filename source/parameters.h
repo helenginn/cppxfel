@@ -291,6 +291,20 @@ typedef enum
 
 typedef enum
 {
+    GeometryScoreTypeMiller,
+    GeometryScoreTypeMillerStdev,
+    GeometryScoreTypeIntrapanel,
+    GeometryScoreTypeInterpanel,
+    GeometryScoreTypeInterAngle,
+    GeometryScoreTypeIntraAngle,
+    GeometryScoreTypeAngleConsistency,
+    GeometryScoreTypeBeamCentre,
+    
+} GeometryScoreType;
+
+
+typedef enum
+{
 	PartialityModelNone, PartialityModelSimple, PartialityModelScaled, PartialityModelFixed, PartialityModelBinary
 } PartialityModel;
 

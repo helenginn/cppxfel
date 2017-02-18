@@ -13,19 +13,6 @@
 #include "parameters.h"
 #include <stdio.h>
 
-typedef enum
-{
-    GeometryScoreTypeMiller,
-    GeometryScoreTypeMillerStdev,
-    GeometryScoreTypeIntrapanel,
-    GeometryScoreTypeInterpanel,
-    GeometryScoreTypeInterAngle,
-    GeometryScoreTypeIntraAngle,
-    GeometryScoreTypeAngleConsistency,
-    GeometryScoreTypeBeamCentre,
-    
-} GeometryScoreType;
-
 class GeometryRefiner : public LoggableObject
 {
 private:
