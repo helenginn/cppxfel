@@ -41,10 +41,13 @@ private:
 	std::string filename;
     std::vector<MtzPtr> mtzs;
     int highScore;
+    bool fake;
     
     virtual void loadImage();
     vector<IOMRefinerPtr> indexers;
     vector<IOMRefinerPtr> failedRefiners;
+    vector<ImagePtr> maxes;
+    
     bool shouldMaskValue;
     bool shouldMaskUnderValue;
     int maskedValue;
@@ -145,7 +148,7 @@ public:
     void drawCrystalsOnPNG(int crystalNum);
     void drawSpotsOnPNG(std::string filename = "");
     void dumpImage();
-    void makeMaximumFromImages(std::vector<ImagePtr> images);
+    void makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults = false);
     void excludeWeakestSpots(double fraction);
     
 	const std::string& getFilename() const

@@ -48,6 +48,7 @@ Image::Image(std::string filename, double wavelength,
     
     spotsFile = "";
     highScore = 0;
+    fake = false;
     
     if (dims.size())
     {
@@ -198,6 +199,7 @@ void Image::setImageData(vector<int> newData)
 void Image::newImage()
 {
     int totalPixels = xDim * yDim;
+    fake = true;
     
     data = std::vector<int>(totalPixels, 0);
     overlapMask = vector<signed char>(totalPixels, 0);
@@ -460,7 +462,7 @@ double Image::weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
     return 1;
 }
 
-void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
+void Image::makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults)
 {
     if (images.size() == 0)
     {
@@ -472,7 +474,7 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
     xDim = images[0]->getXDim();
     yDim = images[0]->getYDim();
     newImage();
-    std::vector<ImagePtr> maxes = std::vector<ImagePtr>(xDim * yDim, ImagePtr());
+    maxes = std::vector<ImagePtr>(xDim * yDim, ImagePtr());
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -486,7 +488,15 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
                 
                 if (rawValue > myValue)
                 {
-                    maxes[pos] = images[i];
+                    if (!images[i]->fake)
+                    {
+                        maxes[pos] = images[i];
+                    }
+                    else
+                    {
+                        maxes[pos] = images[i]->maxes[pos];
+                    }
+                    
                     addValueAt(k, j, images[i]->rawValueAt(k, j));
                 }
             }
@@ -506,7 +516,11 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
         
         if (maxes[pos])
         {
-            logged << "Spot for image " << maxes[pos]->getFilename() << " (" << x << ", " << y << ")" << std::endl;
+            if (listResults)
+            {
+                logged << "Spot for image " << maxes[pos]->getFilename() << " (" << x << ", " << y << ")" << std::endl;
+            }
+            
             if (!imageSpotMap.count(maxes[pos]))
             {
                 imageSpotMap[maxes[pos]] = 0;
@@ -515,14 +529,33 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images)
         }
     }
     
-    for (std::map<ImagePtr, int>::iterator it = imageSpotMap.begin(); it != imageSpotMap.end(); it++)
-    {
-        logged << it->first->getFilename() << "\t" << it->second << std::endl;
-    }
-
-    sendLog();
+    std::string datname = FileReader::addOutputDirectory("all-strong.dat");
+    int count = 0;
     
-    sendLog();
+    if (listResults)
+    {
+        std::ofstream strongest;
+        strongest.open(datname);
+        strongest << "version 3.0" << std::endl;
+        
+        for (std::map<ImagePtr, int>::iterator it = imageSpotMap.begin(); it != imageSpotMap.end(); it++)
+        {
+            logged << it->first->getBasename() << "\t" << it->second << std::endl;
+        
+            if (it->second > 10)
+            {
+                strongest << "image " << it->first->getBasename() << std::endl;
+                count++;
+            }
+        }
+        
+        strongest.close();
+        
+        logged << "Written strongest " << count << " files (10+ peaks) to " << datname << std::endl;
+        logged << "You can limit yourself to just these images by editing your input file:" << std::endl;
+        logged << std::endl << "ORIENTATION_MATRIX_LIST " << filename << std::endl;
+        sendLog();
+    }
     
     loadedSpots = true;
     

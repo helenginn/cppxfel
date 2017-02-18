@@ -1510,7 +1510,7 @@ void MtzRefiner::maximumImage()
     
     threads.join_all();
     
-    maximum->makeMaximumFromImages(maxSelections);
+    maximum->makeMaximumFromImages(maxSelections, true);
     Detector::setDrawImage(maximum);
 }
 
