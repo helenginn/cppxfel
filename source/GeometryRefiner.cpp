@@ -121,6 +121,7 @@ void GeometryRefiner::refineGeometry()
 
 void GeometryRefiner::reportProgress()
 {
+    double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.);
     std::string filename = "special_image_" + i_to_str(refinementEvent) + ".png";
     Detector::drawSpecialImage(filename);
 
@@ -159,10 +160,13 @@ void GeometryRefiner::reportProgress()
     logged << "N: Progress score (event " << refinementEvent << ", inter-panel-dist): " << interScore
     << " (" << (interIncrease > 0 ? "+" : "") << interIncrease << "% from last round)" << std::endl;
     
-    logged << "N: Progress score (event " << refinementEvent << ", intra-panel-angle): " << intraAngle
-    << " (" << (intraAngleIncrease > 0 ? "+" : "") << intraAngleIncrease << "% from last round) " << std::endl;
-    logged << "N: Progress score (event " << refinementEvent << ", inter-panel-angle): " << interAngle
-    << " (" << (interAngleIncrease > 0 ? "+" : "") << interAngleIncrease << "% from last round)" << std::endl;
+    if (maxAngleDistance > 0)
+    {
+        logged << "N: Progress score (event " << refinementEvent << ", intra-panel-angle): " << intraAngle
+        << " (" << (intraAngleIncrease > 0 ? "+" : "") << intraAngleIncrease << "% from last round) " << std::endl;
+        logged << "N: Progress score (event " << refinementEvent << ", inter-panel-angle): " << interAngle
+        << " (" << (interAngleIncrease > 0 ? "+" : "") << interAngleIncrease << "% from last round)" << std::endl;
+    }
     
     if (mScore > 0 || sScore > 0)
     {
