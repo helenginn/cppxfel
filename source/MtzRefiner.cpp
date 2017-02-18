@@ -409,12 +409,9 @@ bool MtzRefiner::loadInitialMtz(bool force)
     if (reference && !force)
         return true;
     
-    std::ostringstream logged;
-    
     logged << "Initial MTZ has "
     << (hasInitialMtz ? "" : "not ") << "been provided." << std::endl;
-    
-    Logger::mainLogger->addStream(&logged);
+    sendLog();
     
     if (hasInitialMtz)
     {
@@ -430,7 +427,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
         if (reference->reflectionCount() == 0)
         {
             logged << "Initial MTZ reference missing or reflection count is 0. Exiting." << std::endl;
-            Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+            sendLogAndExit();
         }
         
         MtzManager::setReference(&*reference);
@@ -916,8 +913,8 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     {
         if (aFilename.length() == 0)
         {
-            logged << "No orientation matrix list provided. Exiting now." << std::endl;
-            sendLog(LogLevelNormal, true);
+            logged << "No orientation matrix list provided (and no HDF5 file either). Exiting now." << std::endl;
+            sendLogAndExit();
         }
     }
     
@@ -1656,7 +1653,7 @@ void MtzRefiner::loadPanels(bool mustFail)
     {
         logged << "DETECTOR_LIST has not been provided." << std::endl;
         FileParser::printCommandInfo("DETECTOR_LIST");
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        sendLogAndExit();
         return;
     }
     

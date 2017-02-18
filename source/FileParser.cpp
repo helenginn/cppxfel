@@ -227,7 +227,7 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
             printCommandInfo(command);
             logged << "Please edit your log file, for example, to:" << std::endl;
             logged << command << " " << codeMap.begin()->first << std::endl << std::endl;
-            Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+            staticLogAndExit(logged);
             return;
         }
 
@@ -825,9 +825,8 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
     if (deprecatedList.count(upperCommand) > 0)
     {
         logged << "Deprecated command: " << command << std::endl;
-        sendLog();
         logged << deprecatedList[command] << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        sendLogAndExit();
         return NULL;
     }
     

@@ -17,6 +17,7 @@ class LoggableObject
 protected:
     std::ostringstream logged;
     void sendLog(LogLevel priority = LogLevelNormal, bool shouldExit = false);
+    void sendLogAndExit();
     
     LoggableObject()
     {
@@ -27,6 +28,10 @@ protected:
     {
         
     }
+    
+public:
+    static void staticLogAndExit(std::ostringstream &otherLog);
+    
 };
 
 #endif /* defined(__cppxfel__LoggableObject__) */

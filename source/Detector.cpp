@@ -1005,7 +1005,7 @@ CSVPtr Detector::resolutionHistogram()
     {
         std::ostringstream logged;
         logged << "Cannot create resolution histogram without an approximate value for INTEGRATION_WAVELENGTH. Please provide!" << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        staticLogAndExit(logged);
     }
     
     std::vector<double> size = FileParser::getKey("DETECTOR_SIZE", std::vector<double>(0, 2));

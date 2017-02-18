@@ -285,6 +285,11 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
             ghost = (strcmp(components[2].c_str(), "true") == 0);
     }
     
+    if (!Detector::getMaster())
+    {
+        throw std::exception();
+    }
+    
     Detector::getMaster()->updateCurrentRotation();
 }
 
@@ -323,7 +328,7 @@ DetectorPtr GeometryParser::makeDetectorFromPanelMap(PanelMap panelMap, Detector
     catch (std::exception e)
     {
         logged << "Missing a vital parameter in panel" << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        sendLogAndExit();
     }
     
     Coord topLeft = std::make_pair(min_fs, min_ss);
@@ -556,7 +561,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
             std::string name = map["name"];
             if (name.length() < 4)
             {
-                logged << "Huh? Unh" << std::endl;
+                logged << "I'm struggling..." << std::endl;
                 sendLog();
             }
             
@@ -579,7 +584,7 @@ void GeometryParser::parse()
     if (!FileReader::exists(filename))
     {
         logged << "File " << filename << " does not exist." << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        sendLogAndExit();
     }
     
     std::string contents = FileReader::get_file_contents(filename.c_str());
@@ -587,12 +592,30 @@ void GeometryParser::parse()
     
     if (format == GeometryFormatCrystFEL)
     {
-        parseCrystFELLines(lines);
+        try
+        {
+            parseCrystFELLines(lines);
+        }
+        catch (std::exception)
+        {
+            logged << "I had trouble trying to parse that geometry format and crashed." << std::endl;
+            logged << "Sorry. Are you sure the GEOMETRY_FORMAT should be CrystFEL?" << std::endl;
+            sendLogAndExit();
+        }
     }
     
     if (format == GeometryFormatCppxfel)
     {
-        parseCppxfelLines(lines);
+        try
+        {
+            parseCppxfelLines(lines);
+        }
+        catch (std::exception)
+        {
+            logged << "I had trouble trying to parse that geometry format and crashed." << std::endl;
+            logged << "Sorry. Are you sure the GEOMETRY_FORMAT should be cppxfel?" << std::endl;
+            sendLogAndExit();
+        }
     }
     else if (format == GeometryFormatPanelList)
     {

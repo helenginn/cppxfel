@@ -107,7 +107,9 @@ void Hdf5Image::loadImage()
     Hdf5ManagerCheetahPtr manager = getManager();
     
     if (!manager)
-        return;
+    {
+        failureMessage();
+    }
     
     std::string address = imageAddress;
     
