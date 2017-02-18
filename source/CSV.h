@@ -111,7 +111,10 @@ public:
     double valueForHistogramEntry(std::string whichHeader, double value, std::string categoryHeader = "");
     void histogram(std::map<double, int> histogram);
     std::string plotColumns(int col1, int col2);
+    void resetColumn(std::string header, double value = 0);
     
+    void convolutedPeaks(std::string category, std::string origHeader, std::string destHeader, double stdev);
+    void addConvolutedPeak(std::string header, double mean, double stdev, double weight, std::string category = "");
     void setValueForEntry(int entry, std::string header, double value);
     void addEntry(std::vector<double> entry)
     {

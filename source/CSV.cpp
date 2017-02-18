@@ -36,6 +36,13 @@ int CSV::findHeader(std::string whichHeader)
         }
     }
     
+    
+    if (chosenHeader == -1)
+    {
+        logged << "Error: " << whichHeader << " does not exist in table." << std::endl;
+        sendLogAndExit();
+    }
+    
     return chosenHeader;
 }
 
@@ -390,6 +397,42 @@ void CSV::setValueForEntry(int entry, std::string header, double value)
 {
     int column = findHeader(header);
     entries[entry][column] = value;
+}
+
+void CSV::addConvolutedPeak(std::string header, double mean, double stdev, double weight, std::string category)
+{
+    double totalIntervals = 300;
+    double stdevMult = 10;
+    double step = (stdev * stdevMult) / totalIntervals;
+    
+    for (double x = -stdev * stdevMult / 2; x < stdev * stdevMult / 2; x += step)
+    {
+        double y = super_gaussian(x, 0, stdev / 3, 1.0);
+        addOneToFrequency(x + mean, header, y * weight, category);
+    }
+}
+
+void CSV::convolutedPeaks(std::string category, std::string origHeader, std::string destHeader, double stdev)
+{
+    int origNum = findHeader(origHeader);
+    int categoryNum = findHeader(category);
+    
+    for (int i = 0; i < entries.size(); i++)
+    {
+        double mean = entries[i][categoryNum];
+        double weight = entries[i][origNum];
+        addConvolutedPeak(destHeader, mean, stdev, weight);
+    }
+}
+
+void CSV::resetColumn(std::string header, double value)
+{
+    int headerNum = findHeader(header);
+    
+    for (int i = 0; i < entries.size(); i++)
+    {
+        entries[i][headerNum] = value;
+    }
 }
 
 CSV::~CSV()
