@@ -810,7 +810,17 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
     imageSubsets.resize(maxThreads);
     mtzSubsets.resize(maxThreads);
     
-    const std::string contents = FileReader::get_file_contents( filename->c_str());
+    std::string contents;
+    
+    try
+    {
+        contents = FileReader::get_file_contents( filename->c_str());
+    }
+    catch (int errno)
+    {
+        logged << "Missing file " << filename << ", cannot continue." << std::endl;
+        sendLogAndExit();
+    }
     vector<std::string> imageList = FileReader::split(contents, "\nimage ");
     
     std::ostringstream logged;
