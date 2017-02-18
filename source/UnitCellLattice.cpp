@@ -32,19 +32,6 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
     delete [] lengths;
 }
 
-void UnitCellLattice::addConvolutedPeak(CSVPtr csv, double mean, double stdev, double weight)
-{
-    double totalIntervals = 300;
-    double stdevMult = 10;
-    double step = (stdev * stdevMult) / totalIntervals;
-    
-    for (double x = -stdev * stdevMult / 2; x < stdev * stdevMult / 2; x += step)
-    {
-        double y = super_gaussian(x, 0, stdev / 3, 1.0);
-        csv->addOneToFrequency(x + mean, "Perfect frequency", y * weight);
-    }
-}
-
 void UnitCellLattice::weightUnitCell()
 {
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
@@ -77,7 +64,7 @@ void UnitCellLattice::weightUnitCell()
         inverse *= maxDistance;
         double stdev = rlpSize / 2;
         
-        addConvolutedPeak(distCSV, distance, stdev, inverse);
+        distCSV->addConvolutedPeak("Perfect frequency", distance, stdev, inverse);
         distTotal += inverse;
         
         if (distance > maxAngleDistance)
@@ -100,7 +87,7 @@ void UnitCellLattice::weightUnitCell()
             angle *= 180 / M_PI;
             angle = (angle > 90) ? 180 - angle : angle;
             
-            addConvolutedPeak(angleCSV, angle, 0.3, inverse);
+            angleCSV->addConvolutedPeak("Perfect frequency", angle, 0.3, inverse);
             angleTotal += inverse;
         }
     }

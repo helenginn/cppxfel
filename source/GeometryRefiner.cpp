@@ -179,15 +179,26 @@ void GeometryRefiner::reportProgress()
     sendLog();
 }
 
-void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detectors)
+bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detectors)
 {
     std::ostringstream detectorList;
+    
+    bool hasRefineableDetectors = false;
     
     for (int j = 0; j < detectors.size(); j++)
     {
         detectorList << detectors[j]->getTag() << " ";
+        
+        if (detectors[j]->isRefinable(GeometryScoreTypeIntrapanel))
+        {
+            hasRefineableDetectors = true;
+        }
     }
 
+    if (!hasRefineableDetectors)
+    {
+        return false;
+    }
     
     logged << "***************************************************" << std::endl;
     logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
@@ -221,7 +232,12 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     
     if (nextDetectors.size())
     {
-        geometryCycleForDetector(nextDetectors);
+        bool somethingHappened = geometryCycleForDetector(nextDetectors);
+        
+        if (!somethingHappened)
+        {
+            return true;
+        }
     }
     
     refineDetectorStrategyWrapper(this, detectors, 2);
@@ -234,6 +250,8 @@ void GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     }
     
     refineUnitCell();
+    
+    return true;
 }
 
 void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int strategy)
@@ -275,6 +293,11 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<Det
 
 void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType type)
 {
+    if (!detector->isRefinable(type))
+    {
+        return;
+    }
+    
     std::string typeString = "";
     
     switch (type) {
@@ -434,29 +457,14 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, int strategy)
 {
     if (strategy == 0)
     {
-        if (!detector->hasChildren())
-        {
-            return;
-        }
-        
         refineDetector(detector, GeometryScoreTypeIntrapanel);
     }
     else if (strategy == 1)
     {
-        if (!detector->hasChildren())
-        {
-            return;
-        }
-        
         refineDetector(detector, GeometryScoreTypeAngleConsistency);
     }
     else if (strategy == 2)
     {
-        if (!detector->hasChildren() || !detector->getChild(0)->hasChildren())
-        {
-            return;
-        }
-        
         refineDetector(detector, GeometryScoreTypeInterpanel);
     }
 }

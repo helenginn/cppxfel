@@ -37,7 +37,7 @@ private:
     static void refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int strategy);
     static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy);
     void refineGeometryCycle();
-    void geometryCycleForDetector(std::vector<DetectorPtr> detectors);
+    bool geometryCycleForDetector(std::vector<DetectorPtr> detectors);
     double lastInterScore;
     double lastIntraScore;
     double lastIntraAngleScore;

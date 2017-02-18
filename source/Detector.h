@@ -36,6 +36,7 @@ private:
     static DetectorType detectorType;
     static int specialImageCounter;
     double gain;
+    bool _refinable;
     std::mutex threadMutex;
     
     static bool enabledNudge;
@@ -696,6 +697,35 @@ public:
     void setGain(double _gain)
     {
         gain = _gain;
+    }
+
+    bool isRefinable(GeometryScoreType scoreType)
+    {
+        if (scoreType == GeometryScoreTypeIntrapanel ||
+            scoreType == GeometryScoreTypeAngleConsistency ||
+            scoreType == GeometryScoreTypeBeamCentre)
+        {
+            return _refinable;
+        }
+        else
+        {
+            for (int i = 0; i < childrenCount(); i++)
+            {
+                if (getChild(i)->isRefinable(GeometryScoreTypeIntrapanel))
+                {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+    }
+    
+    void setRefinable(bool refinable)
+    {
+        _refinable = refinable;
+        logged << "Setting " << getTag() << " panel to " << (refinable ? "refineable" : "fixed") << std::endl;
+        sendLog();
     }
 };
 
