@@ -639,9 +639,9 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
         return false;
     }
     
-    if (scoreType == PseudoScoreTypeAllInterPanel && bc && !permissive)
+    if (scoreType == PseudoScoreTypeAllInterPanel && bc)
     {
-        return false;
+        return true;
     }
     
     if (scoreType == PseudoScoreTypeAllInterPanel)
