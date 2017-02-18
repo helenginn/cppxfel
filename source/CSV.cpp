@@ -39,19 +39,32 @@ int CSV::findHeader(std::string whichHeader)
     return chosenHeader;
 }
 
-double CSV::valueForHistogramEntry(std::string whichHeader, double value)
+double CSV::valueForHistogramEntry(std::string whichHeader, double value, std::string categoryHeader)
 {
     if (entries.size() == 0)
         return 0;
     
+    int categoryNum = 0;
+    
+    if (categoryHeader.length())
+    {
+        categoryNum = findHeader(categoryHeader);
+    }
+    
     int chosenHeader = findHeader(whichHeader);
    
-    bool ascending = (entries[0][0] < entries[1][0]);
+    if (categoryNum < 0 || chosenHeader < 0)
+    {
+        logged << "Headers asked for in histogram entry (" << whichHeader << ", " << categoryHeader << ") are not acceptable." << std::endl;
+        sendLog();
+    }
+    
+    bool ascending = (entries[0][categoryNum] < entries[1][categoryNum]);
     
     for (int j = 0; j < entries.size() - 1; j++)
     {
-        if ((ascending && value > entries[j][0] && value < entries[j + 1][0])
-            || (!ascending && value < entries[j][0] && value > entries[j + 1][0]))
+        if ((ascending && value > entries[j][categoryNum] && value < entries[j + 1][categoryNum])
+            || (!ascending && value < entries[j][categoryNum] && value > entries[j + 1][categoryNum]))
         {
             return entries[j][chosenHeader];
         }
@@ -60,19 +73,26 @@ double CSV::valueForHistogramEntry(std::string whichHeader, double value)
     return 0;
 }
 
-void CSV::addOneToFrequency(double category, std::string whichHeader, double weight)
+void CSV::addOneToFrequency(double category, std::string whichHeader, double weight, std::string categoryHeader)
 {
     if (entries.size() == 0)
         return;
     
     int chosenHeader = findHeader(whichHeader);
     
-    bool ascending = (entries[0][0] < entries[1][0]);
+    int categoryNum = 0;
+    
+    if (categoryHeader.length())
+    {
+        categoryNum = findHeader(categoryHeader);
+    }
+    
+    bool ascending = (entries[0][categoryNum] < entries[1][categoryNum]);
     
     for (int j = 0; j < entries.size() - 1; j++)
     {
-        if ((ascending && category > entries[j][0] && category < entries[j + 1][0])
-            || (!ascending && category < entries[j][0] && category > entries[j + 1][0]))
+        if ((ascending && category > entries[j][categoryNum] && category < entries[j + 1][categoryNum])
+            || (!ascending && category < entries[j][categoryNum] && category > entries[j + 1][categoryNum]))
         {
             entries[j][chosenHeader] += weight;
             break;
@@ -364,6 +384,12 @@ std::string CSV::plotColumns(int col1, int col2)
     Logger::mainLogger->addStream(&logged);
     
     return ascii.str();
+}
+
+void CSV::setValueForEntry(int entry, std::string header, double value)
+{
+    int column = findHeader(header);
+    entries[entry][column] = value;
 }
 
 CSV::~CSV()
