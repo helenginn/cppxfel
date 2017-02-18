@@ -285,8 +285,23 @@ typedef enum
     PseudoScoreTypeIntraPanel,
     PseudoScoreTypeInterPanel,
     PseudoScoreTypeAllInterPanel,
+    PseudoScoreTypeAngleConsistency,
     PseudoScoreTypeBeamCentre,
 } PseudoScoreType;
+
+typedef enum
+{
+    GeometryScoreTypeMiller,
+    GeometryScoreTypeMillerStdev,
+    GeometryScoreTypeIntrapanel,
+    GeometryScoreTypeInterpanel,
+    GeometryScoreTypeInterAngle,
+    GeometryScoreTypeIntraAngle,
+    GeometryScoreTypeAngleConsistency,
+    GeometryScoreTypeBeamCentre,
+    
+} GeometryScoreType;
+
 
 typedef enum
 {

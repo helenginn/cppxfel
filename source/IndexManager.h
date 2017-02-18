@@ -52,6 +52,7 @@ protected:
     static double pseudoDistanceScore(void *object);
     static double pseudoAngleScore(void *object);
     CSVPtr angleCSV;
+    CSVPtr angleConsistencyCSV;
     
     void updateAllSpots();
     bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);

@@ -13,16 +13,6 @@
 #include "parameters.h"
 #include <stdio.h>
 
-typedef enum
-{
-    GeometryScoreTypeMiller,
-    GeometryScoreTypeMillerStdev,
-    GeometryScoreTypeIntrapanel,
-    GeometryScoreTypeInterpanel,
-    GeometryScoreTypeBeamCentre,
-    
-} GeometryScoreType;
-
 class GeometryRefiner : public LoggableObject
 {
 private:
@@ -31,9 +21,10 @@ private:
     int refinementEvent;
     int cycleNum;
     void refineDetectorStrategy(DetectorPtr detector, int strategy);
+    static void refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int strategy);
     static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy);
     void refineGeometryCycle();
-    void geometryCycleForDetector(std::vector<DetectorPtr> detectors);
+    bool geometryCycleForDetector(std::vector<DetectorPtr> detectors);
     double lastInterScore;
     double lastIntraScore;
     double lastIntraAngleScore;
@@ -42,7 +33,7 @@ private:
     void refineBeamCentre();
     
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
-    void gridSearch(DetectorPtr detector);
+    void gridSearch(DetectorPtr detector, double start, double end);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
     
 public:

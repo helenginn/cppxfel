@@ -107,7 +107,9 @@ void Hdf5Image::loadImage()
     Hdf5ManagerCheetahPtr manager = getManager();
     
     if (!manager)
-        return;
+    {
+        failureMessage();
+    }
     
     std::string address = imageAddress;
     
@@ -180,12 +182,12 @@ void Hdf5Image::loadImage()
     int totalPixels = xDim * yDim;
     
     overlapMask = vector<signed char>(totalPixels, 0);
-    generalMask = vector<signed char>(totalPixels, -1);
     
     if (!perPixelDetectors.size())
     {
         std::lock_guard<std::mutex> lg(setupMutex);
         perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
+        generalMask = vector<signed char>(totalPixels, -1);
     }
 }
 

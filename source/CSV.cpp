@@ -36,22 +36,42 @@ int CSV::findHeader(std::string whichHeader)
         }
     }
     
+    
+    if (chosenHeader == -1)
+    {
+        logged << "Error: " << whichHeader << " does not exist in table." << std::endl;
+        sendLogAndExit();
+    }
+    
     return chosenHeader;
 }
 
-double CSV::valueForHistogramEntry(std::string whichHeader, double value)
+double CSV::valueForHistogramEntry(std::string whichHeader, double value, std::string categoryHeader)
 {
     if (entries.size() == 0)
         return 0;
     
+    int categoryNum = 0;
+    
+    if (categoryHeader.length())
+    {
+        categoryNum = findHeader(categoryHeader);
+    }
+    
     int chosenHeader = findHeader(whichHeader);
    
-    bool ascending = (entries[0][0] < entries[1][0]);
+    if (categoryNum < 0 || chosenHeader < 0)
+    {
+        logged << "Headers asked for in histogram entry (" << whichHeader << ", " << categoryHeader << ") are not acceptable." << std::endl;
+        sendLog();
+    }
+    
+    bool ascending = (entries[0][categoryNum] < entries[1][categoryNum]);
     
     for (int j = 0; j < entries.size() - 1; j++)
     {
-        if ((ascending && value > entries[j][0] && value < entries[j + 1][0])
-            || (!ascending && value < entries[j][0] && value > entries[j + 1][0]))
+        if ((ascending && value > entries[j][categoryNum] && value < entries[j + 1][categoryNum])
+            || (!ascending && value < entries[j][categoryNum] && value > entries[j + 1][categoryNum]))
         {
             return entries[j][chosenHeader];
         }
@@ -60,19 +80,26 @@ double CSV::valueForHistogramEntry(std::string whichHeader, double value)
     return 0;
 }
 
-void CSV::addOneToFrequency(double category, std::string whichHeader, double weight)
+void CSV::addOneToFrequency(double category, std::string whichHeader, double weight, std::string categoryHeader)
 {
     if (entries.size() == 0)
         return;
     
     int chosenHeader = findHeader(whichHeader);
     
-    bool ascending = (entries[0][0] < entries[1][0]);
+    int categoryNum = 0;
+    
+    if (categoryHeader.length())
+    {
+        categoryNum = findHeader(categoryHeader);
+    }
+    
+    bool ascending = (entries[0][categoryNum] < entries[1][categoryNum]);
     
     for (int j = 0; j < entries.size() - 1; j++)
     {
-        if ((ascending && category > entries[j][0] && category < entries[j + 1][0])
-            || (!ascending && category < entries[j][0] && category > entries[j + 1][0]))
+        if ((ascending && category > entries[j][categoryNum] && category < entries[j + 1][categoryNum])
+            || (!ascending && category < entries[j][categoryNum] && category > entries[j + 1][categoryNum]))
         {
             entries[j][chosenHeader] += weight;
             break;
@@ -364,6 +391,48 @@ std::string CSV::plotColumns(int col1, int col2)
     Logger::mainLogger->addStream(&logged);
     
     return ascii.str();
+}
+
+void CSV::setValueForEntry(int entry, std::string header, double value)
+{
+    int column = findHeader(header);
+    entries[entry][column] = value;
+}
+
+void CSV::addConvolutedPeak(std::string header, double mean, double stdev, double weight, std::string category)
+{
+    double totalIntervals = 300;
+    double stdevMult = 10;
+    double step = (stdev * stdevMult) / totalIntervals;
+    
+    for (double x = -stdev * stdevMult / 2; x < stdev * stdevMult / 2; x += step)
+    {
+        double y = super_gaussian(x, 0, stdev / 3, 1.0);
+        addOneToFrequency(x + mean, header, y * weight, category);
+    }
+}
+
+void CSV::convolutedPeaks(std::string category, std::string origHeader, std::string destHeader, double stdev)
+{
+    int origNum = findHeader(origHeader);
+    int categoryNum = findHeader(category);
+    
+    for (int i = 0; i < entries.size(); i++)
+    {
+        double mean = entries[i][categoryNum];
+        double weight = entries[i][origNum];
+        addConvolutedPeak(destHeader, mean, stdev, weight);
+    }
+}
+
+void CSV::resetColumn(std::string header, double value)
+{
+    int headerNum = findHeader(header);
+    
+    for (int i = 0; i < entries.size(); i++)
+    {
+        entries[i][headerNum] = value;
+    }
 }
 
 CSV::~CSV()

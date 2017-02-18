@@ -9,7 +9,6 @@
 #include "SpotFinderCorrelation.h"
 #include "Image.h"
 
-
 void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
 {
     bool verbose = (FileParser::getKey("VERBOSITY_LEVEL", 0) > 1);
@@ -23,6 +22,18 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
     SpotPtr spot = SpotPtr(new Spot(image));
     
     double minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
+    double minResolution = 1 / FileParser::getKey("MIN_INTEGRATED_RESOLUTION", 0.);
+    double maxResolution = 1 / FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 1.4);
+    
+    if (minResolution != minResolution)
+    {
+        minResolution = 0;
+    }
+
+    if (maxResolution != maxResolution)
+    {
+        maxResolution = FLT_MAX;
+    }
     
     for (int y = 0; y < yDim; y++)
     {
@@ -34,6 +45,13 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
             }
             
             double value = this->image->valueAt(x, y);
+            
+            //double resol = this->image->resolutionAtPixel(x, y);
+            /*
+            if (resol > maxResolution || resol < minResolution)
+            {
+                continue;
+            }*/
             
             if (value < threshold)
                 continue;

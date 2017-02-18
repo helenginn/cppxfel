@@ -502,5 +502,5 @@ void new_main(int argc, char *argv[])
     Hdf5ManagerCheetahSacla::closeHdf5Files();
     
     logged << "Done" << std::endl;
-    Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+    LoggableObject::staticLogAndExit(logged, "DONE");
 }

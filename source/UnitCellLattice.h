@@ -33,7 +33,6 @@ private:
     std::vector<vec3<int> > integerVectors;
     PowderHistogram histogram;
     std::vector<SpotVectorPtr> uniqueSymVectors;
-    void addConvolutedPeak(CSVPtr csv, double mean, double stdev, double weight);
     CSVPtr weightedUnitCell;
     CSVPtr weightedAngles;
     void updateUnitCellData();
@@ -112,6 +111,7 @@ public:
     
     double weightForDistance(double distance);
     double weightForAngle(double angle);
+    double weightForCosine(double cosine);
     
     std::vector<SpotVectorPtr> getStandardVectors()
     {

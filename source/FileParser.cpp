@@ -227,7 +227,7 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
             printCommandInfo(command);
             logged << "Please edit your log file, for example, to:" << std::endl;
             logged << command << " " << codeMap.begin()->first << std::endl << std::endl;
-            Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+            staticLogAndExit(logged);
             return;
         }
 
@@ -790,8 +790,14 @@ void FileParser::generateFunctionList()
     parserMap["PNG_ALL_LATTICES"] = simpleBool;
     parserMap["PNG_HEIGHT"] = simpleInt;
     parserMap["DRAW_GEOMETRY_PNGS"] = simpleBool;
+    parserMap["SWEEP_DETECTOR_DISTANCE"] = doubleVector;
     parserMap["DISTANCE_VS_ANGLE_FRACTION"] = simpleFloat;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
+    
+    parserMap["TRUST_GLOBAL_GEOMETRY"] = simpleBool;
+    parserMap["TRUST_QUADRANT_GEOMETRY"] = simpleBool;
+    parserMap["TRUST_LOCAL_GEOMETRY"] = simpleBool;
+    
     
     parserMap["DETECTOR_LIST"] = simpleString;
 
@@ -825,9 +831,8 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
     if (deprecatedList.count(upperCommand) > 0)
     {
         logged << "Deprecated command: " << command << std::endl;
-        sendLog();
         logged << deprecatedList[command] << std::endl;
-        Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+        sendLogAndExit();
         return NULL;
     }
     

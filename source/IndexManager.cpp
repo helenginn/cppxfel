@@ -629,14 +629,19 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
         activeDetector = Detector::getMaster();
     }
     
+    if (scoreType == PseudoScoreTypeAngleConsistency && vec->isIntraPanelVector())
+    {
+        return true;
+    }
+    
     if (isInterPanel && vec->isIntraPanelVector() && !permissive)
     {
         return false;
     }
     
-    if (scoreType == PseudoScoreTypeAllInterPanel && bc && !permissive)
+    if (scoreType == PseudoScoreTypeAllInterPanel && bc)
     {
-        return false;
+        return true;
     }
     
     if (scoreType == PseudoScoreTypeAllInterPanel)
@@ -683,6 +688,7 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
 double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
+    
     double angleScore = (me->proportionDistance < 0.999) ? pseudoAngleScore(object) : 0;
     double distanceScore = (me->proportionDistance > 0.0001) ? pseudoDistanceScore(object) : 0;
     
@@ -695,6 +701,10 @@ double IndexManager::pseudoScore(void *object)
 double IndexManager::pseudoDistanceScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
+    CSVPtr distCSV = CSVPtr(new CSV(0));
+    std::string forPanel = "for_panel_" + me->getActiveDetector()->getTag() + "_" + i_to_str(me->scoreType);
+    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+    distCSV->setupHistogram(0, maxDistance, 0.0001, "Distance", 1, "frequency");
     double score = 0;
     double count = 0;
     
@@ -713,11 +723,14 @@ double IndexManager::pseudoDistanceScore(void *object)
             double realDistance = vec->distance();
             
             double weight = me->lattice->weightForDistance(realDistance);
+            distCSV->addOneToFrequency(realDistance, "frequency");
             
             score += weight;
             count++;
         }
     }
+    
+    distCSV->writeToFile(forPanel + ".csv");
     
     score /= count;
     
@@ -729,7 +742,7 @@ void IndexManager::pseudoAngleCSV()
     double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
     
     angleCSV = CSVPtr(new CSV(0));
-    angleCSV->setupHistogram(0, 90, 0.05, "Angle", 3, "all", "intra-angle", "inter-angle");
+    angleCSV->setupHistogram(0, 90, 0.1, "Angle", 3, "all", "intra-angle", "inter-angle");
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -790,6 +803,11 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
     if (!checkVector(vec2, true))
     {
         return PseudoScoreTypeInvalid;
+    }
+    
+    if (scoreType == PseudoScoreTypeAngleConsistency)
+    {
+        return scoreType;
     }
     
     if (!isInterPanel)
@@ -864,6 +882,34 @@ double IndexManager::pseudoAngleScore(void *object)
     double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
     double score = 0;
     double count = 0;
+    int panelCount = 0;
+    int staticCount = 0;
+    
+    bool firstCSV = (me->angleConsistencyCSV == CSVPtr());
+    
+    if (me->scoreType == PseudoScoreTypeAngleConsistency)
+    {
+        if (firstCSV)
+        {
+            me->angleConsistencyCSV = CSVPtr(new CSV(0));
+            
+            me->angleConsistencyCSV->setupHistogram(0, 90, 0.2, "Angle", 4, "Cosine", "Static", "Convol", "Panel");
+            
+            for (int i = 0; i < me->angleConsistencyCSV->entryCount(); i++)
+            {
+                double angle = me->angleConsistencyCSV->valueForEntry("Angle", i);
+                double cosine = cos(angle * M_PI / 180);
+                me->angleConsistencyCSV->setValueForEntry(i, "Cosine", cosine);
+            }
+        }
+        else
+        {
+            if (me->scoreType == PseudoScoreTypeAngleConsistency)
+            {
+                me->angleConsistencyCSV->resetColumn("Panel", 0);
+            }
+        }
+    }
     
     for (int i = 0; i < me->images.size(); i++)
     {
@@ -882,6 +928,23 @@ double IndexManager::pseudoAngleScore(void *object)
             
             if (vec1->usesBeamCentre())
                 continue;
+            
+            if (me->scoreType == PseudoScoreTypeAngleConsistency)
+            {
+                bool isPanel = vec1->isOnlyFromDetector(activeDetector);
+                int *counter = isPanel ? &panelCount : &staticCount;
+                (*counter)++;
+                
+                std::string chosenVecType = isPanel ? "Panel" : "Static";
+                double cosine = vec1->cosineWithVertical();
+                
+                if (firstCSV || (!firstCSV && isPanel))
+                {
+                    me->angleConsistencyCSV->addOneToFrequency(cosine, chosenVecType, distanceWeight1, "Cosine");
+                }
+                
+                continue;
+            }
             
             for (int k = 0; k < j; k++)
             {
@@ -904,16 +967,14 @@ double IndexManager::pseudoAngleScore(void *object)
                     continue;
                 }
                 
-                double vec1Distance = vec1->distance();
                 double vec2Distance = vec2->distance();
                 
-                double angle = vec1->angleWithVector(vec2);
-                
-                angle *= 180 / M_PI;
-                angle = (angle > 90) ? 180 - angle : angle;
-                
-                double angleWeight = me->lattice->weightForAngle(angle);
                 double distanceWeight2 = me->lattice->weightForDistance(vec2Distance);
+                
+                double cosine = vec1->cosineWithVector(vec2);
+                cosine = fabs(cosine);
+                
+                double angleWeight = me->lattice->weightForCosine(cosine);
                 
                 if (distanceWeight2 <= 0)
                     continue;
@@ -924,8 +985,25 @@ double IndexManager::pseudoAngleScore(void *object)
         }
     }
     
+    if (me->scoreType == PseudoScoreTypeAngleConsistency)
+    {
+        if (firstCSV)
+        {
+            me->angleConsistencyCSV->convolutedPeaks("Angle", "Static", "Convol", 0.5);
+        }
+        
+        for (int i = 0; i < me->angleConsistencyCSV->entryCount(); i++)
+        {
+            double panelValue = me->angleConsistencyCSV->valueForEntry("Panel", i);
+            double staticValue = me->angleConsistencyCSV->valueForEntry("Convol", i);
+            
+            score += panelValue * staticValue;
+            count++;
+        }
+    }
+    
     score /= count;
-    return -score;// * 1000000;
+    return -sqrt(score);
 }
 
 void IndexManager::powderPattern(std::string csvName, bool force)

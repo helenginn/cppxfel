@@ -81,7 +81,7 @@ int InputFileParser::processOptions(std::vector<std::string> lines)
         {
             logged << "Warning: Line \"" << line << "\" not recognised."
             << std::endl;
-            Logger::mainLogger->addStream(&logged, LogLevelNormal, true);
+            sendLogAndExit();
         }
         
         if (function)

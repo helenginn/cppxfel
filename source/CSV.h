@@ -31,7 +31,7 @@ typedef std::vector<double> Entry;
 typedef std::map<int, char> Row;
 typedef std::map<int, Row > Plot;
 
-class CSV
+class CSV : public LoggableObject
 {
 private:
     std::vector<std::string> headers;
@@ -100,7 +100,7 @@ public:
         }
     }
     
-    void addOneToFrequency(double category, std::string whichHeader, double weight = 1);
+    void addOneToFrequency(double category, std::string whichHeader, double weight = 1, std::string categoryHeader = "");
     
     ~CSV();
     
@@ -108,10 +108,14 @@ public:
     void addEntry(int dummy, ...);
     void writeToFile(std::string filename);
     double valueForEntry(std::string header, int entry);
-    double valueForHistogramEntry(std::string header, double value);
+    double valueForHistogramEntry(std::string whichHeader, double value, std::string categoryHeader = "");
     void histogram(std::map<double, int> histogram);
     std::string plotColumns(int col1, int col2);
+    void resetColumn(std::string header, double value = 0);
     
+    void convolutedPeaks(std::string category, std::string origHeader, std::string destHeader, double stdev);
+    void addConvolutedPeak(std::string header, double mean, double stdev, double weight, std::string category = "");
+    void setValueForEntry(int entry, std::string header, double value);
     void addEntry(std::vector<double> entry)
     {
         entries.push_back(entry);

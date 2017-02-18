@@ -21,6 +21,10 @@ private:
     std::string filename;
     GeometryFormat format;
     
+    bool refineGlobalGeometry;
+    bool refineQuadrantGeometry;
+    bool refineLocalGeometry;
+    
     DetectorPtr makeDetectorFromPanelMap(PanelMap map, DetectorPtr parent);
     void parseCrystFELLines(std::vector<std::string> lines);
     void parseCppxfelLines(std::vector<std::string> lines);

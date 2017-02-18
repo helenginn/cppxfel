@@ -32,19 +32,6 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
     delete [] lengths;
 }
 
-void UnitCellLattice::addConvolutedPeak(CSVPtr csv, double mean, double stdev, double weight)
-{
-    double totalIntervals = 300;
-    double stdevMult = 10;
-    double step = (stdev * stdevMult) / totalIntervals;
-    
-    for (double x = -stdev * stdevMult / 2; x < stdev * stdevMult / 2; x += step)
-    {
-        double y = super_gaussian(x, 0, stdev / 3, 1.0);
-        csv->addOneToFrequency(x + mean, "Perfect frequency", y * weight);
-    }
-}
-
 void UnitCellLattice::weightUnitCell()
 {
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
@@ -54,7 +41,14 @@ void UnitCellLattice::weightUnitCell()
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
     distCSV->setupHistogram(0, maxDistance, step, "Distance", 1, "Perfect frequency");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
-    angleCSV->setupHistogram(0, 90, 0.05, "Angle", 1, "Perfect frequency");
+    angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
+    
+    for (int i = 0; i < angleCSV->entryCount(); i++)
+    {
+        double angle = angleCSV->valueForEntry("Angle", i);
+        double cosine = cos(angle * M_PI / 180);
+        angleCSV->setValueForEntry(i, "Cosine", cosine);
+    }
     
     double distTotal = 0;
     double angleTotal = 0;
@@ -70,7 +64,7 @@ void UnitCellLattice::weightUnitCell()
         inverse *= maxDistance;
         double stdev = rlpSize / 2;
         
-        addConvolutedPeak(distCSV, distance, stdev, inverse);
+        distCSV->addConvolutedPeak("Perfect frequency", distance, stdev, inverse);
         distTotal += inverse;
         
         if (distance > maxAngleDistance)
@@ -93,7 +87,7 @@ void UnitCellLattice::weightUnitCell()
             angle *= 180 / M_PI;
             angle = (angle > 90) ? 180 - angle : angle;
             
-            addConvolutedPeak(angleCSV, angle, 0.3, inverse);
+            angleCSV->addConvolutedPeak("Perfect frequency", angle, 0.3, inverse);
             angleTotal += inverse;
         }
     }
@@ -253,6 +247,11 @@ double UnitCellLattice::weightForDistance(double distance)
 double UnitCellLattice::weightForAngle(double angle)
 {
     return weightedAngles->valueForHistogramEntry("Perfect frequency", angle) * distanceToAngleRatio;
+}
+
+double UnitCellLattice::weightForCosine(double cosine)
+{
+    return weightedAngles->valueForHistogramEntry("Perfect frequency", cosine, "Cosine") * distanceToAngleRatio;
 }
 
 

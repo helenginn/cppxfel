@@ -404,29 +404,21 @@ vec Spot::estimatedVector()
         return reciprocalPos;
     }
     
-    if (Detector::isActive())
+    vec arrangedPos;
+    DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+    
+    if (detector)
     {
-        vec arrangedPos;
-        DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+        double wavelength = getParentImage()->getWavelength();
+        arrangedPos.k *= -1;
+        scale_vector_to_distance(&arrangedPos, 1 / wavelength);
+        arrangedPos.l -= 1 / wavelength;
         
-        if (detector)
-        {
-            double wavelength = getParentImage()->getWavelength();
-            arrangedPos.k *= -1;
-            scale_vector_to_distance(&arrangedPos, 1 / wavelength);
-            arrangedPos.l -= 1 / wavelength;
-
-            return arrangedPos;
-        }
-        else
-        {
-            return new_vector(0, 0, 0);
-        }
+        return arrangedPos;
     }
     else
     {
-        vec estimated = getParentImage()->pixelsToReciprocalCoordinates(getX(), getY());
-        return estimated;
+        return new_vector(0, 0, 0);
     }
 }
 
@@ -453,14 +445,6 @@ double Spot::integrate()
     }
     
     return intensity;
-}
-
-void Spot::setXYFromEstimatedVector(vec hkl)
-{
-    std::pair<double, double> xyPix = getParentImage()->reciprocalCoordinatesToPixels(hkl);
-    
-    x = xyPix.first;
-    y = xyPix.second;
 }
 
 std::string Spot::spotLine()
