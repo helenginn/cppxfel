@@ -30,7 +30,7 @@ protected:
     }
     
 public:
-    static void staticLogAndExit(std::ostringstream &otherLog);
+    static void staticLogAndExit(std::ostringstream &otherLog, std::string header = "ERROR");
     
 };
 
