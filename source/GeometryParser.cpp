@@ -194,12 +194,12 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
                 
                 if (!(components[0] == "panel" && detectorStack.size() == panelStack.size()))
                 {
-                    
                     DetectorPtr parent = DetectorPtr();
                     
                     if (Detector::getMaster())
                     {
                         parent = detectorStack[detectorStack.size() - 1];
+                        parent->setRefinable(true);
                     }
                     
                     std::string tag = panelStack[panelStack.size() - 1];
@@ -208,7 +208,6 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
                                                        midpoint_x, midpoint_y, midpoint_z,
                                                        alpha, beta, gamma, ghost);
                     segment->setTag(tag);
-                    
                     
                     if (!Detector::getMaster())
                     {
