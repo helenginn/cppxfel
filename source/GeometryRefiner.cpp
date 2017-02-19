@@ -369,6 +369,8 @@ void GeometryRefiner::refineMasterDetector()
 
 void GeometryRefiner::refineBeamCentre()
 {
+    return;
+    
     DetectorPtr detector = Detector::getMaster();
     
     logged << "***************************************************" << std::endl;
