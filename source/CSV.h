@@ -40,7 +40,6 @@ private:
     bool didSetMinMaxXY;
     void minMaxCol(int col, double *min, double *max);
     std::string mapToAscii(Plot plot);
-    int findHeader(std::string whichHeader);
     void writeStringToPlot(std::string text, Plot *plot, int x, int y);
 public:
     CSV()
@@ -101,7 +100,8 @@ public:
     }
     
     void addOneToFrequency(double category, std::string whichHeader, double weight = 1, std::string categoryHeader = "");
-    
+    int findHeader(std::string whichHeader);
+
     ~CSV();
     
     void addPartialEntry(int dummy, ...);
@@ -109,6 +109,7 @@ public:
     void writeToFile(std::string filename);
     double valueForEntry(std::string header, int entry);
     double valueForHistogramEntry(std::string whichHeader, double value, std::string categoryHeader = "");
+    double valueForHistogramEntry(int whichHeader, double value, int categoryHeader = 0);
     void histogram(std::map<double, int> histogram);
     std::string plotColumns(int col1, int col2);
     void resetColumn(std::string header, double value = 0);

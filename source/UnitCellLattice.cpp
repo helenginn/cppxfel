@@ -241,7 +241,7 @@ void UnitCellLattice::refineUnitCell(PowderHistogram aHistogram)
 
 double UnitCellLattice::weightForDistance(double distance)
 {
-    return weightedUnitCell->valueForHistogramEntry("Perfect frequency", distance);
+    return weightedUnitCell->valueForHistogramEntry(1, distance);
 }
 
 double UnitCellLattice::weightForAngle(double angle)

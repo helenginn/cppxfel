@@ -28,6 +28,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     images = newImages;
     scoreType = PseudoScoreTypeIntraPanel;
     proportionDistance = FileParser::getKey("DISTANCE_VS_ANGLE_FRACTION", 1.0);
+    _canLockVectors = false;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -698,39 +699,55 @@ double IndexManager::pseudoScore(void *object)
     return angleScore + distanceScore;
 }
 
+void IndexManager::processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck)
+{
+    if (!skipCheck && !checkVector(vec))
+    {
+        return;
+    }
+    
+    vec->setUpdate();
+    double realDistance = vec->distance();
+    
+    double weight = lattice->weightForDistance(realDistance);
+    
+    *score += weight;
+    (*count)++;
+    
+    if (lock)
+    {
+        goodVectors.push_back(vec);
+    }
+}
+
 double IndexManager::pseudoDistanceScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
-    CSVPtr distCSV = CSVPtr(new CSV(0));
     std::string forPanel = "for_panel_" + me->getActiveDetector()->getTag() + "_" + i_to_str(me->scoreType);
-    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
-    distCSV->setupHistogram(0, maxDistance, 0.0001, "Distance", 1, "frequency");
     double score = 0;
     double count = 0;
     
-    for (int i = 0; i < me->images.size(); i++)
+    bool locked = me->goodVectors.size();
+    
+    if (!locked)
     {
-        for (int j = 0; j < me->images[i]->spotVectorCount(); j++)
+        for (int i = 0; i < me->images.size(); i++)
         {
-            SpotVectorPtr vec = me->images[i]->spotVector(j);
-            
-            if (!me->checkVector(vec))
+            for (int j = 0; j < me->images[i]->spotVectorCount(); j++)
             {
-                continue;
+                SpotVectorPtr vec = me->images[i]->spotVector(j);
+                me->processVector(vec, &score, &count, me->_canLockVectors, false);
             }
-            
-            vec->setUpdate();
-            double realDistance = vec->distance();
-            
-            double weight = me->lattice->weightForDistance(realDistance);
-            distCSV->addOneToFrequency(realDistance, "frequency");
-            
-            score += weight;
-            count++;
         }
     }
-    
-    distCSV->writeToFile(forPanel + ".csv");
+    else
+    {
+        for (int i = 0; i < me->goodVectors.size(); i++)
+        {
+            SpotVectorPtr vec = me->goodVectors[i];
+            me->processVector(vec, &score, &count, false, true);
+        }
+    }
     
     score /= count;
     
@@ -740,6 +757,11 @@ double IndexManager::pseudoDistanceScore(void *object)
 void IndexManager::pseudoAngleCSV()
 {
     double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
+    
+    if (angleDistance <= 0)
+    {
+        return;
+    }
     
     angleCSV = CSVPtr(new CSV(0));
     angleCSV->setupHistogram(0, 90, 0.1, "Angle", 3, "all", "intra-angle", "inter-angle");
@@ -1113,8 +1135,6 @@ void IndexManager::powderPattern(std::string csvName, bool force)
         
         powder.addEntry(0, distance, freq, perfect, intrapanel, interpanel);
     }
-    
-    pseudoAngleCSV();
     
     if (angleCSV)
     {
