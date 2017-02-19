@@ -338,10 +338,12 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     }
     else if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.00001, "nudge_tx");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.00001, "nudge_ty");
         strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, transNudge, 0.001, "nudge_z");
-        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, zTiltNudge, 0.000001, "tilt_z");
+        
+        if (!detector->isLUCA())
+        {
+            strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, zTiltNudge, 0.000001, "tilt_z");
+        }
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
@@ -358,6 +360,16 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     
     strategy->refine();
     detector->resetPoke();
+    
+    strategy->clearParameters();
+    
+    if (type == GeometryScoreTypeIntrapanel)
+    {
+        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.00001, "nudge_tx");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.00001, "nudge_ty");
+        strategy->refine();
+    }
+    
 }
 
 void GeometryRefiner::refineMasterDetector()
