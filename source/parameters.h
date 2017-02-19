@@ -295,13 +295,18 @@ typedef enum
     GeometryScoreTypeMillerStdev,
     GeometryScoreTypeIntrapanel,
     GeometryScoreTypeInterpanel,
-    GeometryScoreTypeInterAngle,
-    GeometryScoreTypeIntraAngle,
     GeometryScoreTypeAngleConsistency,
+    GeometryScoreTypeDistanceConsistency,
     GeometryScoreTypeBeamCentre,
     
 } GeometryScoreType;
 
+typedef enum
+{
+    PseudoScoreWeightingAxisH = 0,
+    PseudoScoreWeightingAxisK = 1,
+    PseudoScoreWeightingAxisNone = 2,
+} PseudoScoreWeightingAxis;
 
 typedef enum
 {

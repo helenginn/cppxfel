@@ -2030,6 +2030,8 @@ void MtzRefiner::reportMetrology()
     GeometryRefiner refiner = GeometryRefiner();
     refiner.setImages(images);
     refiner.reportProgress();
+    
+    Detector::getMaster()->reportMillerScores();
 }
 
 MtzRefiner::~MtzRefiner()

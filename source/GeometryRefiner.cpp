@@ -20,9 +20,29 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
 {
     RefinementStrategyPtr strategy = RefinementStrategy::userChosenStrategy();
     
-    strategy->setVerbose(true);
-    strategy->setJobName("Detector " + detector->getTag());
+    std::string typeString = "";
+    
+    switch (type) {
+        case GeometryScoreTypeBeamCentre:
+            typeString = "beam_centre";
+            break;
+        case GeometryScoreTypeInterpanel:
+            typeString = "interpanel";
+            break;
+        case GeometryScoreTypeIntrapanel:
+            typeString = "intrapanel";
+            break;
+        case GeometryScoreTypeAngleConsistency:
+            typeString = "angle_consistency";
+            break;
+        default:
+            break;
+    }
+    
+    strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
 
+    strategy->setVerbose(true);
+    
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
     aManager->setActiveDetector(detector);
     detector->setIndexManager(aManager);
@@ -103,7 +123,7 @@ void GeometryRefiner::refineGeometry()
         end /= mmPerPixel;
         start /= mmPerPixel;
         
-        gridSearch(Detector::getMaster(), start, end);
+        gridSearchDetectorDistance(Detector::getMaster(), start, end);
         double newDistance = Detector::getArrangedMidPointZ(&*Detector::getMaster());
         
         logged << "**** Grid search done ****" << std::endl;
@@ -305,30 +325,10 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
         return;
     }
     
-    std::string typeString = "";
-    
-    switch (type) {
-        case GeometryScoreTypeBeamCentre:
-            typeString = "beam_centre";
-            break;
-        case GeometryScoreTypeInterpanel:
-            typeString = "interpanel";
-            break;
-        case GeometryScoreTypeIntrapanel:
-            typeString = "intrapanel";
-            break;
-        case GeometryScoreTypeAngleConsistency:
-            typeString = "angle_consistency";
-            break;
-        default:
-            break;
-    }
-    
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
-    strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
     
-    double transNudge = detector->isLUCA() ? 2.0 : 0.2;
-    double tiltNudge = 0.001;
+    double transNudge = 0.1;
+    double tiltNudge = 0.0005;
     double zTiltNudge = 0.0002;
     
     if (type == GeometryScoreTypeAngleConsistency)
@@ -338,12 +338,9 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     }
     else if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, transNudge, 0.001, "nudge_z");
-        
-        if (!detector->isLUCA())
-        {
-            strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, zTiltNudge, 0.000001, "tilt_z");
-        }
+        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.00001, "nudge_tx");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.00001, "nudge_ty");
+        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, zTiltNudge, 0.000001, "tilt_z");
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
@@ -365,8 +362,7 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     
     if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.00001, "nudge_tx");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.00001, "nudge_ty");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, transNudge, 0.001, "nudge_z");
         strategy->refine();
     }
     
@@ -375,8 +371,28 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
 void GeometryRefiner::refineMasterDetector()
 {
     DetectorPtr detector = Detector::getMaster();
-
+    
     refineDetector(detector, GeometryScoreTypeIntrapanel);
+    return;
+
+    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeIntrapanel);
+    IndexManagerPtr myManager = detector->getIndexManager();
+    const double tiltNudge = 0.0001;
+    const double transNudge = 2.0;
+    
+    myManager->setAxisWeighting(PseudoScoreWeightingAxisH); // refine for vertical
+    strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.00001, "nudge_ty");
+    strategy->refine();
+    
+    strategy->clearParameters();
+    myManager->setAxisWeighting(PseudoScoreWeightingAxisK); // refine for horizontal
+    strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.00001, "nudge_ty");
+    strategy->refine();
+    
+    strategy->clearParameters();
+    myManager->setAxisWeighting(PseudoScoreWeightingAxisNone); // refine for horizontal
+    strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, transNudge, 0.001, "nudge_z");
+    strategy->refine();
 }
 
 void GeometryRefiner::refineBeamCentre()
@@ -455,7 +471,7 @@ void GeometryRefiner::refineUnitCell()
     reportProgress();
 }
 
-void GeometryRefiner::gridSearch(DetectorPtr detector, double start, double end)
+void GeometryRefiner::gridSearchDetectorDistance(DetectorPtr detector, double start, double end)
 {
     double step = 0.2;
     double middle = (end + start) / 2;

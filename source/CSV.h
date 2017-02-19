@@ -27,6 +27,12 @@ typedef enum
     
 } PlotChar;
 
+typedef enum
+{
+    ConvolutionTypeSuperGaussian,
+    ConvolutionTypeUniform,
+} ConvolutionType;
+
 typedef std::vector<double> Entry;
 typedef std::map<int, char> Row;
 typedef std::map<int, Row > Plot;
@@ -100,6 +106,7 @@ public:
     }
     
     void addOneToFrequency(double category, std::string whichHeader, double weight = 1, std::string categoryHeader = "");
+    void addOneToFrequency(double category, int column, double weight = 1, int categoryNum = 0);
     int findHeader(std::string whichHeader);
 
     ~CSV();
@@ -114,8 +121,12 @@ public:
     std::string plotColumns(int col1, int col2);
     void resetColumn(std::string header, double value = 0);
     
-    void convolutedPeaks(std::string category, std::string origHeader, std::string destHeader, double stdev);
-    void addConvolutedPeak(std::string header, double mean, double stdev, double weight, std::string category = "");
+    void convolutedPeaks(std::string category, std::string origHeader, std::string destHeader,
+                         double stdev, ConvolutionType convolutionType = ConvolutionTypeSuperGaussian);
+    
+    void addConvolutedPeak(int column, double mean, double stdev, double weight,
+                           int categoryNum = 0, ConvolutionType convolutionType = ConvolutionTypeSuperGaussian);
+    
     void setValueForEntry(int entry, std::string header, double value);
     void addEntry(std::vector<double> entry)
     {
