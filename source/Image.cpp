@@ -364,7 +364,11 @@ int Image::valueAt(int x, int y)
         return 0;
     }
     
-    signed char maskValue = generalMask[pos];
+    signed char maskValue = -1;
+    if (setupMutex.try_lock())
+    {
+        maskValue = generalMask[pos];
+    }
     
     DetectorPtr det;
     
@@ -422,6 +426,9 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
     {
         for (int i = *x - tolerance1; i <= *x + tolerance1 + 1; i++)
         {
+            if (!accepted(i, j))
+                continue;
+            
             double newValue = valueAt(i, j);
             
             if (newValue > maxValue)
