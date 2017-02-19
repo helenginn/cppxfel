@@ -587,8 +587,6 @@ bool Detector::isAncestorOf(DetectorPtr detector)
 void Detector::spotCoordToRelativeVec(double unarrangedX, double unarrangedY,
                                       vec *arrangedPos)
 {
-    assert(hasNoChildren());
-    
     double unArrangedOffsetX = unarrangedX - unarrangedMidPointX;
     double unArrangedOffsetY = unarrangedY - unarrangedMidPointY;
     
@@ -617,15 +615,9 @@ void Detector::spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
     {
         spotCoordToRelativeVec(unarrangedX, unarrangedY, arrangedPos);
         
-        /* Add my modifications onto my children's.
-         * This could probably be improved for speed by
-         * storing some pre-calculations automatically. */
-        
         vec cumulative = midPointOffsetFromParent();
         
-        add_vector_to_vector(&cumulative, *arrangedPos);
-        
-        *arrangedPos = copy_vector(cumulative);
+        add_vector_to_vector(arrangedPos, cumulative);
     }
 }
 
@@ -666,11 +658,13 @@ DetectorPtr Detector::spotToAbsoluteVec(SpotPtr spot, vec *arrangedPos)
 {
     if (spot->getDetector())
     {
-        spot->getDetector()->spotCoordToAbsoluteVec(spot->getRawXY().first, spot->getRawXY().second, arrangedPos);
+        Coord rawXY = spot->getRawXY();
+        spot->getDetector()->spotCoordToAbsoluteVec(rawXY.first, rawXY.second, arrangedPos);
         return spot->getDetector();
     }
     
-    DetectorPtr detector = findDetectorAndSpotCoordToAbsoluteVec(spot->getRawXY().first, spot->getRawXY().second, arrangedPos);
+    Coord rawXY = spot->getRawXY();
+    DetectorPtr detector = findDetectorAndSpotCoordToAbsoluteVec(rawXY.first, rawXY.second, arrangedPos);
     spot->setDetector(detector);
     
     return detector;

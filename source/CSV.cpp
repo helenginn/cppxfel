@@ -59,13 +59,18 @@ double CSV::valueForHistogramEntry(std::string whichHeader, double value, std::s
     }
     
     int chosenHeader = findHeader(whichHeader);
-   
+    
     if (categoryNum < 0 || chosenHeader < 0)
     {
         logged << "Headers asked for in histogram entry (" << whichHeader << ", " << categoryHeader << ") are not acceptable." << std::endl;
         sendLog();
     }
-    
+
+    return valueForHistogramEntry(chosenHeader, value, categoryNum);
+}
+
+double CSV::valueForHistogramEntry(int chosenHeader, double value, int categoryNum)
+{
     bool ascending = (entries[0][categoryNum] < entries[1][categoryNum]);
     
     for (int j = 0; j < entries.size() - 1; j++)
@@ -79,6 +84,7 @@ double CSV::valueForHistogramEntry(std::string whichHeader, double value, std::s
     
     return 0;
 }
+
 
 void CSV::addOneToFrequency(double category, std::string whichHeader, double weight, std::string categoryHeader)
 {

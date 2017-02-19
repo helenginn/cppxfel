@@ -26,6 +26,7 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
     aManager->setActiveDetector(detector);
     detector->setIndexManager(aManager);
+    aManager->lockVectors();
     
     switch (type)
     {
@@ -137,6 +138,8 @@ void GeometryRefiner::reportProgress()
     manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
     double interAngle = -IndexManager::pseudoScore(&*manager);
     
+    manager->pseudoAngleCSV();
+
     double intraIncrease = 100;
     double interIncrease = 100;
     double intraAngleIncrease = 100;
