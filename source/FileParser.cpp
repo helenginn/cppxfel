@@ -353,6 +353,7 @@ void FileParser::generateCodeList()
         CodeMap codeMap;
         codeMap["step_search"] = 0;
         codeMap["nelder_mead"] = 1;
+        codeMap["grid_search"] = 2;
         codeMaps["MINIMIZATION_METHOD"] = codeMap;
     }
     {
@@ -414,7 +415,7 @@ void FileParser::generateHelpList()
     helpMap["MAXIMUM_CYCLES"] = "Integer x – maximum number of cycles of post-refinement to execute even if not converged. Default 0 (no maximum).";
     
     helpMap["STOP_REFINEMENT"] = "If set to OFF, post-refinement will continue indefinitely. Default ON.";
-    helpMap["MINIMIZATION_METHOD"] = "Minimization method used for various minimization events throughout the software.";
+    helpMap["MINIMIZATION_METHOD"] = "Minimization method used for various minimization events throughout the software. Grid search NOT recommended for normal use but for debugging purposes.";
     helpMap["NELDER_MEAD_CYCLES"] = "If using Nelder Mead, specify how many cycles are carried out (convergence criteria not implemented).";
     helpMap["MEDIAN_WAVELENGTH"] = "Calculate starting X-ray beam wavelength for post-refinement of an image using the median excitation wavelength of all strong reflections. Otherwise a mean average is used. Default OFF.";
     helpMap["WAVELENGTH_FROM_REF_COUNT"] = "Calculates the mean wavelength from the top X reflections as an alternative to using all above a certain value. I haven't tested this thoroughly and have no idea if it's any good.";
