@@ -64,7 +64,7 @@ void UnitCellLattice::weightUnitCell()
         inverse *= maxDistance;
         double stdev = rlpSize / 2;
         
-        distCSV->addConvolutedPeak("Perfect frequency", distance, stdev, inverse);
+        distCSV->addConvolutedPeak(1, distance, stdev, inverse);
         distTotal += inverse;
         
         if (distance > maxAngleDistance)
@@ -87,7 +87,7 @@ void UnitCellLattice::weightUnitCell()
             angle *= 180 / M_PI;
             angle = (angle > 90) ? 180 - angle : angle;
             
-            angleCSV->addConvolutedPeak("Perfect frequency", angle, 0.3, inverse);
+            angleCSV->addConvolutedPeak(1, angle, 0.3, inverse);
             angleTotal += inverse;
         }
     }

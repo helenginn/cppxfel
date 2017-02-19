@@ -1131,7 +1131,7 @@ double Detector::millerScore(bool ascii, bool stdev)
     {
         logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;
         sendLog();
-        double edge = FileParser::getKey("METROLOGY_SEARCH_SIZE", 5);
+        double edge = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3);
         csv->setMinMaxXY(-edge, -edge, +edge, +edge);
         csv->plotColumns(0, 1);
     }
@@ -1196,5 +1196,15 @@ void Detector::fixMidpoints()
         vec childPoint = getChild(i)->getArrangedMidPoint();
         take_vector_away_from_vector(aveMidpoint, &childPoint);
         getChild(i)->setArrangedMidPoint(childPoint);
+    }
+}
+
+void Detector::reportMillerScores()
+{
+    millerScore(true);
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        getChild(i)->reportMillerScores();
     }
 }

@@ -52,9 +52,12 @@ protected:
     double proportionDistance;
     static double pseudoDistanceScore(void *object);
     static double pseudoAngleScore(void *object);
+    double pseudoDistanceConsistency();
+    void processConsistencyVector(SpotVectorPtr vec, CSVPtr distCSV, bool lock = false, bool skipCheck = false);
     CSVPtr angleCSV;
     CSVPtr angleConsistencyCSV;
     bool _canLockVectors;
+    PseudoScoreWeightingAxis _axisWeighting;
     
     void updateAllSpots();
     bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
@@ -133,6 +136,11 @@ public:
     void lockVectors()
     {
         _canLockVectors = true;
+    }
+    
+    void setAxisWeighting(PseudoScoreWeightingAxis weighting)
+    {
+        _axisWeighting = weighting;
     }
     
     static double pseudoScore(void *object);

@@ -29,6 +29,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     scoreType = PseudoScoreTypeIntraPanel;
     proportionDistance = FileParser::getKey("DISTANCE_VS_ANGLE_FRACTION", 1.0);
     _canLockVectors = false;
+    _axisWeighting = PseudoScoreWeightingAxisNone;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -689,6 +690,12 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
 double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
+ 
+    if (me->_axisWeighting != PseudoScoreWeightingAxisNone)
+    {
+        double distanceScore = me->pseudoDistanceConsistency();
+        return distanceScore;
+    }
     
     double angleScore = (me->proportionDistance < 0.999) ? pseudoAngleScore(object) : 0;
     double distanceScore = (me->proportionDistance > 0.0001) ? pseudoDistanceScore(object) : 0;
@@ -697,6 +704,35 @@ double IndexManager::pseudoScore(void *object)
     distanceScore *= me->proportionDistance;
     
     return angleScore + distanceScore;
+}
+
+void IndexManager::processConsistencyVector(SpotVectorPtr vect, CSVPtr distCSV, bool lock, bool skipCheck)
+{
+    if (!skipCheck && !checkVector(vect))
+    {
+        return;
+    }
+
+    vect->setUpdate();
+    double realDistance = vect->distance();
+    vec firstSpotVec = vect->getFirstSpot()->estimatedVector();
+    vec secondSpotVec = vect->getFirstSpot()->estimatedVector();
+    
+    add_vector_to_vector(&firstSpotVec, secondSpotVec);
+    double axisValue =  (_axisWeighting == PseudoScoreWeightingAxisH) ? firstSpotVec.h : firstSpotVec.k;
+    
+    double distanceWeight = lattice->weightForDistance(realDistance);
+    double axisWeight = 1;//fabs(axisValue);
+    distanceWeight *= sqrt(axisWeight);
+    
+    int column = axisValue > 0 ? 1 : 2;
+    
+    distCSV->addOneToFrequency(realDistance, column, distanceWeight);
+    
+    if (lock)
+    {
+        goodVectors.push_back(vect);
+    }
 }
 
 void IndexManager::processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck)
@@ -720,10 +756,54 @@ void IndexManager::processVector(SpotVectorPtr vec, double *score, double *count
     }
 }
 
+double IndexManager::pseudoDistanceConsistency()
+{
+    double score = 0;
+    double count = 0;
+    
+    bool locked = goodVectors.size();
+    CSVPtr distCSV = CSVPtr(new CSV(0));
+    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
+    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+    distCSV->setupHistogram(0, maxDistance, step, "Distance", 4, "half1", "half2", "convol1", "convol2");
+    
+    if (!locked)
+    {
+        for (int i = 0; i < images.size(); i++)
+        {
+            for (int j = 0; j < images[i]->spotVectorCount(); j++)
+            {
+                SpotVectorPtr vec = images[i]->spotVector(j);
+                processConsistencyVector(vec, distCSV, _canLockVectors, false);
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < goodVectors.size(); i++)
+        {
+            SpotVectorPtr vec = goodVectors[i];
+            processConsistencyVector(vec, distCSV, false, true);
+        }
+    }
+    
+    for (int i = 0; i < distCSV->entryCount(); i++)
+    {
+        distCSV->convolutedPeaks("Distance", "half1", "convol1", 0, ConvolutionTypeUniform);
+        distCSV->convolutedPeaks("Distance", "half2", "convol2", 0, ConvolutionTypeUniform);
+        double value1 = distCSV->valueForEntry("convol1", i);
+        double value2 = distCSV->valueForEntry("convol2", i);
+        
+        score -= value1 * value2;
+        count++;
+    }
+    
+    return score / pow(count, 2);
+}
+
 double IndexManager::pseudoDistanceScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
-    std::string forPanel = "for_panel_" + me->getActiveDetector()->getTag() + "_" + i_to_str(me->scoreType);
     double score = 0;
     double count = 0;
     

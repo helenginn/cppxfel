@@ -85,13 +85,28 @@ double CSV::valueForHistogramEntry(int chosenHeader, double value, int categoryN
     return 0;
 }
 
+void CSV::addOneToFrequency(double category, int column, double weight, int categoryNum)
+{
+    bool ascending = (entries[0][categoryNum] < entries[1][categoryNum]);
+    
+    for (int j = 0; j < entries.size() - 1; j++)
+    {
+        if ((ascending && category > entries[j][categoryNum] && category < entries[j + 1][categoryNum])
+            || (!ascending && category < entries[j][categoryNum] && category > entries[j + 1][categoryNum]))
+        {
+            entries[j][column] += weight;
+            break;
+        }
+    }
+}
+
 
 void CSV::addOneToFrequency(double category, std::string whichHeader, double weight, std::string categoryHeader)
 {
     if (entries.size() == 0)
         return;
     
-    int chosenHeader = findHeader(whichHeader);
+    int column = findHeader(whichHeader);
     
     int categoryNum = 0;
     
@@ -100,17 +115,7 @@ void CSV::addOneToFrequency(double category, std::string whichHeader, double wei
         categoryNum = findHeader(categoryHeader);
     }
     
-    bool ascending = (entries[0][categoryNum] < entries[1][categoryNum]);
-    
-    for (int j = 0; j < entries.size() - 1; j++)
-    {
-        if ((ascending && category > entries[j][categoryNum] && category < entries[j + 1][categoryNum])
-            || (!ascending && category < entries[j][categoryNum] && category > entries[j + 1][categoryNum]))
-        {
-            entries[j][chosenHeader] += weight;
-            break;
-        }
-    }
+    addOneToFrequency(category, column, weight, categoryNum);
 }
 
 void CSV::addPartialEntry(int dummy, ...)
@@ -405,29 +410,59 @@ void CSV::setValueForEntry(int entry, std::string header, double value)
     entries[entry][column] = value;
 }
 
-void CSV::addConvolutedPeak(std::string header, double mean, double stdev, double weight, std::string category)
+void CSV::addConvolutedPeak(int column, double mean, double stdev, double weight, int categoryNum, ConvolutionType type)
 {
-    double totalIntervals = 300;
-    double stdevMult = 10;
+    double totalIntervals = type == ConvolutionTypeSuperGaussian ? 300 : 10;
+    double stdevMult = type == ConvolutionTypeSuperGaussian ? 10 : 1;
     double step = (stdev * stdevMult) / totalIntervals;
     
     for (double x = -stdev * stdevMult / 2; x < stdev * stdevMult / 2; x += step)
     {
-        double y = super_gaussian(x, 0, stdev / 3, 1.0);
-        addOneToFrequency(x + mean, header, y * weight, category);
+        double y = 1;
+        
+        switch (type) {
+            case ConvolutionTypeSuperGaussian:
+                y = super_gaussian(x, 0, stdev / 3, 1.0);
+                break;
+            case ConvolutionTypeUniform:
+                y = 1;
+                break;
+            default:
+                break;
+        }
+        
+        addOneToFrequency(x + mean, column, y * weight, categoryNum);
     }
 }
 
-void CSV::convolutedPeaks(std::string category, std::string origHeader, std::string destHeader, double stdev)
+void CSV::convolutedPeaks(std::string category, std::string origHeader, std::string destHeader, double stdev, ConvolutionType type)
 {
     int origNum = findHeader(origHeader);
     int categoryNum = findHeader(category);
+    int column = findHeader(destHeader);
     
-    for (int i = 0; i < entries.size(); i++)
+    if (type == ConvolutionTypeSuperGaussian)
     {
-        double mean = entries[i][categoryNum];
-        double weight = entries[i][origNum];
-        addConvolutedPeak(destHeader, mean, stdev, weight);
+        for (int i = 0; i < entries.size(); i++)
+        {
+            double mean = entries[i][categoryNum];
+            double weight = entries[i][origNum];
+            
+            addConvolutedPeak(column, mean, stdev, weight, categoryNum, type);
+        }
+    }
+    else if (type == ConvolutionTypeUniform)
+    {
+        int stdevInt = (int)stdev;
+        for (int i = stdevInt; i < entries.size() - stdevInt; i++)
+        {
+            for (int j = -stdevInt; j <= stdevInt; j++)
+            {
+                double weight = entries[i][origNum];
+                
+                entries[i + j][column] += weight / (stdevInt * 2 + 1);
+            }
+        }
     }
 }
 

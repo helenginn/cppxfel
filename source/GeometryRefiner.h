@@ -33,7 +33,7 @@ private:
     void refineBeamCentre();
     
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
-    void gridSearch(DetectorPtr detector, double start, double end);
+    void gridSearchDetectorDistance(DetectorPtr detector, double start, double end);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
     
 public:

@@ -673,6 +673,8 @@ public:
         return (detectorType == DetectorTypeCSPAD);
     }
     
+    void reportMillerScores();
+    
     void lockNudges();
     static void enableNudge()
     {
