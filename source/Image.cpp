@@ -2312,9 +2312,10 @@ void Image::writePNG(PNGFilePtr file)
         
         minZ -= nudge;
         maxZ += nudge;
+        minZ = 913;
+        maxZ = 926;
         
-        minZ = 900;
-        maxZ = 930;
+        logged << "(minZ: " << minZ << ", maxZ: " << maxZ << ")" << std::endl;
     }
     
     for (int i = 0; i < xDim; i++)
@@ -2349,7 +2350,21 @@ void Image::writePNG(PNGFilePtr file)
                 {
                     vec arranged;
                     detector->spotCoordToAbsoluteVec(i, j, &arranged);
-                    double proportion_distance = (arranged.l - minZ) / (maxZ - minZ) * 120 + 120;
+                    double proportion_distance = (arranged.l - minZ) / (maxZ - minZ);
+                    
+                    while (proportion_distance < 0)
+                    {
+                        proportion_distance += 1.;
+                    }
+                    
+                    while (proportion_distance > 1)
+                    {
+                        proportion_distance -= 1.;
+                    }
+                    
+                    proportion_distance *= 120;
+                    proportion_distance += 120;
+                    
                     png_byte red, green, blue;
                     
                     PNGFile::HSB_to_RGB(proportion_distance, 1.0, brightness, &red, &green, &blue);
