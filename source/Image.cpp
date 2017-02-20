@@ -2313,8 +2313,8 @@ void Image::writePNG(PNGFilePtr file)
         minZ -= nudge;
         maxZ += nudge;
         
-     //   minZ = 900;
-     //   maxZ = 920;
+        minZ = 900;
+        maxZ = 930;
     }
     
     for (int i = 0; i < xDim; i++)
