@@ -349,8 +349,8 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     else if (type == GeometryScoreTypeInterpanel)
     {
         detector->resetPoke();
-        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, 0.1, 0.01, "poke_x");
-        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, 0.1, 0.01, "poke_y");
+        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, 0.5, 0.01, "poke_x");
+        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, 0.5, 0.01, "poke_y");
  //       strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, zTiltNudge, 0.000001, "poke_z");
     }
     else if (type == GeometryScoreTypeBeamCentre)
