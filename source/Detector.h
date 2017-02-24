@@ -114,6 +114,8 @@ private:
     MatrixPtr changeOfBasisMat;
     MatrixPtr invBasisMat;
     MatrixPtr fixedBasis;
+    MatrixPtr workingBasisMat;
+    MatrixPtr invWorkingBasisMat;
     
     /* Ancestor map for quick access for previously asked "are you my ancestor"? */
     AncestorMap ancestorMap;

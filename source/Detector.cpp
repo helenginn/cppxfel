@@ -53,6 +53,7 @@ void Detector::initialiseZeros()
     nudgeMat = MatrixPtr(new Matrix());
     changeOfBasisMat = MatrixPtr(new Matrix());
     fixedBasis = MatrixPtr(new Matrix());
+    invWorkingBasisMat = MatrixPtr(new Matrix());
     mustUpdateMidPoint = true;
     
     if (mmPerPixel == 0)
@@ -199,7 +200,6 @@ void Detector::setArrangedTopLeft(double newX, double newY, double newZ)
     add_vector_to_vector(&currentArrangedTopLeft, currentArrangedBottomRightOffset);
 
     /* Now we need to change basis of vectors to know where this is relative to parent */
-    
     getParent()->getChangeOfBasis()->multiplyVector(&currentArrangedTopLeft);
 
     /* This change of basis should be the relative arranged mid point! maybe. */
@@ -303,6 +303,8 @@ void Detector::rotateAxisRecursive(bool fix)
     changeOfBasisMat->multiplyVector(&slowRotated);
     fastRotated = fastDirection;
     changeOfBasisMat->multiplyVector(&fastRotated);
+    
+    workingBasisMat = calculateChangeOfBasis(&fastRotated, &slowRotated, invWorkingBasisMat);
     
     for (int i = 0; i < childrenCount(); i++)
     {
@@ -698,7 +700,7 @@ void Detector::intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *y
     /* how many slow directions vs how many fast directions...? */
     /* i.e. change of basis... */
     
-    changeOfBasisMat->multiplyVector(&absoluteVec);
+    workingBasisMat->multiplyVector(&absoluteVec);
     
     /* Now to add back the unarranged mid point */
     absoluteVec.h += unarrangedMidPointX;
