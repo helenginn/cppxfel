@@ -31,6 +31,12 @@ public:
     Hdf5ManagerCheetahSacla(std::string newName) : Hdf5ManagerCheetah(newName)
     {
         groupsWithPrefix(&imagePaths, "tag");
+        
+        for (int i = 0; i < imagePaths.size(); i++)
+        {
+            std::string last = lastComponent(imagePaths[i]);
+            imagePathMap[last] = i;
+        }
     }
     
 };
