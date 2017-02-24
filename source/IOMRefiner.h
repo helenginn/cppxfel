@@ -82,7 +82,7 @@ public:
 
     void lockUnitCellDimensions();
     void calculateOnce();
-	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true);
+	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true, bool fake = false);
 	MtzPtr newMtz(int i, bool silent = false);
 	void getWavelengthHistogram(vector<double> &wavelengths,
 			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
@@ -94,6 +94,7 @@ public:
 			double *param1, double *param2);
 
 	void refineOrientationMatrix();
+    void fakeSpots();
 	
     void showHistogram(bool silent);
     bool millerWithinBandwidth(MillerPtr miller);

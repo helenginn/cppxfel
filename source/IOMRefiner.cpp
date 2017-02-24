@@ -346,7 +346,7 @@ void IOMRefiner::lockUnitCellDimensions()
     }
 }
 
-void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation)
+void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation, bool isFake)
 {
     MatrixPtr matrix = getMatrix();
     
@@ -441,7 +441,10 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         if (!roughCalculation || intensityMissing || needsReintegrating || complexShoebox)
         {
-            miller->integrateIntensity(lastRotatedMatrix);
+            if (!isFake)
+            {
+                miller->integrateIntensity(lastRotatedMatrix);
+            }
         }
 
         if (recalculateMillerPositions)
@@ -1252,6 +1255,38 @@ IOMRefiner::~IOMRefiner()
     // FIXME: work out when this should and should not be freed
     //   if (spaceGroup != NULL)
     //       ccp4spg_free(&spaceGroup);
+}
+
+void IOMRefiner::fakeSpots()
+{
+    this->calculateNearbyMillers();
+    this->checkAllMillers(maxResolution, testBandwidth, false, true, true);
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF", 0.2);
+    
+    for (int i = 0; i < millers.size(); i++)
+    {
+        millers[i]->recalculatePartiality(lastRotatedMatrix, 0.0, rlpSize, getWavelength(), bandwidth, 1.5);
+        
+        if (millers[i]->getPartiality() > partialCutoff)
+        {
+            int x = 0;
+            int y = 0;
+            millers[i]->positionOnDetector(lastRotatedMatrix, &x, &y);
+            
+            if (x == 0 && y == 0)
+            {
+                continue;
+            }
+            
+            SpotPtr spot = SpotPtr(new Spot(getImage()));
+            spot->setXY(x, y);
+            spot->setFake();
+            
+            getImage()->addSpotIfNotMasked(spot);
+        }
+    }
 }
 
 void IOMRefiner::sendLog(LogLevel priority)

@@ -143,6 +143,7 @@ public:
     void findSpots();
     double resolutionAtPixel(double x, double y);
 
+    void fakeSpots();
     void integrateSpots();
     void drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red = 0, char green = 0, char blue = 0);
     void drawCrystalsOnPNG(int crystalNum);
