@@ -54,7 +54,7 @@ private:
     static bool lowIntensityPenalty;
 	double maxResolution;
 	MtzManager *reference;
-	void calculateNearbyMillers(bool rough);
+	void calculateNearbyMillers();
 	double lastTotal;
 	double lastStdev;
 	double testBandwidth;
@@ -66,10 +66,11 @@ private:
     double orientationTolerance;
     std::ostringstream logged;
     void sendLog(LogLevel priority = LogLevelNormal);
-    double hkScore(bool stdev);
+    double hkScore(bool stdev, bool finalise = false);
     double lScore(bool silent);
     void recalculateMillers(bool thorough = false);
     static double hkScoreWrapper(void *object);
+    static double hkScoreFinalise(void *object);
     static double hkScoreStdevWrapper(void *object);
     static double lScoreWrapper(void *object);
     double getReflectionWavelengthStdev();
