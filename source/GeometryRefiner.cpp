@@ -327,7 +327,7 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
     
-    double transNudge = 0.1;
+    double nudgeStep = FileParser::getKey("NUDGE_STEP", 1.0);
     double tiltNudge = 0.0005;
     double zTiltNudge = 0.0002;
     
@@ -338,8 +338,8 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     }
     else if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.00001, "nudge_tx");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.00001, "nudge_ty");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.000001, "nudge_tx");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.000001, "nudge_ty");
         
         if (!detector->isLUCA())
         {
@@ -349,14 +349,14 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     else if (type == GeometryScoreTypeInterpanel)
     {
         detector->resetPoke();
-        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, 0.1, 0.01, "poke_x");
-        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, 0.1, 0.01, "poke_y");
+        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, nudgeStep, 0.001, "poke_x");
+        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, nudgeStep, 0.001, "poke_y");
  //       strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, zTiltNudge, 0.000001, "poke_z");
     }
     else if (type == GeometryScoreTypeBeamCentre)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, transNudge, 0.00001, "nudge_x");
-        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, transNudge, 0.00001, "nudge_y");
+        strategy->addParameter(&*detector, Detector::getNudgeX, Detector::setNudgeX, nudgeStep, 0.000001, "nudge_x");
+        strategy->addParameter(&*detector, Detector::getNudgeY, Detector::setNudgeY, nudgeStep, 0.000001, "nudge_y");
     }
     
     strategy->refine();
@@ -366,7 +366,7 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     
     if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, transNudge, 0.001, "nudge_z");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 0.2, 0.0001, "nudge_z");
         strategy->refine();
     }
     
