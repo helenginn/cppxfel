@@ -1724,6 +1724,11 @@ void MtzRefiner::writeAllNewOrientations()
         std::string imageName = images[i]->getBasename();
         allMats << "image " << imageName << std::endl;
         
+        if (images[i]->getSpotsFile().length() > 0)
+        {
+            allMats << "spots " << images[i]->getSpotsFile() << std::endl;
+        }
+        
         for (int j = 0; j < images[i]->mtzCount(); j++)
         {
             MtzPtr mtz = images[i]->mtz(j);
@@ -2032,6 +2037,37 @@ void MtzRefiner::reportMetrology()
     refiner.reportProgress();
     
     Detector::getMaster()->reportMillerScores();
+}
+
+void MtzRefiner::fakeSpotsThread(std::vector<ImagePtr> *images, int offset)
+{
+    int maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = offset; i < images->size(); i += maxThreads)
+    {
+        ImagePtr image = images->at(i);
+        
+        image->fakeSpots();
+    }
+}
+
+void MtzRefiner::fakeSpots()
+{
+    loadImageFiles();
+    
+    boost::thread_group threads;
+    
+    int maxThreads = FileParser::getMaxThreads();
+    
+    for (int i = 0; i < maxThreads; i++)
+    {
+        boost::thread *thr = new boost::thread(fakeSpotsThread, &images, i);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
+    
+    writeAllNewOrientations();
 }
 
 MtzRefiner::~MtzRefiner()
