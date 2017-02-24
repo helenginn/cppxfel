@@ -312,6 +312,12 @@ void InputFileParser::parse(bool fromPython)
                 refiner->plotIntegrationWindows();
             }
             
+            if (line == "FAKE_SPOTS")
+            {
+                understood = true;
+                refiner->fakeSpots();
+            }
+            
             if (line == "TAKETWO_PNG")
             {
                 understood = true;

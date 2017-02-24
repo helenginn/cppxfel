@@ -204,7 +204,7 @@ Hdf5ManagerCheetahPtr Hdf5Image::getManager()
 void Hdf5Image::writeSpotsList(std::string spotFile)
 {
     Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
-
+    
     if (!processingManager)
     {
         Image::writeSpotsList(spotFile);

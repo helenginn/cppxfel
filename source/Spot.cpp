@@ -36,6 +36,7 @@ Spot::Spot(ImagePtr image)
     correctedY = -1;
     _isBeamCentre = false;
     rejected = false;
+    _isFake = false;
     x = 0;
     y = 0;
     height = FileParser::getKey("IMAGE_SPOT_PROBE_HEIGHT", 100);
@@ -456,7 +457,9 @@ std::string Spot::spotLine()
     
     std::ostringstream line;
     
-    line << x << "\t" << y << std::endl;
+    std::string fakeFlag = isFake() ? "fake" : "";
+    
+    line << x << "\t" << y << "\t" << fakeFlag << std::endl;
     
     return line.str();
 }

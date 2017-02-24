@@ -167,6 +167,11 @@ void RefinementStepSearch::refine()
     {
         bool allFinished = true;
         
+        if (afterCycleObject && afterCycleFunction)
+        {
+            bestScore = FLT_MAX;
+        }
+        
         for (int j = 0; j < objects.size(); j++)
         {
             bool coupled = (couplings[j] > 1);
@@ -180,6 +185,11 @@ void RefinementStepSearch::refine()
                 allFinished *= minimizeTwoParameters(j, j + 1, &bestScore);
                 j++;
             }
+        }
+        
+        if (afterCycleObject && afterCycleFunction)
+        {
+            (*afterCycleFunction)(afterCycleObject);
         }
         
         reportProgress(bestScore);

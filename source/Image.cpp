@@ -1103,6 +1103,20 @@ void Image::addSpotIfNotMasked(SpotPtr newSpot)
         spots.push_back(newSpot);
 }
 
+void Image::fakeSpots()
+{
+    spots.clear();
+    spotVectors.clear();
+    
+    for (int i = 0; i < IOMRefinerCount(); i++)
+    {
+        getIOMRefiner(i)->fakeSpots();
+    }
+    
+    setSpotsFile("_" + getBasename() + "_fake.list");
+    writeSpotsList();
+}
+
 void Image::findSpots()
 {
     int algorithm = FileParser::getKey("SPOT_FINDING_ALGORITHM", 0);
@@ -1205,12 +1219,25 @@ void Image::processSpotList()
         {
             std::string line = spotLines[i];
             vector<std::string> components = FileReader::split(line, '\t');
+            bool fake = false;
             
             if (components.size() < 2)
                 continue;
-            
-            if (spotsAreReciprocalCoordinates && components.size() < 3)
-                continue;
+
+            if (components.size() >= 3)
+            {
+                std::string flags = components[2];
+                
+                vector<std::string> flagComponents = FileReader::split(flags, ',');
+                
+                for (int j = 0; j < flagComponents.size(); j++)
+                {
+                    if (flagComponents[j] == "fake")
+                    {
+                        fake = true;
+                    }
+                }
+            }
             
             double x = 0; double y = 0;
             x = atof(components[0].c_str());
@@ -1225,6 +1252,7 @@ void Image::processSpotList()
             
             SpotPtr newSpot = SpotPtr(new Spot(shared_from_this()));
             newSpot->setXY(getBeamX() - xyVec.h, getBeamY() - xyVec.k);
+            newSpot->setFake(fake);
             bool add = true;
             
             vec myVec = newSpot->estimatedVector();
@@ -2082,11 +2110,18 @@ void Image::writeSpotsList(std::string spotFile)
     
     if (spotFile == "")
     {
-        std::string tag = "remaining";
-        std::string basename = getBasename();
-        
-        spotFile = "_" + basename + "_" + tag + "_spots.list";
-        spotDat = basename + "_spots.csv";
+        if (spotsFile.length())
+        {
+            spotFile = spotsFile;
+        }
+        else
+        {
+            std::string tag = "remaining";
+            std::string basename = getBasename();
+            
+            spotFile = "_" + basename + "_" + tag + "_spots.list";
+            spotDat = basename + "_spots.csv";
+        }
     }
     
     std::ofstream spotList;
@@ -2197,34 +2232,57 @@ double Image::standardDeviationOfPixels()
 
 void Image::drawSpotsOnPNG(std::string filename)
 {
+    
     if (!loadedSpots)
     {
         processSpotList();
     }
     
-    double stdev = standardDeviationOfPixels();
-    
     if (!filename.length())
         filename = getBasename() + ".png";
+    
     int height = FileParser::getKey("PNG_HEIGHT", 2400);
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
     writePNG(file);
     
+    file->drawText("Beam centre", 0, -40);
+
     for (int i = 0; i < spotCount(); i++)
     {
         Coord coord = spot(i)->getXY();
         
-        file->drawCircleAroundPixel(coord.first, coord.second, 10, 1, 0, 0, 0);
+        if (!spot(i)->isFake())
+        {
+            spot(i)->integrate();
+            int intensity = spot(i)->getIntensity();
+            
+            if (!spot(i)->isBeamCentre())
+            {
+                file->drawText(i_to_str(intensity), coord.first, coord.second - 20);
+            }
+            file->drawCircleAroundPixel(coord.first, coord.second, 10, 1, 0, 0, 0);
+        }
+        else
+        {
+            int xLeft = coord.first - 6;
+            int xRight = coord.first + 6;
+            int yTop = coord.second - 6;
+            int yBottom = coord.second + 6;
+            
+            file->drawLine(xLeft, yTop, xRight, yBottom, 0.0, 0, 0, 0);
+            file->drawLine(xLeft, yBottom, xRight, yTop, 0.0, 0, 0, 0);
+        }
     }
     
     file->writeImageOutput();
     
-    logged << "Written file " << filename << " (stdev of pixel intensities: " << stdev << ")" << std::endl;
+    logged << "Written file " << filename << std::endl;
     sendLog();
 }
 
 void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green, char blue)
 {
+    int count = 0;
     bool addShoebox = FileParser::getKey("PNG_SHOEBOX", false);
     
     for (int i = 0; i < myMtz->reflectionCount(); i++)
@@ -2244,6 +2302,7 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             
             bool strong = myMiller->reachesThreshold();
             file->drawCircleAroundPixel(pngCoord.first, pngCoord.second, 14, (strong ? 2 : 1), red, green, blue, (strong ? 4 : 1));
+            count++;
             
             if (addShoebox)
             {
@@ -2251,6 +2310,9 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             }
         }
     }
+    
+    logged << "Written " << count << " reflections." << std::endl;
+    sendLog();
 }
 
 void Image::drawCrystalsOnPNG(int crystalNum)
@@ -2297,9 +2359,14 @@ void Image::writePNG(PNGFilePtr file)
 {
     file->setCentre(getBeamX(), getBeamY());
     
-    double defaultThreshold = standardDeviationOfPixels() * 5; // calculate
+    double threshold = FileParser::getKey("PNG_THRESHOLD", 0.);
     
-    double threshold = FileParser::getKey("PNG_THRESHOLD", defaultThreshold);
+    if (!FileParser::hasKey("PNG_THRESHOLD"))
+    {
+        threshold = standardDeviationOfPixels() * 5;
+    }
+    
+    std::cout << "Image " << getBasename() << "- (threshold for pixel intensities: " << threshold << ")" << std::endl;
     
     DetectorPtr lastDetector = DetectorPtr();
     double minZ = 0;
@@ -2312,10 +2379,8 @@ void Image::writePNG(PNGFilePtr file)
         
         minZ -= nudge;
         maxZ += nudge;
-        minZ = 913;
-        maxZ = 926;
-        
-        logged << "(minZ: " << minZ << ", maxZ: " << maxZ << ")" << std::endl;
+//        minZ = 913;
+//        maxZ = 926;
     }
     
     for (int i = 0; i < xDim; i++)

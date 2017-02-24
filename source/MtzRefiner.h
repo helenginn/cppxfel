@@ -65,6 +65,8 @@ public:
     
     void loadPanels(bool mustFail = true);
 	void integrate();
+    static void fakeSpotsThread(std::vector<ImagePtr> *images, int offset);
+    void fakeSpots();
     void integrationSummary();
 	static void integrateImagesWrapper(MtzRefiner *object,
 			vector<MtzPtr> *&mtzSubset, int offset, bool orientation);

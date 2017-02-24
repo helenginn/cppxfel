@@ -49,6 +49,7 @@ public:
     void setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue);
     void drawLine(int x1, int y1, int x2, int y2, float transparency, png_byte red, png_byte green, png_byte blue);
     void drawCircleAroundPixel(int x, int y, float radius, float transparency, png_byte red, png_byte green, png_byte blue, float thickness = 3);
+    void drawText(std::string text, int xCentre, int yCentre, png_byte red = 0, png_byte green = 0, png_byte blue = 0);
     void drawShoeboxAroundPixel(int x, int y, ShoeboxPtr shoebox);
     static void HSB_to_RGB(float hue, float sat, float bright,
                            png_byte *red, png_byte *green, png_byte *blue);

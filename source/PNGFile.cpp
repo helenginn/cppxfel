@@ -14,6 +14,7 @@
 #include <iomanip>
 #include "FileReader.h"
 #include <cmath>
+#include "TextManager.h"
 #include "Shoebox.h"
 
 int PNGFile::writeImage(std::string filename, int width, int height, std::string title)
@@ -281,6 +282,35 @@ void PNGFile::drawCircleAroundPixel(int x, int y, float radius, float transparen
     }
 }
 
+void PNGFile::drawText(std::string text, int xCentre, int yCentre, png_byte red, png_byte green, png_byte blue)
+{
+    png_byte *textPixels;
+    int width = 0;
+    int height = 0;
+    
+    moveCoordRelative(&xCentre, &yCentre);
+    TextManager::text_malloc(&textPixels, text, &width, &height);
+    
+    int left = xCentre - width / 2;
+    int top = yCentre - height / 2;
+    
+    for (int j = 0; j < height; j++)
+    {
+        for (int i = 0; i < width; i++)
+        {
+            int pos = j * width + i;
+            int x = left + i;
+            int y = top + j;
+            
+            png_byte transByte = textPixels[pos];
+            float transparency = (float)transByte / 255.;
+            setPixelColour(x, y, red, green, blue, transparency);
+        }
+    }
+    
+    TextManager::text_free(&textPixels);
+}
+
 void PNGFile::drawLine(int x1, int y1, int x2, int y2, float transparency, png_byte red, png_byte green, png_byte blue)
 {
     moveCoordRelative(&x1, &y1);
@@ -290,7 +320,7 @@ void PNGFile::drawLine(int x1, int y1, int x2, int y2, float transparency, png_b
     double *bigger = (fabs(yTravel) > fabs(xTravel)) ? &yTravel : &xTravel;
     double *smaller = (fabs(yTravel) < fabs(xTravel)) ? &yTravel : &xTravel;
     
-    const double bigShift = 0.5;
+    const double bigShift = 0.25;
     int intervals = *bigger / bigShift + 0.5;
     double smallShift = *smaller / intervals;
     

@@ -112,44 +112,49 @@ double MtzManager::rSplit(double low, double high)
     int count = 0;
     double weights = 0;
     
-    vector<ReflectionPtr> reflections1;
-    vector<ReflectionPtr> reflections2;
+    vector<ReflectionPtr> referenceRefs;
+    vector<ReflectionPtr> imageRefs;
     
-    this->findCommonReflections(referenceManager, reflections1, reflections2, NULL, true);
+    this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true);
     
-    for (int i = 0; i < reflections1.size(); i++)
+    for (int i = 0; i < referenceRefs.size(); i++)
     {
-        ReflectionPtr reflection = reflections1[i];
-        ReflectionPtr reflection2 = reflections2[i];
+        ReflectionPtr referenceRef = referenceRefs[i];
+        ReflectionPtr imageRef = imageRefs[i];
         
-        if (!reverse && reflection->acceptedCount() == 0)
+        if (!reverse && imageRef->acceptedCount() == 0)
             continue;
         
-        if (reflection2->millerCount() == 0)
+        if (referenceRef->millerCount() == 0)
             continue;
         
-        if (reflection2->miller(0)->isFree())
+        if (imageRef->miller(0)->isFree())
             continue;
         
-        if (!reflection->betweenResolutions(low, high))
+        if (!referenceRef->betweenResolutions(low, high))
             continue;
         
-        for (int j = 0; j < reflection->millerCount(); j++)
+        for (int j = 0; j < imageRef->millerCount(); j++)
         {
+            if (!imageRef->miller(j)->accepted())
+            {
+                continue;
+            }
+            
             double int1 = 0;
             double int2 = 0;
             double weight = 0;
             
             if (!reverse)
             {
-                int1 = reflection->meanIntensity();
-                int2 = reflection2->meanIntensityWithExclusion(&filename);
-                weight = reflection->meanPartiality();
+                int1 =  imageRef->miller(j)->intensity();
+                int2 = referenceRef->meanIntensity();
+                weight = imageRef->meanPartiality();
             }
             else
             {
-                int1 = reflection->miller(j)->getRawIntensity();
-                int2 = reflection2->meanIntensity() * reflection->miller(j)->getPartiality();
+                int1 = imageRef->miller(j)->getRawIntensity();
+                int2 = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
                 weight = 1;
             }
             
@@ -174,9 +179,6 @@ double MtzManager::rSplit(double low, double high)
         
 
     }
-    
-  //  if (!withCutoff)
-  //      std::cout << count << std::endl;
     
     double r_split = sum_numerator / (sum_denominator * sqrt(2));
     lastRSplit = r_split;

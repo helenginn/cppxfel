@@ -18,6 +18,7 @@
 #include "Miller.h"
 #include "Hdf5Crystal.h"
 #include "RefinementStrategy.h"
+#include "RefinementStepSearch.h"
 #include "Detector.h"
 
 #define BIG_BANDWIDTH 0.015
@@ -236,7 +237,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
     }
 }
 
-void IOMRefiner::calculateNearbyMillers(bool rough)
+void IOMRefiner::calculateNearbyMillers()
 {
     double wavelength = getImage()->getWavelength();
     
@@ -345,7 +346,7 @@ void IOMRefiner::lockUnitCellDimensions()
     }
 }
 
-void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation)
+void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation, bool isFake)
 {
     MatrixPtr matrix = getMatrix();
     
@@ -440,7 +441,10 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         
         if (!roughCalculation || intensityMissing || needsReintegrating || complexShoebox)
         {
-            miller->integrateIntensity(lastRotatedMatrix);
+            if (!isFake)
+            {
+                miller->integrateIntensity(lastRotatedMatrix);
+            }
         }
 
         if (recalculateMillerPositions)
@@ -484,6 +488,9 @@ double IOMRefiner::getReflectionWavelengthStdev()
 {
     std::vector<double> values;
     
+    bool unbalanced = FileParser::getKey("UNBALANCED_REFLECTIONS", false);
+    double mean = getWavelength();
+    
     for (int i = 0; i < millers.size(); i++)
     {
         if (millers[i]->reachesThreshold() && millerWithinBandwidth(millers[i]))
@@ -492,7 +499,12 @@ double IOMRefiner::getReflectionWavelengthStdev()
         }
     }
     
-    double stdev = standard_deviation(&values);
+    if (!unbalanced)
+    {
+        mean = weighted_mean(&values);
+    }
+    
+    double stdev = standard_deviation(&values, NULL, mean);
     
     return stdev;
 }
@@ -613,6 +625,13 @@ void IOMRefiner::recalculateMillers(bool thorough)
     this->checkAllMillers(maxResolution, testBandwidth, false, true);
 }
 
+double IOMRefiner::hkScoreFinalise(void *object)
+{
+    IOMRefiner *refiner = static_cast<IOMRefiner *>(object);
+    refiner->recalculateMillers();
+    return refiner->hkScore(false, true);
+}
+
 double IOMRefiner::hkScoreWrapper(void *object)
 {
     IOMRefiner *refiner = static_cast<IOMRefiner *>(object);
@@ -635,7 +654,7 @@ double IOMRefiner::lScoreWrapper(void *object)
     return refiner->lScore(true);
 }
 
-double IOMRefiner::hkScore(bool reportStdev)
+double IOMRefiner::hkScore(bool reportStdev, bool finalise)
 {
     vector<double> wavelengths;
     vector<double> throw1; vector<int> throw2;
@@ -645,37 +664,30 @@ double IOMRefiner::hkScore(bool reportStdev)
         getWavelengthHistogram(throw1, throw2, LogLevelDetailed);
     }
     
-    for (int i = 0; i < millers.size(); i++)
-    {
-        MillerPtr miller = millers[i];
-        
-        if (millerWithinBandwidth(miller) && miller->reachesThreshold())
-        {
-            wavelengths.push_back(miller->getWavelength());
-        }
-    }
-    
     bool unbalanced = FileParser::getKey("UNBALANCED_REFLECTIONS", false);
-    double stdev = 0;
     double mean = getWavelength();
     
-    if (unbalanced)
+    if (!unbalanced)
     {
         mean = weighted_mean(&wavelengths);
     }
     
-    double pythagSum = 0;
-    
-    for (int i = 0; i < wavelengths.size(); i++)
-    {
-        pythagSum += fabs(wavelengths[i] - mean);
-    }
-    
+    double stdev = getReflectionWavelengthStdev();
     double refTotal = getTotalReflections();
     
-    pythagSum /= wavelengths.size();
+    if (finalise)
+    {
+        lastTotal = refTotal;
+        lastStdev = stdev;
+    }
+
+    double totalWeight = 20;
+    double stdevWeight = 15;
     
-    double score = reportStdev ? pythagSum / refTotal : -refTotal;
+    double totalChange = refTotal / lastTotal - 1;
+    double totalStdev = stdev / lastStdev - 1;
+    
+    double score = (totalStdev * stdevWeight - totalChange * totalWeight);
     
     logged << "Score is " << score << " from " << wavelengths.size() << " reflections" << std::endl;
     sendLog(LogLevelDetailed);
@@ -726,7 +738,7 @@ double IOMRefiner::getRot(int rotNum)
 
 void IOMRefiner::refineOrientationMatrix()
 {
-    this->calculateNearbyMillers(true);
+    this->calculateNearbyMillers();
     
     vector<double> wavelengths;
     vector<int> frequencies;
@@ -759,34 +771,39 @@ void IOMRefiner::refineOrientationMatrix()
 
     if (initialStep >= 1.5)
     {
-        RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
+        hkScoreFinalise(this);
+        
+        RefinementStepSearchPtr hkStrategy = RefinementStepSearchPtr(new RefinementStepSearch());
         hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
         hkStrategy->setEvaluationFunction(hkScoreWrapper, this);
+        hkStrategy->setAfterCycleFunction(hkScoreFinalise, this);
         hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
         hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
         hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
         hkStrategy->refine();
     }
     
-    this->calculateNearbyMillers(true);
+    this->calculateNearbyMillers();
 
  //   if (false)
     {
-        RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
+        hkScoreFinalise(this);
+        RefinementStepSearchPtr hkStrategy = RefinementStepSearchPtr(new RefinementStepSearch());
         hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
         hkStrategy->setEvaluationFunction(hkScoreStdevWrapper, this);
+        hkStrategy->setAfterCycleFunction(hkScoreFinalise, this);
         hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
         hkStrategy->addParameter(this, getHRot, setHRot, std::max(0.5, initialStep), orientationTolerance, "hRot");
         hkStrategy->addCoupledParameter(this, getKRot, setKRot, std::max(0.5, initialStep), orientationTolerance, "kRot");
         hkStrategy->refine();
     }
     
-    
     bestHRot = hRot;
     bestKRot = kRot;
     bestLRot = lRot;
     
-    needsReintegrating = true;
+    //needsReintegrating = true;
+    //this->calculateNearbyMillers();
     checkAllMillers(maxResolution, testBandwidth);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     
@@ -1114,7 +1131,7 @@ bool IOMRefiner::isGoodSolution()
 void IOMRefiner::calculateOnce()
 {
     needsReintegrating = true;
-    calculateNearbyMillers(true);
+    calculateNearbyMillers();
     checkAllMillers(maxResolution, testBandwidth);
     
     vector<double> wavelengths;
@@ -1133,7 +1150,7 @@ void IOMRefiner::showHistogram(bool silent)
 
 MtzPtr IOMRefiner::newMtz(int index, bool silent)
 {
-    calculateNearbyMillers(true);
+    calculateNearbyMillers();
     checkAllMillers(maxResolution, testBandwidth);
     vector<double> wavelengths;
     vector<int> frequencies;
@@ -1238,6 +1255,38 @@ IOMRefiner::~IOMRefiner()
     // FIXME: work out when this should and should not be freed
     //   if (spaceGroup != NULL)
     //       ccp4spg_free(&spaceGroup);
+}
+
+void IOMRefiner::fakeSpots()
+{
+    this->calculateNearbyMillers();
+    this->checkAllMillers(maxResolution, testBandwidth, false, true, true);
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF", 0.2);
+    
+    for (int i = 0; i < millers.size(); i++)
+    {
+        millers[i]->recalculatePartiality(lastRotatedMatrix, 0.0, rlpSize, getWavelength(), bandwidth, 1.5);
+        
+        if (millers[i]->getPartiality() > partialCutoff)
+        {
+            int x = 0;
+            int y = 0;
+            millers[i]->positionOnDetector(lastRotatedMatrix, &x, &y);
+            
+            if (x == 0 && y == 0)
+            {
+                continue;
+            }
+            
+            SpotPtr spot = SpotPtr(new Spot(getImage()));
+            spot->setXY(x, y);
+            spot->setFake();
+            
+            getImage()->addSpotIfNotMasked(spot);
+        }
+    }
 }
 
 void IOMRefiner::sendLog(LogLevel priority)

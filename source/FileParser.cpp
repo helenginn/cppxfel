@@ -794,6 +794,7 @@ void FileParser::generateFunctionList()
     parserMap["SWEEP_DETECTOR_DISTANCE"] = doubleVector;
     parserMap["DISTANCE_VS_ANGLE_FRACTION"] = simpleFloat;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
+    parserMap["NUDGE_STEP"] = simpleFloat;
     
     parserMap["TRUST_GLOBAL_GEOMETRY"] = simpleBool;
     parserMap["TRUST_QUADRANT_GEOMETRY"] = simpleBool;
