@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "LoggableObject.h"
-#include "PNG.h"
+#include <png.h>
 
 class TextManager : public LoggableObject
 {
