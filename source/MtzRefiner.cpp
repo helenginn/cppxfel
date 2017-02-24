@@ -165,14 +165,6 @@ void MtzRefiner::cycle()
 void MtzRefiner::initialMerge()
 {
     MtzManager *originalMerge = NULL;
-    /*
-     Lbfgs_Cluster *lbfgs = new Lbfgs_Cluster();
-     lbfgs->initialise_cluster_lbfgs(mtzManagers, &originalMerge);
-     reference = originalMerge;
-     delete lbfgs;
-     
-     reference->writeToFile("initialMerge.mtz");
-     */
     
     AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
     breaker.run();

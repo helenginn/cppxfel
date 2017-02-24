@@ -24,6 +24,7 @@ private:
     bool setAngle;
     bool checked;
     bool _isBeamCentre;
+    bool _isFake;
     int successfulCommonLines;
     double correctedX; double correctedY;
     double x; double y;
@@ -137,6 +138,16 @@ public:
     bool isBeamCentre()
     {
         return _isBeamCentre;
+    }
+    
+    void setFake(bool fake = true)
+    {
+        _isFake = fake;
+    }
+    
+    bool isFake()
+    {
+        return _isFake;
     }
 };
 
