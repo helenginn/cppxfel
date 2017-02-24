@@ -96,6 +96,7 @@ source = [
 'source/SpotFinderCorrelation.cpp',
 'source/SolventMask.cpp',
 'source/StatisticsManager.cpp',
+'source/TextManager.cpp',
 'source/UnitCellLattice.cpp',
 'source/Vector.cpp',
 'source/main.cpp',
