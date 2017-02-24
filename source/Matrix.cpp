@@ -963,31 +963,47 @@ double invertValue(double topLeft, double bottomRight, double topRight, double b
 // CCTBX_REWRITE: here
 MatrixPtr Matrix::inverse3DMatrix()
 {
-    scitbx::mat3<double> inverse;
+    double a = components[0];
+    double b = components[4];
+    double c = components[8];
+    double d = components[1];
+    double e = components[5];
+    double f = components[9];
+    double g = components[2];
+    double h = components[6];
+    double i = components[10];
     
-    scitbx::mat3<double> cctbxMat = cctbxMatrix();
-    try {
-        inverse = cctbxMat.inverse();
-    } catch (scitbx::error) {
-        MatrixPtr newMat = MatrixPtr(new Matrix());
-        return newMat;
-    }
-    
+    double det = determinant();
     MatrixPtr newMat = MatrixPtr(new Matrix());
-    newMat->assignFromCctbxMatrix(inverse);
     
+    newMat->components[0] = (e * i - f * h) / det;
+    newMat->components[4] = -(d * i - f * g) / det;
+    newMat->components[8] = (d * h - e * g) / det;
+    newMat->components[1] = - (b * i - c * h) / det;
+    newMat->components[5] = (a * i - c * g) / det;
+    newMat->components[9] = - (a * h - b * g) / det;
+    newMat->components[2] = (b * f - c * e) / det;
+    newMat->components[6] = - (a * f - c * d) / det;
+    newMat->components[10] = (a * e - b * d) / det;
+
     return newMat;
-    
 }
 
-// CCTBX_REWRITE: here
 double Matrix::determinant()
 {
-    scitbx::mat3<double> cctbxMat = cctbxMatrix();
-    double det = cctbxMat.determinant();
+    double a = components[0];
+    double b = components[4];
+    double c = components[8];
+    double d = components[1];
+    double e = components[5];
+    double f = components[9];
+    double g = components[2];
+    double h = components[6];
+    double i = components[10];
     
+    double det = a*e*i + b*f*g + c*d*h + c*e*g - b*d*i - a*f*h;
+
     return det;
-    
 }
 
 double Matrix::trace()
