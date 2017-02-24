@@ -237,7 +237,7 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
     }
 }
 
-void IOMRefiner::calculateNearbyMillers(bool rough)
+void IOMRefiner::calculateNearbyMillers()
 {
     double wavelength = getImage()->getWavelength();
     
