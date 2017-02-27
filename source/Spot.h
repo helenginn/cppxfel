@@ -25,6 +25,7 @@ private:
     bool checked;
     bool _isBeamCentre;
     bool _isFake;
+    std::string _text;
     int successfulCommonLines;
     double correctedX; double correctedY;
     double x; double y;
@@ -148,6 +149,16 @@ public:
     bool isFake()
     {
         return _isFake;
+    }
+    
+    void setText(std::string text)
+    {
+        _text = text;
+    }
+    
+    std::string getText()
+    {
+        return _text;
     }
 };
 

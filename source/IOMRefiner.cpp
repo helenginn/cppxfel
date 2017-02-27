@@ -1274,6 +1274,18 @@ void IOMRefiner::fakeSpots()
             int x = 0;
             int y = 0;
             millers[i]->positionOnDetector(lastRotatedMatrix, &x, &y);
+            vec intersection;
+            double xSpot = 0;
+            double ySpot = 0;
+            
+            DetectorPtr myDet = Detector::getMaster()->intersectionForMiller(millers[i], &intersection);
+            
+            if (!myDet)
+            {
+                continue;
+            }
+            
+            myDet->intersectionToSpotCoord(intersection, &xSpot, &ySpot);
             
             if (x == 0 && y == 0)
             {
@@ -1281,8 +1293,16 @@ void IOMRefiner::fakeSpots()
             }
             
             SpotPtr spot = SpotPtr(new Spot(getImage()));
-            spot->setXY(x, y);
+            spot->setXY(xSpot, ySpot);
             spot->setFake();
+            
+            if (i % 20 == 0)
+            {
+                std::string millerText = "(" + f_to_str(millers[i]->getH()) + " " + f_to_str(millers[i]->getK()) + " " + f_to_str(millers[i]->getL()) + ")";
+                double wavelength = millers[i]->getPredictedWavelength();
+                
+                spot->setText(millerText);
+            }
             
             getImage()->addSpotIfNotMasked(spot);
         }
