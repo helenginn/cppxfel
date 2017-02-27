@@ -166,7 +166,7 @@ double integrate_beam(double pBandwidth, double qBandwidth, double mean,
 
 double Miller::sliced_integral(double low_wavelength, double high_wavelength,
                               double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
-                              double exponent, bool binary, bool withBeamObject)
+                              double exponent, bool binary, bool withBeamObject, bool fixPredicted)
 {
     double mySlices = slices;
     
@@ -185,7 +185,11 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
     
     double total_normal = 0;
     double total_sphere = 0;
-    predictedWavelength = 0;
+    
+    if (fixPredicted)
+    {
+        predictedWavelength = 0;
+    }
     
     for (int i = 0; i < mySlices; i++)
     {
@@ -216,7 +220,11 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         if (binary && normalSlice > 0.01)
             return 1.0;
         
-        predictedWavelength += totalSlice * (qBandwidth + pBandwidth) / 2;
+        if (fixPredicted)
+        {
+            predictedWavelength += totalSlice * (qBandwidth + pBandwidth) / 2;
+        }
+        
         total_integral += totalSlice;
         total_normal += normalSlice;
         total_sphere += sphereSlice;
@@ -225,7 +233,10 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         currentQ += fraction_total / mySlices;
     }
     
-    predictedWavelength /= total_integral;
+    if (fixPredicted)
+    {
+        predictedWavelength /= total_integral;
+    }
     
     return total_integral;
 }
@@ -303,8 +314,8 @@ double Miller::slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double
 
 void Miller::recalculatePredictedWavelength()
 {
-    double rlpSize = FileParser::getKey("OVER_PRED_RLP_SIZE", 0.0001);
-    double bandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH", 0.01) * 1.5;
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
     double exponent = FileParser::getKey("INITIAL_EXPONENT", 1.5);
     double mosaicity = 0;
     double wavelength = getImage()->getWavelength();
@@ -718,7 +729,7 @@ void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize
 }
 
 double Miller::partialityForHKL(vec hkl, double mosaicity,
-                               double spotSize, double wavelength, double bandwidth, double exponent, bool binary)
+                               double spotSize, double wavelength, double bandwidth, double exponent, bool binary, bool fixPredicted)
 {
     double radius = expectedRadius(spotSize, mosaicity, &hkl);
     
@@ -748,7 +759,7 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
     }
     else
     {
-        thisPartiality = sliced_integral(outwards_bandwidth, inwards_bandwidth, radius, 0, 1, wavelength, stdev, exponent);
+        thisPartiality = sliced_integral(outwards_bandwidth, inwards_bandwidth, radius, 0, 1, wavelength, stdev, exponent, false, false, fixPredicted);
     }
     
     return thisPartiality;
@@ -839,7 +850,7 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     this->wavelength = getEwaldSphereNoMatrix(hkl);
     
     double tempPartiality = partialityForHKL(hkl, mosaicity,
-                                            spotSize, wavelength, bandwidth, exponent, true);
+                                            spotSize, wavelength, bandwidth, exponent, true, true);
     
     if (binary && tempPartiality == 1.0)
         return;
