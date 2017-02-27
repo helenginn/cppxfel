@@ -384,7 +384,6 @@ public:
     
     DetectorPtr detectorForRayIntersection(vec ray, vec *intersection);
     void intersectionWithRay(vec ray, vec *intersection);
-    DetectorPtr spotCoordForRayIntersection(vec ray, double *xSpot, double *ySpot);
     DetectorPtr spotCoordForMiller(MillerPtr miller, double *xSpot, double *ySpot);
     DetectorPtr intersectionForMiller(MillerPtr miller, vec *intersection);
     
