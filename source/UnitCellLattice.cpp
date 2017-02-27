@@ -101,8 +101,9 @@ void UnitCellLattice::weightUnitCell()
 
 void UnitCellLattice::updateUnitCellData()
 {
+
     lockUnitCellDimensions(&_aDim, &_bDim, &_cDim, &_alpha, &_beta, &_gamma);
-    unitCellOnly = Matrix::matrixFromUnitCell(_aDim, _bDim, _cDim, _alpha, _beta, _gamma);
+    unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
     
     for (int i = 0; i < standardVectorCount(); i++)
     {
@@ -136,12 +137,19 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     _beta = beta;
     _gamma = gamma;
     
+    unitCell[0] = _aDim;
+    unitCell[1] = _bDim;
+    unitCell[2] = _cDim;
+    unitCell[3] = _alpha;
+    unitCell[4] = _beta;
+    unitCell[5] = _gamma;
+    
     if (!symOperators.size())
     {
         Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, a, b, c, alpha, beta, gamma);
     }
     
-    unitCellOnly = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
+    unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
     
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
     

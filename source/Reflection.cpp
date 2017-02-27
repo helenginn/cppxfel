@@ -269,18 +269,15 @@ void Reflection::generateReflectionIds()
     int l = miller(0)->getL();
     
     cctbx::miller::index<> cctbxMiller = cctbx::miller::index<>(h, k, l);
-        for (int i = 0; i < ambiguityCount(); i++)
+    
+    for (int i = 0; i < ambiguityCount(); i++)
     {
         MatrixPtr ambiguityMat = matrixForAmbiguity(i);
         cctbx::miller::index<> cctbxTwinnedMiller = ambiguityMat->multiplyIndex(&cctbxMiller);
         
         asym_index asymmetricMiller = asym_index(spaceGroup, asymmetricUnit, cctbxTwinnedMiller);
-        
-    //    sym_equiv_indices equivMaker = sym_equiv_indices(spaceGroup, cctbxTwinnedMiller);
-    //    cctbx::miller::index<> asymmetricMiller = equivMaker(0).h();
        
         int newId = reflectionIdForMiller(asymmetricMiller.h());
-    //    int newId = reflectionIdForMiller(cctbxMiller);
         
         reflectionIds.push_back(newId);
     }
@@ -611,36 +608,14 @@ double Reflection::meanSigma()
 
 void Reflection::calculateResolution(MtzManager *mtz)
 {
-  /*  double a, b, c, alpha, beta, gamma;
-    
-    mtz->getUnitCell(&a, &b, &c, &alpha, &beta, &gamma);
-    
-    Matrix mat = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);*/
-    
     int h = millers[0]->getH();
     int k = millers[0]->getK();
     int l = millers[0]->getL();
     
     cctbx::miller::index<> anyMiller = cctbx::miller::index<>(h, k, l);
-  /*
-    scitbx::mat3<double> cctbxMat = unitCell.reciprocal().orthogonalization_matrix();
-    MatrixPtr mat = MatrixPtr(new Matrix);
-    mat->assignFromCctbxMatrix(cctbxMat);
-    mat->multiplyVector(&coordinate);
-    
-    resolution = length_of_vector(coordinate);
-    */
+  
     resolution = unitCell.two_stol(anyMiller);
     
-    /*double powH = pow(195, 2);
-    double powK = pow(195, 2);
-    double powL = pow(600, 2);
-    
-    double d_sqr = 1 / (pow(h, 2) / powH + pow(k, 2) / powK + pow(l, 2) / powL);
-    double d = sqrt(d_sqr);
-    
-    resolution = 1 / d;
-    */
     for (int i = 0; i < millerCount(); i++)
     {
         miller(i)->setResolution(resolution);

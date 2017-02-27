@@ -2269,6 +2269,10 @@ void Image::drawSpotsOnPNG(std::string filename)
             int yTop = coord.second - 6;
             int yBottom = coord.second + 6;
             
+            std::string text = spot(i)->getText();
+            
+            file->drawText(text, coord.first, coord.second - 20);
+            
             file->drawLine(xLeft, yTop, xRight, yBottom, 0.0, 0, 0, 0);
             file->drawLine(xLeft, yBottom, xRight, yTop, 0.0, 0, 0, 0);
         }
@@ -2379,6 +2383,9 @@ void Image::writePNG(PNGFilePtr file)
         
         minZ -= nudge;
         maxZ += nudge;
+        
+        logged << "Image " << getFilename() << " (min/max Z: " << minZ << ", " << maxZ << ")" << std::endl;
+        sendLog();
 //        minZ = 913;
 //        maxZ = 926;
     }

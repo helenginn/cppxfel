@@ -817,20 +817,6 @@ DetectorPtr Detector::spotCoordForMiller(MillerPtr miller, double *xSpot, double
     return probe;
 }
 
-DetectorPtr Detector::spotCoordForRayIntersection(vec ray, double *xSpot, double *ySpot)
-{
-    vec intersection;
-    
-    DetectorPtr probe = detectorForRayIntersection(ray, &intersection);
-    
-    if (probe)
-    {
-        probe->intersectionToSpotCoord(intersection, xSpot, ySpot);
-    }
-    
-    return probe;
-}
-
 // MARK: Keeping track of added Millers
 
 void Detector::addMillerCarefully(MillerPtr miller)

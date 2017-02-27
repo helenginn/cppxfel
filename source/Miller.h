@@ -82,7 +82,7 @@ private:
     double integrate_special_beam_slice(double pBandwidth, double qBandwidth);
     double sliced_integral(double low_wavelength, double high_wavelength,
                           double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
-                          double exponent, bool binary = false, bool withBeamObject = false);
+                          double exponent, bool binary = false, bool withBeamObject = false, bool fixPredicted = false);
     
     double integrate_sphere_uniform(double p, double q);
     double integrate_sphere_gaussian(double p, double q);
@@ -173,7 +173,7 @@ public:
 	void recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false, bool no_norm = false);
 	double partialityForHKL(vec hkl, double mosaicity,
-			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false);
+			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false, bool fixPredicted = false);
 	void applyScaleFactor(double scaleFactor);
 	double calculateNormPartiality(MatrixPtr rotatedMatrix, double mosaicity,
 			double spotSize, double wavelength, double bandwidth, double exponent);

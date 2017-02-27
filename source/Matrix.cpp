@@ -32,19 +32,6 @@ double *Matrix::array()
     return components;
 }
 
-Matrix::Matrix(scitbx::mat3<double> newUnitCell, scitbx::mat3<double> newRotation)
-{
-    unitCell = MatrixPtr(new Matrix());
-    rotation = MatrixPtr(new Matrix());
-    
-    unitCell->assignFromCctbxMatrix(newUnitCell);
-    rotation->assignFromCctbxMatrix(newRotation);
-    
-    rotation->rotate(0, 0, M_PI / 2);
-    
-    this->recalculateOrientationMatrix();
-}
-
 void Matrix::maxMillers(int (&millers)[3], double maxResolution)
 {
     for (int i = 0; i < 3; i++)
@@ -278,61 +265,6 @@ void Matrix::prettyPrint()
     Logger::mainLogger->addStream(&logged);
 }
 
-MatrixPtr Matrix::matrixFromUnitCellVersion2(double a, double b, double c, double alpha, double beta, double gamma)
-{
-    scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
-    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
-    
-    scitbx::mat3<double> realSpaceScitbx = uc.orthogonalization_matrix();
-    MatrixPtr realSpace = MatrixPtr(new Matrix());
-    realSpace->assignFromCctbxMatrix(realSpaceScitbx);
-    
-    vec aVec = new_vector((*realSpace)[0], (*realSpace)[4], (*realSpace)[8]);
-    vec bVec = new_vector((*realSpace)[1], (*realSpace)[5], (*realSpace)[9]);
-    vec cVec = new_vector((*realSpace)[2], (*realSpace)[6], (*realSpace)[10]);
-    
-    double aRealLength = length_of_vector(aVec);
-    double bRealLength = length_of_vector(bVec);
-    double cRealLength = length_of_vector(cVec);
-    
-    vec aStar = cross_product_for_vectors(bVec, cVec);
-    scale_vector_to_distance(&aStar, 1 / aRealLength);
-    
-    vec bStar = cross_product_for_vectors(aVec, cVec);
-    scale_vector_to_distance(&bStar, 1 / bRealLength);
-    
-    vec cStar = cross_product_for_vectors(aVec, bVec);
-    scale_vector_to_distance(&cStar, 1 / cRealLength);
-    
-    MatrixPtr reciprocalMatrix = MatrixPtr(new Matrix());
-    reciprocalMatrix->components[0] = aStar.h;
-    reciprocalMatrix->components[1] = aStar.k;
-    reciprocalMatrix->components[2] = aStar.l;
-    
-    reciprocalMatrix->components[4] = bStar.h;
-    reciprocalMatrix->components[5] = bStar.k;
-    reciprocalMatrix->components[6] = bStar.l;
-    
-    reciprocalMatrix->components[8] = cStar.h;
-    reciprocalMatrix->components[9] = cStar.k;
-    reciprocalMatrix->components[10] = cStar.l;
-    
-    std::ostringstream logged;
-    /*
-     logged << "aVec: " << aVec.h << "\t" << aVec.k << "\t" << aVec.l << std::endl;
-     logged << "bVec: " << bVec.h << "\t" << bVec.k << "\t" << bVec.l << std::endl;
-     logged << "cVec: " << cVec.h << "\t" << cVec.k << "\t" << cVec.l << std::endl;
-     
-     logged << "aStar: " << aStar.h << "\t" << aStar.k << "\t" << aStar.l << std::endl;
-     logged << "bStar: " << bStar.h << "\t" << bStar.k << "\t" << bStar.l << std::endl;
-     logged << "cStar: " << cStar.h << "\t" << cStar.k << "\t" << cStar.l << std::endl;
-     
-     logged << "Reciprocal lattice " << reciprocalMatrix->description() << std::endl;
-     Logger::mainLogger->addStream(&logged);
-     */
-    return reciprocalMatrix;
-}
-
 std::vector<double> Matrix::unitCellFromReciprocalUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
 {
     scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
@@ -352,23 +284,14 @@ std::vector<double> Matrix::unitCellFromReciprocalUnitCell(double a, double b, d
     return unitCell;
 }
 
-MatrixPtr Matrix::matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
+MatrixPtr Matrix::matrixFromUnitCell(double *unitCell)
 {
-    //  return matrixFromUnitCellVersion2(a, b, c, alpha, beta, gamma);
-    
-    scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
-    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
-    
-    scitbx::mat3<double> mat = uc.orthogonalization_matrix().inverse();
-    
     MatrixPtr aMatrix = MatrixPtr(new Matrix());
-    aMatrix->assignFromCctbxMatrix(mat);
+    aMatrix->rotation = MatrixPtr(new Matrix());
+    aMatrix->unitCell = MatrixPtr(new Matrix());
+    aMatrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
     
-    std::ostringstream logged;
-//    logged << "Reciprocal lattice " << aMatrix->description() << std::endl;
-//    Logger::mainLogger->addStream(&logged);
-    
-    return aMatrix;
+    return aMatrix->unitCell;
 }
 
 // might be totally crap
@@ -418,28 +341,6 @@ void Matrix::subtract(MatrixPtr secondMatrix)
     }
 }
 
-scitbx::mat3<double> Matrix::cctbxMatrix(MatrixPtr theMatrix)
-{
-    Matrix *chosenMatrix = this;
-    if (theMatrix)
-        chosenMatrix = &*theMatrix;
-    
-    scitbx::mat3<double> cctbxMat = scitbx::mat3<double>();
-    
-    cctbxMat(0, 0) = chosenMatrix->components[0];
-    cctbxMat(1, 0) = chosenMatrix->components[4];
-    cctbxMat(2, 0) = chosenMatrix->components[8];
-    
-    cctbxMat(0, 1) = chosenMatrix->components[1];
-    cctbxMat(1, 1) = chosenMatrix->components[5];
-    cctbxMat(2, 1) = chosenMatrix->components[9];
-    
-    cctbxMat(0, 2) = chosenMatrix->components[2];
-    cctbxMat(1, 2) = chosenMatrix->components[6];
-    cctbxMat(2, 2) = chosenMatrix->components[10];
-    
-    return cctbxMat;
-}
 
 void Matrix::unitCellLengths(double **lengths)
 {
@@ -489,29 +390,6 @@ void Matrix::setComplexMatrix(MatrixPtr newUnitCell, MatrixPtr newRotation)
     recalculateOrientationMatrix();
 }
 
-void Matrix::assignFromCctbxMatrix(scitbx::mat3<double> newMat)
-{
-    assignFromCctbxMatrix(this, newMat);
-}
-
-// CCTBX_REWRITE: here
-void Matrix::assignFromCctbxMatrix(Matrix *changeMat, scitbx::mat3<double> newMat)
-{
-    changeMat->components[0] = newMat(0, 0);
-    changeMat->components[4] = newMat(1, 0);
-    changeMat->components[8] = newMat(2, 0);
-    
-    changeMat->components[1] = newMat(0, 1);
-    changeMat->components[5] = newMat(1, 1);
-    changeMat->components[9] = newMat(2, 1);
-    
-    changeMat->components[2] = newMat(0, 2);
-    changeMat->components[6] = newMat(1, 2);
-    changeMat->components[10] = newMat(2, 2);
-}
-
-// CCTBX_REWRITE: here
-
 void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma)
 {
     std::ostringstream logged;
@@ -521,9 +399,6 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     
     if (!unitCell || !rotation)
     {
-    //    logged << "Just changing unit cell lengths due to unitcell/rotation distinction" << std::endl;
-    //    Logger::mainLogger->addStream(&logged, LogLevelDebug);
-        
         double aScale = lengths[0] / newA;
         double bScale = lengths[1] / newB;
         double cScale = lengths[2] / newC;
@@ -547,11 +422,31 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     
     logged << "Original cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2];
     
-    scitbx::af::double6 newParams = scitbx::af::double6(newA, newB, newC, alpha, beta, gamma);
-    cctbx::uctbx::unit_cell newUnitCell = cctbx::uctbx::unit_cell(newParams);
-    scitbx::mat3<double> newOrtho = newUnitCell.orthogonalization_matrix().inverse();
+    double cosAlpha = cos(alpha * M_PI / 180);
+    double cosBeta = cos(beta * M_PI / 180);
+    double cosGamma = cos(gamma * M_PI / 180);
+    double sinBeta = sin(beta * M_PI / 180);
+    double sinGamma = sin(gamma * M_PI / 180);
     
-    assignFromCctbxMatrix(&*this->unitCell, newOrtho);
+    double denom = sinBeta * sinGamma;
+    double rCosAlpha = cosBeta * cosGamma - cosAlpha;
+    rCosAlpha /= denom;
+    
+    double s1rca2 = sqrt(1. - rCosAlpha * rCosAlpha);
+    
+    MatrixPtr ortho = MatrixPtr(new Matrix());
+    ortho->components[0] = newA;
+    ortho->components[4] = cosGamma * newB;
+    ortho->components[8] = cosBeta * newC;
+    ortho->components[1] = 0.;
+    ortho->components[5] = sinGamma * newB;
+    ortho->components[9] = -sinBeta * rCosAlpha * newC;
+    ortho->components[2] = 0.;
+    ortho->components[6] = 0.;
+    ortho->components[10] = sinBeta * newC * s1rca2;
+    
+    this->unitCell = ortho->inverse3DMatrix();
+    
     recalculateOrientationMatrix();
     
     unitCellLengths(&lengths);
