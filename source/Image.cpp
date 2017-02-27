@@ -2383,6 +2383,9 @@ void Image::writePNG(PNGFilePtr file)
         
         minZ -= nudge;
         maxZ += nudge;
+        
+        logged << "Image " << getFilename() << " (min/max Z: " << minZ << ", " << maxZ << ")" << std::endl;
+        sendLog();
 //        minZ = 913;
 //        maxZ = 926;
     }
