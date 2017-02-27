@@ -58,7 +58,6 @@ public:
     void subtract(MatrixPtr secondMatrix);
     Matrix(void);
     Matrix(double *components);
-    Matrix(scitbx::mat3<double> unitcell, scitbx::mat3<double> rotation);
     MatrixPtr copy(void);
     void copyComponents(MatrixPtr mat2);
     void printDescription(bool detailed = false);
@@ -84,9 +83,8 @@ public:
     void identity(void);
     void rotateModelAxes(double alpha, double beta, double gamma);
     void newMultiplyVector(double *vector[]);
-    static MatrixPtr matrixFromUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
+    static MatrixPtr matrixFromUnitCell(double *unitCell);
     static std::vector<double> unitCellFromReciprocalUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
-    static MatrixPtr matrixFromUnitCellVersion2(double a, double b, double c, double alpha, double beta, double gamma);
     void orientationMatrixUnitCell(double *a, double *b, double *c);
     void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
     void scaleUnitCellAxes(double aScale, double bScale, double cScale);
@@ -103,10 +101,7 @@ public:
     void eulerAngles(double *theta, double *phi, double *psi, bool force = false);
     double similarityToRotationMatrix(MatrixPtr mat2, double tolerance, bool force = false);
     void unitCellLengths(double **lengths);
-    scitbx::mat3<double> cctbxMatrix(MatrixPtr theMatrix = MatrixPtr());
     void threeDimComponents(double **componentArray);
-    void assignFromCctbxMatrix(scitbx::mat3<double> newMat);
-    void assignFromCctbxMatrix(Matrix *changeMat, scitbx::mat3<double> newMat);
     double *array();
     void print(void);
     void recalculateOrientationMatrix();

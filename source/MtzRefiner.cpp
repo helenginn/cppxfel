@@ -1047,7 +1047,7 @@ void MtzRefiner::singleLoadImages(std::string *filename, vector<ImagePtr> *newIm
         }
         else
         {
-            newMat = Matrix::matrixFromUnitCell(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+            newMat = Matrix::matrixFromUnitCell(&unitCell[0]);
         }
         
         newImage->setUpIOMRefiner(newMat);

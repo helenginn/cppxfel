@@ -72,9 +72,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     newReflection->setUnitCellDouble(&unitCell[0]);
     newReflection->setSpaceGroup(spaceGroupNum);
     
-    unitCellOnly = Matrix::matrixFromUnitCell(unitCell[0], unitCell[1], unitCell[2],
-                                                    unitCell[3], unitCell[4], unitCell[5]);
-    
+    unitCellOnly = Matrix::matrixFromUnitCell(&unitCell[0]);
     
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
     

@@ -531,7 +531,11 @@ void MtzManager::setDefaultMatrix()
     double beta = cellAngles[1];
     double gamma = cellAngles[2];
     
-    MatrixPtr mat = Matrix::matrixFromUnitCell(a, b, c, alpha, beta, gamma);
+    double unitCell[6];
+    memcpy(unitCell, cellDim, sizeof(double) * 3);
+    memcpy(&unitCell[3], cellAngles, sizeof(double) * 3);
+    
+    MatrixPtr mat = Matrix::matrixFromUnitCell(unitCell);
     matrix = mat->copy();
 }
 
