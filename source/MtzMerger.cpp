@@ -54,7 +54,7 @@ double MtzMerger::maxResolution()
         return FileParser::getKey("MERGE_TO_RESOLUTION", 1.4);
     }
     
-    double maxRes = 0;
+    double maxRes = 1 / 2.0;
     
     if (!lowMemoryMode)
     {

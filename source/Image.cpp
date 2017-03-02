@@ -1113,8 +1113,13 @@ void Image::fakeSpots()
         getIOMRefiner(i)->fakeSpots();
     }
     
+    logged << "Generated " << spotCount() << " fake spots." << std::endl;
+    sendLog();
+    
     setSpotsFile("_" + getBasename() + "_fake.list");
     writeSpotsList();
+    
+    dropImage();
 }
 
 void Image::findSpots()
@@ -2230,9 +2235,8 @@ double Image::standardDeviationOfPixels()
     return standard_deviation(&values);
 }
 
-void Image::drawSpotsOnPNG(std::string filename)
+void Image::drawSpotsOnPNG(std::string filename, bool drawPanels)
 {
-    
     if (!loadedSpots)
     {
         processSpotList();
@@ -2245,8 +2249,7 @@ void Image::drawSpotsOnPNG(std::string filename)
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
     writePNG(file);
     
-    file->drawText("Beam centre", 0, -40);
-
+    
     for (int i = 0; i < spotCount(); i++)
     {
         Coord coord = spot(i)->getXY();
@@ -2259,6 +2262,11 @@ void Image::drawSpotsOnPNG(std::string filename)
             if (!spot(i)->isBeamCentre())
             {
                 file->drawText(i_to_str(intensity), coord.first, coord.second - 20);
+            }
+            else
+            {
+                file->drawText("Beam centre", coord.first, coord.second - 40);
+
             }
             file->drawCircleAroundPixel(coord.first, coord.second, 10, 1, 0, 0, 0);
         }
@@ -2275,6 +2283,21 @@ void Image::drawSpotsOnPNG(std::string filename)
             
             file->drawLine(xLeft, yTop, xRight, yBottom, 0.0, 0, 0, 0);
             file->drawLine(xLeft, yBottom, xRight, yTop, 0.0, 0, 0, 0);
+        }
+    }
+    
+    if (drawPanels)
+    {
+        std::vector<DetectorPtr> detectors;
+        Detector::getMaster()->getAllSubDetectors(detectors, true);
+        
+        for (int i = 0; i < detectors.size(); i++)
+        {
+            vec xyz = detectors[i]->midPointOffsetFromParent();
+            double x = xyz.h;
+            double y = xyz.k;
+            
+            file->drawText(detectors[i]->getTag(), x, y);
         }
     }
     
@@ -2361,7 +2384,7 @@ void Image::drawCrystalsOnPNG(int crystalNum)
 
 void Image::writePNG(PNGFilePtr file)
 {
-    file->setCentre(getBeamX(), getBeamY());
+    file->setCentre(0, 0);
     
     double threshold = FileParser::getKey("PNG_THRESHOLD", 0.);
     
@@ -2424,17 +2447,8 @@ void Image::writePNG(PNGFilePtr file)
                     detector->spotCoordToAbsoluteVec(i, j, &arranged);
                     double proportion_distance = (arranged.l - minZ) / (maxZ - minZ);
                     
-                    while (proportion_distance < 0)
-                    {
-                        proportion_distance += 1.;
-                    }
                     
-                    while (proportion_distance > 1)
-                    {
-                        proportion_distance -= 1.;
-                    }
-                    
-                    proportion_distance *= 120;
+                    proportion_distance *= 180;
                     proportion_distance += 120;
                     
                     png_byte red, green, blue;
@@ -2450,14 +2464,36 @@ void Image::writePNG(PNGFilePtr file)
     }
 }
 
-void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
+void Image::plotVectorsOnPNG(std::vector<SpotVectorPtr> vectors, std::string aFilename)
 {
-    std::string filename = getBasename() + "_vec.png";
     int height = FileParser::getKey("PNG_HEIGHT", 2400);
-    PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
+    
+    if (aFilename == "")
+    {
+        aFilename = getBasename() + "_vec.png";
+    }
+
+    PNGFilePtr file = PNGFilePtr(new PNGFile(aFilename, height, height));
     writePNG(file);
     int cx, cy;
     file->getCentre(&cx, &cy);
+    
+    for (int k = 0; k < vectors.size(); k++)
+    {
+        SpotVectorPtr spotVec = vectors[k];
+        
+        spotVec->drawOnImage(file);
+    }
+    
+    file->writeImageOutput();
+    
+    logged << "Written file " << filename << std::endl;
+    sendLog();
+}
+
+void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
+{
+    std::vector<SpotVectorPtr> vecs;
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -2474,20 +2510,12 @@ void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
             for (int k = 0; k < solution->spotVectorCount(); k++)
             {
                 SpotVectorPtr spotVec = it->first;
-                Coord spot1 = spotVec->getFirstSpot()->getXY();
-                Coord spot2 = spotVec->getSecondSpot()->getXY();
-
-                file->drawLine(spot1.first, spot1.second, spot2.first, spot2.second,
-                               0.0, 0, 0, 100);
-                
+                vecs.push_back(spotVec);
                 it++;
             }
         }
     }
     
-    file->writeImageOutput();
-    
-    logged << "Written file " << filename << std::endl;
-    sendLog();
+    plotVectorsOnPNG(vecs);
 }
 

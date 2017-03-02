@@ -84,6 +84,13 @@ private:
     
     vec poke;
     
+    /* The basis vectors of the poke - so now x will move panels laterally
+       w.r.t. each other and y will move panels towards or away from each other.
+     */
+    
+    vec pokeLateralAxis;
+    vec pokeLongitudinalAxis;
+    
     /* Nudge (angles as per the intraPanel movement) */
     vec nudgeRotation;
 
@@ -140,7 +147,6 @@ private:
     void spotCoordToRelativeVec(double unarrangedX, double unarrangedY,
                                 vec *arrangedPos);
     vec rawMidPointOffsetFromParent(bool useParent = true);
-    vec midPointOffsetFromParent(bool useParent = true, vec *angles = NULL, bool resetNudge = false);
     void removeMidPointRelativeToParent();
     void addToBasisChange(vec angles, MatrixPtr chosenMat = MatrixPtr());
     void fixBasisChange();
@@ -563,38 +569,10 @@ public:
         return static_cast<Detector *>(object)->poke.l;
     }
 
-    void resetPoke()
-    {
-        poke.h = 0;
-        poke.k = 0;
-        poke.l = 0;
-    }
+    void resetPoke();
     
-    void setPokeN(int pokeNum, double pokeValue)
-    {
-        for (int i = 0; i < 1; i++)
-        {
-            int modifier = (i == 0) ? -1 : 1;
-            if (pokeNum == 0)
-            {
-                poke.h = pokeValue;
-                setNudgeX(&*getChild(i), modifier * pokeValue);
-            }
-            else if (pokeNum == 1)
-            {
-                poke.k = pokeValue;
-                setNudgeY(&*getChild(i), modifier * pokeValue);
-            }
-            else if (pokeNum == 2)
-            {
-                poke.l = pokeValue;
-                setNudgeTiltZ(&*getChild(i), modifier * pokeValue);
-            }
-            
-            getChild(i)->updateCurrentRotation();
-            getChild(i)->setUpdateMidPointForDetector();
-        }
-    }
+    
+    void setPokeN(int pokeNum, double pokeValue);
     
     static void setPokeX(void *object, double pokeValue)
     {
@@ -614,6 +592,11 @@ public:
     static void setNoisy(bool _noisy)
     {
         noisy = _noisy;
+    }
+    
+    static bool isNoisy()
+    {
+        return noisy;
     }
     
     static void setDrawImage(ImagePtr image)
@@ -674,6 +657,9 @@ public:
         return (detectorType == DetectorTypeCSPAD);
     }
     
+    vec midPointOffsetFromParent(bool useParent = true, vec *angles = NULL, bool resetNudge = false);
+    void getAllSubDetectors(std::vector<DetectorPtr> &array, bool childrenOnly = false);
+    
     void reportMillerScores();
     
     void lockNudges();
@@ -704,17 +690,28 @@ public:
 
     bool isRefinable(GeometryScoreType scoreType)
     {
-        if (scoreType == GeometryScoreTypeIntrapanel ||
-            scoreType == GeometryScoreTypeAngleConsistency ||
+        if (scoreType == GeometryScoreTypeAngleConsistency ||
             scoreType == GeometryScoreTypeBeamCentre)
         {
             return _refinable;
         }
-        else
+        else if (scoreType == GeometryScoreTypeIntrapanel)
         {
             for (int i = 0; i < childrenCount(); i++)
             {
-                if (getChild(i)->isRefinable(GeometryScoreTypeIntrapanel))
+                if (getChild(i)->isRefinable(GeometryScoreTypeBeamCentre))
+                {
+                    return false;
+                }
+            }
+            
+            return _refinable;
+        }
+        else if (scoreType == GeometryScoreTypeInterpanel)
+        {
+            for (int i = 0; i < childrenCount(); i++)
+            {
+                if (getChild(i)->isRefinable(GeometryScoreTypeBeamCentre))
                 {
                     return true;
                 }
@@ -722,6 +719,8 @@ public:
             
             return false;
         }
+        
+        return false;
     }
     
     void setRefinable(bool refinable)

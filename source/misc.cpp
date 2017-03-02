@@ -7,11 +7,21 @@
 #include <math.h>
 #include <glob.h>
 #include <vector>
+#include <iomanip>
 
 
-std::string f_to_str(double val)
+std::string f_to_str(double val, int precision)
 {
 	std::ostringstream ss;
+    if (precision > 0)
+    {
+        ss << std::fixed << std::setprecision(precision);
+    }
+    else if (precision < 0)
+    {
+        ss << std::fixed;
+    }
+    
 	ss << val;
 	std::string temp = ss.str();
 

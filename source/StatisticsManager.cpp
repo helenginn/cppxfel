@@ -128,7 +128,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 	int num = 0;
     CSV csv = CSV(0);
 
-	shot1->findCommonReflections(shot2, reflections1, reflections2, &num);
+	shot1->findCommonReflections(shot2, reflections1, reflections2, &num, true);
 
     if (reflections1.size() <= 2)
 	{
@@ -233,8 +233,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
             continue;
         
 		double mean1 = reflections1[i]->meanIntensity();
-		std::string filename = shot1->getFilename();
-		double mean2 = reflections2[i]->meanIntensityWithExclusion(&filename);
+        double mean2 = reflections2[i]->meanIntensity();
 
 		if (mean1 != mean1 || mean2 != mean2 || weight != weight)
 			continue;
@@ -263,8 +262,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 			continue;
 
 		double amp_x = reflections1[i]->meanIntensity();
-		std::string filename = shot1->getFilename();
-		double amp_y = reflections2[i]->meanIntensityWithExclusion(&filename);
+		double amp_y = reflections2[i]->meanIntensity();
 
 		double weight =
 				useSigmaOne ?
@@ -395,9 +393,9 @@ double StatisticsManager::r_factor(RFactorType rFactor, MtzManager *shot1, int *
 	mult /= all_reflections_used;
 
 	if (multiplicity != NULL)
+    {
 		*multiplicity = mult;
-    
-    *multiplicity = sumMultiplicity / multiplicityDivide;
+    }
 
 	if (hits != NULL)
 		*hits = all_reflections_used;

@@ -44,7 +44,7 @@ private:
     std::vector<Entry> entries;
     double minX, minY, maxX, maxY;
     bool didSetMinMaxXY;
-    void minMaxCol(int col, double *min, double *max);
+    
     std::string mapToAscii(Plot plot);
     void writeStringToPlot(std::string text, Plot *plot, int x, int y);
 public:
@@ -105,11 +105,15 @@ public:
         }
     }
     
+    void minMaxCol(int col, double *min, double *max);
     void addOneToFrequency(double category, std::string whichHeader, double weight = 1, std::string categoryHeader = "");
     void addOneToFrequency(double category, int column, double weight = 1, int categoryNum = 0);
     int findHeader(std::string whichHeader);
 
     ~CSV();
+    
+    void plotPNG(std::map<std::string, std::string> properties);
+    
     
     void addPartialEntry(int dummy, ...);
     void addEntry(int dummy, ...);

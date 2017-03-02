@@ -13,6 +13,7 @@
 #include "FileParser.h"
 #include <vector>
 
+/*
 double AmbiguityBreaker::dotProduct(int imageNumI, int imageNumJ)
 {
     int arrayStartI = imageNumI * ambiguityCount;
@@ -86,14 +87,76 @@ double AmbiguityBreaker::gradientForImage(int imageNum, int axis)
 double AmbiguityBreaker::gridCorrelation(int imageNumI, int imageNumJ)
 {
     return statsManager->gridCorrelation(imageNumI, imageNumJ);
+}*/
+
+void AmbiguityBreaker::calculateCorrelations(AmbiguityBreaker *me, int offset)
+{
+    int maxThreads = 1;//FileParser::getMaxThreads();
+    std::ostringstream logged;
+
+    for (int i = offset; i < me->mtzs.size(); i += maxThreads)
+    {
+        MtzPtr iMtz = me->mtzs[i];
+        iMtz->setActiveAmbiguity(0);
+        
+        for (int j = 0; j < i; j++)
+        {
+            MtzPtr jMtz = me->mtzs[j];
+            
+            for (int k = 0; k < me->ambiguityCount; k++)
+            {
+                int hits = 0;
+                double cc = StatisticsManager::cc_pearson(&*iMtz, &*jMtz, true, &hits);
+                
+                me->correlationMaps[k][iMtz][jMtz] = cc;
+                me->correlationMaps[k][jMtz][iMtz] = cc;
+                iMtz->incrementActiveAmbiguity();
+            }
+            
+            iMtz->setActiveAmbiguity(0);
+        }
+    }
+    
+    if (offset == 0)
+    {
+        logged << std::endl;
+        Logger::log(logged);
+    }
+    
 }
 
 void AmbiguityBreaker::makeCorrelationGrid()
 {
-    statsManager = new StatisticsManager();
-    statsManager->setMtzs(mtzs);
+    logged << "************************************" << std::endl;
+    logged << "****  Calculating correlations  ****" << std::endl;
+    logged << "************************************" << std::endl << std::endl;
+    logged << "There are " << mtzs.size() << " mtz files." << std::endl;
+    sendLog();
     
-    statsManager->generate_cc_grid();
+    
+    int maxThreads = FileParser::getMaxThreads();
+    
+    for (int j = 0; j < ambiguityCount; j++)
+    {
+        correlationMaps.push_back(CorrelationMap());
+    }
+    
+    for (int i = 0; i < mtzs.size(); i++)
+    {
+        for (int j = 0; j < ambiguityCount; j++)
+        {
+            correlationMaps[j][mtzs[i]] = CrystalCorrelation();
+        }
+    }
+    
+    boost::thread_group threads;
+    for (int i = 0; i < 1; i++)
+    {
+        boost::thread *thr = new boost::thread(calculateCorrelations, this, i);
+        threads.add_thread(thr);
+    }
+    
+    threads.join_all();
 }
 
 // Call constructor and then run()
@@ -111,7 +174,11 @@ void AmbiguityBreaker::setMtzs(vector<MtzPtr> newMtzs)
     {
         ambiguityCount = mtzs[0]->ambiguityCount();
     }
-    
+    else
+    {
+        logged << "No MTZs loaded; not breaking indexing ambiguity." << std::endl;
+        sendLogAndExit();
+    }
     
     bool shouldApplyUnrefinedPartiality = FileParser::getKey("APPLY_UNREFINED_PARTIALITY", false);
     
@@ -143,7 +210,9 @@ void AmbiguityBreaker::setMtzs(vector<MtzPtr> newMtzs)
 
     
     if (ambiguityCount > 1)
+    {
         makeCorrelationGrid();
+    }
 }
 
 
@@ -155,52 +224,17 @@ void AmbiguityBreaker::run()
     {
         breakAmbiguity();
         printResults();
-        split();
     }
     merge();
 }
 
-void AmbiguityBreaker::split()
-{
-    if (ambiguityCount == 2)
-    {
-        for (int i = 0; i < mtzs.size(); i++)
-        {
-            int startI = i * ambiguityCount;
-            
-            if (x[startI] > x[startI + 1])
-            {
-                mtzs[i]->setActiveAmbiguity(1);
-            }
-            else
-            {
-                mtzs[i]->setActiveAmbiguity(0);
-            }
-        }
-    }
-    else if (ambiguityCount > 2)
-    {
-        Logger::mainLogger->addString("WARNING! cppxfel has not been configured to split a set of images with more than two possible indexing solutions. The resulting structure will be twinned. Instead, feel free to provide a reference MTZ under the \"INITIAL_MTZ\" keyword which will avoid the requirement to break the indexing ambiguity. (Sorry)");
-    }
-}
-
 void AmbiguityBreaker::merge()
-{
-/*
-    MtzGrouper *idxGrouper = new MtzGrouper();
-    idxGrouper->setWeighting(WeightTypeAverage);
-    idxGrouper->setExcludeWorst(false);
-    idxGrouper->setMtzManagers(mtzs);
-    MtzPtr unmerged;
-    idxGrouper->merge(&merged, &unmerged);
-    delete idxGrouper;
- */
-    
+{/*
     bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
     
     
     MtzMerger merger;
-    merger.setNeedToScale(false);
+    merger.setNeedToScale(true);
     merger.setPreventRejections(true);
     merger.setAllMtzs(mtzs);
     merger.setExcludeWorst(false);
@@ -212,31 +246,44 @@ void AmbiguityBreaker::merge()
     {
         merger.mergeFull(true);
     }
-    */
+    //
     merger.setFreeOnly(true);
     merger.mergeFull();
     
-    merged = merger.getMergedMtz();
+    merged = merger.getMergedMtz();*/
+    
+    MtzGrouper *grouper = new MtzGrouper();
+    grouper->setScalingType(ScalingTypeAverage);
+    grouper->setWeighting(WeightTypePartialitySigma);
+    grouper->setMtzManagers(mtzs);
+    
+    grouper->setCutResolution(false);
+    
+    grouper->setExcludeWorst(false);
+    
+    MtzPtr mergedMtz, unmergedMtz;
+    grouper->merge(&mergedMtz, &unmergedMtz, -1, false);
+    merged = mergedMtz;
+    mergedMtz->writeToFile("remerged.mtz");
+    
+    delete grouper;
 }
 
 void AmbiguityBreaker::printResults()
 {
-    for (int i = 0; i < mtzs.size(); i++)
+    int ambiguityNums[8];
+    memset(ambiguityNums, 0, sizeof(int) * 8);
+    
+    for (int j = 0; j < mtzs.size(); j++)
     {
-        int start = i * ambiguityCount;
-        
-        std::string filename = mtzs[i]->getFilename();
-        logged << filename << "\t";
-        
-        for (int j = 0; j < ambiguityCount; j++)
-        {
-            logged << x[start + j] << "\t";
-        }
-        
-        logged << std::endl;
+        ambiguityNums[mtzs[j]->getActiveAmbiguity()]++;
     }
     
-    sendLog();
+    for (int i = 0; i < ambiguityCount; i++)
+    {
+        logged << "Ambiguity " << i << " : " << ambiguityNums[i] << " crystals." << std::endl;
+        sendLog();
+    }
 }
 
 void AmbiguityBreaker::breakAmbiguity()
@@ -248,6 +295,83 @@ void AmbiguityBreaker::breakAmbiguity()
         return;
     }
     
+    logged << "***********************************" << std::endl;
+    logged << "*** Breaking indexing ambiguity ***" << std::endl;
+    logged << "***********************************" << std::endl << std::endl;
+    sendLog();
+
+    for (int i = 0; i < mtzs.size(); i++)
+    {
+        int random = rand() % (ambiguityCount);
+        
+        mtzs[i]->setActiveAmbiguity(random);
+    }
+    
+    bool unchanged = false;
+    int cycles = 0;
+    
+    while (!unchanged)
+    {
+        cycles++;
+        unchanged = true;
+        int changedNum = 0;
+        double totalMaxAverage = 0;
+        
+        for (int i = 0; i < mtzs.size(); i++)
+        {
+            int myAmbiguity = mtzs[i]->getActiveAmbiguity();
+            
+            double ccSums[8];
+            int ccCounts[8];
+            
+            memset(ccSums, 0, sizeof(double) * 8);
+            memset(ccCounts, 0, sizeof(int) * 8);
+            
+            for (int j = 0; j < mtzs.size(); j++)
+            {
+                if (i == j) continue;
+                
+                int theirAmbiguity = mtzs[j]->getActiveAmbiguity();
+                double chosenCC = correlationMaps[theirAmbiguity][mtzs[i]][mtzs[j]];
+                
+                if (chosenCC < 0)
+                    continue;
+                
+                ccSums[theirAmbiguity] += chosenCC;
+                ccCounts[theirAmbiguity]++;
+            }
+            
+            double maxAve = 0;
+            int maxAveValue = 0;
+            
+            for (int j = 0; j < ambiguityCount; j++)
+            {
+                ccSums[j] /= ccCounts[j];
+                
+                if (ccSums[j] >= maxAve)
+                {
+                    maxAve = ccSums[j];
+                    maxAveValue = j;
+                }
+            }
+            
+            totalMaxAverage += maxAve;
+            
+            if (maxAveValue != myAmbiguity)
+            {
+                mtzs[i]->setActiveAmbiguity(maxAveValue);
+                unchanged = false;
+                changedNum++;
+            }
+        }
+        
+        totalMaxAverage /= mtzs.size();
+        
+        logged << "Cycle " << cycles << " - switched " << changedNum << " indexing ambiguities. Best average now " << totalMaxAverage << std::endl;
+        sendLog();
+    }
+    
+    /*
     int n = ambiguityCount * (int)mtzs.size();
 
     scitbx::af::shared<int> nbd(n);
@@ -327,5 +451,5 @@ void AmbiguityBreaker::breakAmbiguity()
     } catch (void *e)
     {
         std::cout << "Unknown error!" << std::endl;
-    }
+    }*/
 }

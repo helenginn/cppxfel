@@ -10,31 +10,21 @@
 #include <vector>
 #include <cmath>
 #include "csymlib.h"
-#include <cctbx/miller/sym_equiv.h>
-#include <cctbx/miller/asu.h>
-#include <cctbx/miller.h>
 #include "Miller.h"
 
 #include "FileParser.h"
 #include "StatisticsManager.h"
 
-using cctbx::sgtbx::space_group_type;
-using cctbx::miller::sym_equiv_indices;
-using cctbx::miller::asym_index;
-using cctbx::sgtbx::reciprocal_space::asu;
-
-asu Reflection::asymmetricUnit = asu();
 bool Reflection::hasSetup = false;
 bool Reflection::setupUnitCell = false;
-space_group_type Reflection::spgType = cctbx::sgtbx::space_group_type();
-cctbx::sgtbx::space_group Reflection::spaceGroup = cctbx::sgtbx::space_group();
-cctbx::uctbx::unit_cell Reflection::unitCell;
 unsigned char Reflection::spgNum = 0;
 std::mutex Reflection::setupMutex;
 std::vector<MatrixPtr> Reflection::flipMatrices;
 MatrixPtr Reflection::customAmbiguity;
+MatrixPtr Reflection::unitCellMatrix;
 double Reflection::rejectSigma = 0;
 bool Reflection::shouldReject = 0;
+CSym::CCP4SPG *Reflection::ccp4_space_group;
 
 MatrixPtr Reflection::matrixForAmbiguity(int i)
 {
@@ -207,9 +197,8 @@ void Reflection::setSpaceGroup(int spaceGroupNum)
         return;
     }
 
+    ccp4_space_group = ccp4spg_load_by_ccp4_num(spaceGroupNum);
     spgNum = spaceGroupNum;
-    space_group_symbols spaceGroupSymbol = space_group_symbols(spaceGroupNum);
-    std::string hallSymbol = spaceGroupSymbol.hall();
     
     if (hasSetup)
         return;
@@ -228,11 +217,6 @@ void Reflection::setSpaceGroup(int spaceGroupNum)
         flipMatrices.push_back(matrixForAmbiguity(i));
     }
     
-    // CCTBX_REWRITE: here
-    spaceGroup = space_group(hallSymbol);
-    spgType = cctbx::sgtbx::space_group_type(spaceGroup);
-    asymmetricUnit = asu(spgType);
-    
     hasSetup = true;
     
     setupMutex.unlock();
@@ -246,17 +230,20 @@ int Reflection::reflectionIdForCoordinates(int h, int k, int l)
     return index;
 }
 
-// CCTBX_REWRITE: here
-int Reflection::reflectionIdForMiller(cctbx::miller::index<> cctbxMiller)
+int roundToInt(double value)
 {
-    int h = cctbxMiller[0];
-    int k = cctbxMiller[1];
-    int l = cctbxMiller[2];
-    
-    return reflectionIdForCoordinates(h, k, l);
+    if (value < 0)
+    {
+        value -= 0.1;
+        return (int)value;
+    }
+    else
+    {
+        value += 0.1;
+        return (int)value;
+    }
 }
 
-// CCTBX_REWRITE: here
 void Reflection::generateReflectionIds()
 {
     if (millerCount() == 0)
@@ -268,33 +255,28 @@ void Reflection::generateReflectionIds()
     int k = miller(0)->getK();
     int l = miller(0)->getL();
     
-    cctbx::miller::index<> cctbxMiller = cctbx::miller::index<>(h, k, l);
+    vec miller = new_vector(h, k, l);
     
     for (int i = 0; i < ambiguityCount(); i++)
     {
         MatrixPtr ambiguityMat = matrixForAmbiguity(i);
-        cctbx::miller::index<> cctbxTwinnedMiller = ambiguityMat->multiplyIndex(&cctbxMiller);
+        ambiguityMat->multiplyVector(&miller);
+        int _h = roundToInt(miller.h);
+        int _k = roundToInt(miller.k);
+        int _l = roundToInt(miller.l);
+        int h2, k2, l2;
         
-        asym_index asymmetricMiller = asym_index(spaceGroup, asymmetricUnit, cctbxTwinnedMiller);
-       
-        int newId = reflectionIdForMiller(asymmetricMiller.h());
+        CSym::ccp4spg_put_in_asu(ccp4_space_group, _h, _k, _l, &h2, &k2, &l2);
+        
+        int newId = reflectionIdForCoordinates(h2, k2, l2);
         
         reflectionIds.push_back(newId);
     }
 }
 
-// CCTBX_REWRITE: here
 void Reflection::setUnitCellDouble(double *theUnitCell)
 {
-    scitbx::af::double6 params;
-    params[0] = theUnitCell[0];
-    params[1] = theUnitCell[1];
-    params[2] = theUnitCell[2];
-    params[3] = theUnitCell[3];
-    params[4] = theUnitCell[4];
-    params[5] = theUnitCell[5];
-    
-    unitCell = cctbx::uctbx::unit_cell(params);
+    unitCellMatrix = Matrix::matrixFromUnitCell(theUnitCell);
     
     setupUnitCell = true;
 }
@@ -302,7 +284,7 @@ void Reflection::setUnitCellDouble(double *theUnitCell)
 
 void Reflection::setUnitCell(float *theUnitCell)
 {
-    scitbx::af::double6 params;
+    double params[6];
     params[0] = theUnitCell[0];
     params[1] = theUnitCell[1];
     params[2] = theUnitCell[2];
@@ -310,7 +292,7 @@ void Reflection::setUnitCell(float *theUnitCell)
     params[4] = theUnitCell[4];
     params[5] = theUnitCell[5];
     
-    unitCell = cctbx::uctbx::unit_cell(params);
+    unitCellMatrix = Matrix::matrixFromUnitCell(params);
     
     setupUnitCell = true;
 }
@@ -612,9 +594,9 @@ void Reflection::calculateResolution(MtzManager *mtz)
     int k = millers[0]->getK();
     int l = millers[0]->getL();
     
-    cctbx::miller::index<> anyMiller = cctbx::miller::index<>(h, k, l);
-  
-    resolution = unitCell.two_stol(anyMiller);
+    vec hkl = new_vector(h, k, l);
+    unitCellMatrix->multiplyVector(&hkl);
+    resolution = length_of_vector(hkl);
     
     for (int i = 0; i < millerCount(); i++)
     {

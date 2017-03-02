@@ -769,7 +769,6 @@ void FileParser::generateFunctionList()
     parserMap["IMAGE_SPOT_PROBE_PADDING"] = simpleInt;
     parserMap["IMAGE_SPOT_PROBE_BG_PADDING"] = simpleInt;
     parserMap["PROBE_DISTANCES"] = doubleVector;
-    parserMap["RECIPROCAL_UNIT_CELL"] = doubleVector;
     parserMap["FORCE_SPOT_FINDING"] = simpleBool;
     parserMap["FORCE_RECENTRE_SPOTS"] = simpleBool;
     parserMap["FORCE_RESTART_POST_REFINEMENT"] = simpleBool;

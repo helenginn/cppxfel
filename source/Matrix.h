@@ -12,8 +12,6 @@
 #include <iostream>
 #include "Vector.h"
 #include "parameters.h"
-#include <cctbx/miller.h>
-#include <scitbx/mat3.h>
 #include "csymlib.h"
 #include "LoggableObject.h"
 
@@ -64,8 +62,8 @@ public:
     std::string description(bool detailed = false, bool submatrix = false);
     Matrix inverse2DMatrix();
     MatrixPtr inverse3DMatrix();
+    static MatrixPtr matFromCCP4(CSym::ccp4_symop *symop);
     MatrixPtr transpose();
-    cctbx::miller::index<double> multiplyIndex(cctbx::miller::index<> *index);
     static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma, bool orthogonal = true);
     static MatrixPtr matrixFromEulerAngles(double theta, double phi, double psi);
     

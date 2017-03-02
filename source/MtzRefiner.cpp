@@ -743,10 +743,10 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         
         if (newImages)
         {
-            if (hasSpots)
+/*            if (hasSpots)
             {
                 newImage->processSpotList();
-            }
+            }*/
             
             newImages->push_back(newImage);
         }
@@ -918,6 +918,23 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
             logged << "No orientation matrix list provided (and no HDF5 file either). Exiting now." << std::endl;
             sendLogAndExit();
         }
+    }
+    
+    if (aFilename.length() && !FileReader::exists(aFilename))
+    {
+        std::ostringstream logged;
+        logged << "File specified in ORIENTATION_MATRIX_LIST " << *filename << " doesn't exist." << std::endl;
+        
+        if (hdf5)
+        {
+            logged << "You have specified HDF5 image files, so you don't necessarily need to specify your ORIENTATION_MATRIX_LIST." << std::endl;
+        }
+        else
+        {
+            logged << "You must either specify some HDF5 image files using HDF5_SOURCE_FILES, or you must specify ORIENTATION_MATRIX_LIST to load .img files from the file system instead." << std::endl;
+        }
+        
+        LoggableObject::staticLogAndExit(logged);
     }
     
     if (aFilename.length())
@@ -2026,6 +2043,7 @@ void MtzRefiner::reportMetrology()
 {
     GeometryRefiner refiner = GeometryRefiner();
     refiner.setImages(images);
+    refiner.startingGraphs();
     refiner.reportProgress();
     
     Detector::getMaster()->reportMillerScores();

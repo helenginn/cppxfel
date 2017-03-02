@@ -6,7 +6,7 @@
 #include <vector>
 
 std::string i_to_str(int val);
-std::string f_to_str(double val);
+std::string f_to_str(double val, int precision = 0);
 
 bool replace(std::string& str, const std::string& from, const std::string& to);
 

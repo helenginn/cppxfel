@@ -14,18 +14,8 @@ class Reflection;
 
 #include "parameters.h"
 #include "headers/csymlib.h"
-#include <cctbx/sgtbx/space_group.h>
-#include <cctbx/sgtbx/symbols.h>
-#include <cctbx/sgtbx/reciprocal_space_asu.h>
-#include <cctbx/sgtbx/space_group_type.h>
-#include <cctbx/uctbx.h>
 
 class Miller;
-
-using cctbx::sgtbx::space_group;
-using cctbx::sgtbx::space_group_symbols;
-using cctbx::sgtbx::space_group_type;
-using cctbx::sgtbx::reciprocal_space::asu;
 
 struct LiteMiller
 {
@@ -43,10 +33,10 @@ private:
 	double resolution;
     float negativeFriedelIntensity;
     float positiveFriedelIntensity;
-    static space_group spaceGroup;
+    static CSym::CCP4SPG *ccp4_space_group;
+    static MatrixPtr unitCellMatrix;
+    
     static unsigned char spgNum;
-    static space_group_type spgType;
-    static asu asymmetricUnit;
     static bool hasSetup;
     static std::mutex setupMutex;
     static bool setupUnitCell;
@@ -56,7 +46,6 @@ private:
     static bool shouldReject;
     unsigned char activeAmbiguity;
     vector<unsigned int> reflectionIds;
-    static cctbx::uctbx::unit_cell unitCell;
     MutexPtr millerMutex;
 public:
     Reflection(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
@@ -108,17 +97,11 @@ public:
 
     double mergeSigma();
     
-    int reflectionIdForMiller(cctbx::miller::index<> cctbxMiller);
     void generateReflectionIds();
     
-    asu *getAsymmetricUnit()
+    static CSym::CCP4SPG *getSpaceGroup()
     {
-        return &asymmetricUnit;
-    }
-    
-    static space_group *getSpaceGroup()
-    {
-        return &spaceGroup;
+        return ccp4_space_group;
     }
     
     void incrementAmbiguity();

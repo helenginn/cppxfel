@@ -14,9 +14,6 @@
 #include <map>
 #include "definitions.h"
 #include "parameters.h"
-#include <cctbx/miller/asu.h>
-
-using cctbx::sgtbx::reciprocal_space::asu;
 
 class MtzManager;
 class Reflection;
@@ -35,9 +32,6 @@ typedef enum
 class Miller : public LoggableObject, public boost::enable_shared_from_this<Miller>
 {
 private:
-    static asu p1_asu;
-    static cctbx::sgtbx::space_group p1_spg;
-    static bool initialised_p1;
     static bool normalised;
     static bool correctingPolarisation;
     static bool correctedPartiality;

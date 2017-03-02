@@ -279,7 +279,7 @@ public:
 	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
     double leastSquaresPartiality(double low = 0, double high = 0, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
     double partialityFunction(double low = 0, double high = 0);
-	double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
+    double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high);
 	std::string describeScoreType();
     double refinePartialitiesOrientation(int ambiguity, int cycles = 30);

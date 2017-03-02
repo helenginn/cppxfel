@@ -12,6 +12,7 @@
 #include "parameters.h"
 #include <map>
 #include <iostream>
+#include <iomanip>
 #include "misc.h"
 #include <fstream>
 #include "FileParser.h"
@@ -1190,12 +1191,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     mtz->setMatrix(newMat);
     double distance = getImage()->getDetectorDistance();
     mtz->setDetectorDistance(distance);
-    
-    char *hallSymbol = ccp4spg_symbol_Hall(spaceGroup);
-    
-    space_group _spaceGroup = space_group(hallSymbol);
-    space_group_type spgType = space_group_type(_spaceGroup);
-    
+
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
@@ -1209,7 +1205,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         ReflectionPtr found = ReflectionPtr();
         mtz->findReflectionWithId(index, &found);
         
-        if (found != NULL)
+        if (found != ReflectionPtr())
         {
             found->addMiller(miller);
             miller->setParent(found);

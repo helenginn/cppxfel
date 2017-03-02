@@ -51,9 +51,9 @@ public:
 	double cc_through_origin(int num1, int num2, int silent, int inverted,
 			int *hits, double lowResolution, double highResolution, bool log);
 
-	static double cc_pearson(MtzManager *shot1, MtzManager *shot2, int silent,
-            int *hits, double *multiplicity, double lowResolution,
-			double highResolution, bool log = false, bool freeOnly = false);
+	static double cc_pearson(MtzManager *shot1, MtzManager *shot2, int silent = 1,
+            int *hits = NULL, double *multiplicity = NULL, double lowResolution = 0,
+			double highResolution = 0, bool log = false, bool freeOnly = false);
 	double cc_pearson(int num1, int num2, int silent, int *hits,
 			double *multiplicity, double lowResolution = 0, double highResolution =
 					0, bool log = false, bool freeOnly = false);

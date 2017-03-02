@@ -28,6 +28,7 @@ private:
     int height;
     int centreX;
     int centreY;
+    bool plain;
     std::string filename;
     std::string rootName;
     int bytesPerPixel;
@@ -66,6 +67,11 @@ public:
     {
         *x = centreX;
         *y = centreY;
+    }
+    
+    void setPlain()
+    {
+        plain = true;
     }
 };
 

@@ -232,6 +232,7 @@ typedef boost::shared_ptr<IOMRefiner>IOMRefinerPtr;
 typedef boost::weak_ptr<IOMRefiner>IOMRefinerWeakPtr;
 typedef boost::shared_ptr<SpotVector> SpotVectorPtr;
 typedef boost::shared_ptr<IndexManager> IndexManagerPtr;
+typedef boost::weak_ptr<IndexManager> IndexManagerWeakPtr;
 typedef boost::shared_ptr<IndexingSolution> IndexingSolutionPtr;
 typedef boost::shared_ptr<std::mutex> MutexPtr;
 typedef boost::shared_ptr<UnitCellLattice> UnitCellLatticePtr;

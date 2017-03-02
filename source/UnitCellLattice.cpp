@@ -34,12 +34,11 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
 
 void UnitCellLattice::weightUnitCell()
 {
-    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
     CSVPtr distCSV = CSVPtr(new CSV(0));
-    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05;
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
-    distCSV->setupHistogram(0, maxDistance, step, "Distance", 1, "Perfect frequency");
+    distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 1, "Perfect frequency");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
     angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
     
@@ -52,6 +51,52 @@ void UnitCellLattice::weightUnitCell()
     
     double distTotal = 0;
     double angleTotal = 0;
+    double A = 100000;
+    int csvPos = 0;
+    
+    for (int i = 0; i < orderedDistanceCount() - 1; i++)
+    {
+        double firstDistance = orderedDistance(i);
+        double secondDistance = orderedDistance(i + 1);
+        double separation = secondDistance - firstDistance;
+        
+        if (separation < 0.000001)
+        {
+            continue;
+        }
+        
+        double mean = (firstDistance + secondDistance) / 2;
+        
+        double offset = A * separation * separation / 4;
+        
+        while (true)
+        {
+            if (csvPos >= distCSV->entryCount())
+                break;
+            
+            double csvDist = distCSV->valueForEntry("Distance", csvPos);
+         //   csvDist += powderStep / 2;
+            
+            if (csvDist > secondDistance)
+                break;
+            
+            double y = offset - A * (csvDist - mean) * (csvDist - mean);
+            
+            if (y < 0)
+            {
+                y = 0;
+            }
+            else
+            {
+                y = sqrt(y);
+            }
+            
+            distCSV->setValueForEntry(csvPos, "Perfect frequency", y);
+            
+            csvPos++;
+        }
+    }
+    
     
     for (int i = 0; i < uniqueSymVectorCount(); i++)
     {
@@ -64,8 +109,8 @@ void UnitCellLattice::weightUnitCell()
         inverse *= maxDistance;
         double stdev = rlpSize / 2;
         
-        distCSV->addConvolutedPeak(1, distance, stdev, inverse);
-        distTotal += inverse;
+    //    distCSV->addConvolutedPeak(1, distance, stdev, inverse);
+    //    distTotal += inverse;
         
         if (distance > maxAngleDistance)
             continue;
@@ -128,6 +173,7 @@ void UnitCellLattice::updateUnitCellData()
 
 void UnitCellLattice::setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution)
 {
+    powderStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     spaceGroup = CSym::ccp4spg_load_by_ccp4_num(spaceGroupNum);
     
     _aDim = a;
@@ -158,7 +204,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     unitCellMatrixInverse = unitCellMatrix->inverse3DMatrix();
     
-    maxMillerIndexTrial = FileParser::getKey("MAX_MILLER_INDEX_TRIAL", 0);
+    maxMillerIndexTrial = 0;
     maxDistance = 0;
     
     int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
@@ -214,11 +260,11 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 int asym = CSym::ccp4spg_is_in_asu(spaceGroup, i, j, k);
                 
                 spotVectors.push_back(newStandardVector);
+                orderedDistances.push_back(newStandardVector->distance());
                 
                 if (asym)
                 {
                     uniqueSymVectors.push_back(newStandardVector);
-                    orderedDistances.push_back(newStandardVector->distance());
                 }
                 
                 count++;
@@ -226,9 +272,9 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
         }
     }
     
-    weightUnitCell();
-    
     std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
+    
+    weightUnitCell();
     
     minDistance = FLT_MAX;
     
@@ -249,7 +295,8 @@ void UnitCellLattice::refineUnitCell(PowderHistogram aHistogram)
 
 double UnitCellLattice::weightForDistance(double distance)
 {
-    return weightedUnitCell->valueForHistogramEntry(1, distance);
+    double correctedDistance = distance + powderStep / 2;
+    return weightedUnitCell->valueForHistogramEntry(1, correctedDistance);
 }
 
 double UnitCellLattice::weightForAngle(double angle)

@@ -67,28 +67,9 @@ void IndexingSolution::setupStandardVectors()
     
     unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
     
-    std::vector<double> testCell = FileParser::getKey("RECIPROCAL_UNIT_CELL", std::vector<double>());
-    
-    if (testCell.size() == 6)
+    if (unitCell.size() < 6)
     {
-        unitCell = Matrix::unitCellFromReciprocalUnitCell(testCell[0], testCell[1], testCell[2],
-                                                          testCell[3], testCell[4], testCell[5]);
-        std::ostringstream stream;
-        
-        stream << "Unit cell from reciprocal: ";
-        
-        for (int i = 0; i < 6; i++)
-        {
-            stream << unitCell[i] << " ";
-        }
-        
-        stream << std::endl;
-        Logger::mainLogger->addStream(&stream);
-    }
-    
-    if (unitCell.size() < 6 && testCell.size() < 6)
-    {
-        std::cout << "Please supply target unit cell in keyword UNIT_CELL or RECIPROCAL_UNIT_CELL." << std::endl;
+        std::cout << "Please supply target unit cell in keyword UNIT_CELL." << std::endl;
         exit(1);
     }
     

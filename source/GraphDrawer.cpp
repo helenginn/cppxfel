@@ -8,7 +8,8 @@
 #include "GraphDrawer.h"
 #include "misc.h"
 #include <vector>
-#include<iostream>
+#include <iostream>
+#include <iomanip>
 #include <algorithm>
 #include <cmath>
 #include <boost/variant.hpp>

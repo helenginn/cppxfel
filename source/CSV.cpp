@@ -14,6 +14,8 @@
 #include <iostream>
 #include <string.h>
 #include "FileReader.h"
+#include "misc.h"
+#include "PNGFile.h"
 
 void CSV::histogram(std::map<double, int> histogram)
 {
@@ -75,8 +77,8 @@ double CSV::valueForHistogramEntry(int chosenHeader, double value, int categoryN
     
     for (int j = 0; j < entries.size() - 1; j++)
     {
-        if ((ascending && value > entries[j][categoryNum] && value < entries[j + 1][categoryNum])
-            || (!ascending && value < entries[j][categoryNum] && value > entries[j + 1][categoryNum]))
+        if ((ascending && value >= entries[j][categoryNum] && value < entries[j + 1][categoryNum])
+            || (!ascending && value < entries[j][categoryNum] && value >= entries[j + 1][categoryNum]))
         {
             return entries[j][chosenHeader];
         }
@@ -91,8 +93,8 @@ void CSV::addOneToFrequency(double category, int column, double weight, int cate
     
     for (int j = 0; j < entries.size() - 1; j++)
     {
-        if ((ascending && category > entries[j][categoryNum] && category < entries[j + 1][categoryNum])
-            || (!ascending && category < entries[j][categoryNum] && category > entries[j + 1][categoryNum]))
+        if ((ascending && category >= entries[j][categoryNum] && category < entries[j + 1][categoryNum])
+            || (!ascending && category < entries[j][categoryNum] && category >= entries[j + 1][categoryNum]))
         {
             entries[j][column] += weight;
             break;
@@ -244,6 +246,213 @@ void CSV::writeStringToPlot(std::string text, Plot *plot, int y, int x)
     {
         (*plot)[y][x + i] = text[i];
     }
+}
+
+typedef enum
+{
+    GraphStyleScatter,
+    GraphStyleLine,
+} GraphStyle;
+
+void CSV::plotPNG(std::map<std::string, std::string> properties)
+{
+    int count = 0;
+    
+    const double height = 900.;
+    const double width = 1200.;
+    const int xIntervals = 5;
+    const int yIntervals = 5;
+    const double xAxis = 0.8;
+    const double yAxis = 0.7;
+    
+    std::string filename = "graph_test.png";
+    
+    if (properties.count("filename"))
+    {
+        filename = properties["filename"] + ".png";
+    }
+    
+    PNGFilePtr png = PNGFilePtr(new PNGFile(filename, width, height));
+    png->setPlain();
+    png->setCentre(width * (1 - xAxis) / 2, height * (yAxis + 1) / 2);
+    png->drawLine(0, 0, width * xAxis, 0, 0, 0, 0, 0);
+    png->drawLine(0, 0, 0, -height * yAxis, 0, 0, 0, 0);
+    
+    while (true)
+    {
+        std::string headerKey = "Header" + i_to_str(count);
+        if (!properties.count("x" + headerKey) || !properties.count("y" + headerKey))
+        {
+            break;
+        }
+        
+        std::string xHeader = properties["x" + headerKey];
+        std::string yHeader = properties["y" + headerKey];
+        
+        int xCol = findHeader(xHeader);
+        int yCol = findHeader(yHeader);
+        
+        if (xCol < 0 || yCol < 0)
+        {
+            logged << "Cannot draw graph. Headers incompatible: " << xHeader << ", " << yHeader << std::endl;
+            sendLog();
+            continue;
+        }
+        
+        std::string minKey = "Min" + i_to_str(count);
+        std::string maxKey = "Max" + i_to_str(count);
+        double minX = -FLT_MAX;
+        double minY = -FLT_MAX;
+        double maxX = FLT_MAX;
+        double maxY = FLT_MAX;
+        
+        if (properties.count("x" + minKey)) minX = atoi(properties["x" + minKey].c_str());
+        if (properties.count("y" + minKey)) minY = atoi(properties["y" + minKey].c_str());
+        if (properties.count("x" + maxKey)) maxX = atoi(properties["x" + maxKey].c_str());
+        if (properties.count("y" + maxKey)) maxY = atoi(properties["y" + maxKey].c_str());
+        
+        if (minX == -FLT_MAX || maxX == FLT_MAX) minMaxCol(xCol, &minX, &maxX);
+        if (minY == -FLT_MAX || maxY == FLT_MAX) minMaxCol(yCol, &minY, &maxY);
+        
+        if (count == 0)
+        {
+            // draw X axis
+            double aValue = minX;
+            double aStep = (maxX - minX) / (double)xIntervals;
+            double xPrec = 2;
+            if (maxX > 10) xPrec = 0;
+            
+            for (int i = 0; i < xIntervals + 1; i++)
+            {
+                double proportion = (double)i / (double)xIntervals;
+                double pos = width * xAxis * proportion;
+                png->drawLine(pos, 0, pos, 5, 0, 0, 0, 0);
+                
+                png->drawText(f_to_str(aValue, xPrec), pos, 30);
+                
+                aValue += aStep;
+            }
+            
+            std::string xTitle = xHeader;
+            if (properties.count("xTitle" + i_to_str(count)))
+            {
+                xTitle = properties["xTitle" + i_to_str(count)];
+            }
+            
+            png->drawText(xTitle, width * xAxis * 0.5, 85);
+            
+            aValue = minY;
+            aStep = (maxY - minY) / (double)yIntervals;
+            double yPrec = 2;
+            if (maxY > 10) yPrec = 0;
+
+            for (int i = 0; i < yIntervals + 1; i++)
+            {
+                double proportion = (double)i / (double)yIntervals;
+                double pos = -height * yAxis * proportion;
+                png->drawLine(0, pos, -5, pos, 0, 0, 0, 0);
+                png->drawText(f_to_str(aValue, yPrec), -50, pos);
+                
+                aValue += aStep;
+            }
+            
+            std::string yTitle = yHeader;
+            if (properties.count("yTitle" + i_to_str(count)))
+            {
+                yTitle = properties["yTitle" + i_to_str(count)];
+            }
+            
+            png->drawText(yTitle, 70, -height * (yAxis + (1 - yAxis) / 4));
+        }
+        
+        GraphStyle style = GraphStyleScatter;
+        std::string styleKey = "style" + i_to_str(count);
+        
+        if (properties.count(styleKey))
+        {
+            if (properties[styleKey] == "scatter")
+            {
+                style = GraphStyleScatter;
+            }
+            else if (properties[styleKey] == "line")
+            {
+                style = GraphStyleLine;
+            }
+        }
+        
+        png_byte red = 0;
+        png_byte blue = 0;
+        png_byte green = 0;
+        
+        std::string colourKey = "colour" + i_to_str(count);
+        if (properties.count(colourKey))
+        {
+            if (properties[colourKey] == "blue")
+            {
+                blue = 255;
+            }
+            if (properties[colourKey] == "red")
+            {
+                red = 255;
+            }
+            if (properties[colourKey] == "green")
+            {
+                green = 255;
+            }
+        }
+        
+        float transparency = 0.0;
+        std::string transKey = "transparency" + i_to_str(count);
+        if (properties.count(transKey))
+        {
+            transparency = atof(properties[transKey].c_str());
+        }
+        
+        std::vector<Coord> points;
+
+        for (int i = 0; i < entries.size(); i++)
+        {
+            points.push_back(std::make_pair(entries[i][xCol], entries[i][yCol]));
+        }
+        
+        std::sort(points.begin(), points.end(), std::less<Coord>());
+        
+        double lastX = (points[0].first - minX) / (maxX - minX);
+        double lastY = (points[0].second - minY) / (maxY - minY);
+        
+        for (int i = 0; i < points.size(); i++)
+        {
+            double x = points[i].first;
+            double y = points[i].second;
+            
+            double xProp = (x - minX) / (maxX - minX);
+            double yProp = (y - minY) / (maxY - minY);
+            
+            if (xProp > 1 || yProp > 1 || xProp < 0 || yProp < 0)
+            {
+                continue;
+            }
+            
+            xProp *= xAxis * width;
+            yProp *= -yAxis * height;
+            
+            if (style == GraphStyleScatter)
+            {
+                png->drawLine(xProp - 6, yProp - 6, xProp + 6, yProp + 6, transparency, red, green, blue);
+                png->drawLine(xProp - 6, yProp + 6, xProp + 6, yProp - 6, transparency, red, green, blue);
+            }
+            else if (style == GraphStyleLine)
+            {
+                png->drawLine(lastX, lastY, xProp, yProp, transparency, red, green, blue);
+                lastX = xProp;
+                lastY = yProp;
+            }
+        }
+        
+        count++;
+    }
+
+    png->writeImageOutput();
 }
 
 std::string CSV::plotColumns(int col1, int col2)

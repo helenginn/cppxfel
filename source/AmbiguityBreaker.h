@@ -15,10 +15,13 @@
 #include <scitbx/lbfgsb.h>
 
 class StatisticsManager;
+typedef std::map<MtzPtr, double> CrystalCorrelation;
+typedef std::map<MtzPtr, CrystalCorrelation> CorrelationMap;
 
 class AmbiguityBreaker : public LoggableObject
 {
 private:
+    std::vector<CorrelationMap> correlationMaps;
     vector<MtzPtr> mtzs;
     int ambiguityCount;
     StatisticsManager *statsManager;
@@ -38,11 +41,12 @@ private:
     
     void assignPartialities();
     void breakAmbiguity();
+    static void calculateCorrelations(AmbiguityBreaker *me, int offset);
     void makeCorrelationGrid();
     void printResults();
-    void split();
     void merge();
     MtzPtr merged;
+    
     
 public:
     void setMtzs(vector<MtzPtr> newMtzs);
