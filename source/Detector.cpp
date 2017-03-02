@@ -42,8 +42,8 @@ void Detector::initialiseZeros()
     memset(&arrangedMidPoint.h, 0, sizeof(arrangedMidPoint.h) * 3);
     memset(&slowDirection.h, 0, sizeof(slowDirection.h) * 3);
     memset(&fastDirection.h, 0, sizeof(fastDirection.h) * 3);
-    memset(&slowRotated.h, 0, sizeof(slowRotated.h) * 3);
-    memset(&fastRotated.h, 0, sizeof(fastRotated.h) * 3);
+    slowRotated = new_vector(0, 1, 0);
+    fastRotated = new_vector(1, 0, 0);
     memset(&rotationAngles.h, 0, sizeof(rotationAngles.h) * 3);
     memset(&nudgeTranslation.h, 0, sizeof(nudgeTranslation.h) * 3);
     memset(&nudgeRotation.h, 0, sizeof(nudgeRotation.h) * 3);
