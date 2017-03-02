@@ -23,8 +23,7 @@ if (not env_etc.no_boost_python and hasattr(env_etc, "boost_adaptbx_include")):
             env_etc.cppxfel_include])
     print env_etc.cppxfel_dist
     env.Append(
-		LIBS=env_etc.libm + ["scitbx_boost_python", "boost_thread", "boost_system",
-		"boost_python",
+		LIBS=env_etc.libm + ["boost_thread", "boost_system",
 		"ccp4io"])
     env.Replace(SHCCFLAGS=['-std=c++0x', '-fPIC', '-O3', '-g'])
     
