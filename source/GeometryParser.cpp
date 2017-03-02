@@ -57,7 +57,7 @@ void GeometryParser::parsePanelListLines(std::vector<std::string> lines)
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(2, 0));
     
-    DetectorPtr master = DetectorPtr(new Detector(detectorDistance, beamCentre[0], beamCentre[1]));
+    DetectorPtr master = DetectorPtr(new Detector(detectorDistance, 0, 0));
     Detector::setMaster(master);
     
     for (int i = 0; i < lines.size(); i++)
@@ -123,6 +123,9 @@ void GeometryParser::parsePanelListLines(std::vector<std::string> lines)
             master->addChild(segment);
         }
     }
+    
+    Detector::setArrangedMidPointX(&*master, beamCentre[0]);
+    Detector::setArrangedMidPointY(&*master, beamCentre[1]);
 }
 
 void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
