@@ -23,7 +23,7 @@
 #include <mutex>
 #include "Detector.h"
 
-class IndexManager : LoggableObject
+class IndexManager : LoggableObject, public boost::enable_shared_from_this<IndexManager>
 {
 protected:
     UnitCellLatticePtr lattice;
@@ -38,25 +38,27 @@ protected:
     Reflection *newReflection;
     CSym::CCP4SPG *spaceGroup;
     DetectorWeakPtr _activeDetector;
+    double interPanelDistance;
     int spaceGroupNum;
     std::vector<MtzPtr> mtzs;
     double minimumTrustDistance;
     double minimumTrustAngle;
     double solutionAngleSpread;
     double lastTime;
+    double _maxFrequency;
     ImagePtr getNextImage();
     int nextImage;
     std::mutex indexMutex;
     bool modifyParameters();
     PseudoScoreType scoreType;
     double proportionDistance;
-    static double pseudoDistanceScore(void *object);
     static double pseudoAngleScore(void *object);
     double pseudoDistanceConsistency();
     void processConsistencyVector(SpotVectorPtr vec, CSVPtr distCSV, bool lock = false, bool skipCheck = false);
     CSVPtr angleCSV;
     CSVPtr angleConsistencyCSV;
     bool _canLockVectors;
+    int _cycleNum;
     PseudoScoreWeightingAxis _axisWeighting;
     
     void updateAllSpots();
@@ -71,7 +73,7 @@ protected:
     std::vector<IOMRefinerPtr> consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both);
     PseudoScoreType checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec2);
     bool checkVector(SpotVectorPtr spotVector, bool permissive = false);
-    void processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck);
+    bool processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck);
     
     DetectorPtr getActiveDetector()
     {
@@ -103,6 +105,7 @@ public:
     void setActiveDetector(DetectorPtr detector)
     {
         _activeDetector = detector;
+        detector->setIndexManager(shared_from_this());
     }
     
     void setPseudoScoreType(PseudoScoreType type)
@@ -125,6 +128,7 @@ public:
         proportionDistance = newProp;
     }
     
+    static double pseudoDistanceScore(void *object, bool writeToCSV = false, std::string tag = "");
     void combineLists();
     void indexingParameterAnalysis();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
@@ -143,6 +147,27 @@ public:
         _axisWeighting = weighting;
     }
     
+    void setCycleNum(int num)
+    {
+        _cycleNum = num;
+    }
+    
+    int getCycleNum()
+    {
+        return _cycleNum;
+    }
+    
+    void resetMaxFrequency()
+    {
+        _maxFrequency = -1;
+    }
+    
+    void clearGoodVectors()
+    {
+        goodVectors.clear();
+    }
+    
+    void plotGoodVectors();
     static double pseudoScore(void *object);
     static double debugPseudoScore(void *object);
     IndexManager(std::vector<ImagePtr>images);

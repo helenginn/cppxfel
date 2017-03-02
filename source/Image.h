@@ -147,10 +147,11 @@ public:
     void integrateSpots();
     void drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red = 0, char green = 0, char blue = 0);
     void drawCrystalsOnPNG(int crystalNum);
-    void drawSpotsOnPNG(std::string filename = "");
+    void drawSpotsOnPNG(std::string filename = "", bool drawPanels = false);
     void dumpImage();
     void makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults = false);
     void excludeWeakestSpots(double fraction);
+    void plotVectorsOnPNG(std::vector<SpotVectorPtr> vectors, std::string filename = "");
     
 	const std::string& getFilename() const
 	{

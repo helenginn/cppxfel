@@ -57,7 +57,7 @@ void GeometryParser::parsePanelListLines(std::vector<std::string> lines)
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     std::vector<double> beamCentre = FileParser::getKey("BEAM_CENTRE", std::vector<double>(2, 0));
     
-    DetectorPtr master = DetectorPtr(new Detector(detectorDistance, beamCentre[0], beamCentre[1]));
+    DetectorPtr master = DetectorPtr(new Detector(detectorDistance, 0, 0));
     Detector::setMaster(master);
     
     for (int i = 0; i < lines.size(); i++)
@@ -98,8 +98,8 @@ void GeometryParser::parsePanelListLines(std::vector<std::string> lines)
                 x2 = atof(components[3].c_str());
                 y2 = atof(components[4].c_str());
                 
-                arrangedTopLeft = std::make_pair(x1, y1);
-                arrangedBottomRight = std::make_pair(x2, y2);
+                arrangedTopLeft = std::make_pair(x1 - beamCentre[0], y1 - beamCentre[1]);
+                arrangedBottomRight = std::make_pair(x2 - beamCentre[0], y2 - beamCentre[1]);
             }
             
             if (components.size() >= 7)
@@ -119,7 +119,6 @@ void GeometryParser::parsePanelListLines(std::vector<std::string> lines)
             }
             
             DetectorPtr segment = DetectorPtr(new Detector(master, arrangedTopLeft, arrangedBottomRight, sw, o1, o2, gain));
-            
             segment->setTag(panelNum);
             master->addChild(segment);
         }

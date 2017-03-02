@@ -63,6 +63,7 @@ public:
     bool usesBeamCentre();
     bool spansChildrenOfDetector(DetectorPtr parent);
     bool originalDistanceLessThan(double threshold);
+    void drawOnImage(PNGFilePtr file);
     
     std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
     {

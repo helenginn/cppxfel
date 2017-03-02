@@ -111,6 +111,16 @@ finalise:
 void PNGFile::HSB_to_RGB(float hue, float sat, float bright, // or light
                          png_byte *red, png_byte *green, png_byte *blue)
 {
+    while (hue < 0)
+    {
+        hue += 360.;
+    }
+    
+    while (hue > 360)
+    {
+        hue -= 360.;
+    }
+    
     double c = bright * sat;
     double m = bright - c;
     
@@ -119,7 +129,9 @@ void PNGFile::HSB_to_RGB(float hue, float sat, float bright, // or light
     
     double x = c * (1 - fabs(fmod((hue / 60), 2) - 1));
     
-    double tempRed, tempGreen, tempBlue;
+    double tempRed = 0;
+    double tempGreen = 0;
+    double tempBlue = 0;
     
     if (hue < 60)
     {
@@ -171,6 +183,7 @@ PNGFile::PNGFile(std::string filename, int width, int height)
     // set data using libpng...
     // data =
     
+    plain = false;
     this->height = height;
     bytesPerPixel = 3; // change
     pixelsPerRow = width; // change
@@ -218,6 +231,13 @@ void PNGFile::pixelAt(int x, int y, png_byte **bytes)
 
 void PNGFile::moveCoordRelative(int *x, int *y)
 {
+    if (plain)
+    {
+        *x += centreX;
+        *y += centreY;
+        return;
+    }
+    
     *x += pixelsPerRow / 2 - centreX;
     *y += height / 2 - centreY;
 }
@@ -315,23 +335,23 @@ void PNGFile::drawLine(int x1, int y1, int x2, int y2, float transparency, png_b
 {
     moveCoordRelative(&x1, &y1);
     moveCoordRelative(&x2, &y2);
-    double xTravel = x2 - x1 + 0.7;
-    double yTravel = y2 - y1 + 0.7;
+    double xTravel = x2 - x1;
+    double yTravel = y2 - y1;
     double *bigger = (fabs(yTravel) > fabs(xTravel)) ? &yTravel : &xTravel;
-    double *smaller = (fabs(yTravel) < fabs(xTravel)) ? &yTravel : &xTravel;
+    double *smaller = (bigger == &xTravel) ? &yTravel : &xTravel;
     
-    const double bigShift = 0.25;
-    int intervals = *bigger / bigShift + 0.5;
+    const double bigShift = 0.25 * (*bigger > 0 ? 1 : -1);
+    int intervals = fabs(fabs(*bigger) / bigShift + 0.5);
     double smallShift = *smaller / intervals;
     
     double xCurr = x1;
     double yCurr = y1;
     
-    for (int i = 0; i < intervals; i++)
+    for (int i = 0; i < intervals + 1; i++)
     {
         setPixelColour(xCurr, yCurr, red, green, blue, 1 - transparency);
-        xCurr += (xTravel > yTravel) ? bigShift : smallShift;
-        yCurr += (yTravel > xTravel) ? bigShift : smallShift;
+        xCurr += (bigger == &xTravel) ? bigShift : smallShift;
+        yCurr += (smaller == &xTravel) ? bigShift : smallShift;
     }
     
 }

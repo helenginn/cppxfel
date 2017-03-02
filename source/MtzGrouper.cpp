@@ -607,7 +607,6 @@ int MtzGrouper::groupMillersWithAnomalous(MtzPtr *positive,
 					MillerPtr newMiller = mtzManagers[i]->reflection(j)->miller(k);
 					newReflection->addMiller(newMiller);
 					friedelMtz->addReflection(newReflection);
-					friedelMtz->sortLastReflection();
 				}
 				else
 				{

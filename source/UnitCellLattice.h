@@ -30,6 +30,7 @@ private:
     int maxMillerIndexTrial;
     double maxDistance;
     double minDistance;
+    double powderStep;
     double unitCell[6];
     std::vector<vec3<int> > integerVectors;
     PowderHistogram histogram;

@@ -29,9 +29,12 @@ private:
     double lastIntraScore;
     double lastIntraAngleScore;
     double lastInterAngleScore;
+    
     void refineMasterDetector();
     void refineBeamCentre();
-    
+
+    void checkGridSearch(DetectorPtr detector);
+    RefinementGridSearchPtr makeGridRefiner(DetectorPtr detector, GeometryScoreType type);
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
     void gridSearchDetectorDistance(DetectorPtr detector, double start, double end);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
@@ -42,6 +45,7 @@ public:
     void refineGeometry();
     void reportProgress();
     void refineUnitCell();
+    void startingGraphs();
     
     void setImages(std::vector<ImagePtr> newImages);
     

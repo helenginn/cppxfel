@@ -9,6 +9,7 @@
 #include "RefinementGridSearch.h"
 #include <float.h>
 #include "CSV.h"
+#include "polyfit.hpp"
 
 void RefinementGridSearch::recursiveEvaluation(ParamList referenceList, ParamList workingList, ResultMap *results)
 {
@@ -19,7 +20,7 @@ void RefinementGridSearch::recursiveEvaluation(ParamList referenceList, ParamLis
     {
         if (workingCount == 1)
         {
-            std::cout << "." << std::flush;
+       //     std::cout << "." << std::flush;
         }
         
         for (int i = -gridLength / 2; i <= (int)(gridLength / 2 + 0.5); i++)
@@ -45,6 +46,9 @@ void RefinementGridSearch::recursiveEvaluation(ParamList referenceList, ParamLis
     double result = (*evaluationFunction)(evaluateObject);
     (*results)[workingList] = result;
     
+    orderedParams.push_back(workingList);
+    orderedResults.push_back(result);
+    
     reportProgress((*evaluationFunction)(evaluateObject));
 }
 
@@ -64,7 +68,6 @@ void RefinementGridSearch::refine()
     
     csv->addHeader("result");
     
-    ResultMap results;
     recursiveEvaluation(currentValues, ParamList(), &results);
     
     std::cout << std::endl;
@@ -87,13 +90,105 @@ void RefinementGridSearch::refine()
         csv->addEntry(result);
     }
     
+    logged << "Setting params ";
+    
+    
     for (int i = 0; i < minParams.size(); i++)
     {
         Setter setter = setters[i];
         (*setter)(objects[i], minParams[i]);
+        
+        logged << tags[i] << " = " << minParams[i] << ", ";
     }
+    
+    double val = (*evaluationFunction)(evaluateObject);
+    logged << "score = " << val << std::endl;
+    
+    logged << std::endl;
     
     csv->writeToFile(jobName + "_gridsearch.csv");
     
     finish();
+}
+
+void RefinementGridSearch::assignInterpanelMinimum()
+{
+    // assuming param0 = pokeY, param1 = pokeX
+    
+    assert(stepSizes.size() == 2);
+    
+    double pokeXStep = stepSizes[1];
+    const double pixRange = 5;
+    int gridJumps = pixRange / pokeXStep + 0.5;
+    std::vector<std::pair<double, int> > lineDifferences;
+    std::vector<std::pair<double, int> > lineSeparations;
+    // y first, then x! Think about it!
+    
+    double maxSteepness = 0;
+    int maxSteepnessValue = 0;
+    
+    for (int x = 0; x < gridLength; x++)
+    {
+        int lineMin = 0;
+        double lineMinValue = FLT_MAX;
+        
+        for (int y = 0; y + gridJumps < gridLength; y++)
+        {
+            int gridPos = x * gridLength + y;
+            
+            for (int i = 0; i < gridJumps; i++)
+            {
+                double value = orderedResults[gridPos + i];
+                if (value < lineMinValue)
+                {
+                    lineMinValue = value;
+                    lineMin = y + i;
+                }
+            }
+            
+            std::vector<double> localRegion, increments;
+            
+            if (lineMin - 2 < 0)
+                continue;
+            
+            if (lineMin + 2 >= gridLength)
+                continue;
+            
+            for (int i = lineMin - 2; i <= lineMin + 2; i++)
+            {
+                int newGridPos = x * gridLength + i;
+                localRegion.push_back(orderedResults[newGridPos]);
+                increments.push_back(newGridPos);
+            }
+            
+            std::vector<double> polynomial = polyfit(increments, localRegion, 2);
+            
+            double a = polynomial[2];
+            
+            if (a > maxSteepness)
+            {
+                maxSteepness = a;
+                maxSteepnessValue = x * gridLength + lineMin;
+            }
+        }
+    }
+    
+    ParamList minParams = orderedParams[maxSteepnessValue];
+    
+    logged << "Setting params for steepest quadratic (" << maxSteepness << ") - ";
+    
+    for (int i = 0; i < minParams.size(); i++)
+    {
+        Setter setter = setters[i];
+        (*setter)(objects[i], minParams[i]);
+        
+        logged << tags[i] << " = " << minParams[i] << ", ";
+    }
+    
+    double val = (*evaluationFunction)(evaluateObject);
+    logged << "score = " << val << std::endl;
+    
+    sendLog();
+    
+    sendLog();
 }

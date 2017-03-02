@@ -16,14 +16,10 @@
 #include <sstream>
 #include <iomanip>
 #include "parameters.h"
-#include <cctbx/sgtbx/space_group.h>
 #include "Logger.h"
 //#include <boost/python.hpp>
 #include "FileParser.h"
 #include "Hdf5ManagerProcessing.h"
-
-using cctbx::sgtbx::rt_mx;
-using cctbx::sgtbx::rot_mx;
 
 MatrixPtr Matrix::identityMatrix = MatrixPtr(new Matrix());
 
@@ -195,52 +191,49 @@ MatrixPtr Matrix::getNegativeCopy()
     return newMat;
 }
 
-// CCTBX_REWRITE: here
+MatrixPtr Matrix::matFromCCP4(CSym::ccp4_symop *symop)
+{
+    MatrixPtr mat = MatrixPtr(new Matrix());
+    mat->components[0] = symop->rot[0][0];
+    mat->components[4] = symop->rot[0][1];
+    mat->components[8] = symop->rot[0][2];
+    
+    mat->components[1] = symop->rot[1][0];
+    mat->components[5] = symop->rot[1][1];
+    mat->components[9] = symop->rot[1][2];
+    
+    mat->components[2] = symop->rot[2][0];
+    mat->components[6] = symop->rot[2][1];
+    mat->components[10] = symop->rot[2][2];
+    
+    return mat;
+}
 
 void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma, bool orthogonal)
 {
-    cctbx::sgtbx::space_group_symbols spaceGroupSymbol = cctbx::sgtbx::space_group_symbols(spaceGroup->spg_num);
-    std::string hallSymbol = spaceGroupSymbol.hall();
     
-    cctbx::sgtbx::space_group spaceGroupCctbx = cctbx::sgtbx::space_group(hallSymbol);
+    double unitParams[6] = {a, b, c, alpha, beta, gamma};
     
-    scitbx::af::shared<rt_mx> allOps = spaceGroupCctbx.all_ops();
-    scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
-    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
-    
+    MatrixPtr unitCell = Matrix::matrixFromUnitCell(unitParams);
+    MatrixPtr reverse = unitCell->inverse3DMatrix();
+
     std::ostringstream logged;
+    logged << "Number of symmetry operators for spg " << spaceGroup->spg_num << ": " << spaceGroup->nsymop
+    << std::endl;
+    Logger::log(logged);
     
-    logged << "Number of symmetry operators for spg " << spaceGroup->spg_num << ": " << allOps.size() << std::endl;
-    
-    for (int j = 0; j < allOps.size(); j++)
+    for (int j = 0; j < spaceGroup->nsymop; j++)
     {
-        rot_mx rotation = allOps[j].r();
-        cctbx::uc_mat3 orthogonal_rotation = uc.matrix_cart(rotation);
+        MatrixPtr newMat = matFromCCP4(&spaceGroup->symop[j]);
+        MatrixPtr ortho = newMat;
+        ortho->preMultiply(*unitCell);
+        ortho->multiply(*reverse);
         
-        for (int i = 0; i < 1; i++)
-        {
-            MatrixPtr newMat = MatrixPtr(new Matrix());
-            
-            newMat->components[0] = orthogonal ? orthogonal_rotation[0] : rotation[0];
-            newMat->components[4] = orthogonal ? orthogonal_rotation[1] : rotation[1];
-            newMat->components[8] = orthogonal ? orthogonal_rotation[2] : rotation[2];
-            
-            newMat->components[1] = orthogonal ? orthogonal_rotation[3] : rotation[3];
-            newMat->components[5] = orthogonal ? orthogonal_rotation[4] : rotation[4];
-            newMat->components[9] = orthogonal ? orthogonal_rotation[5] : rotation[5];
-            
-            newMat->components[2] = orthogonal ? orthogonal_rotation[6] : rotation[6];
-            newMat->components[6] = orthogonal ? orthogonal_rotation[7] : rotation[7];
-            newMat->components[10] = orthogonal ? orthogonal_rotation[8] : rotation[8];
-            
-            MatrixPtr transposeMat = newMat->copy();
-            matrices->push_back(transposeMat->transpose());
-            MatrixPtr transNegMat = transposeMat->getNegativeCopy();
-            matrices->push_back(transNegMat); // why
-        }
+        matrices->push_back(ortho);
+        ortho->printDescription();
     }
     
-    Logger::mainLogger->addStream(&logged, LogLevelDetailed);
+    Logger::log(logged);
 }
 
 void Matrix::printDescription(bool detailed)
@@ -263,25 +256,6 @@ void Matrix::prettyPrint()
     logged << std::setw(width) << std::setprecision(4) << components[6];
     logged << std::setw(width) << std::setprecision(4) << components[10] << std::endl;
     Logger::mainLogger->addStream(&logged);
-}
-
-std::vector<double> Matrix::unitCellFromReciprocalUnitCell(double a, double b, double c, double alpha, double beta, double gamma)
-{
-    scitbx::af::double6 params = scitbx::af::double6(a, b, c, alpha, beta, gamma);
-    cctbx::uctbx::unit_cell uc = cctbx::uctbx::unit_cell(params);
-    
-    cctbx::uctbx::unit_cell rc = uc.reciprocal();
-    
-    scitbx::af::double6 newParams = rc.parameters();
-    
-    std::vector<double> unitCell;
-
-    for (int i = 0; i < newParams.size(); i++)
-    {
-        unitCell.push_back(newParams[i]);
-    }
-    
-    return unitCell;
 }
 
 MatrixPtr Matrix::matrixFromUnitCell(double *unitCell)
@@ -855,7 +829,6 @@ double invertValue(double topLeft, double bottomRight, double topRight, double b
     return topLeft * bottomRight - bottomLeft * topRight;
 }
 
-// CCTBX_REWRITE: here
 MatrixPtr Matrix::inverse3DMatrix()
 {
     double a = components[0];
@@ -881,7 +854,7 @@ MatrixPtr Matrix::inverse3DMatrix()
     newMat->components[6] = - (a * f - c * d) / det;
     newMat->components[10] = (a * e - b * d) / det;
 
-    return newMat;
+    return newMat->transpose();
 }
 
 double Matrix::determinant()
@@ -948,22 +921,6 @@ void Matrix::translation(double **vector)
 {
     memcpy(*vector, &components[12], sizeof(double) * 3);
     
-}
-
-// CCTBX_REWRITE: here
-cctbx::miller::index<double> Matrix::multiplyIndex(cctbx::miller::index<> *index)
-{
-    int h = index->as_tiny()[0];
-    int k = index->as_tiny()[1];
-    int l = index->as_tiny()[2];
-    
-    vec hkl = new_vector(h, k, l);
-    
-    this->multiplyVector(&hkl);
-    
-    cctbx::miller::index<double> newIndex = cctbx::miller::index<double>(hkl.h, hkl.k, hkl.l);
-    
-    return newIndex;
 }
 
 bool Matrix::writeToHdf5(std::string address)

@@ -19,7 +19,11 @@
 
 void MtzManager::applyUnrefinedPartiality()
 {
-    double wavelength = bestWavelength();
+    if (wavelength == 0)
+    {
+        wavelength = bestWavelength();
+    }
+    
     double mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
     double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
     double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);

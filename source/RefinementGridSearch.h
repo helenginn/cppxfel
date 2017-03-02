@@ -19,7 +19,9 @@ class RefinementGridSearch : public RefinementStrategy
 {
 private:
     int gridLength;
-    
+    std::vector<double> orderedResults;
+    std::vector<ParamList> orderedParams;
+
 public:
     RefinementGridSearch() : RefinementStrategy()
     {
@@ -32,7 +34,9 @@ public:
         gridLength = length;
     }
     
+    ResultMap results;
     void recursiveEvaluation(ParamList referenceList, ParamList workingList, ResultMap *results);
+    void assignInterpanelMinimum();
     virtual void refine();
 };
 

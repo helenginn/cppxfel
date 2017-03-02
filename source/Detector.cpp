@@ -14,6 +14,7 @@
 #include "Spot.h"
 #include "misc.h"
 #include "CSV.h"
+#include <iomanip>
 
 double Detector::mmPerPixel = 0;
 DetectorPtr Detector::masterPanel = DetectorPtr();
@@ -132,6 +133,7 @@ Detector::Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBott
     
     setUnarrangedTopLeft(std::min(topLeft.h, bottomRight.h), std::min(topLeft.k, bottomRight.k));
     setUnarrangedBottomRight(std::max(topLeft.h, bottomRight.h), std::max(topLeft.k, bottomRight.k));
+    
 }
 
 Detector::Detector(DetectorPtr parent)
@@ -311,7 +313,6 @@ void Detector::rotateAxisRecursive(bool fix)
     {
         getChild(i)->rotateAxisRecursive(fix);
     }
-
 }
 
 void Detector::updateCurrentRotation()
@@ -381,7 +382,6 @@ vec Detector::midPointOffsetFromParent(bool useParent, vec *angles, bool resetNu
         double tanVert = nudgeTranslation.h / distanceFromOrigin;
         myAngles.h -= atan(tanHoriz);
         myAngles.k += atan(tanVert);
-        /* End not buggy [B] */
         
         changeToXYZ->multiplyVector(&myAngles);
         myAngles.l += nudgeRotation.l;
@@ -1145,7 +1145,7 @@ void Detector::drawSpecialImage(std::string filename)
         specialImageCounter++;
     }
     
-    drawImage->drawSpotsOnPNG(filename);
+    drawImage->drawSpotsOnPNG(filename, true);
 }
 
 void Detector::fixMidpoints()
@@ -1194,5 +1194,73 @@ void Detector::reportMillerScores()
     for (int i = 0; i < childrenCount(); i++)
     {
         getChild(i)->reportMillerScores();
+    }
+}
+
+void Detector::getAllSubDetectors(std::vector<DetectorPtr> &array, bool childrenOnly)
+{
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        getChild(i)->getAllSubDetectors(array, childrenOnly);
+    }
+    
+    if (childrenOnly && hasChildren())
+    {
+        return;
+    }
+    
+    array.push_back(shared_from_this());
+
+}
+
+void Detector::resetPoke()
+{
+    poke.h = 0;
+    poke.k = 0;
+    poke.l = 0;
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        getChild(i)->rotateAxisRecursive(true);
+    }
+    
+    vec firstChildMidpoint = getChild(0)->midPointOffsetFromParent(false);
+    vec secondChildMidpoint = getChild(1)->midPointOffsetFromParent(false);
+    
+    pokeLongitudinalAxis = vector_between_vectors(firstChildMidpoint, secondChildMidpoint);
+    pokeLongitudinalAxis.l = 0;
+    scale_vector_to_distance(&pokeLongitudinalAxis, 1);
+    pokeLateralAxis = cross_product_for_vectors(new_vector(0, 0, 1), pokeLongitudinalAxis);
+}
+
+void Detector::setPokeN(int pokeNum, double pokeValue)
+{
+    if (pokeNum == 0)
+    {
+        poke.h = pokeValue;
+    }
+    else if (pokeNum == 1)
+    {
+        poke.k = pokeValue;
+    }
+    else if (pokeNum == 2)
+    {
+        poke.l = pokeValue;
+    }
+    
+    for (int i = 0; i < 2; i++)
+    {
+        int modifier = (i == 0) ? -1 : 1;
+        
+        vec latPoke = copy_vector(pokeLateralAxis);
+        multiply_vector(&latPoke, poke.h);
+        vec longPoke = copy_vector(pokeLongitudinalAxis);
+        multiply_vector(&longPoke, poke.k);
+        vec bothPokes = copy_vector(latPoke);
+        add_vector_to_vector(&bothPokes, longPoke);
+        
+        setNudgeX(&*getChild(i), modifier * bothPokes.h);
+        setNudgeY(&*getChild(i), modifier * bothPokes.k);
+        setNudgeTiltZ(&*getChild(i), modifier * poke.l);
     }
 }

@@ -11,6 +11,7 @@
 #include "misc.h"
 #include "FileParser.h"
 #include "Detector.h"
+#include "PNGFile.h"
 
 double SpotVector::trustComparedToStandardVector(SpotVectorPtr standardVector)
 {
@@ -270,6 +271,14 @@ bool SpotVector::isIntraPanelVector()
     if (!onePanel || !twoPanel)
         return false;
     
+    if ((onePanel != twoPanel) && onePanel->getParent() == twoPanel->getParent())
+    {
+        if (!onePanel->getParent()->isRefinable(GeometryScoreTypeInterpanel))
+        {
+            return true;
+        }
+    }
+    
     return (onePanel == twoPanel);
 }
 
@@ -283,17 +292,26 @@ bool SpotVector::spansChildrenOfDetector(DetectorPtr parent)
         return false;
     }
     
-    if (!(parent->isAncestorOf(onePanel) && parent->isAncestorOf(twoPanel)))
-    {
-        return false;
-    }
-    
     if (onePanel == twoPanel)
     {
         return false;
     }
     
-    return true;
+    if (parent->isAncestorOf(onePanel) && parent->isAncestorOf(twoPanel))
+    {
+        for (int i = 0; i < parent->childrenCount(); i++)
+        {
+            if (parent->getChild(i)->isAncestorOf(onePanel) &&
+                parent->getChild(i)->isAncestorOf(twoPanel))
+            {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    return false;
 }
 
 bool SpotVector::isOnlyFromDetector(DetectorPtr detector)
@@ -335,3 +353,11 @@ bool SpotVector::originalDistanceLessThan(double threshold)
     return (firstDistance < threshold);
 }
 
+void SpotVector::drawOnImage(PNGFilePtr file)
+{
+    Coord spot1 = getFirstSpot()->getXY();
+    Coord spot2 = getSecondSpot()->getXY();
+    
+    file->drawLine(spot1.first, spot1.second, spot2.first, spot2.second,
+                   0.0, 0, 0, 100);
+}

@@ -42,16 +42,6 @@ double MtzManager::superGaussianScale = 0;
 
 MtzManager *MtzManager::referenceManager;
 
-#include <cctbx/sgtbx/space_group.h>
-#include <cctbx/sgtbx/symbols.h>
-#include <cctbx/sgtbx/reciprocal_space_asu.h>
-#include <cctbx/sgtbx/space_group_type.h>
-using cctbx::sgtbx::space_group;
-using cctbx::sgtbx::space_group_symbols;
-using cctbx::sgtbx::space_group_type;
-using cctbx::sgtbx::reciprocal_space::asu;
-
-
 std::string MtzManager::describeScoreType()
 {
     switch (scoreType)
@@ -247,6 +237,11 @@ void MtzManager::sortLastReflection(void)
     }
     reflections[j] = tmp;
     
+    if (!reflections[0])
+    {
+        std::cout << "!" << std::endl;
+    }
+    
     return;
     
     
@@ -422,10 +417,8 @@ void MtzManager::removeReflection(int i)
 
 void MtzManager::addReflection(ReflectionPtr reflection)
 {
-    ReflectionPtr newReflection = ReflectionPtr();
-    int insertionPoint = findReflectionWithId(reflection->getReflId(), &newReflection, true);
-    
-    reflections.insert(reflections.begin() + insertionPoint, reflection);
+    reflections.push_back(reflection);
+    sortLastReflection();
 }
 
 void MtzManager::addReflections(vector<ReflectionPtr>reflections)
@@ -854,8 +847,8 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         if (getImagePtr())
         {
-            int x, y;
-            miller->positionOnDetector(MatrixPtr(), &x, &y, false);
+       //     int x, y;
+       //     miller->positionOnDetector(MatrixPtr(), &x, &y, false);
         }
 
         if (prevReflection)
@@ -873,15 +866,14 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         if (!prevReflection)
         {
             ReflectionPtr newReflection = ReflectionPtr(new Reflection());
-            reflections.push_back(newReflection);
             newReflection->setUnitCell(cell);
             newReflection->setSpaceGroup(low_group->spg_num);
             
-            reflections[num]->addMiller(miller);
-            miller->setParent(reflections[num]);
-            reflections[num]->calculateResolution(this);
+            newReflection->addMiller(miller);
+            miller->setParent(newReflection);
+            newReflection->calculateResolution(this);
             
-            this->sortLastReflection();
+            addReflection(newReflection);
             
             num++;
         }
@@ -985,6 +977,7 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *r
         }
         
         *reflection = ReflectionPtr();
+        
         return -1;
     }
     
@@ -992,18 +985,6 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *r
     {
         if (new_bound == higher || new_bound == lower)
         {
-            if (this->reflection(higher)->getReflId() == refl_id)
-            {
-                (*reflection) = this->reflection(higher);
-                return -1;
-            }
-            
-            if (this->reflection(lower)->getReflId() == refl_id)
-            {
-                (*reflection) = this->reflection(lower);
-                return -1;
-            }
-            
             if (insertionPoint)
             {
                 int lowest = 0;
@@ -1017,6 +998,18 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *r
                 }
                 
                 return lowest + 1;
+            }
+            
+            if (this->reflection(higher)->getReflId() == refl_id)
+            {
+                (*reflection) = this->reflection(higher);
+                return -1;
+            }
+            
+            if (this->reflection(lower)->getReflId() == refl_id)
+            {
+                (*reflection) = this->reflection(lower);
+                return -1;
             }
             
             *reflection = ReflectionPtr();
@@ -1668,7 +1661,7 @@ void MtzManager::resetFlip()
 }
 
 void MtzManager::setActiveAmbiguity(int newAmbiguity)
-{
+{    
     activeAmbiguity = newAmbiguity;
     
     for (int i = 0; i < reflectionCount(); i++)

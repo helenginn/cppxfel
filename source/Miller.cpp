@@ -15,8 +15,6 @@
 #include "parameters.h"
 #include "Shoebox.h"
 #include <memory>
-#include <cctbx/miller/asu.h>
-#include <cctbx/miller.h>
 #include "FileParser.h"
 #include "Beam.h"
 #include "IOMRefiner.h"
@@ -39,12 +37,6 @@ bool Miller::correctedPartiality = false;
 bool Miller::absoluteIntensity = false;
 double Miller::intensityThreshold = 0;
 bool Miller::individualWavelength = false;
-
-using cctbx::sgtbx::reciprocal_space::asu;
-
-asu Miller::p1_asu = asu();
-bool Miller::initialised_p1 = false;
-space_group Miller::p1_spg = space_group();
 
 void Miller::setupStaticVariables()
 {
@@ -999,24 +991,19 @@ void Miller::applyPolarisation(double wavelength)
         rawIntensity *= l + 1;
 }
 
-// CCTBX_REWRITE: here
 bool Miller::positiveFriedel(bool *positive, int *_isym)
 {
     int h = getH();
     int k = getK();
     int l = getL();
     
-    cctbx::miller::index<> newMiller = cctbx::miller::index<>(h, k, l);
-    space_group *spaceGroup = getParentReflection()->getSpaceGroup();
-    asu *asymmetricUnit = getParentReflection()->getAsymmetricUnit();
+    int _h, _k, _l;
     
-    cctbx::miller::asym_index asymmetricMiller = cctbx::miller::asym_index(*spaceGroup, *asymmetricUnit, newMiller);
+    CSym::CCP4SPG *spg = getParentReflection()->getSpaceGroup();
     
-    int isym = asymmetricMiller.isym();
+    int isym = CSym::ccp4spg_put_in_asu(spg, h, k, l, &_h, &_k, &_l);
     
-    //  std::cout << isym << std::endl;
-    
-    *positive = ((isym > 0) == 1);
+    *positive = ((isym % 2) == 1);
     
     return isym != 0;
 }

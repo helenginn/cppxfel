@@ -12,6 +12,7 @@
 #include "MtzManager.h"
 #include "Logger.h"
 #include <algorithm>
+#include <iomanip>
 #include "parameters.h"
 #include <fstream>
 #include "SpotVector.h"
@@ -30,6 +31,8 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     proportionDistance = FileParser::getKey("DISTANCE_VS_ANGLE_FRACTION", 1.0);
     _canLockVectors = false;
     _axisWeighting = PseudoScoreWeightingAxisNone;
+    _maxFrequency = -1;
+    interPanelDistance = 0.06;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -47,25 +50,6 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     {
         std::cout << "Please supply target unit cell in keyword UNIT_CELL." << std::endl;
         exit(1);
-    }
-    
-    std::vector<double> testCell = FileParser::getKey("RECIPROCAL_UNIT_CELL", std::vector<double>());
-    
-    if (testCell.size() == 6)
-    {
-        unitCell = Matrix::unitCellFromReciprocalUnitCell(testCell[0], testCell[1], testCell[2],
-                                                              testCell[3], testCell[4], testCell[5]);
-        std::ostringstream stream;
-        
-        stream << "Unit cell from reciprocal: ";
-        
-        for (int i = 0; i < 6; i++)
-        {
-            stream << unitCell[i] << " ";
-        }
-        
-        stream << std::endl;
-        Logger::mainLogger->addStream(&stream);
     }
     
     newReflection = new Reflection();
@@ -677,7 +661,8 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
         }
     }
     
-    if (scoreType == PseudoScoreTypeInterPanel && vec->spansChildrenOfDetector(activeDetector))
+    if (scoreType == PseudoScoreTypeInterPanel && vec->spansChildrenOfDetector(activeDetector)
+        && vec->originalDistanceLessThan(interPanelDistance))
     {
         return true;
     }
@@ -733,25 +718,28 @@ void IndexManager::processConsistencyVector(SpotVectorPtr vect, CSVPtr distCSV, 
     }
 }
 
-void IndexManager::processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck)
+bool IndexManager::processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck)
 {
     if (!skipCheck && !checkVector(vec))
     {
-        return;
+        return false;
     }
     
     vec->setUpdate();
     double realDistance = vec->distance();
     
-    double weight = lattice->weightForDistance(realDistance);
+    double value = lattice->weightForDistance(realDistance);
+    double weight = 1 / realDistance;
     
-    *score += weight;
-    (*count)++;
+    *score += weight * value;
+    (*count) += weight;
     
     if (lock)
     {
         goodVectors.push_back(vec);
     }
+    
+    return true;
 }
 
 double IndexManager::pseudoDistanceConsistency()
@@ -759,7 +747,7 @@ double IndexManager::pseudoDistanceConsistency()
     double score = 0;
     double count = 0;
     
-    bool locked = goodVectors.size();
+    bool locked = (goodVectors.size() > 0);
     CSVPtr distCSV = CSVPtr(new CSV(0));
     double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
@@ -799,11 +787,58 @@ double IndexManager::pseudoDistanceConsistency()
     return score / pow(count, 2);
 }
 
-double IndexManager::pseudoDistanceScore(void *object)
+std::string targetString(PseudoScoreType type)
+{
+    switch (type) {
+        case PseudoScoreTypeAllInterPanel:
+            return "all_interpanel";
+            break;
+        case PseudoScoreTypeInterPanel:
+            return "interpanel";
+            break;
+        case PseudoScoreTypeIntraPanel:
+            return "intrapanel";
+            break;
+ 
+        default:
+            return "";
+            break;
+    }
+    
+}
+
+void IndexManager::plotGoodVectors()
+{
+    return;
+    
+    ImagePtr special = Detector::getSpecialImage();
+    std::string filename = getActiveDetector()->getTag() + "_" + targetString(getPseudoScoreType()) + "_vec.png";
+    
+    special->plotVectorsOnPNG(goodVectors, filename);
+}
+
+double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::string tag)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
     double score = 0;
     double count = 0;
+    
+    CSVPtr csv = CSVPtr(new CSV());
+    
+    if (writeToCSV)
+    {
+        double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05;
+        double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
+
+        csv->setupHistogram(0, maxDistance, step, "distance", 2, "observed", "model");
+        
+        for (int i = 0; i < csv->entryCount(); i++)
+        {
+            double distance = csv->valueForEntry("distance", i);
+            double weight = me->lattice->weightForDistance(distance);
+            csv->addOneToFrequency(distance, "model", weight);
+        }
+    }
     
     bool locked = me->goodVectors.size();
     
@@ -814,7 +849,12 @@ double IndexManager::pseudoDistanceScore(void *object)
             for (int j = 0; j < me->images[i]->spotVectorCount(); j++)
             {
                 SpotVectorPtr vec = me->images[i]->spotVector(j);
-                me->processVector(vec, &score, &count, me->_canLockVectors, false);
+                bool good = me->processVector(vec, &score, &count, me->_canLockVectors, false);
+                
+                if (writeToCSV && good)
+                {
+                    csv->addOneToFrequency(vec->distance(), "observed", 1);
+                }
             }
         }
     }
@@ -823,13 +863,50 @@ double IndexManager::pseudoDistanceScore(void *object)
         for (int i = 0; i < me->goodVectors.size(); i++)
         {
             SpotVectorPtr vec = me->goodVectors[i];
-            me->processVector(vec, &score, &count, false, true);
+            bool good = me->processVector(vec, &score, &count, false, true);
+            
+            if (writeToCSV && good)
+            {
+                csv->addOneToFrequency(vec->distance(), "observed", 1);
+            }
+
         }
+    }
+    
+    if (writeToCSV)
+    {
+        if (me->_maxFrequency < 0)
+        {
+            double min;
+            csv->minMaxCol(1, &min, &me->_maxFrequency);
+            me->_maxFrequency *= 1.2;
+        }
+        
+        std::map<std::string, std::string> plotMap;
+        plotMap["xHeader0"] = "distance";
+        plotMap["yMax0"] = f_to_str(me->_maxFrequency, -1);
+        plotMap["yMin0"] = "0";
+        plotMap["xTitle0"] = "Reciprocal distance between vectors (Ang)";
+        plotMap["yHeader0"] = "observed";
+        plotMap["style0"] = "line";
+        
+        plotMap["xHeader1"] = "distance";
+        plotMap["yHeader1"] = "model";
+        plotMap["style1"] = "line";
+        plotMap["colour1"] = "blue";
+        
+        plotMap["filename"] = tag + me->getActiveDetector()->getTag() + "_" + targetString(me->getPseudoScoreType()) + "_" + i_to_str(me->getCycleNum());
+        
+        csv->plotPNG(plotMap);
+        
+        std::ostringstream logged;
+       // logged << plotMap["filename"] << " used " << count << " vectors." << std::endl;
+       // Logger::log(logged);
     }
     
     score /= count;
     
-    return -score;
+    return score;
 }
 
 void IndexManager::pseudoAngleCSV()
@@ -1219,6 +1296,15 @@ void IndexManager::powderPattern(std::string csvName, bool force)
         angleCSV->writeToFile("angle_" + csvName);
     }
     powder.writeToFile(csvName);
+    
+    std::map<std::string, std::string> plotMap;
+    plotMap["xHeader0"] = "Distance";
+    plotMap["xTitle0"] = "Reciprocal distance between vectors (Ang)";
+    plotMap["yHeader0"] = "Frequency";
+    plotMap["style0"] = "line";
+    plotMap["filename"] = csvName;
+    
+    powder.plotPNG(plotMap);
     logged << "Written to " << csvName << std::endl;
     sendLog();
     
