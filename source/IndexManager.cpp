@@ -896,6 +896,8 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
         plotMap["style0"] = "line";
         
         plotMap["xHeader1"] = "distance";
+        plotMap["yMin1"] = "0.";
+        plotMap["yMax1"] = "2.5";
         plotMap["yHeader1"] = "model";
         plotMap["style1"] = "line";
         plotMap["colour1"] = "blue";
@@ -1305,10 +1307,16 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     std::map<std::string, std::string> plotMap;
     plotMap["xHeader0"] = "Distance";
     plotMap["xTitle0"] = "Reciprocal distance between vectors (Ang)";
-    plotMap["yHeader0"] = "Frequency";
+    plotMap["yHeader0"] = "Intra-panel";
     plotMap["style0"] = "line";
+    plotMap["xHeader1"] = "Distance";
+    plotMap["xTitle1"] = "Reciprocal distance between vectors (Ang)";
+    plotMap["yHeader1"] = "Inter-panel";
+    plotMap["style1"] = "line";
+    plotMap["colour1"] = "blue";
     plotMap["filename"] = csvName;
-    
+
+
     powder.plotPNG(plotMap);
     logged << "Written to " << csvName << std::endl;
     sendLog();
