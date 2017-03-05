@@ -16,6 +16,7 @@
 #include "Vector.h"
 #include <algorithm>
 
+bool UnitCellLattice::setupLattice = false;
 std::vector<MatrixPtr> UnitCellLattice::symOperators;
 UnitCellLatticePtr UnitCellLattice::mainLattice;
 
@@ -166,6 +167,14 @@ void UnitCellLattice::updateUnitCellData()
 
 void UnitCellLattice::setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution)
 {
+    setupLock.lock();
+    
+    if (setupLattice)
+    {
+        setupLock.unlock();
+        return;
+    }
+    
     powderStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     spaceGroup = CSym::ccp4spg_load_by_ccp4_num(spaceGroupNum);
     
@@ -279,6 +288,9 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
         if (length_of_vector(hkl) < minDistance)
             minDistance = length_of_vector(hkl);
     }
+    
+    setupLock.unlock();
+    setupLattice = true;
 }
 
 void UnitCellLattice::refineUnitCell(PowderHistogram aHistogram)

@@ -40,6 +40,8 @@ private:
     void updateUnitCellData();
     void lockUnitCellDimensions(double *a, double *b, double *c, double *alpha, double *beta, double *gamma);
     double distanceToAngleRatio;
+    std::mutex setupLock;
+    static bool setupLattice;
     
     double _aDim;
     double _bDim;
