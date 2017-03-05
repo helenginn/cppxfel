@@ -178,11 +178,6 @@ void GeometryRefiner::refineGeometry()
         cycleNum++;
         geometryCycleForDetector(detectors, false);
         refineBeamCentre();
-        
-/*        for (int j = 0; j < 3; j++)
-        {
-            cycleNum++;
-        }*/
     }
 }
 
