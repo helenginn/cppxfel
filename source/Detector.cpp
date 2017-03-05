@@ -561,9 +561,6 @@ void Detector::spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
     {
         *arrangedPos = midPointOffsetFromParent();
         spotCoordToRelativeVec(unarrangedX, unarrangedY, arrangedPos);
-        
-     //   vec cumulative = midPointOffsetFromParent();
-     //   add_vector_to_vector(arrangedPos, cumulative);
     }
 }
 
