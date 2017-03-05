@@ -1110,10 +1110,15 @@ void Image::fakeSpots()
     
     if (IOMRefinerCount() == 0)
     {
-        MatrixPtr mat = Matrix::randomOrientationMatrix();
-        IOMRefinerPtr refiner = IOMRefinerPtr(new IOMRefiner(shared_from_this(), mat));
+        int num = rand() % 2 + 1;
         
-        addIOMRefiner(refiner);
+        for (int i = 0; i < num; i++)
+        {
+            MatrixPtr mat = Matrix::randomOrientationMatrix();
+            IOMRefinerPtr refiner = IOMRefinerPtr(new IOMRefiner(shared_from_this(), mat));
+            
+            addIOMRefiner(refiner);
+        }
     }
     
     for (int i = 0; i < IOMRefinerCount(); i++)
@@ -2417,8 +2422,8 @@ void Image::writePNG(PNGFilePtr file)
         
         logged << "Image " << getFilename() << " (min/max Z: " << minZ << ", " << maxZ << ")" << std::endl;
         sendLog();
-        minZ = 915;
-        maxZ = 921;
+        minZ = 918;
+        maxZ = 924;
     }
     
     for (int i = 0; i < xDim; i++)
