@@ -11,6 +11,7 @@
 #include "RefinementStrategy.h"
 #include "FileParser.h"
 #include "misc.h"
+#include <iomanip>
 
 RefinementStrategyPtr RefinementStrategy::userChosenStrategy()
 {
@@ -84,7 +85,16 @@ void RefinementStrategy::refine()
     
     logged << tags[tags.size() - 1] << " --- " << std::endl;
     
-    reportProgress((*evaluationFunction)(evaluateObject));
+    startingScore = (*evaluationFunction)(evaluateObject);
+    
+    for (int i = 0; i < objects.size(); i++)
+    {
+        double objectValue = (*getters[i])(objects[i]);
+        startingValues.push_back(objectValue);
+    }
+
+    
+    reportProgress(startingScore);
 }
 
 void RefinementStrategy::reportProgress(double score)
@@ -96,7 +106,8 @@ void RefinementStrategy::reportProgress(double score)
     
     for (int i = 0; i < objects.size(); i++)
     {
-        logged << (*getters[i])(objects[i]) << "\t";
+        double objectValue = (*getters[i])(objects[i]);
+        logged << objectValue << "\t";
     }
 
     logged << " - score: ";
@@ -106,9 +117,32 @@ void RefinementStrategy::reportProgress(double score)
 
 void RefinementStrategy::finish()
 {
-    Logger::mainLogger->addStream(&logged, priority);
+    double endScore = (*evaluationFunction)(evaluateObject);
+    
+    Logger::mainLogger->addStream(&logged, LogLevelDebug);
     logged.clear();
     logged.str("");
+    
+    if (endScore > startingScore)
+    {
+        logged << "No change for " << jobName << std::endl;
+        sendLog(priority);
+        
+        for (int i = 0; i < objects.size(); i++)
+        {
+            double objectValue = startingValues[i];
+            (*setters[i])(objects[i], objectValue);
+        }
+    }
+    else
+    {
+        double reduction = (startingScore - endScore) / startingScore;
+        logged << "Reduction by " << std::fixed << std::setprecision(2) <<
+        reduction * 100 << "% for " << jobName << std::endl;
+        sendLog();
+    }
+    
+    logged << std::flush;
     
     cycleNum = 0;
 }

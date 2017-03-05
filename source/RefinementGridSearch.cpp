@@ -154,8 +154,6 @@ void RefinementGridSearch::assignInterpanelMinimum()
             
             std::vector<double> localRegion, increments;
             
-            
-            
             if (lineMin - coverPadding < 0)
                 continue;
             
@@ -183,20 +181,11 @@ void RefinementGridSearch::assignInterpanelMinimum()
     
     ParamList minParams = orderedParams[maxSteepnessValue];
     
-    logged << "Setting params for steepest quadratic (" << maxSteepness << ") - ";
-    
     for (int i = 0; i < minParams.size(); i++)
     {
         Setter setter = setters[i];
         (*setter)(objects[i], minParams[i]);
-        
-        logged << tags[i] << " = " << minParams[i] << ", ";
     }
     
     double val = (*evaluationFunction)(evaluateObject);
-    logged << "score = " << val << std::endl;
-    
-    sendLog();
-    
-    sendLog();
 }

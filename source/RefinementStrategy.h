@@ -30,6 +30,8 @@ protected:
     std::vector<double> stepSizes;
     std::vector<double> stepConvergences;
     std::vector<std::string> tags;
+    std::vector<double> startingValues;
+    double startingScore;
     
     void reportProgress(double score);
     void finish();
@@ -40,6 +42,7 @@ public:
         maxCycles = 30;
         priority = LogLevelDebug;
         cycleNum = 0;
+        startingScore = 0;
     };
     
     static RefinementStrategyPtr userChosenStrategy();
