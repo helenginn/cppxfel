@@ -101,9 +101,19 @@ GeometryRefiner::GeometryRefiner()
     lastInterScore = 0;
     lastInterAngleScore = 0;
     lastIntraAngleScore = 0;
-    gridNudgedZ = false;
+
+    double distance = Detector::getArrangedMidPointZ(&*Detector::getMaster());
+    double expectedPixels = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 5.0);
     
-    tiltNudge = FileParser::getKey("NUDGE_ROTATION_STEP", 0.0001);
+    tiltNudge = atan(expectedPixels / distance);
+    nudgeStep = sqrt(pow(expectedPixels, 2) + pow(distance, 2)) - distance;
+    
+    tiltNudge /= 5;
+    nudgeStep *= 2;
+    
+    logged << "From " << expectedPixels << " pixel expected movement, setting tilt_nudge to " << tiltNudge
+    << " and nudgeStep to " << nudgeStep << std::endl;
+    sendLog();
 }
 
 
@@ -389,7 +399,6 @@ void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, std::ve
     
     threads.join_all();
     me->reportProgress();
-    me->gridNudgedZ = true;
     me->firstCycle = false;
 }
 
@@ -432,8 +441,6 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
         checkGridSearch(detector);
     }
     
-    double nudgeStep = FileParser::getKey("NUDGE_STEP", 0.2);
-    
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
     IndexManager::pseudoDistanceScore(&*detector->getIndexManager(), true, "before_");
     
@@ -449,9 +456,9 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
-        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge, 0.000001, "poke_x");
-        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge, 0.000001, "poke_y");
-        strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, tiltNudge, 0.000001, "poke_z");
+        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge / 5, 0.000001, "poke_x");
+        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge / 5, 0.000001, "poke_y");
+        strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, tiltNudge / 5, 0.000001, "poke_z");
     }
     else if (type == GeometryScoreTypeBeamCentre)
     {

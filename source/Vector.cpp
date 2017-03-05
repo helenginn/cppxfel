@@ -14,6 +14,8 @@
 #include "Logger.h"
 #include <fstream>
 
+
+
 vec reverseVector(vec vec1)
 {
     vec vec2 = copy_vector(vec1);
