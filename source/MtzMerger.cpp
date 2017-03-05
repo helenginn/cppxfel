@@ -537,8 +537,6 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
 
 void MtzMerger::addMtzMillers(MtzPtr mtz)
 {
-    int specialId = Reflection::reflectionIdForCoordinates(1, 2, 62);
-
     for (int j = 0; j < mtz->reflectionCount(); j++)
     {
         ReflectionPtr refl = mtz->reflection(j);

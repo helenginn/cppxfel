@@ -657,7 +657,6 @@ void MtzManager::gridSearch(bool silent)
     }
     
     this->sendLog(LogLevelDetailed);
-    double rMerge = 0;
     
     logged << filename << "\t" << scoreDescription << "\t" << "\t"
     << newerCorrel << "\t" << rSplitValue << "\t"

@@ -32,7 +32,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     _canLockVectors = false;
     _axisWeighting = PseudoScoreWeightingAxisNone;
     _maxFrequency = -1;
-    interPanelDistance = 0.06;
+    interPanelDistance = 0.07;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -599,7 +599,12 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 double IndexManager::debugPseudoScore(void *object)
 {
     Detector::getMaster()->drawSpecialImage();
-    return pseudoScore(object);
+    double value = pseudoScore(object);
+    std::ostringstream logged;
+    logged << "Value " << value << std::endl;
+    Logger::log(logged);
+    
+    return value;
 }
 
 bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)

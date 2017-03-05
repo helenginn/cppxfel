@@ -89,6 +89,9 @@ void RefinementStrategy::refine()
 
 void RefinementStrategy::reportProgress(double score)
 {
+    if (!(priority <= LogLevelNormal))
+        return;
+    
     logged << "Cycle " << cycleNum << "\t";
     
     for (int i = 0; i < objects.size(); i++)

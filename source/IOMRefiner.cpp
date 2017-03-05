@@ -815,186 +815,6 @@ void IOMRefiner::refineOrientationMatrix()
     lRot = 0;
 }
 
-/*
- void IOMRefiner::refineOrientationMatrix(RefinementType refinementType)
- {
- refinement = refinementType;
- this->calculateNearbyMillers(true);
- 
- testWavelength = getImage()->getWavelength();
- 
- vector<double> wavelengths;
- vector<int> frequencies;
- 
- checkAllMillers(maxResolution, testBandwidth);
- Logger::mainLogger->addString("Wavelength histogram before refinement", LogLevelDetailed);
- sendLog(LogLevelDetailed);
- getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
- 
- double mean = 0;
- double stdev = 0;
- double theScore = 0;
- 
- histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
- 
- lastStdev = stdev;
- lastTotal = getTotalReflections();
- 
- getImage()->setWavelength(mean);
- 
- bool recalculated = false;
- 
- for (int i = 0; i < 1; i++)
- {
- double hRotStep = initialStep;
- double kRotStep = initialStep;
- double lRotStep = initialStep;
- 
- double alphaStep = FileParser::getKey("STEP_UNIT_CELL_ALPHA", 0.5);
- double betaStep = FileParser::getKey("STEP_UNIT_CELL_BETA", 0.5);
- double gammaStep = FileParser::getKey("STEP_UNIT_CELL_GAMMA", 0.5);
- 
- bool refinedH = false;
- bool refinedK = false;
- bool refinedL = !FileParser::getKey("REFINE_IN_PLANE_OF_DETECTOR", true);
- bool refinedAlpha = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
- bool refinedBeta = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
- bool refinedGamma = !FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
- int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
- 
- int count = 0;
- 
- while (!(refinedH && refinedK && refinedL) && count < 20)
- {
- if (!refinedL)
- {
- int oldSearchSize = searchSize;
- 
- if (searchSize < bigSize)
- {
- searchSize = bigSize;
- }
- 
- recalculateMillerPositions = true;
- refinement = RefinementTypeRefineLAxis;
- 
- this->minimizeParameter(&lRotStep, &lRot);
- refinement = refinementType;
- recalculateMillerPositions = false;
- 
- searchSize = oldSearchSize;
- }
- if (!refinedH && !refinedK)
- {
- this->minimizeTwoParameters(&hRotStep, &kRotStep, &hRot, &kRot);
- }
- 
- //     refinementType = RefinementTypeOrientationMatrixPanelStdev;
- 
- if (!refinedAlpha)
- {
- minimizeParameter(&alphaStep, &unitCell[3]);
- }
- 
- if (!refinedBeta)
- {
- minimizeParameter(&betaStep, &unitCell[4]);
- }
- 
- if (!refinedGamma)
- {
- minimizeParameter(&gammaStep, &unitCell[5]);
- }
- 
- //     refinementType = RefinementTypeOrientationMatrixEarly;
- 
- checkAllMillers(maxResolution, testBandwidth, false, false);
- 
- getWavelengthHistogram(wavelengths, frequencies);
- histogram_gaussian(&wavelengths, &frequencies, mean, stdev);
- lastStdev = stdev;
- lastTotal = getTotalReflections();
- 
- double newScore = score();
- lastScore = newScore;
- 
- logged << getRot(0) << "\t" << getRot(1) << "\t" << getRot(2) << "\t" << newScore << std::endl;
- sendLog(LogLevelDetailed);
- 
- if (hRotStep < 0.25 && kRotStep < 0.25)
- {
- if (!recalculated)
- {
- recalculated = true;
- this->calculateNearbyMillers(true);
- }
- }
- 
- if (hRotStep < orientationTolerance)
- refinedH = true;
- if (kRotStep < orientationTolerance)
- refinedK = true;
- 
- if (lRotStep < orientationTolerance)
- refinedL = true;
- 
- if (alphaStep < 0.01)
- refinedAlpha = true;
- if (betaStep < 0.01)
- refinedBeta = true;
- if (gammaStep < 0.01)
- refinedGamma = true;
- 
- count++;
- }
- 
- count = 0;
- }
- 
- lastScore = score();
- 
- logged << "Current wavelength: " << testWavelength << " Å." << std::endl;
- logged << "Rotation result:\t" << getImage()->getFilename() << "\t" << hRot
- << "\t" << kRot << "\t" << getTotalReflections() << "\t" << getLastScore() << std::endl;
- 
- double hRad = getRot(0) * M_PI / 180;
- double kRad = getRot(1) * M_PI / 180;
- double lRad = getRot(2) * M_PI / 180;
- 
- vector<double> originalUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
- double *lengths = new double[3];
- getMatrix()->unitCellLengths(&lengths);
- 
- double aRatio = originalUnitCell[0] / lengths[0];
- double bRatio = originalUnitCell[1] / lengths[1];
- double cRatio = originalUnitCell[2] / lengths[2];
- 
- double aveRatio = (aRatio + bRatio + cRatio) / 3;
- 
- lengths[0] *= aveRatio;
- lengths[1] *= aveRatio;
- lengths[2] *= aveRatio;
- 
- delete [] lengths;
- 
- getMatrix()->rotate(hRad, kRad, lRad);
- 
- bestHRot = getRot(0);
- bestKRot = getRot(1);
- bestLRot = getRot(2);
- 
- hRot = 0;
- kRot = 0;
- lRot = 0;
- 
- needsReintegrating = true;
- checkAllMillers(maxResolution, testBandwidth);
- getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
- 
- sendLog(LogLevelNormal);
- }
- */
-
 bool IOMRefiner::isGoodSolution()
 {
     if (getImage()->getClass() == ImageClassDIALS)
@@ -1258,7 +1078,7 @@ void IOMRefiner::fakeSpots()
     this->calculateNearbyMillers();
     this->checkAllMillers(maxResolution, testBandwidth, false, true, true);
     double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
-    double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double bandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH", 0.0013);
     double partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF", 0.2);
     
     for (int i = 0; i < millers.size(); i++)
@@ -1295,7 +1115,6 @@ void IOMRefiner::fakeSpots()
             if (i % 20 == 0)
             {
                 std::string millerText = "(" + f_to_str(millers[i]->getH()) + " " + f_to_str(millers[i]->getK()) + " " + f_to_str(millers[i]->getL()) + ")";
-                double wavelength = millers[i]->getPredictedWavelength();
                 
                 spot->setText(millerText);
             }
@@ -1325,21 +1144,19 @@ std::string IOMRefiner::refinementSummary()
     double wavelength = getWavelength();
     double distance = getDetectorDistance();
     MatrixPtr matrix = getMatrix();
-    double *lengths = new double[3];
+    double lengths[3];
     
     for (int i = 0; i < 3; i++)
     {
         lengths[i] = 0;
     }
     
-    matrix->unitCellLengths(&lengths);
+    matrix->unitCellLengths(lengths);
     
     std::ostringstream summary;
     
     summary << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
     << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << "\t" << unitCell[3] << "\t" << unitCell[4] << "\t" << unitCell[5];
-    
-    delete [] lengths;
     
     return summary.str();
 }

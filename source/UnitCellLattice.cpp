@@ -21,23 +21,20 @@ UnitCellLatticePtr UnitCellLattice::mainLattice;
 
 void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax)
 {
-    double *lengths = new double[3];
-    
-    unitCellMatrix->unitCellLengths(&lengths);
+    double lengths[3];
+    unitCellMatrix->unitCellLengths(lengths);
     
     *hMax = lengths[0] / resolution;
     *kMax = lengths[1] / resolution;
     *lMax = lengths[2] / resolution;
-    
-    delete [] lengths;
 }
 
 void UnitCellLattice::weightUnitCell()
 {
-    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
     CSVPtr distCSV = CSVPtr(new CSV(0));
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05;
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
+    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
     distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 1, "Perfect frequency");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
     angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
@@ -107,10 +104,6 @@ void UnitCellLattice::weightUnitCell()
         
         double inverse = 1 / distance;
         inverse *= maxDistance;
-        double stdev = rlpSize / 2;
-        
-    //    distCSV->addConvolutedPeak(1, distance, stdev, inverse);
-    //    distTotal += inverse;
         
         if (distance > maxAngleDistance)
             continue;

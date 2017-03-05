@@ -17,7 +17,7 @@
 #include <iomanip>
 #include "parameters.h"
 #include "Logger.h"
-//#include <boost/python.hpp>
+#include "UnitCellLattice.h"
 #include "FileParser.h"
 #include "Hdf5ManagerProcessing.h"
 
@@ -115,19 +115,6 @@ std::string Matrix::description(bool detailed, bool submatrix)
     return description.str();
 }
 
-void Matrix::sensibleComponents(double *returnedComponents[9])
-{
-    (*returnedComponents)[0] = components[0];
-    (*returnedComponents)[1] = components[4];
-    (*returnedComponents)[2] = components[8];
-    (*returnedComponents)[3] = components[1];
-    (*returnedComponents)[4] = components[5];
-    (*returnedComponents)[5] = components[9];
-    (*returnedComponents)[6] = components[2];
-    (*returnedComponents)[7] = components[6];
-    (*returnedComponents)[8] = components[10];
-}
-
 void Matrix::eulerAngles(double *theta, double *phi, double *psi, bool force)
 {
     Matrix *chosenMat = rotation ? &*rotation : this;
@@ -179,18 +166,6 @@ double Matrix::similarityToRotationMatrix(MatrixPtr mat2, double tolerance, bool
     return sqrt(sumSqr);
 }
 
-MatrixPtr Matrix::getNegativeCopy()
-{
-    MatrixPtr newMat = this->copy();
-    
-    for (int i = 0; i < 16; i++)
-    {
-        newMat->components[i] = - newMat->components[i];
-    }
-    
-    return newMat;
-}
-
 MatrixPtr Matrix::matFromCCP4(CSym::ccp4_symop *symop)
 {
     MatrixPtr mat = MatrixPtr(new Matrix());
@@ -216,12 +191,7 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
     
     MatrixPtr unitCell = Matrix::matrixFromUnitCell(unitParams);
     MatrixPtr reverse = unitCell->inverse3DMatrix();
-
-    std::ostringstream logged;
-    logged << "Number of symmetry operators for spg " << spaceGroup->spg_num << ": " << spaceGroup->nsymop
-    << std::endl;
-    Logger::log(logged);
-    
+  
     for (int j = 0; j < spaceGroup->nsymop; j++)
     {
         MatrixPtr newMat = matFromCCP4(&spaceGroup->symop[j]);
@@ -230,32 +200,12 @@ void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CS
         ortho->multiply(*reverse);
         
         matrices->push_back(ortho);
-        ortho->printDescription();
     }
-    
-    Logger::log(logged);
 }
 
 void Matrix::printDescription(bool detailed)
 {
     Logger::mainLogger->addString(description(detailed));
-}
-
-void Matrix::prettyPrint()
-{
-    int width = 10;
-    std::ostringstream logged;
-    logged << "Pretty: " << std::endl;
-    logged << std::setw(width) << std::setprecision(4) << components[0];
-    logged << std::setw(width) << std::setprecision(4) << components[4];
-    logged << std::setw(width) << std::setprecision(4) << components[8] << std::endl;
-    logged << std::setw(width) << std::setprecision(4) << components[1];
-    logged << std::setw(width) << std::setprecision(4) << components[5];
-    logged << std::setw(width) << std::setprecision(4) << components[9] << std::endl;
-    logged << std::setw(width) << std::setprecision(4) << components[2];
-    logged << std::setw(width) << std::setprecision(4) << components[6];
-    logged << std::setw(width) << std::setprecision(4) << components[10] << std::endl;
-    Logger::mainLogger->addStream(&logged);
 }
 
 MatrixPtr Matrix::matrixFromUnitCell(double *unitCell)
@@ -284,29 +234,6 @@ void Matrix::orientationMatrixUnitCell(double *a, double *b, double *c)
     *c = sqrt(cSquared);
 }
 
-void Matrix::threeDimComponents(double **componentArray)
-{
-    (*componentArray)[0] = components[0];
-    (*componentArray)[1] = components[4];
-    (*componentArray)[2] = components[8];
-    
-    (*componentArray)[3] = components[1];
-    (*componentArray)[4] = components[5];
-    (*componentArray)[5] = components[9];
-    
-    (*componentArray)[6] = components[2];
-    (*componentArray)[7] = components[6];
-    (*componentArray)[8] = components[10];
-}
-
-void Matrix::add(MatrixPtr secondMatrix)
-{
-    for (int i = 0; i < 15; i++)
-    {
-        components[i] += secondMatrix->components[i];
-    }
-}
-
 void Matrix::subtract(MatrixPtr secondMatrix)
 {
     for (int i = 0; i < 15; i++)
@@ -316,7 +243,7 @@ void Matrix::subtract(MatrixPtr secondMatrix)
 }
 
 
-void Matrix::unitCellLengths(double **lengths)
+void Matrix::unitCellLengths(double *lengths)
 {
     Matrix *mat = unitCell != NULL ? &*unitCell : this;
     
@@ -324,28 +251,9 @@ void Matrix::unitCellLengths(double **lengths)
     double bLengthSqr = pow(mat->components[4], 2) + pow(mat->components[5], 2) + pow(mat->components[6], 2);
     double cLengthSqr = pow(mat->components[8], 2) + pow(mat->components[9], 2) + pow(mat->components[10], 2);
     
-    (*lengths)[0] = 1 / sqrt(aLengthSqr);
-    (*lengths)[1] = 1 / sqrt(bLengthSqr);
-    (*lengths)[2] = 1 / sqrt(cLengthSqr);
-}
-
-/** Warning: only use for unit cells with 90 degree angles! */
-void Matrix::scaleUnitCellAxes(double aScale, double bScale, double cScale)
-{
-    double *oldLengths = new double[3];
-    unitCellLengths(&oldLengths);
-    
-    double *newLengths = new double[3];
-    newLengths[0] = oldLengths[0] * aScale;
-    newLengths[1] = oldLengths[1] * bScale;
-    newLengths[2] = oldLengths[2] * cScale;
-    
-    vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-    
-    changeOrientationMatrixDimensions(newLengths[0], newLengths[1], newLengths[2], unitCell[3], unitCell[4], unitCell[5]);
-    
-    delete [] oldLengths;
-    delete [] newLengths;
+    (lengths)[0] = 1 / sqrt(aLengthSqr);
+    (lengths)[1] = 1 / sqrt(bLengthSqr);
+    (lengths)[2] = 1 / sqrt(cLengthSqr);
 }
 
 void Matrix::recalculateOrientationMatrix()
@@ -368,8 +276,8 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
 {
     std::ostringstream logged;
     
-    double *lengths = new double[3];
-    unitCellLengths(&lengths);
+    double lengths[3];
+    unitCellLengths(lengths);
     
     if (!unitCell || !rotation)
     {
@@ -388,8 +296,6 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
         components[8] *= cScale;
         components[9] *= cScale;
         components[10] *= cScale;
-
-        delete [] lengths;
         
         return;
     }
@@ -423,10 +329,8 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     
     recalculateOrientationMatrix();
     
-    unitCellLengths(&lengths);
+    unitCellLengths(lengths);
     logged << "; new cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2] << std::endl;
-    
-    delete [] lengths;
     
     Logger::mainLogger->addStream(&logged, LogLevelDebug);
 }
@@ -576,14 +480,6 @@ Matrix::Matrix(double *newComponents)
     eulerC = 0;
 }
 
-void Matrix::translate(double x, double y, double z)
-{
-    components[12] += x;
-    components[13] += y;
-    components[14] += z;
-    
-}
-
 void Matrix::scale(double a)
 {
     scale(a, a, a);
@@ -599,118 +495,55 @@ void Matrix::scale(double a, double b, double c)
     this->multiply(*scaleMat);
 }
 
-void Matrix::rotateHK(double hRot, double kRot)
-{
-    double hRad = hRot * M_PI / 180;
-    double kRad = kRot * M_PI / 180;
-    
-    this->rotate(hRad, kRad, 0);
-}
-
-void Matrix::rotateABC(MatrixPtr oldMatrix, double aRot, double bRot, double cRot)
-{
-    double aRad = aRot * M_PI / 180;
-    double bRad = bRot * M_PI / 180;
-    double cRad = cRot * M_PI / 180;
-    
-    vec vecs[3];
-    
-    for (int i = 0; i < 3; i++)
-    {
-        vecs[i] = new_vector(i == 0, i == 1, i == 2);
-        oldMatrix->multiplyVector(&vecs[i]);
-    }
-    
-    this->rotateRoundUnitVector(vecs[0], aRad);
-    this->rotateRoundUnitVector(vecs[1], bRad);
-    this->rotateRoundUnitVector(vecs[2], cRad);
-}
-
 void Matrix::rotate(double alpha, double beta, double gamma)
 {
     if (alpha != 0)
     {
-        double xAxis[] = { 1, 0, 0 };
+        vec xAxis = new_vector(1, 0, 0);
         rotateRoundUnitVector(xAxis, alpha);
     }
     
     if (beta != 0)
     {
-        double yAxis[] = { 0, 1, 0 };
+        vec yAxis = new_vector(0, 1, 0);
         rotateRoundUnitVector(yAxis, beta);
     }
     
     if (gamma != 0)
     {
-        double zAxis[] = { 0, 0, 1 };
+        vec zAxis = new_vector(0, 0, 1);
         rotateRoundUnitVector(zAxis, gamma);
     }
 }
 
-void Matrix::rotateModelAxes(double alpha, double beta, double gamma)
-{
-    Matrix *alphaMat = new Matrix();
-    (*alphaMat)[5] = cos(-alpha);
-    (*alphaMat)[9] = -sin(-alpha);
-    (*alphaMat)[6] = sin(-alpha);
-    (*alphaMat)[10] = cos(-alpha);
-    
-    Matrix *betaMat = new Matrix();
-    (*betaMat)[0] = cos(-beta);
-    (*betaMat)[8] = sin(-beta);
-    (*betaMat)[2] = -sin(-beta);
-    (*betaMat)[10] = cos(-beta);
-    
-    Matrix *gammaMat = new Matrix();
-    (*gammaMat)[0] = cos(-gamma);
-    (*gammaMat)[4] = -sin(-gamma);
-    (*gammaMat)[1] = sin(-gamma);
-    (*gammaMat)[5] = cos(-gamma);
-    
-    Matrix *chosenMatrix = this;
-    
-    Matrix alphaThis = *alphaMat * *chosenMatrix;
-    Matrix betaAlphaThis = *betaMat * alphaThis;
-    Matrix allThis = *gammaMat * betaAlphaThis;
-    
-    memcpy(chosenMatrix->components, allThis.components, 16 * sizeof(double));
-    
-}
 
-void Matrix::rotateRoundUnitVector(vec unitVector, double radians)
-{
-    double *axis = new double[3];
-    
-    axis[0] = unitVector.h;
-    axis[1] = unitVector.k;
-    axis[2] = unitVector.l;
-    
-    rotateRoundUnitVector(axis, radians);
-    
-    delete [] axis;
-}
-
-void Matrix::rotateRoundUnitVector(double *unitVector, double radians)
+void Matrix::rotateRoundUnitVector(vec axis, double radians)
 {
     Matrix matrix = Matrix();
     
-    (matrix)[0] = cos(radians) + pow(unitVector[0], 2) * (1 - cos(radians));
-    (matrix)[4] = unitVector[0] * unitVector[1] * (1 - cos(radians))
-    - unitVector[2] * sin(radians);
-    (matrix)[8] = unitVector[0] * unitVector[2] * (1 - cos(radians))
-    + unitVector[1] * sin(radians);
+    double x = axis.h;
+    double x2 = axis.h * axis.h;
+
+    double y = axis.k;
+    double y2 = axis.k * axis.k;
     
-    (matrix)[1] = unitVector[1] * unitVector[0] * (1 - cos(radians))
-    + unitVector[2] * sin(radians);
-    (matrix)[5] = cos(radians) + pow(unitVector[1], 2) * (1 - cos(radians));
-    (matrix)[9] = unitVector[1] * unitVector[2] * (1 - cos(radians))
-    - unitVector[0] * sin(radians);
+    double z = axis.l;
+    double z2 = axis.l * axis.l;
     
-    (matrix)[2] = unitVector[2] * unitVector[0] * (1 - cos(radians))
-    - unitVector[1] * sin(radians);
-    (matrix)[6] = unitVector[2] * unitVector[1] * (1 - cos(radians))
-    + unitVector[0] * sin(radians);
-    (matrix)[10] = cos(radians) + pow(unitVector[2], 2) * (1 - cos(radians));
+    double cosa = cos(radians);
+    double sina = sin(radians);
+    
+    (matrix)[0] = cosa + x2 * (1 - cosa);
+    (matrix)[4] = x * y * (1 - cosa) - z * sina;
+    (matrix)[8] = x * z * (1 - cosa) + y * sina;
+    
+    (matrix)[1] = y * x * (1 - cosa) + z * sina;
+    (matrix)[5] = cosa + y2 * (1 - cosa);
+    (matrix)[9] = z * y * (1 - cosa) - x * sina;
+    
+    (matrix)[2] = z * x * (1 - cosa) - y * sina;
+    (matrix)[6] = z * y * (1 - cosa) + x * sina;
+    (matrix)[10] = cosa + z2 * (1 - cosa);
     
     Matrix *chosenMatrix = this;
     
@@ -739,24 +572,6 @@ void Matrix::multiplyVector(vec *vector)
     + components[10] * oldVec.l;
 }
 
-void Matrix::newMultiplyVector(double *vector[])
-{
-    double *oldVector = (double *) malloc(sizeof(double) * 4);
-    memcpy(oldVector, *vector, sizeof(double) * 4);
-    
-    (*vector)[0] = components[0] * (*vector)[0] + components[4] * (*vector)[1]
-    + components[8] * (*vector)[2] + components[12] * (*vector)[3];
-    (*vector)[1] = components[1] * (*vector)[0] + components[5] * (*vector)[1]
-    + components[9] * (*vector)[2] + components[13] * (*vector)[3];
-    (*vector)[2] = components[2] * (*vector)[0] + components[6] * (*vector)[1]
-    + components[10] * (*vector)[2] + components[14] * (*vector)[3];
-    (*vector)[3] = components[3] * (*vector)[0] + components[7] * (*vector)[1]
-    + components[11] * (*vector)[2] + components[15] * (*vector)[3];
-    
-    free(oldVector);
-    
-}
-
 void Matrix::identity(void)
 {
     Matrix *newMatrix = new Matrix();
@@ -764,29 +579,6 @@ void Matrix::identity(void)
     (*this) = (*newMatrix);
 }
 
-double Matrix::getEwaldSphere(vec *vector)
-{
-    vec index = new_vector(vector->h, vector->k, vector->l);
-    this->multiplyVector(&index);
-    
-    double ewald_radius = index.h * index.h + index.k * index.k
-    + index.l * index.l;
-    if (index.l == 0)
-        return 0;
-    
-    ewald_radius /= (0 - 2 * index.l);
-    double ewald_wavelength = 1 / ewald_radius;
-    
-    return ewald_wavelength;
-}
-
-MatrixPtr Matrix::matrixFromEulerAngles(double theta, double phi, double psi)
-{
-    MatrixPtr matrix = MatrixPtr(new Matrix());
-    matrix->rotate(psi, theta, phi);
-    
-    return matrix;
-}
 
 Matrix Matrix::inverse2DMatrix()
 {
@@ -822,11 +614,6 @@ void Matrix::rotate2D(double angle)
     matrix[5] = cos(angle);
     
     this->preMultiply(matrix);
-}
-
-double invertValue(double topLeft, double bottomRight, double topRight, double bottomLeft)
-{
-    return topLeft * bottomRight - bottomLeft * topRight;
 }
 
 MatrixPtr Matrix::inverse3DMatrix()
@@ -869,8 +656,9 @@ double Matrix::determinant()
     double h = components[6];
     double i = components[10];
     
-    double det = a*e*i + b*f*g + c*d*h + c*e*g - b*d*i - a*f*h;
+    double det = a*e*i + b*f*g + c*d*h - c*e*g - b*d*i - a*f*h;
 
+    
     return det;
 }
 
@@ -907,22 +695,6 @@ MatrixPtr Matrix::transpose()
     return transpose;
 }
 
-void Matrix::print(void)
-{
-    std::cout << components[0] << "\t" << components[4] << "\t" << components[8]
-    << std::endl;
-    std::cout << components[1] << "\t" << components[5] << "\t" << components[9]
-    << std::endl;
-    std::cout << components[2] << "\t" << components[6] << "\t"
-    << components[10] << std::endl;
-}
-
-void Matrix::translation(double **vector)
-{
-    memcpy(*vector, &components[12], sizeof(double) * 3);
-    
-}
-
 bool Matrix::writeToHdf5(std::string address)
 {
     Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
@@ -942,4 +714,33 @@ bool Matrix::writeToHdf5(std::string address)
 void Matrix::copyComponents(MatrixPtr mat2)
 {
     memcpy(this->components, mat2->components, sizeof(double) * 16);
+}
+
+MatrixPtr Matrix::randomOrientation()
+{
+    MatrixPtr rotation = MatrixPtr(new Matrix());
+    
+    for (int i = 0; i < 8; i++)
+    {
+        double alpha = (double)rand() / RAND_MAX * 2 * M_PI;
+        double beta = (double)rand() / RAND_MAX * 2 * M_PI;
+        double gamma = (double)rand() / RAND_MAX * 2 * M_PI;
+        
+        MatrixPtr single = MatrixPtr(new Matrix());
+        single->rotate(alpha, beta, gamma);
+        rotation->multiply(*single);
+    }
+    
+    return rotation;
+}
+
+MatrixPtr Matrix::randomOrientationMatrix()
+{
+    MatrixPtr rotation = randomOrientation();
+    MatrixPtr unitCell = UnitCellLattice::getMainLattice()->getUnitCellOnly()->copy();
+    
+    MatrixPtr mat = MatrixPtr(new Matrix());
+    mat->setComplexMatrix(unitCell, rotation);
+    
+    return mat;
 }

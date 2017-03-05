@@ -90,6 +90,11 @@ private:
     
     vec pokeLateralAxis;
     vec pokeLongitudinalAxis;
+    vec pokePerpendicularAxis;
+    
+    /* Internudge rotations */
+    
+    vec interNudge;
     
     /* Nudge (angles as per the intraPanel movement) */
     vec nudgeRotation;
@@ -119,10 +124,13 @@ private:
     MatrixPtr rotMat;
     MatrixPtr nudgeMat;
     MatrixPtr changeOfBasisMat;
-    MatrixPtr invBasisMat;
     MatrixPtr fixedBasis;
     MatrixPtr workingBasisMat;
     MatrixPtr invWorkingBasisMat;
+    
+    MatrixPtr originalNudgeMat;
+    MatrixPtr interRotation;
+    vec originalNudgePosition;
     
     /* Ancestor map for quick access for previously asked "are you my ancestor"? */
     AncestorMap ancestorMap;
@@ -146,7 +154,6 @@ private:
     
     void spotCoordToRelativeVec(double unarrangedX, double unarrangedY,
                                 vec *arrangedPos);
-    vec rawMidPointOffsetFromParent(bool useParent = true);
     void removeMidPointRelativeToParent();
     void addToBasisChange(vec angles, MatrixPtr chosenMat = MatrixPtr());
     void fixBasisChange();
@@ -482,28 +489,27 @@ public:
         return static_cast<Detector *>(object)->rotationAngles.l;
     }
     
-    static void setNudgeX(void *object, double horiz)
+    static void setInterNudgeX(void *object, double horiz)
     {
-        static_cast<Detector *>(object)->nudgeTranslation.h = horiz;
+        static_cast<Detector *>(object)->interNudge.h = horiz;
         static_cast<Detector *>(object)->updateCurrentRotation();
         static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
 
-    static double getNudgeX(void *object)
+    static double getInterNudgeX(void *object)
     {
-        return static_cast<Detector *>(object)->nudgeTranslation.h;
+        return static_cast<Detector *>(object)->interNudge.h;
     }
     
-    static void setNudgeY(void *object, double vert)
+    static void setInterNudgeY(void *object, double vert)
     {
-        static_cast<Detector *>(object)->nudgeTranslation.k = vert;
+        static_cast<Detector *>(object)->interNudge.k = vert;
         static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
-    static double getNudgeY(void *object)
+    static double getInterNudgeY(void *object)
     {
-        return static_cast<Detector *>(object)->nudgeTranslation.k;
+        return static_cast<Detector *>(object)->interNudge.k;
     }
     
     static void setNudgeZ(void *object, double closeness)
@@ -542,14 +548,14 @@ public:
         return static_cast<Detector *>(object)->nudgeRotation.k;
     }
     
-    static void setNudgeTiltZ(void *object, double spin)
+    static void setInterNudgeZ(void *object, double spin)
     {
-        static_cast<Detector *>(object)->nudgeRotation.l = spin;
+        static_cast<Detector *>(object)->interNudge.l = spin;
         static_cast<Detector *>(object)->updateCurrentRotation();
         static_cast<Detector *>(object)->setUpdateMidPointForDetector();
     }
     
-    static double getNudgeTiltZ(void *object)
+    static double getInterNudgeZ(void *object)
     {
         return static_cast<Detector *>(object)->nudgeRotation.l;
     }
@@ -657,16 +663,15 @@ public:
         return (detectorType == DetectorTypeCSPAD);
     }
     
-    vec midPointOffsetFromParent(bool useParent = true, vec *angles = NULL, bool resetNudge = false);
+    vec midPointOffsetFromParent(bool useParent = true, bool resetNudge = false);
     void getAllSubDetectors(std::vector<DetectorPtr> &array, bool childrenOnly = false);
     
     void reportMillerScores();
     
+    void prepareInterNudges();
     void lockNudges();
-    static void enableNudge()
-    {
-        enabledNudge = true;
-    }
+    static void enableNudge();
+    
     
     void setUpdateMidPointForDetector()
     {
@@ -690,7 +695,7 @@ public:
 
     bool isRefinable(GeometryScoreType scoreType)
     {
-        if (scoreType == GeometryScoreTypeAngleConsistency ||
+        if (scoreType == GeometryScoreTypeIntrapanelParent ||
             scoreType == GeometryScoreTypeBeamCentre)
         {
             return _refinable;

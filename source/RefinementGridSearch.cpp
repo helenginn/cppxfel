@@ -9,6 +9,7 @@
 #include "RefinementGridSearch.h"
 #include <float.h>
 #include "CSV.h"
+#include "FileParser.h"
 #include "polyfit.hpp"
 
 void RefinementGridSearch::recursiveEvaluation(ParamList referenceList, ParamList workingList, ResultMap *results)
@@ -49,7 +50,7 @@ void RefinementGridSearch::recursiveEvaluation(ParamList referenceList, ParamLis
     orderedParams.push_back(workingList);
     orderedResults.push_back(result);
     
-    reportProgress((*evaluationFunction)(evaluateObject));
+    reportProgress(result);
 }
 
 void RefinementGridSearch::refine()
@@ -115,13 +116,18 @@ void RefinementGridSearch::assignInterpanelMinimum()
 {
     // assuming param0 = pokeY, param1 = pokeX
     
+    double angle = FileParser::getKey("NUDGE_ROTATION", 0.0002);
+    
     assert(stepSizes.size() == 2);
     
     double pokeXStep = stepSizes[1];
-    const double pixRange = 5;
+    const double pixRange = angle * 10;
     int gridJumps = pixRange / pokeXStep + 0.5;
     std::vector<std::pair<double, int> > lineDifferences;
     std::vector<std::pair<double, int> > lineSeparations;
+    double coverPixels = angle * 5;
+    double coverNum = coverPixels / pokeXStep;
+    int coverPadding = (coverNum - 1) / 2;
     // y first, then x! Think about it!
     
     double maxSteepness = 0;
@@ -148,13 +154,15 @@ void RefinementGridSearch::assignInterpanelMinimum()
             
             std::vector<double> localRegion, increments;
             
-            if (lineMin - 2 < 0)
+            
+            
+            if (lineMin - coverPadding < 0)
                 continue;
             
-            if (lineMin + 2 >= gridLength)
+            if (lineMin + coverPadding >= gridLength)
                 continue;
             
-            for (int i = lineMin - 2; i <= lineMin + 2; i++)
+            for (int i = lineMin - coverPadding; i <= lineMin + coverPadding; i++)
             {
                 int newGridPos = x * gridLength + i;
                 localRegion.push_back(orderedResults[newGridPos]);

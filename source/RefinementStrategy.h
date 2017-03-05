@@ -61,6 +61,10 @@ public:
         {
             priority = LogLevelNormal;
         }
+        else
+        {
+            priority = LogLevelDebug;
+        }
     }
     
     void setCycles(int num)

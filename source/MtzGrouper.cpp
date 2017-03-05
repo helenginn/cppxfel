@@ -201,9 +201,6 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 			averageAboveCutoff += correl;
 			aboveCutoffNum++;
 		}
-
-        double a, b, c;
-        mtz->getMatrix()->orientationMatrixUnitCell(&a, &b, &c);
         
         double rSplit = 0;
         if (MtzManager::getReferenceManager() != NULL)
@@ -211,8 +208,8 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
         
         double partCorrel = mtz->getRefPartCorrel();
         
-        double *cellDims = new double[3];
-        mtz->getMatrix()->unitCellLengths(&cellDims);
+        double cellDims[3];
+        mtz->getMatrix()->unitCellLengths(cellDims);
         
         logged << mtzManagers[i]->getFilename() << "\t" << correl << "\t" << rSplit << "\t" << partCorrel << "\t"
 				<< mtzManagers[i]->accepted() << "\t"
@@ -225,8 +222,6 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
         << mtzManagers[i]->getExponent() << "\t" << cellDims[0] << "\t" << cellDims[1] << "\t" << cellDims[2] << "\t";
         
         logged << mtzManagers[i]->getScale() << std::endl;
-        
-        delete [] cellDims;
 	}
     
     std::string tabbedParams = logged.str();

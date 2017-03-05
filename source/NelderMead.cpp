@@ -199,12 +199,17 @@ void NelderMead::refine()
     }
     
     int count = 0;
+    int skip = maxCycles / 6;
     
     while ((!converged() && count < maxCycles))
     {
         std::vector<double> centroid = calculateCentroid();
         count++;
-        reportProgress(testPoints[0].second);
+        
+        if (count % skip == 0)
+        {
+            reportProgress(testPoints[0].second);
+        }
 
         TestPoint reflected = reflectedPoint(centroid);
         
