@@ -35,10 +35,13 @@ void UnitCellLattice::weightUnitCell()
     CSVPtr distCSV = CSVPtr(new CSV(0));
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05;
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
-    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
     distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 1, "Perfect frequency");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
     angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
+    
+    double km = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double n = 2;
+    km = pow(km, n);
     
     for (int i = 0; i < angleCSV->entryCount(); i++)
     {
@@ -49,23 +52,29 @@ void UnitCellLattice::weightUnitCell()
     
     double distTotal = 0;
     double angleTotal = 0;
-    double A = 100000;
     int csvPos = 0;
+    
+    double normDist = 0;
     
     for (int i = 0; i < orderedDistanceCount() - 1; i++)
     {
         double firstDistance = orderedDistance(i);
         double secondDistance = orderedDistance(i + 1);
         double separation = secondDistance - firstDistance;
+        double vmax = sqrt(separation);
         
         if (separation < 0.000001)
         {
             continue;
         }
         
-        double mean = (firstDistance + secondDistance) / 2;
+        if (normDist == 0)
+        {
+            normDist = sqrt(secondDistance);
+        }
         
-        double offset = A * separation * separation / 4;
+        vmax /= normDist;
+        vmax = 1;
         
         while (true)
         {
@@ -73,21 +82,13 @@ void UnitCellLattice::weightUnitCell()
                 break;
             
             double csvDist = distCSV->valueForEntry("Distance", csvPos);
-         //   csvDist += powderStep / 2;
             
             if (csvDist > secondDistance)
                 break;
             
-            double y = offset - A * (csvDist - mean) * (csvDist - mean);
+            double x = std::min(csvDist - firstDistance, secondDistance - csvDist);
             
-            if (y < 0)
-            {
-                y = 0;
-            }
-            else
-            {
-                y = sqrt(y);
-            }
+            double y = vmax * pow(x, n) / (km + pow(x, n));
             
             distCSV->setValueForEntry(csvPos, "Perfect frequency", y);
             
