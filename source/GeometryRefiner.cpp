@@ -112,7 +112,7 @@ void GeometryRefiner::refineGeometry()
 {
     Detector::getMaster()->enableNudge();
     
-  //  startingGraphs();
+    startingGraphs();
     reportProgress();
     
     std::vector<DetectorPtr> detectors;
@@ -412,6 +412,18 @@ void GeometryRefiner::checkGridSearch(DetectorPtr detector)
     
     strategy->refine();
     strategy->assignInterpanelMinimum();
+    /*
+    detector->resetPoke();
+    strategy->clearParameters();
+    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge, 0.001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge, 0.001, "poke_y");
+    strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, tiltNudge, 0.001, "poke_z");
+    strategy->setGridLength(21);
+    
+    strategy->setJobName("interpanel_grid2_" + detector->getTag() + "_" + i_to_str(refinementEvent));
+    strategy->refine();
+    */
+   
 }
 
 void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType type)

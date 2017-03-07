@@ -712,7 +712,7 @@ void IndexManager::processConsistencyVector(SpotVectorPtr vect, CSVPtr distCSV, 
     double distanceWeight = lattice->weightForDistance(realDistance);
     double axisWeight = 1;//fabs(axisValue);
     distanceWeight *= sqrt(axisWeight);
-    distanceWeight *= vect->getFirstSpot()->getParentImage()->getSpotVectorWeight();
+//    distanceWeight *= vect->getFirstSpot()->getParentImage()->getSpotVectorWeight();
     
     int column = axisValue > 0 ? 1 : 2;
     
@@ -815,8 +815,6 @@ std::string targetString(PseudoScoreType type)
 
 void IndexManager::plotGoodVectors()
 {
-    return;
-    
     ImagePtr special = Detector::getSpecialImage();
     std::string filename = getActiveDetector()->getTag() + "_" + targetString(getPseudoScoreType()) + "_vec.png";
     
