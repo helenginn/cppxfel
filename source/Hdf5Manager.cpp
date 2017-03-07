@@ -437,10 +437,14 @@ bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer, int off
             hsize_t count[3];
             int numDims = H5Sget_simple_extent_ndims(space);
             
-            if (numDims < 3)
+            if (numDims < 2)
             {
                 logged << "I have no idea what this error message should say!" << std::endl;
                 sendLog();
+            }
+            else if (numDims < 3)
+            {
+                H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, *buffer);
             }
             else
             {

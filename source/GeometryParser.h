@@ -25,6 +25,7 @@ private:
     bool refineQuadrantGeometry;
     bool refineLocalGeometry;
     
+    DetectorPtr makeDetectorFromPanelMap(std::vector<PanelMap> panelMaps, std::string tag, DetectorPtr parent);
     DetectorPtr makeDetectorFromPanelMap(PanelMap map, DetectorPtr parent);
     void parseCrystFELLines(std::vector<std::string> lines);
     void parseCppxfelLines(std::vector<std::string> lines);

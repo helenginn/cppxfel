@@ -294,6 +294,22 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
     Detector::getMaster()->updateCurrentRotation();
 }
 
+DetectorPtr GeometryParser::makeDetectorFromPanelMap(std::vector<PanelMap> panelMaps, std::string tag, DetectorPtr parent)
+{
+    for (int i = 0; i < panelMaps.size(); i++)
+    {
+        if (panelMaps[i]["name"] == tag)
+        {
+            return makeDetectorFromPanelMap(panelMaps[i], parent);
+        }
+    }
+    
+    logged << "Couldn't find tag " << tag << std::endl;
+    sendLog();
+    
+    return DetectorPtr();
+}
+
 DetectorPtr GeometryParser::makeDetectorFromPanelMap(PanelMap panelMap, DetectorPtr parent)
 {
     int    min_fs;
@@ -461,11 +477,54 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     {
         Detector::setDetectorType(DetectorTypeMPCCD);
         
-        for (int i = 0; i < panelMaps.size(); i++)
-        {
-            DetectorPtr segment = makeDetectorFromPanelMap(panelMaps[i], master);
-        }
+        DetectorPtr q1256 = DetectorPtr(new Detector(master, new_vector(0, 0, 0), "q1256"));
+        master->addChild(q1256);
+        q1256->setRefinable(refineLocalGeometry);
         
+        DetectorPtr q12 = DetectorPtr(new Detector(q1256, new_vector(0, 0, 0), "q12"));
+        q1256->addChild(q12);
+        q12->setRefinable(refineLocalGeometry);
+
+        DetectorPtr q1 = makeDetectorFromPanelMap(panelMaps, "q1", q12);
+        q1->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q2 = makeDetectorFromPanelMap(panelMaps, "q2", q12);
+        q2->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q56 = DetectorPtr(new Detector(q1256, new_vector(0, 0, 0), "q56"));
+        q1256->addChild(q56);
+        q56->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q5 = makeDetectorFromPanelMap(panelMaps, "q5", q56);
+        q5->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q6 = makeDetectorFromPanelMap(panelMaps, "q6", q56);
+        q6->setRefinable(refineLocalGeometry);
+
+        DetectorPtr q3478 = DetectorPtr(new Detector(master, new_vector(0, 0, 0), "q3478"));
+        master->addChild(q3478);
+        q3478->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q34 = DetectorPtr(new Detector(q3478, new_vector(0, 0, 0), "q34"));
+        q3478->addChild(q34);
+        q34->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q3 = makeDetectorFromPanelMap(panelMaps, "q3", q34);
+        q3->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q4 = makeDetectorFromPanelMap(panelMaps, "q4", q34);
+        q4->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q78 = DetectorPtr(new Detector(q3478, new_vector(0, 0, 0), "q78"));
+        q3478->addChild(q78);
+        q34->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q7 = makeDetectorFromPanelMap(panelMaps, "q7", q78);
+        q7->setRefinable(refineLocalGeometry);
+        
+        DetectorPtr q8 = makeDetectorFromPanelMap(panelMaps, "q8", q78);
+        q8->setRefinable(refineLocalGeometry);
+
     }
     else if (!isSacla) // for now, CSPAD
     {

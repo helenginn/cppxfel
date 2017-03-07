@@ -302,7 +302,7 @@ void UnitCellLattice::refineUnitCell(PowderHistogram aHistogram)
 double UnitCellLattice::weightForDistance(double distance)
 {
     double correctedDistance = distance + powderStep / 2;
-    return weightedUnitCell->valueForHistogramEntry(1, correctedDistance);
+    return correctedDistance * weightedUnitCell->valueForHistogramEntry(1, correctedDistance);
 }
 
 double UnitCellLattice::weightForAngle(double angle)

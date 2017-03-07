@@ -324,7 +324,7 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
 
     if (hasRefineableDetectors && type == GeometryScoreTypeIntrapanel)
     {
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 2; i++)
         {
             refineDetectorStrategyWrapper(this, detectors, type);
         }
@@ -348,10 +348,6 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         {
             return true;
         }
-    }
-    else
-    {
-        return false;
     }
     
     for (int i = 0; i < 3; i++)
@@ -408,8 +404,8 @@ void GeometryRefiner::checkGridSearch(DetectorPtr detector)
     RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypeInterpanel);
     
     detector->resetPoke();
-    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge / 5, 0.001, "poke_x");
-    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge / 5, 0.001, "poke_y");
+    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge, 0.001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge, 0.001, "poke_y");
     strategy->setGridLength(69);
     
     strategy->setJobName("interpanel_grid_" + detector->getTag() + "_" + i_to_str(refinementEvent));
@@ -426,7 +422,7 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     }
     
     detector->resetPoke();
-
+    
     if (type == GeometryScoreTypeInterpanel)
     {
         checkGridSearch(detector);
@@ -439,13 +435,13 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     
     if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, tiltNudge, 0.000001, "alpha");
-        strategy->addParameter(&*detector, Detector::getBeta, Detector::setBeta, tiltNudge, 0.000001, "beta");
-        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, tiltNudge, 0.000001, "gamma");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.0001, "nudge_z");
         strategy->refine();
 
         strategy->clearParameters();
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.0001, "nudge_z");
+        strategy->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, tiltNudge, 0.000001, "alpha");
+        strategy->addParameter(&*detector, Detector::getBeta, Detector::setBeta, tiltNudge, 0.000001, "beta");
+        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, tiltNudge, 0.000001, "gamma");
     }
     else if (type == GeometryScoreTypeInterpanel)
     {

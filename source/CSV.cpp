@@ -234,7 +234,7 @@ std::string CSV::mapToAscii(Plot plot)
     return stream.str();
 }
 
-void CSV::minMaxCol(int col, double *min, double *max)
+void CSV::minMaxCol(int col, double *min, double *max, bool round)
 {
     *min = FLT_MAX;
     *max = -FLT_MAX;
@@ -246,6 +246,30 @@ void CSV::minMaxCol(int col, double *min, double *max)
         
         if (entries[i][col] < *min)
             *min = entries[i][col];
+    }
+    
+    if (round)
+    {
+        double logMax = log10(*max);
+        
+        const double log5 = log10(5);
+        const double log2 = log10(2);
+        
+        double whole = floor(logMax);
+        double remainder = fmod(logMax, 1);
+        if (remainder < log2)
+        {
+            whole += log2;
+        }
+        else if (remainder < log5)
+        {
+            whole += log5;
+        }
+        
+        *max = pow(10, whole);
+        
+     //   logged << logMax << ", " << whole << ", " << remainder << ", " << *max << std::endl;
+    //    sendLog();
     }
 }
 
@@ -310,18 +334,20 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
         
         std::string minKey = "Min" + i_to_str(count);
         std::string maxKey = "Max" + i_to_str(count);
+        std::string roundKey = "round" + i_to_str(count);
         double minX = -FLT_MAX;
         double minY = -FLT_MAX;
         double maxX = FLT_MAX;
         double maxY = FLT_MAX;
+        bool round = (properties.count(roundKey) > 0);
         
         if (properties.count("x" + minKey)) minX = atoi(properties["x" + minKey].c_str());
         if (properties.count("y" + minKey)) minY = atoi(properties["y" + minKey].c_str());
         if (properties.count("x" + maxKey)) maxX = atoi(properties["x" + maxKey].c_str());
         if (properties.count("y" + maxKey)) maxY = atoi(properties["y" + maxKey].c_str());
         
-        if (minX == -FLT_MAX || maxX == FLT_MAX) minMaxCol(xCol, &minX, &maxX);
-        if (minY == -FLT_MAX || maxY == FLT_MAX) minMaxCol(yCol, &minY, &maxY);
+        if (minX == -FLT_MAX || maxX == FLT_MAX) minMaxCol(xCol, &minX, &maxX, false);
+        if (minY == -FLT_MAX || maxY == FLT_MAX) minMaxCol(yCol, &minY, &maxY, round);
         
         if (count == 0)
         {

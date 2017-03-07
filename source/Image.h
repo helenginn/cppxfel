@@ -42,12 +42,13 @@ private:
     std::vector<MtzPtr> mtzs;
     int highScore;
     bool fake;
+    static ImagePtr _imageMask;
     
     virtual void loadImage();
     vector<IOMRefinerPtr> indexers;
     vector<IOMRefinerPtr> failedRefiners;
     vector<ImagePtr> maxes;
-    
+
     bool shouldMaskValue;
     bool shouldMaskUnderValue;
     int maskedValue;
@@ -93,13 +94,15 @@ private:
 protected:
     int xDim;
     int yDim;
-    
+    bool _isMask;
+
     void addHighScore(int score)
     {
         highScore += score;
     }
     
     
+    void checkAndSetupLookupTable();
     static std::mutex setupMutex;
     double standardDeviationOfPixels();
     std::vector<SpotPtr> spots;
@@ -152,6 +155,19 @@ public:
     void makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults = false);
     void excludeWeakestSpots(double fraction);
     void plotVectorsOnPNG(std::vector<SpotVectorPtr> vectors, std::string filename = "");
+    
+    static void setImageMask(ImagePtr mask)
+    {
+        _imageMask = mask;
+        std::ostringstream logged;
+        logged << "Loaded mask from HDF5" << std::endl;
+        Logger::log(logged);
+    }
+    
+    static ImagePtr getImageMask()
+    {
+        return _imageMask;
+    }
     
 	const std::string& getFilename() const
 	{

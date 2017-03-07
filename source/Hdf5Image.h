@@ -32,11 +32,37 @@ public:
     Hdf5Image(std::string filename = "", double wavelength = 0,
               double distance = 0) : Image(filename, wavelength, distance)
     {
+        _isMask = false;
         imageAddress = std::string();
         createSpotTable();
-        
+        getWavelengthFromHdf5();
+
+        if (!imageAddress.length())
+        {
+            return;
+        }
+    
         getWavelengthFromHdf5();
     };
+    
+    void setMask()
+    {
+        _isMask = true;
+        imageAddress = Hdf5ManagerCheetah::getMaskAddress();
+        setFilename("mask.img");
+        loadImage();
+
+        if (shortData.size() || data.size())
+        {
+            setImageMask(shared_from_this());
+        }
+        else
+        {
+            std::ostringstream logged;
+            logged << "Cannot find mask from CHEETAH_MASK_ADDRESS." << std::endl;
+            Logger::log(logged);
+        }
+    }
     
     Hdf5ManagerCheetahPtr getManager();
     

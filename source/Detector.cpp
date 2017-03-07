@@ -599,15 +599,13 @@ DetectorPtr Detector::findDetectorPanelForSpotCoord(double xSpot, double ySpot)
 
 DetectorPtr Detector::spotToAbsoluteVec(SpotPtr spot, vec *arrangedPos)
 {
-    if (spot->getDetector())
+    if (spot->hasDetector())
     {
-        Coord rawXY = spot->getRawXY();
-        spot->getDetector()->spotCoordToAbsoluteVec(rawXY.first, rawXY.second, arrangedPos);
+        spot->getDetector()->spotCoordToAbsoluteVec(spot->getRawX(), spot->getRawY(), arrangedPos);
         return spot->getDetector();
     }
     
-    Coord rawXY = spot->getRawXY();
-    DetectorPtr detector = findDetectorAndSpotCoordToAbsoluteVec(rawXY.first, rawXY.second, arrangedPos);
+    DetectorPtr detector = findDetectorAndSpotCoordToAbsoluteVec(spot->getRawX(), spot->getRawY(), arrangedPos);
     spot->setDetector(detector);
     
     return detector;
@@ -1156,6 +1154,11 @@ void Detector::getAllSubDetectors(std::vector<DetectorPtr> &array, bool children
 
 void Detector::resetPoke()
 {
+    if (hasNoChildren())
+    {
+        return;
+    }
+    
     rotateAxisRecursive(true);
     
     poke.h = 0;

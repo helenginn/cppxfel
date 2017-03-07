@@ -108,7 +108,7 @@ public:
         }
     }
     
-    void minMaxCol(int col, double *min, double *max);
+    void minMaxCol(int col, double *min, double *max, bool round = false);
     void addOneToFrequency(double category, std::string whichHeader, double weight = 1, std::string categoryHeader = "");
     void addOneToFrequency(double category, int column, double weight = 1, int categoryNum = 0);
     int findHeader(std::string whichHeader);

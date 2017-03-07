@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "parameters.h"
 #include "Hdf5Manager.h"
+#include "FileParser.h"
 
 typedef enum
 {
@@ -29,11 +30,13 @@ protected:
     std::map<std::string, int> imagePathMap;
     static std::mutex readingPaths;
     
+    static std::string maskAddress;
+    
 public:
     Hdf5ManagerCheetah(std::string newName,
                        Hdf5AccessType accessType = Hdf5AccessTypeReadOnly) : Hdf5Manager(newName, accessType)
     {
-    
+        maskAddress = FileParser::getKey("HDF5_MASK_ADDRESS", std::string("/entry_1/instrument_1/detector_1/mask_shared"));
     };
     
     static Hdf5ManagerCheetahPtr hdf5ManagerForImage(std::string imageName);
@@ -42,9 +45,14 @@ public:
     static void closeHdf5Files();
     
     virtual double wavelengthForImage(std::string address, void **buffer) { return 0; };
-    virtual bool dataForImage(std::string address, void **buffer) { return false; };
+    virtual bool dataForImage(std::string address, void **buffer, bool rawAddress = false) { return false; };
     virtual int hdf5MallocBytesForImage(std::string address, void **buffer) { return 0; };
     virtual size_t bytesPerTypeForImageAddress(std::string address) { return 0; };
+    
+    static std::string getMaskAddress()
+    {
+        return maskAddress;
+    }
     
     static int cheetahManagerCount()
     {

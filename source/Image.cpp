@@ -33,6 +33,7 @@ double Image::globalBeamX = INT_MAX;
 double Image::globalBeamY = INT_MAX;
 std::vector<DetectorPtr> Image::perPixelDetectors;
 vector<signed char> Image::generalMask;
+ImagePtr Image::_imageMask;
 std::mutex Image::setupMutex;
 
 Image::Image(std::string filename, double wavelength,
@@ -49,6 +50,7 @@ Image::Image(std::string filename, double wavelength,
     spotsFile = "";
     highScore = 0;
     fake = false;
+    _isMask = false;
     
     if (dims.size())
     {
@@ -204,13 +206,55 @@ void Image::newImage()
     data = std::vector<int>(totalPixels, 0);
     overlapMask = vector<signed char>(totalPixels, 0);
     
-    if (!perPixelDetectors.size())
-    {
-        std::lock_guard<std::mutex> lg(setupMutex);
-        perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
-        generalMask = vector<signed char>(totalPixels, -1);
-    }
+    checkAndSetupLookupTable();
 
+}
+
+void Image::checkAndSetupLookupTable()
+{
+    ImagePtr mask = getImageMask();
+
+    if (!perPixelDetectors.size() && (!_isMask))
+    {
+        setupMutex.lock();
+        
+        if (!perPixelDetectors.size())
+        {
+            logged << "Setting up detector lookup table" << std::endl;
+            sendLog();
+            
+            int totalSize = xDim * yDim;
+            
+            generalMask = vector<signed char>(totalSize, -1);
+            perPixelDetectors = vector<DetectorPtr>(totalSize, DetectorPtr());
+            
+            for (int y = 0; y < yDim; y++)
+            {
+                for (int x = 0; x < xDim; x++)
+                {
+                    int pos = y * xDim + x;
+                    
+                    DetectorPtr det = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
+                    
+                    bool isDet = (det != DetectorPtr());
+                    
+                    if (mask && (&*mask != this))
+                    {
+                        if (mask->valueAt(x, y) > 0)
+                        {
+                            isDet = false;
+                        }
+                    }
+                    
+                    perPixelDetectors[pos] = det;
+                    generalMask[pos] = isDet;
+                    
+                }
+            }
+        }
+        
+        setupMutex.unlock();
+    }
 }
 
 void Image::loadImage()
@@ -247,13 +291,6 @@ void Image::loadImage()
         
         overlapMask = vector<signed char>(memblock.size(), 0);
         
-        if (!perPixelDetectors.size())
-        {
-            std::lock_guard<std::mutex> lg(setupMutex);
-            generalMask = vector<signed char>(memblock.size(), -1);
-            perPixelDetectors = vector<DetectorPtr>(memblock.size(), DetectorPtr());
-        }
-        
         logged << "Image size: " << memblock.size() << " for image: "
         << filename << std::endl;
         sendLog();
@@ -277,6 +314,8 @@ void Image::loadImage()
     {
         shortData.erase(shortData.begin(), shortData.begin() + 4);
     }
+    
+    
 }
 
 void Image::dropImage()
@@ -315,27 +354,13 @@ void Image::addValueAt(int x, int y, int addedValue)
 
 int Image::rawValueAt(int x, int y)
 {
-    if (!isLoaded())
-    {
-        loadImage();
-    }
+    loadImage();
     
     if (x < 0 || y < 0)
         return 0;
     
     if (x > xDim || y > yDim)
         return 0;
-    
-    for (int i = 0; i < masks.size(); i++)
-    {
-        int startX = masks[i][0];
-        int startY = masks[i][1];
-        int endX = masks[i][2];
-        int endY = masks[i][3];
-        
-        if (x >= startX && x <= endX && y >= startY && y <= endY)
-            return 0;
-    }
     
     int position = y * xDim + x;
     
@@ -359,56 +384,21 @@ int Image::valueAt(int x, int y)
     
     int pos = y * xDim + x;
     
-    if (pos > xDim * yDim || pos < 0)
+    if (pos < 0 || pos > xDim * yDim)
     {
-        return 0;
+        return false;
     }
     
-    signed char maskValue = -1;
-    if (setupMutex.try_lock())
-    {
-        maskValue = generalMask[pos];
-    }
-    
-    DetectorPtr det;
-    
-    if (maskValue > 0)
-    {
-        det = perPixelDetectors[pos];
-    }
-    else if (maskValue < 0)
-    {
-        det = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
-        
-        bool isDet = (det != DetectorPtr());
-        
-        if (setupMutex.try_lock())
-        {
-            perPixelDetectors[pos] = det;
-            generalMask[pos] = isDet;
-            
-            setupMutex.unlock();
-        }
-        
-        if (!isDet)
-        {
-            return 0;
-        }
-    
-    }
+    signed char maskValue = generalMask[pos];
     
     if (maskValue == 0)
     {
         return 0;
     }
     
-    if (!det)
-    {
-        return 0;
-    }
-    
     double rawValue = rawValueAt(x, y);
     
+    DetectorPtr det = perPixelDetectors[pos];
     double panelGain = det->getGain();
     
     return rawValue * panelGain;
@@ -861,12 +851,16 @@ double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int to
 
 bool Image::accepted(int x, int y)
 {
-    if (Detector::isActive())
+    int pos = xDim * y + x;
+    
+    if (pos < 0 || pos > xDim * yDim)
     {
-        DetectorPtr detector = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
-        
-        if (!detector)
-            return false;
+        return false;
+    }
+    
+    if (generalMask[pos] == 0)
+    {
+        return false;
     }
     
     double value = rawValueAt(x, y);
@@ -886,9 +880,6 @@ bool Image::accepted(int x, int y)
             return false;
         }
     }
-    
-    if (value == -100000)
-        return false;
     
     return true;
 }
@@ -1226,11 +1217,18 @@ void Image::processSpotList()
         
         vector<std::string> spotLines = FileReader::split(spotContents, '\n');
         
+        double minIndexing = FileParser::getKey("MIN_INTEGRATED_RESOLUTION", 0.0);
+        
+        if (minIndexing > 0)
+        {
+            minIndexing = 1 / minIndexing;
+        }
+        
         double tooCloseDistance = 0;
         bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
         if (rejectCloseSpots)
         {
-            tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
+            tooCloseDistance = IndexingSolution::getMinDistance() * 0.5;
         }
         
         for (int i = 0; i < spotLines.size(); i++)
@@ -1274,6 +1272,14 @@ void Image::processSpotList()
             bool add = true;
             
             vec myVec = newSpot->estimatedVector();
+            
+            vec aCopy = myVec;
+            double dStar = length_of_vector(aCopy);
+            
+            if (dStar < minIndexing)
+            {
+                add = false;
+            }
             
             for (int j = 0; j < spots.size(); j++)
             {
@@ -2274,7 +2280,7 @@ void Image::drawSpotsOnPNG(std::string filename, bool drawPanels)
             
             if (!spot(i)->isBeamCentre())
             {
-                file->drawText(i_to_str(intensity), coord.first, coord.second - 20);
+           //     file->drawText(i_to_str(intensity), coord.first, coord.second - 20);
             }
             else
             {
@@ -2417,20 +2423,27 @@ void Image::writePNG(PNGFilePtr file)
         Detector::getMaster()->zLimits(&minZ, &maxZ);
         double nudge = std::max(0.1 * (maxZ - minZ), 0.1);
         
-        minZ -= nudge;
-        maxZ += nudge;
+        double ave = (maxZ + minZ) / 2;
         
         logged << "Image " << getFilename() << " (min/max Z: " << minZ << ", " << maxZ << ")" << std::endl;
         sendLog();
-        minZ = 918;
-        maxZ = 924;
+        minZ = ave - 5;
+        maxZ = ave + 5;
     }
     
-    for (int i = 0; i < xDim; i++)
+    for (int j = 0; j < yDim; j++)
     {
-        for (int j = 0; j < yDim; j++)
+        for (int i = 0; i < xDim; i++)
         {
+            bool good = accepted(i, j);
+            
+            if (!good)
+            {
+                continue;
+            }
+            
             double value = valueAt(i, j);
+            
             if (value < 0)
                 value = 0;
             
@@ -2438,41 +2451,22 @@ void Image::writePNG(PNGFilePtr file)
             pixelValue = 255 - pixelValue;
             float brightness = 1 - std::min(value, threshold) / threshold;
             
-            Coord coord = std::make_pair(i, j);
+            int pos = xDim * j + i;
             
-            DetectorPtr detector = lastDetector;
+            DetectorPtr det = perPixelDetectors[pos];
             
-            if (Detector::isActive())
-            {
-                if (!detector || !detector->spotCoordWithinBounds(i, j))
-                {
-                    detector = Detector::getMaster()->findDetectorPanelForSpotCoord(i, j);
-                    
-                    if (detector)
-                    {
-                        lastDetector = detector;
-                    }
-                }
-                
-                if (detector)
-                {
-                    vec arranged;
-                    detector->spotCoordToAbsoluteVec(i, j, &arranged);
-                    double proportion_distance = (arranged.l - minZ) / (maxZ - minZ);
-                    
-                    
-                    proportion_distance *= 180;
-                    proportion_distance += 120;
-                    
-                    png_byte red, green, blue;
-                    
-                    PNGFile::HSB_to_RGB(proportion_distance, 1.0, brightness, &red, &green, &blue);
-                    
-                    file->setPixelColourRelative(arranged.h, arranged.k, red, green, blue);
-                }
-                
-                continue;
-            }
+            vec arranged;
+            det->spotCoordToAbsoluteVec(i, j, &arranged);
+            double proportion_distance = (arranged.l - minZ) / (maxZ - minZ);
+            
+            
+            proportion_distance *= 360;
+            
+            png_byte red, green, blue;
+            
+            PNGFile::HSB_to_RGB(proportion_distance, 1.0, brightness, &red, &green, &blue);
+            
+            file->setPixelColourRelative(arranged.h, arranged.k, red, green, blue);
         }
     }
 }

@@ -17,7 +17,7 @@
 class Spot : LoggableObject, public boost::enable_shared_from_this<Spot>
 {
 private:
-	vector<vector<double> > probe;
+	static vector<vector<double> > probe;
 	ImageWeakPtr parentImage;
     DetectorWeakPtr lastDetector;
     double angleDetectorPlane;
@@ -40,6 +40,7 @@ private:
     static double minCorrelation;
     static bool checkRes;
     static int useNewDetectorFormat;
+    std::mutex probeMutex;
     
 public:
 	Spot(ImagePtr image);
@@ -121,6 +122,11 @@ public:
         return lastDetector.lock();
     }
     
+    bool hasDetector()
+    {
+        return !(lastDetector.expired());
+    }
+    
     void setDetector(DetectorPtr newD)
     {
         lastDetector = newD;
@@ -160,6 +166,17 @@ public:
     {
         return _text;
     }
+    
+    double getRawX()
+    {
+        return x;
+    }
+
+    double getRawY()
+    {
+        return y;
+    }
+
 };
 
 #endif /* SPOT_H_ */

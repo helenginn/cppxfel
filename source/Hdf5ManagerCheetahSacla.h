@@ -20,7 +20,7 @@ private:
 public:
     static Hdf5ManagerCheetahPtr makeManager(std::string filename);
     
-    virtual bool dataForImage(std::string address, void **buffer);
+    virtual bool dataForImage(std::string address, void **buffer, bool rawAddress = false);
     virtual ~Hdf5ManagerCheetahSacla() {};
     virtual double wavelengthForImage(std::string address, void **buffer);
     virtual int hdf5MallocBytesForImage(std::string address, void **buffer);

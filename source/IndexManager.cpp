@@ -32,7 +32,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     _canLockVectors = false;
     _axisWeighting = PseudoScoreWeightingAxisNone;
     _maxFrequency = -1;
-    interPanelDistance = 0.07;
+    interPanelDistance = 0.12;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -734,7 +734,7 @@ bool IndexManager::processVector(SpotVectorPtr vec, double *score, double *count
     double realDistance = vec->distance();
     
     double value = lattice->weightForDistance(realDistance);
-    double weight = 1 / realDistance;
+    double weight = realDistance;
     
     *score += weight * value;
     (*count) += weight;
@@ -883,8 +883,7 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
         if (me->_maxFrequency < 0)
         {
             double min;
-            csv->minMaxCol(1, &min, &me->_maxFrequency);
-            me->_maxFrequency *= 1.2;
+            csv->minMaxCol(1, &min, &me->_maxFrequency, true);
         }
         
         std::map<std::string, std::string> plotMap;
@@ -896,8 +895,6 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
         plotMap["style0"] = "line";
         
         plotMap["xHeader1"] = "distance";
-        plotMap["yMin1"] = "0.";
-        plotMap["yMax1"] = "2.5";
         plotMap["yHeader1"] = "model";
         plotMap["style1"] = "line";
         plotMap["colour1"] = "blue";
@@ -1309,6 +1306,7 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     plotMap["xTitle0"] = "Reciprocal distance between vectors (Ang)";
     plotMap["yHeader0"] = "Intra-panel";
     plotMap["style0"] = "line";
+    plotMap["round0"] = "true";
     plotMap["xHeader1"] = "Distance";
     plotMap["xTitle1"] = "Reciprocal distance between vectors (Ang)";
     plotMap["yHeader1"] = "Inter-panel";
@@ -1539,7 +1537,6 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
         frequencies[i] = std::make_pair(0, 0);
     }
     
-    
     for (int i = 0; i < lattice->standardVectorCount(); i++)
     {
         double distance = lattice->standardVector(i)->distance();
@@ -1550,6 +1547,9 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
         
         for (int i = categoryNum - perfectPadding; i <= categoryNum + perfectPadding; i++)
         {
+            if (i < 0 || i > maxCategory)
+                continue;
+            
             frequencies[i].second++;
         }
     }
@@ -1563,7 +1563,7 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
             double distance = spotVec->distance();
             int categoryNum = distance / step;
             
-            if (categoryNum > maxCategory)
+            if (categoryNum > maxCategory || categoryNum < 0)
                 continue;
 
             bool isIntraPanel = spotVec->isIntraPanelVector();

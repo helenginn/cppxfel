@@ -142,7 +142,7 @@ void Hdf5Image::loadImage()
             failureMessage();
         }
         
-        success = manager->dataForImage(address, (void **)&buffer);
+        success = manager->dataForImage(address, (void **)&buffer, _isMask);
         
         if (!success)
         {
@@ -183,12 +183,7 @@ void Hdf5Image::loadImage()
     
     overlapMask = vector<signed char>(totalPixels, 0);
     
-    if (!perPixelDetectors.size())
-    {
-        std::lock_guard<std::mutex> lg(setupMutex);
-        perPixelDetectors = vector<DetectorPtr>(totalPixels, DetectorPtr());
-        generalMask = vector<signed char>(totalPixels, -1);
-    }
+    checkAndSetupLookupTable();
 }
 
 Hdf5ManagerCheetahPtr Hdf5Image::getManager()
@@ -196,6 +191,11 @@ Hdf5ManagerCheetahPtr Hdf5Image::getManager()
     if (!chManager)
     {
         chManager = Hdf5ManagerCheetah::hdf5ManagerForImage(getFilename());
+    }
+    
+    if (!chManager && Hdf5ManagerCheetah::cheetahManagerCount() > 0)
+    {
+        chManager = Hdf5ManagerCheetah::cheetahManager(0);
     }
 
     return chManager;
@@ -367,5 +367,9 @@ void Hdf5Image::getWavelengthFromHdf5()
     }
     
     manager->wavelengthForImage(address, (void **)&wavePtr);
-    this->setWavelength(wavelength);
+    
+    if (wavelength > 0)
+    {
+        this->setWavelength(wavelength);
+    }
 }

@@ -114,15 +114,18 @@ void RefinementGridSearch::refine()
 
 void RefinementGridSearch::assignInterpanelMinimum()
 {
+    return;
     // assuming param0 = pokeY, param1 = pokeX
     
-    double angle = FileParser::getKey("NUDGE_ROTATION", 0.0002);
+    double angle = FileParser::getKey("NUDGE_ROTATION_STEP", 0.0002);
     
     assert(stepSizes.size() == 2);
     
     double pokeXStep = stepSizes[1];
     const double pixRange = angle * 10;
     int gridJumps = pixRange / pokeXStep + 0.5;
+    gridJumps = 18;
+    
     std::vector<std::pair<double, int> > lineDifferences;
     std::vector<std::pair<double, int> > lineSeparations;
     double coverPixels = angle * 5;

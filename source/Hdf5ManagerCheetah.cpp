@@ -13,6 +13,7 @@
 #include "FileParser.h"
 #include "misc.h"
 
+std::string Hdf5ManagerCheetah::maskAddress;
 std::vector<Hdf5ManagerCheetahPtr> Hdf5ManagerCheetah::cheetahManagers;
 std::mutex Hdf5ManagerCheetah::readingPaths;
 
