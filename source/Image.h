@@ -121,6 +121,7 @@ protected:
     bool useShortData;
     // end of should be a template
     void writePNG(PNGFilePtr file);
+    double spotVectorWeight;
 
 public:
     void incrementOverlapMask(int x, int y, ShoeboxPtr shoebox);
@@ -234,6 +235,11 @@ public:
     bool acceptableSpotCount();
 
     void addSpotIfNotMasked(SpotPtr newSpot);
+    
+    double getSpotVectorWeight()
+    {
+        return spotVectorWeight;
+    }
     
     static void setGlobalDetectorDistance(void *object, double distance)
     {

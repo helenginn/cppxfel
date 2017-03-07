@@ -712,6 +712,7 @@ void IndexManager::processConsistencyVector(SpotVectorPtr vect, CSVPtr distCSV, 
     double distanceWeight = lattice->weightForDistance(realDistance);
     double axisWeight = 1;//fabs(axisValue);
     distanceWeight *= sqrt(axisWeight);
+    distanceWeight *= vect->getFirstSpot()->getParentImage()->getSpotVectorWeight();
     
     int column = axisValue > 0 ? 1 : 2;
     
@@ -833,7 +834,7 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
     if (writeToCSV)
     {
         double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05;
-        double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
+        double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005) * 4;
 
         csv->setupHistogram(0, maxDistance, step, "distance", 2, "observed", "model");
         

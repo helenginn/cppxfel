@@ -252,24 +252,20 @@ void CSV::minMaxCol(int col, double *min, double *max, bool round)
     {
         double logMax = log10(*max);
         
-        const double log5 = log10(5);
-        const double log2 = log10(2);
-        
         double whole = floor(logMax);
         double remainder = fmod(logMax, 1);
-        if (remainder < log2)
+        
+        for (int i = 1; i < 10; i++)
         {
-            whole += log2;
-        }
-        else if (remainder < log5)
-        {
-            whole += log5;
+            const double logi = log10(i);
+            if (remainder <= logi)
+            {
+                whole += logi;
+                break;
+            }
         }
         
         *max = pow(10, whole);
-        
-     //   logged << logMax << ", " << whole << ", " << remainder << ", " << *max << std::endl;
-    //    sendLog();
     }
 }
 

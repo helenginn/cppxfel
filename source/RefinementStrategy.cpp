@@ -137,7 +137,7 @@ void RefinementStrategy::finish()
     else
     {
         double reduction = (startingScore - endScore) / startingScore;
-        logged << "Reduction by " << std::fixed << std::setprecision(2) <<
+        logged << "Reduction by " << std::fixed << std::setprecision(3) <<
         reduction * 100 << "% for " << jobName << std::endl;
         sendLog();
     }

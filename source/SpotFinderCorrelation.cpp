@@ -55,13 +55,6 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
             
             double value = this->image->valueAt(x, y);
             
-            //double resol = this->image->resolutionAtPixel(x, y);
-            /*
-            if (resol > maxResolution || resol < minResolution)
-            {
-                continue;
-            }*/
-            
             if (value < threshold)
                 continue;
             

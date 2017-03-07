@@ -496,14 +496,12 @@ double Detector::halfFast()
 
 void Detector::rearrangeCoord(std::pair<float, float> *aShift)
 {
-    vec slow = getRotatedSlowDirection();
-    vec fast = getRotatedFastDirection();
+    vec shift = new_vector(aShift->first, aShift->second, 0);
     
-    double newX = aShift->first * slow.h + aShift->second * fast.h;
-    double newY = aShift->first * slow.k + aShift->second * fast.k;
+    invWorkingBasisMat->multiplyVector(&shift);
     
-    aShift->first = newX;
-    aShift->second = newY;
+    aShift->first = shift.h;
+    aShift->second = shift.k;
 }
 
 bool Detector::isAncestorOf(DetectorPtr detector)

@@ -1496,6 +1496,8 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
        // std::random_shuffle(spotVectors.begin(), spotVectors.end());
     }
     
+    spotVectorWeight = spotCount() * spotCount() / spotVectorCount();
+    
     logged << "(" << filename << ") " << spotCount() << " spots produced " << spotVectorCount() << " spot vectors." << std::endl;
     sendLog();
 }
