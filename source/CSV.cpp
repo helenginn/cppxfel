@@ -74,17 +74,26 @@ double CSV::valueForHistogramEntry(std::string whichHeader, double value, std::s
 double CSV::valueForHistogramEntry(int chosenHeader, double value, int categoryNum)
 {
     bool ascending = (entries[0][categoryNum] < entries[1][categoryNum]);
+
+    std::vector<double>::iterator low;
     
-    for (int j = 0; j < entries.size() - 1; j++)
+    if (ascending)
     {
-        if ((ascending && value >= entries[j][categoryNum] && value < entries[j + 1][categoryNum])
-            || (!ascending && value < entries[j][categoryNum] && value >= entries[j + 1][categoryNum]))
-        {
-            return entries[j][chosenHeader];
-        }
+        low = std::lower_bound(histCategories.begin(), histCategories.end(), value, std::less<double>());
+    }
+    else
+    {
+        low = std::lower_bound(histCategories.begin(), histCategories.end(), value, std::greater<double>());
     }
     
-    return 0;
+    long num = low - histCategories.begin();
+    
+    if (num >= histCategories.size())
+    {
+        return 0;
+    }
+    
+    return entries[num][chosenHeader];
 }
 
 void CSV::addOneToFrequency(double category, int column, double weight, int categoryNum)

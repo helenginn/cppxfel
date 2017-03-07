@@ -467,7 +467,6 @@ double Reflection::meanIntensityWithExclusion(std::string *filename, int start, 
         end = acceptedCount();
     double total_intensity = 0;
     double weight = 0;
-    int accepted = acceptedCount();
     
     for (int i = start; i < end; i++)
     {

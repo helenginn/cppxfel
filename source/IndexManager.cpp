@@ -32,7 +32,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     _canLockVectors = false;
     _axisWeighting = PseudoScoreWeightingAxisNone;
     _maxFrequency = -1;
-    interPanelDistance = 0.06;
+    interPanelDistance = 0.07;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -599,7 +599,12 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
 double IndexManager::debugPseudoScore(void *object)
 {
     Detector::getMaster()->drawSpecialImage();
-    return pseudoScore(object);
+    double value = pseudoScore(object);
+    std::ostringstream logged;
+    logged << "Value " << value << std::endl;
+    Logger::log(logged);
+    
+    return value;
 }
 
 bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
@@ -891,6 +896,8 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
         plotMap["style0"] = "line";
         
         plotMap["xHeader1"] = "distance";
+        plotMap["yMin1"] = "0.";
+        plotMap["yMax1"] = "2.5";
         plotMap["yHeader1"] = "model";
         plotMap["style1"] = "line";
         plotMap["colour1"] = "blue";
@@ -1300,10 +1307,16 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     std::map<std::string, std::string> plotMap;
     plotMap["xHeader0"] = "Distance";
     plotMap["xTitle0"] = "Reciprocal distance between vectors (Ang)";
-    plotMap["yHeader0"] = "Frequency";
+    plotMap["yHeader0"] = "Intra-panel";
     plotMap["style0"] = "line";
+    plotMap["xHeader1"] = "Distance";
+    plotMap["xTitle1"] = "Reciprocal distance between vectors (Ang)";
+    plotMap["yHeader1"] = "Inter-panel";
+    plotMap["style1"] = "line";
+    plotMap["colour1"] = "blue";
     plotMap["filename"] = csvName;
-    
+
+
     powder.plotPNG(plotMap);
     logged << "Written to " << csvName << std::endl;
     sendLog();

@@ -20,24 +20,28 @@ private:
     IndexManagerPtr manager;
     int refinementEvent;
     int cycleNum;
-    void refineDetectorStrategy(DetectorPtr detector, int strategy);
-    static void refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int strategy);
-    static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, int strategy);
+    double tiltNudge;
+    double nudgeStep;
+    bool firstCycle;
+    void refineDetectorStrategy(DetectorPtr detector, GeometryScoreType type);
+    static void refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, GeometryScoreType type);
+    static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, GeometryScoreType type);
     void refineGeometryCycle();
-    bool geometryCycleForDetector(std::vector<DetectorPtr> detectors);
+    bool geometryCycleForDetector(std::vector<DetectorPtr> detectors, bool interPanelOnly);
     double lastInterScore;
     double lastIntraScore;
     double lastIntraAngleScore;
     double lastInterAngleScore;
     
-    void refineMasterDetector();
     void refineBeamCentre();
 
+    void printHeader(std::vector<DetectorPtr> detectors, std::string detectorList);
     void checkGridSearch(DetectorPtr detector);
     RefinementGridSearchPtr makeGridRefiner(DetectorPtr detector, GeometryScoreType type);
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
     void gridSearchDetectorDistance(DetectorPtr detector, double start, double end);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
+    void gridSearchNudgeZ(DetectorPtr detector, double start, double end);
     
 public:
     GeometryRefiner();

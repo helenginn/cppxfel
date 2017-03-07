@@ -794,11 +794,12 @@ void FileParser::generateFunctionList()
     parserMap["DISTANCE_VS_ANGLE_FRACTION"] = simpleFloat;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
     parserMap["NUDGE_STEP"] = simpleFloat;
+    parserMap["NUDGE_ROTATION_STEP"] = simpleFloat;
     
     parserMap["TRUST_GLOBAL_GEOMETRY"] = simpleBool;
     parserMap["TRUST_QUADRANT_GEOMETRY"] = simpleBool;
     parserMap["TRUST_LOCAL_GEOMETRY"] = simpleBool;
-    
+    parserMap["EXPECTED_GEOMETRY_MOVEMENT"] = simpleFloat;
     
     parserMap["DETECTOR_LIST"] = simpleString;
 

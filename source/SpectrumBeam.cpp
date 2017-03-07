@@ -105,7 +105,6 @@ bool SpectrumBeam::nonZeroPartialityExpected(double lowWavelength, double highWa
 
 double SpectrumBeam::integralBetweenEwaldWavelengths(double lowWavelength, double highWavelength)
 {
-    bool foundLowWavelength = false;
     bool foundHighWavelength = false;
     double summation = 0;
     

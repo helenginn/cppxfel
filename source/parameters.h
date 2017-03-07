@@ -298,8 +298,7 @@ typedef enum
     GeometryScoreTypeMillerStdev,
     GeometryScoreTypeIntrapanel,
     GeometryScoreTypeInterpanel,
-    GeometryScoreTypeAngleConsistency,
-    GeometryScoreTypeDistanceConsistency,
+    GeometryScoreTypeIntrapanelParent,
     GeometryScoreTypeBeamCentre,
     
 } GeometryScoreType;

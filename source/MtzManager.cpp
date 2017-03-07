@@ -517,13 +517,6 @@ void MtzManager::setMatrix(MatrixPtr newMat)
 
 void MtzManager::setDefaultMatrix()
 {
-    double a = cellDim[0];
-    double b = cellDim[1];
-    double c = cellDim[2];
-    double alpha = cellAngles[0];
-    double beta = cellAngles[1];
-    double gamma = cellAngles[2];
-    
     double unitCell[6];
     memcpy(unitCell, cellDim, sizeof(double) * 3);
     memcpy(&unitCell[3], cellAngles, sizeof(double) * 3);
@@ -1813,8 +1806,8 @@ std::string MtzManager::parameterHeaders()
 
 std::string MtzManager::writeParameterSummary()
 {
-    double *cellDims = new double[3];
-    getMatrix()->unitCellLengths(&cellDims);
+    double cellDims[3];
+    getMatrix()->unitCellLengths(cellDims);
 
     std::ostringstream summary;
     summary << getFilename() << "," << getRefCorrelation() << "," << rSplit(0, maxResolutionAll) << "," << getRefPartCorrel() << ","

@@ -16,31 +16,32 @@
 #include "Vector.h"
 #include <algorithm>
 
+bool UnitCellLattice::setupLattice = false;
 std::vector<MatrixPtr> UnitCellLattice::symOperators;
 UnitCellLatticePtr UnitCellLattice::mainLattice;
 
 void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax)
 {
-    double *lengths = new double[3];
-    
-    unitCellMatrix->unitCellLengths(&lengths);
+    double lengths[3];
+    unitCellMatrix->unitCellLengths(lengths);
     
     *hMax = lengths[0] / resolution;
     *kMax = lengths[1] / resolution;
     *lMax = lengths[2] / resolution;
-    
-    delete [] lengths;
 }
 
 void UnitCellLattice::weightUnitCell()
 {
-    double rlpSize = FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
     CSVPtr distCSV = CSVPtr(new CSV(0));
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05;
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
     distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 1, "Perfect frequency");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
     angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
+    
+    double km = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
+    double n = 2;
+    km = pow(km, n);
     
     for (int i = 0; i < angleCSV->entryCount(); i++)
     {
@@ -51,23 +52,29 @@ void UnitCellLattice::weightUnitCell()
     
     double distTotal = 0;
     double angleTotal = 0;
-    double A = 100000;
     int csvPos = 0;
+    
+    double normDist = 0;
     
     for (int i = 0; i < orderedDistanceCount() - 1; i++)
     {
         double firstDistance = orderedDistance(i);
         double secondDistance = orderedDistance(i + 1);
         double separation = secondDistance - firstDistance;
+        double vmax = sqrt(separation);
         
         if (separation < 0.000001)
         {
             continue;
         }
         
-        double mean = (firstDistance + secondDistance) / 2;
+        if (normDist == 0)
+        {
+            normDist = sqrt(secondDistance);
+        }
         
-        double offset = A * separation * separation / 4;
+        vmax /= normDist;
+        vmax = 1;
         
         while (true)
         {
@@ -75,21 +82,13 @@ void UnitCellLattice::weightUnitCell()
                 break;
             
             double csvDist = distCSV->valueForEntry("Distance", csvPos);
-         //   csvDist += powderStep / 2;
             
             if (csvDist > secondDistance)
                 break;
             
-            double y = offset - A * (csvDist - mean) * (csvDist - mean);
+            double x = std::min(csvDist - firstDistance, secondDistance - csvDist);
             
-            if (y < 0)
-            {
-                y = 0;
-            }
-            else
-            {
-                y = sqrt(y);
-            }
+            double y = vmax * pow(x, n) / (km + pow(x, n));
             
             distCSV->setValueForEntry(csvPos, "Perfect frequency", y);
             
@@ -107,10 +106,6 @@ void UnitCellLattice::weightUnitCell()
         
         double inverse = 1 / distance;
         inverse *= maxDistance;
-        double stdev = rlpSize / 2;
-        
-    //    distCSV->addConvolutedPeak(1, distance, stdev, inverse);
-    //    distTotal += inverse;
         
         if (distance > maxAngleDistance)
             continue;
@@ -173,6 +168,14 @@ void UnitCellLattice::updateUnitCellData()
 
 void UnitCellLattice::setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution)
 {
+    setupLock.lock();
+    
+    if (setupLattice)
+    {
+        setupLock.unlock();
+        return;
+    }
+    
     powderStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
     spaceGroup = CSym::ccp4spg_load_by_ccp4_num(spaceGroupNum);
     
@@ -286,6 +289,9 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
         if (length_of_vector(hkl) < minDistance)
             minDistance = length_of_vector(hkl);
     }
+    
+    setupLock.unlock();
+    setupLattice = true;
 }
 
 void UnitCellLattice::refineUnitCell(PowderHistogram aHistogram)

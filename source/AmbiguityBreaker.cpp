@@ -134,7 +134,7 @@ void AmbiguityBreaker::makeCorrelationGrid()
     sendLog();
     
     
-    int maxThreads = FileParser::getMaxThreads();
+    //int maxThreads = FileParser::getMaxThreads();
     
     for (int j = 0; j < ambiguityCount; j++)
     {
@@ -229,29 +229,7 @@ void AmbiguityBreaker::run()
 }
 
 void AmbiguityBreaker::merge()
-{/*
-    bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
-    
-    
-    MtzMerger merger;
-    merger.setNeedToScale(true);
-    merger.setPreventRejections(true);
-    merger.setAllMtzs(mtzs);
-    merger.setExcludeWorst(false);
-    merger.setCycle(-1);
-    merger.setFilename("originalMerge.mtz");
-    merger.mergeFull();
-    /*
-    if (anomalousMerge)
-    {
-        merger.mergeFull(true);
-    }
-    //
-    merger.setFreeOnly(true);
-    merger.mergeFull();
-    
-    merged = merger.getMergedMtz();*/
-    
+{   
     MtzGrouper *grouper = new MtzGrouper();
     grouper->setScalingType(ScalingTypeAverage);
     grouper->setWeighting(WeightTypePartialitySigma);

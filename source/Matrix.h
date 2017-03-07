@@ -50,9 +50,7 @@ public:
     
     double trace();
     bool isIdentity();
-    MatrixPtr getNegativeCopy();
     void multiply(double scalar);
-    void add(MatrixPtr secondMatrix);
     void subtract(MatrixPtr secondMatrix);
     Matrix(void);
     Matrix(double *components);
@@ -65,47 +63,34 @@ public:
     static MatrixPtr matFromCCP4(CSym::ccp4_symop *symop);
     MatrixPtr transpose();
     static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma, bool orthogonal = true);
-    static MatrixPtr matrixFromEulerAngles(double theta, double phi, double psi);
     
-    void translate(double x, double y, double z);
-    void rotateHK(double hRot, double kRot);
-    void rotateABC(MatrixPtr oldMatrix, double aRot, double bRot, double cRot);
     void rotate(double alpha, double beta, double gamma);
     void rotateRoundUnitVector(vec unitVector, double radians);
-    void rotateRoundUnitVector(double *unitVector, double radians);
     void multiply(Matrix &b);
     void multiplyVector(vec *vector);
     void preMultiply(Matrix &b);
     void scale(double scale);
     void scale(double a, double b, double c);
     void identity(void);
-    void rotateModelAxes(double alpha, double beta, double gamma);
-    void newMultiplyVector(double *vector[]);
     static MatrixPtr matrixFromUnitCell(double *unitCell);
-    static std::vector<double> unitCellFromReciprocalUnitCell(double a, double b, double c, double alpha, double beta, double gamma);
     void orientationMatrixUnitCell(double *a, double *b, double *c);
     void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
-    void scaleUnitCellAxes(double aScale, double bScale, double cScale);
     void setComplexMatrix(MatrixPtr unitCell, MatrixPtr rotation);
     void maxMillers(int (&millers)[3], double maxResolution);
-    
+    static MatrixPtr randomOrientation();
+    static MatrixPtr randomOrientationMatrix();
 ;
     void rotate2D(double angle);
-    void translation(double **vector);
     
-    double getEwaldSphere(vec *vector);
     double getEwaldSphereNoMatrix(vec index);
     
     void eulerAngles(double *theta, double *phi, double *psi, bool force = false);
     double similarityToRotationMatrix(MatrixPtr mat2, double tolerance, bool force = false);
-    void unitCellLengths(double **lengths);
-    void threeDimComponents(double **componentArray);
+    void unitCellLengths(double *lengths);
     double *array();
-    void print(void);
     void recalculateOrientationMatrix();
     std::string summary();
     void setIdentity();
-    void sensibleComponents(double *returnedComponents[9]);
     bool writeToHdf5(std::string address);
 
     bool isComplex()
@@ -131,7 +116,6 @@ public:
         memcpy(components, newComponents, sizeof(double) * 16);
     }
     
-    void prettyPrint();
     double determinant();
     Matrix operator*=(Matrix &b);
     Matrix operator*(Matrix &b);

@@ -42,6 +42,7 @@ class CSV : public LoggableObject
 private:
     std::vector<std::string> headers;
     std::vector<Entry> entries;
+    std::vector<double> histCategories;
     double minX, minY, maxX, maxY;
     bool didSetMinMaxXY;
     
@@ -92,6 +93,7 @@ public:
             for (int i = 0; i < bins.size(); i++)
             {
                 addPartialEntry(1, bins[i]);
+                histCategories.push_back(bins[i]);
             }
         }
         else if (interval > 0)
@@ -100,6 +102,7 @@ public:
             while (value <= end)
             {
                 addPartialEntry(1, value);
+                histCategories.push_back(value);
                 value += interval;
             }
         }
