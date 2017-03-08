@@ -199,7 +199,7 @@ void NelderMead::refine()
     }
     
     int count = 0;
-    int skip = maxCycles / 6;
+    int skip = maxCycles / 6 + 1;
     
     while ((!converged() && count < maxCycles))
     {
