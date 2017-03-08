@@ -404,9 +404,18 @@ void GeometryRefiner::checkGridSearch(DetectorPtr detector)
     RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypeInterpanel);
     
     detector->resetPoke();
+    double distFromSample = detector->distanceFromSample();
+    
     strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge, 0.001, "poke_x");
     strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge, 0.001, "poke_y");
     strategy->setGridLength(131);
+    
+    double pixelPerTiltNudge = sin(tiltNudge) * distFromSample;
+    double pixelsToCheck = 1.9;
+    int gridPointsToCheck = pixelsToCheck / pixelPerTiltNudge + 0.5;
+    gridPointsToCheck *= 2;
+    
+    strategy->setCheckGridNum(gridPointsToCheck);
     
     strategy->setJobName("interpanel_grid_" + detector->getTag() + "_" + i_to_str(refinementEvent));
     

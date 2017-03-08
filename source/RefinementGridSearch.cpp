@@ -113,23 +113,12 @@ void RefinementGridSearch::refine()
 
 void RefinementGridSearch::assignInterpanelMinimum()
 {
-    return;
     // assuming param0 = pokeY, param1 = pokeX
-    
-    double angle = FileParser::getKey("NUDGE_ROTATION_STEP", 0.0002);
-    
-    assert(stepSizes.size() == 2);
-    
-    double pokeXStep = stepSizes[1];
-    const double pixRange = angle * 10;
-    int gridJumps = pixRange / pokeXStep + 0.5;
-    gridJumps = 18;
     
     std::vector<std::pair<double, int> > lineDifferences;
     std::vector<std::pair<double, int> > lineSeparations;
-    double coverPixels = angle * 5;
-    double coverNum = coverPixels / pokeXStep;
-    int coverPadding = (coverNum - 1) / 2;
+    int coverPadding = gridJumps / 2;
+
     // y first, then x! Think about it!
     
     double maxSteepness = 0;
@@ -183,11 +172,18 @@ void RefinementGridSearch::assignInterpanelMinimum()
     
     ParamList minParams = orderedParams[maxSteepnessValue];
     
+    logged << "Setting interpanel minimum (" << gridJumps << ", " << coverPadding << ") ";
+    
     for (int i = 0; i < minParams.size(); i++)
     {
         Setter setter = setters[i];
         (*setter)(objects[i], minParams[i]);
+        logged << tags[i] << "=" << minParams[i] << ", ";
     }
     
     double val = (*evaluationFunction)(evaluateObject);
+
+    logged << "score = " << val << std::endl;
+    sendLog();
+    
 }

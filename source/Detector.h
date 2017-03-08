@@ -641,6 +641,8 @@ public:
         return _manager;
     }
     
+    double distanceFromSample();
+    
     /* Resolution fun */
     
     double spotCoordToResolution(double unarrangedX, double unarrangedY, double wavelength);

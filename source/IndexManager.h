@@ -39,6 +39,7 @@ protected:
     CSym::CCP4SPG *spaceGroup;
     DetectorWeakPtr _activeDetector;
     double interPanelDistance;
+    double intraPanelDistance;
     int spaceGroupNum;
     std::vector<MtzPtr> mtzs;
     double minimumTrustDistance;

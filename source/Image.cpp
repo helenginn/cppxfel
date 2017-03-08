@@ -212,8 +212,6 @@ void Image::newImage()
 
 void Image::checkAndSetupLookupTable()
 {
-    ImagePtr mask = getImageMask();
-
     if (!perPixelDetectors.size() && (!_isMask))
     {
         setupMutex.lock();
@@ -237,14 +235,6 @@ void Image::checkAndSetupLookupTable()
                     DetectorPtr det = Detector::getMaster()->findDetectorPanelForSpotCoord(x, y);
                     
                     bool isDet = (det != DetectorPtr());
-                    
-                    if (mask && (&*mask != this))
-                    {
-                        if (mask->valueAt(x, y) > 0)
-                        {
-                            isDet = false;
-                        }
-                    }
                     
                     perPixelDetectors[pos] = det;
                     generalMask[pos] = isDet;
@@ -381,6 +371,7 @@ int Image::rawValueAt(int x, int y)
 int Image::valueAt(int x, int y)
 {
     loadImage();
+    ImagePtr mask = getImageMask();
     
     int pos = y * xDim + x;
     
@@ -396,9 +387,24 @@ int Image::valueAt(int x, int y)
         return 0;
     }
     
+    if (mask && (&*mask != this))
+    {
+        if (mask->valueAt(x, y) > 0)
+        {
+            generalMask[pos] = 0;
+            return 0;
+        }
+    }
+    
     double rawValue = rawValueAt(x, y);
     
     DetectorPtr det = perPixelDetectors[pos];
+    
+    if (!det)
+    {
+   //     return 0;
+    }
+    
     double panelGain = det->getGain();
     
     return rawValue * panelGain;

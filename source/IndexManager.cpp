@@ -33,6 +33,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     _axisWeighting = PseudoScoreWeightingAxisNone;
     _maxFrequency = -1;
     interPanelDistance = 0.12;
+    intraPanelDistance = 0.08;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -660,7 +661,7 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
             return false;
         }
         
-        if (vec->isOnlyFromDetector(activeDetector))
+        if (vec->isOnlyFromDetector(activeDetector) && vec->originalDistanceLessThan(intraPanelDistance))
         {
             return true;
         }

@@ -1227,3 +1227,9 @@ void Detector::setPokeN(int pokeNum, double pokeValue)
         setInterNudgeZ(&*getChild(i), modifier * allPokes.l);
     }
 }
+
+double Detector::distanceFromSample()
+{
+    vec midpoint = midPointOffsetFromParent();
+    return length_of_vector(midpoint);
+}

@@ -19,6 +19,7 @@ class RefinementGridSearch : public RefinementStrategy
 {
 private:
     int gridLength;
+    int gridJumps;
     std::vector<double> orderedResults;
     std::vector<ParamList> orderedParams;
 
@@ -32,6 +33,11 @@ public:
     void setGridLength(int length)
     {
         gridLength = length;
+    }
+    
+    void setCheckGridNum(int _jumps)
+    {
+        gridJumps = _jumps;
     }
     
     ResultMap results;
