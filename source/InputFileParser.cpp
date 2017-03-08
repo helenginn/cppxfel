@@ -98,6 +98,12 @@ void InputFileParser::parse(bool fromPython)
 
     parameters = ParametersMap();
 
+    if (!FileReader::exists(filename))
+    {
+        logged << "Input file " << filename << " seems to be missing." << std::endl;
+        sendLogAndExit();
+    }
+    
 	std::string fileContents = FileReader::get_file_contents(filename.c_str());
 	vector<std::string> fileLines = FileReader::split(fileContents, '\n');
 
