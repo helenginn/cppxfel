@@ -181,6 +181,13 @@ void SpotFinderQuick::findSpecificSpots(std::vector<SpotPtr> *spots)
                         float signal = currentPixelValue - background;
                         totalSignal += signal;
                         size_t currentY = relativeToCurrentPixel / xDim;
+                        
+                        if (xDim == 0)
+                        {
+                            logged << "Warning! xDim is zero - something is very wrong" << std::endl;
+                            sendLogAndExit();
+                        }
+                        
                         size_t currentX = relativeToCurrentPixel % xDim;
                         
                         centreOfMassX += currentX * signal;
