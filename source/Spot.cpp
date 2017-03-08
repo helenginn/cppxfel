@@ -18,6 +18,8 @@
 #include "Shoebox.h"
 #include "Detector.h"
 
+vector<vector<double> > Spot::probe;
+
 double Spot::maxResolution = 0;
 double Spot::minIntensity = 0;
 double Spot::minCorrelation = -3;
@@ -26,7 +28,6 @@ bool Spot::checkRes = false;
 Spot::Spot(ImagePtr image)
 {
 	// TODO Auto-generated constructor stub
-	probe = vector<vector<double> >();
 	parentImage = image;
     angleDetectorPlane = 0;
     setAngle = false;
@@ -106,6 +107,8 @@ double Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, in
     }
     
     std::vector<double> probeIntensities, realIntensities;
+    probeIntensities.reserve(backgroundPadding * backgroundPadding);
+    realIntensities.reserve(backgroundPadding * backgroundPadding);
     
     int padding = (backgroundPadding - 1) / 2;
     
@@ -139,14 +142,25 @@ double Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, in
 
 void Spot::makeProbe(int height, int background, int length, int backPadding)
 {
+    if (probe.size() > 0)
+    {
+        return;
+    }
+    
+    probeMutex.lock();
+    
+    if (probe.size() > 0)
+    {
+        probeMutex.unlock();
+        return;
+    }
+    
+    logged << "Making droplet probe" << std::endl;
+    sendLog();
+    
     if (backPadding < length)
         backPadding = length;
     
-	for (int i = 0; i < probe.size(); i++)
-		probe[i].clear();
-
-	probe.clear();
-
 	if (backPadding % 2 == 0)
 		backPadding++;
     
@@ -193,6 +207,8 @@ void Spot::makeProbe(int height, int background, int length, int backPadding)
             }
 		}
 	}
+    
+    probeMutex.unlock();
 }
 
 void Spot::setXY(double x, double y)
@@ -406,21 +422,27 @@ vec Spot::estimatedVector()
     }
     
     vec arrangedPos;
-    DetectorPtr detector = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
     
-    if (detector)
+    if (hasDetector())
     {
-        double wavelength = getParentImage()->getWavelength();
-        arrangedPos.k *= -1;
-        scale_vector_to_distance(&arrangedPos, 1 / wavelength);
-        arrangedPos.l -= 1 / wavelength;
-        
-        return arrangedPos;
+        getDetector()->spotCoordToAbsoluteVec(x, y, &arrangedPos);
     }
     else
     {
-        return new_vector(0, 0, 0);
+        DetectorPtr det = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+        
+        if (!det)
+        {
+            return new_vector(0, 0, 0);
+        }
     }
+    
+    double wavelength = getParentImage()->getWavelength();
+    arrangedPos.k *= -1;
+    scale_vector_to_distance(&arrangedPos, 1 / wavelength);
+    arrangedPos.l -= 1 / wavelength;
+    
+    return arrangedPos;
 }
 
 double Spot::integrate()

@@ -65,6 +65,11 @@ public:
     bool originalDistanceLessThan(double threshold);
     void drawOnImage(PNGFilePtr file);
     
+    double getOriginalDistance()
+    {
+        return firstDistance;
+    }
+    
     std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
     {
         return sameLengthStandardVectors;

@@ -25,6 +25,15 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
     double minResolution = 1 / FileParser::getKey("MIN_INTEGRATED_RESOLUTION", 0.);
     double maxResolution = 1 / FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 1.4);
     
+    std::vector<double> acceptableValue = FileParser::getKey("IMAGE_ACCEPTABLE_COMBO", std::vector<double>());
+    double gradient = 0; double offset = 0;
+    
+    if (acceptableValue.size())
+    {
+        gradient = (acceptableValue[1] - minCorrelation) / (acceptableValue[0] - threshold);
+        offset = acceptableValue[1] - acceptableValue[0] * gradient;
+    }
+    
     if (minResolution != minResolution)
     {
         minResolution = 0;
@@ -46,19 +55,23 @@ void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
             
             double value = this->image->valueAt(x, y);
             
-            //double resol = this->image->resolutionAtPixel(x, y);
-            /*
-            if (resol > maxResolution || resol < minResolution)
-            {
-                continue;
-            }*/
-            
             if (value < threshold)
                 continue;
             
             
             double correlation = spot->focusOnNearbySpot(0, x, y);
-            bool success = (correlation > minCorrelation);
+            
+            bool success = false;
+            
+            if (!acceptableValue.size())
+            {
+                success = (correlation > minCorrelation);
+            }
+            else
+            {
+                double correlThresh = offset + value * gradient;
+                success = (correlation > correlThresh);
+            }
             
             if (success)
             {

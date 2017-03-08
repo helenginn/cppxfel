@@ -22,11 +22,16 @@ bool Hdf5ManagerCheetahLCLS::getImageSize(std::string address, int *dims)
     return Hdf5Manager::getImageSize(dataAddress, dims);
 }
 
-bool Hdf5ManagerCheetahLCLS::dataForImage(std::string address, void **buffer)
+bool Hdf5ManagerCheetahLCLS::dataForImage(std::string address, void **buffer, bool rawAddress)
 {
     // need to find the index of the correct image
 
     // lazy as.
+    
+    if (rawAddress)
+    {
+        return Hdf5Manager::dataForAddress(address, buffer, true);
+    }
     
     std::vector<std::string>::iterator it = std::find(imagePaths.begin(),
                                                 imagePaths.end(),

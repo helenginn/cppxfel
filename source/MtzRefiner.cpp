@@ -947,6 +947,13 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
         readFromHdf5(&images);
     }
     
+    if (hdf5)
+    {
+        Hdf5ImagePtr maskImage = Hdf5ImagePtr(new Hdf5Image());
+        maskImage->setMask();
+    }
+
+    
     logged << "Summary\nImages: " << images.size() << "\nCrystals: " << mtzManagers.size() << std::endl;
     sendLog();
 }
@@ -1099,13 +1106,7 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     bool hasList = (orientationList.length() > 0);
     
     std::string hdf5OutputFile = FileParser::getKey("HDF5_OUTPUT_FILE", std::string(""));
-    
-/*    if (hdf5OutputFile.length() == 0)
-        return;
-  */
-    
-    // processing pointer active
-    
+
     if (hdf5OutputFile.length())
     {
         hdf5ProcessingPtr = Hdf5ManagerProcessingPtr(new Hdf5ManagerProcessing(hdf5OutputFile));
@@ -1555,6 +1556,9 @@ void MtzRefiner::loadImageFiles()
     if (images.size() > 0)
     {
         Detector::setDrawImage(images[0]);
+        // force loading of everything
+        images[0]->valueAt(0, 0);
+        SpotPtr spot = SpotPtr(new Spot(images[0]));
     }
 }
 
@@ -1871,6 +1875,7 @@ void MtzRefiner::findSpotsThread(MtzRefiner *me, int offset)
     for (int i = offset; i < me->images.size(); i += maxThreads)
     {
         me->images[i]->processSpotList();
+        me->images[i]->dropImage();
     }
 }
 

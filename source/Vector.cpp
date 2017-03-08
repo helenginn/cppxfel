@@ -175,9 +175,7 @@ double dot_product_for_vectors(vec vec1, vec vec2)
 vec copy_vector(vec old_vec)
 {
 	vec vec;
-	vec.h = old_vec.h;
-	vec.k = old_vec.k;
-	vec.l = old_vec.l;
+    memcpy(&vec, &old_vec, sizeof(vec.h) * 3);
 
 	return vec;
 }

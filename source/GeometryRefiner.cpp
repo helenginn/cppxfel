@@ -122,7 +122,7 @@ void GeometryRefiner::refineGeometry()
 {
     Detector::getMaster()->enableNudge();
     
-  //  startingGraphs();
+    startingGraphs();
     reportProgress();
     
     std::vector<DetectorPtr> detectors;
@@ -359,12 +359,8 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
             return true;
         }
     }
-    else
-    {
-        return false;
-    }
     
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 2; i++)
     {
         refineDetectorStrategyWrapper(this, detectors, GeometryScoreTypeInterpanel);
     }
@@ -417,14 +413,35 @@ void GeometryRefiner::checkGridSearch(DetectorPtr detector)
     RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypeInterpanel);
     
     detector->resetPoke();
-    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge / 5, 0.001, "poke_x");
-    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge / 5, 0.001, "poke_y");
-    strategy->setGridLength(69);
+    double distFromSample = detector->distanceFromSample();
+    
+    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge, 0.001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge, 0.001, "poke_y");
+    strategy->setGridLength(131);
+    
+    double pixelPerTiltNudge = sin(tiltNudge) * distFromSample;
+    double pixelsToCheck = 1.9;
+    int gridPointsToCheck = pixelsToCheck / pixelPerTiltNudge + 0.5;
+    gridPointsToCheck *= 2;
+    
+    strategy->setCheckGridNum(gridPointsToCheck);
     
     strategy->setJobName("interpanel_grid_" + detector->getTag() + "_" + i_to_str(refinementEvent));
     
     strategy->refine();
     strategy->assignInterpanelMinimum();
+    /*
+    detector->resetPoke();
+    strategy->clearParameters();
+    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge, 0.001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge, 0.001, "poke_y");
+    strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, tiltNudge, 0.001, "poke_z");
+    strategy->setGridLength(21);
+    
+    strategy->setJobName("interpanel_grid2_" + detector->getTag() + "_" + i_to_str(refinementEvent));
+    strategy->refine();
+    */
+   
 }
 
 void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType type)
@@ -435,7 +452,7 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     }
     
     detector->resetPoke();
-
+    
     if (type == GeometryScoreTypeInterpanel)
     {
         checkGridSearch(detector);
@@ -446,13 +463,13 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     
     if (type == GeometryScoreTypeIntrapanel)
     {
-        strategy->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, tiltNudge, 0.000001, "alpha");
-        strategy->addParameter(&*detector, Detector::getBeta, Detector::setBeta, tiltNudge, 0.000001, "beta");
-        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, tiltNudge, 0.000001, "gamma");
+        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.0001, "nudge_z");
         strategy->refine();
 
         strategy->clearParameters();
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.0001, "nudge_z");
+        strategy->addParameter(&*detector, Detector::getAlpha, Detector::setAlpha, tiltNudge, 0.000001, "alpha");
+        strategy->addParameter(&*detector, Detector::getBeta, Detector::setBeta, tiltNudge, 0.000001, "beta");
+        strategy->addParameter(&*detector, Detector::getGamma, Detector::setGamma, tiltNudge, 0.000001, "gamma");
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
@@ -485,6 +502,7 @@ void GeometryRefiner::refineBeamCentre()
     
     RefinementGridSearchPtr gridSearch = makeGridRefiner(detector, GeometryScoreTypeBeamCentre);
     gridSearch->setJobName("grid_search_beam_centre_" + i_to_str(refinementEvent));
+    gridSearch->setGridLength(131);
     
     gridSearch->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, tiltNudge, 0.001, "poke_x");
     gridSearch->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, tiltNudge, 0.001, "poke_y");

@@ -603,6 +603,7 @@ void FileParser::generateFunctionList()
     parserMap["FREE_ELECTRON_LASER"] = simpleInt;
     parserMap["CHEETAH_DATA_ADDRESSES"] = simpleString;
     parserMap["CHEETAH_ID_ADDRESSES"] = simpleString;
+    parserMap["HDF5_MASK_ADDRESS"] = simpleString;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
@@ -764,6 +765,7 @@ void FileParser::generateFunctionList()
     
     parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
     parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;
+    parserMap["IMAGE_ACCEPTABLE_COMBO"] = doubleVector;
     parserMap["IMAGE_SPOT_PROBE_HEIGHT"] = simpleInt;
     parserMap["IMAGE_SPOT_PROBE_BACKGROUND"] = simpleInt;
     parserMap["IMAGE_SPOT_PROBE_PADDING"] = simpleInt;
