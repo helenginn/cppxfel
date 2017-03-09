@@ -98,6 +98,8 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
             aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
             strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
             break;
+        default:
+            break;
     }
     
     return strategy;
