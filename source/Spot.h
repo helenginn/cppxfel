@@ -25,6 +25,7 @@ private:
     bool checked;
     bool _isBeamCentre;
     bool _isFake;
+    double storedRadius;
     std::string _text;
     int successfulCommonLines;
     double correctedX; double correctedY;

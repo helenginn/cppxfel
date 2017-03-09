@@ -12,7 +12,6 @@
 #include "MtzManager.h"
 #include "parameters.h"
 #include <vector>
-#include <scitbx/lbfgsb.h>
 
 class StatisticsManager;
 typedef std::map<MtzPtr, double> CrystalCorrelation;
@@ -35,9 +34,6 @@ private:
     double gradientCloudCluster(int centre, int axis);
     
     double dotProduct(int imageNumI, int imageNumJ);
-    
-    scitbx::af::shared<double> x;
-    scitbx::af::shared<double> clouds;
     
     void assignPartialities();
     void breakAmbiguity();

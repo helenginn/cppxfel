@@ -45,6 +45,7 @@ Spot::Spot(ImagePtr image)
     int probePadding = FileParser::getKey("IMAGE_SPOT_PROBE_PADDING", 1);
     length = probePadding * 2 + 1;
     backgroundPadding = FileParser::getKey("IMAGE_SPOT_PROBE_BG_PADDING", probePadding) * 2 + 1;
+    storedRadius = 1 / image->getWavelength();
     
     if (minCorrelation == -3)
     {
@@ -437,10 +438,9 @@ vec Spot::estimatedVector()
         }
     }
     
-    double wavelength = getParentImage()->getWavelength();
-    arrangedPos.k *= -1;
-    scale_vector_to_distance(&arrangedPos, 1 / wavelength);
-    arrangedPos.l -= 1 / wavelength;
+    arrangedPos.k = -arrangedPos.k;
+    scale_vector_to_distance(&arrangedPos, storedRadius);
+    arrangedPos.l -= storedRadius;
     
     return arrangedPos;
 }

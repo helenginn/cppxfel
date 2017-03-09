@@ -11,6 +11,7 @@
 #include "CSV.h"
 #include "FileParser.h"
 #include "polyfit.hpp"
+#include <iomanip>
 
 void RefinementGridSearch::recursiveEvaluation(ParamList referenceList, ParamList workingList, ResultMap *results)
 {
@@ -172,7 +173,7 @@ void RefinementGridSearch::assignInterpanelMinimum()
     
     ParamList minParams = orderedParams[maxSteepnessValue];
     
-    logged << "Setting interpanel minimum (" << gridJumps << ", " << coverPadding << ") ";
+    logged << "Setting interpanel minimum (" << gridJumps << ", " << coverPadding << ") " << std::setprecision(5);
     
     for (int i = 0; i < minParams.size(); i++)
     {

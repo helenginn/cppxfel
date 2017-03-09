@@ -832,8 +832,8 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
     
     if (writeToCSV)
     {
-        double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05;
-        double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005) * 4;
+        double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER;
+        double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005) * 20;
 
         csv->setupHistogram(0, maxDistance, step, "distance", 2, "observed", "model");
         
@@ -868,9 +868,9 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
         for (int i = 0; i < me->goodVectors.size(); i++)
         {
             SpotVectorPtr vec = me->goodVectors[i];
-            bool good = me->processVector(vec, &score, &count, false, true);
+            me->processVector(vec, &score, &count, false, true);
             
-            if (writeToCSV && good)
+            if (writeToCSV)
             {
                 csv->addOneToFrequency(vec->distance(), "observed", 1);
             }
@@ -890,14 +890,26 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
         plotMap["xHeader0"] = "distance";
         plotMap["yMax0"] = f_to_str(me->_maxFrequency, -1);
         plotMap["yMin0"] = "0";
+        plotMap["xMin0"] = "0";
         plotMap["xTitle0"] = "Reciprocal distance between vectors (Ang)";
         plotMap["yHeader0"] = "observed";
         plotMap["style0"] = "line";
+        
+        if (me->getPseudoScoreType() == PseudoScoreTypeInterPanel)
+        {
+            plotMap["xMax0"] = f_to_str(me->interPanelDistance);
+        }
+        else if (me->getPseudoScoreType() == PseudoScoreTypeIntraPanel)
+        {
+            plotMap["xMax0"] = f_to_str(me->intraPanelDistance);
+        }
         
         plotMap["xHeader1"] = "distance";
         plotMap["yHeader1"] = "model";
         plotMap["style1"] = "line";
         plotMap["colour1"] = "blue";
+        plotMap["xMin1"] = "0";
+        plotMap["xMax1"] = plotMap["xMax0"];
         
         plotMap["filename"] = tag + me->getActiveDetector()->getTag() + "_" + targetString(me->getPseudoScoreType()) + "_" + i_to_str(me->getCycleNum());
         

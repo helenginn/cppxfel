@@ -225,6 +225,7 @@ public:
     void setTestSpotSize(double spotSize);
     void setTestBandwidth(double bandwidth);
     void setOrientationTolerance(double newTolerance);
+    void weedOutCloseSpots();
     
     virtual void findIndexingSolutions();
     void compileDistancesFromSpots(double maxReciprocalDistance = 0, double tooCloseDistance = 0, bool filter = false);

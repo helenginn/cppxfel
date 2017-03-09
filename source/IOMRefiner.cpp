@@ -1018,7 +1018,8 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         
         miller->incrementOverlapMask();
         miller->setMtzParent(&*mtz);
-        
+        miller->getDetector()->addMillerCarefully(miller);
+
         int index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
                                                    mtz->getLowGroup(), false);
         

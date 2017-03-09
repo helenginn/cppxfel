@@ -255,7 +255,7 @@ void CSV::minMaxCol(int col, double *min, double *max, bool round)
         double whole = floor(logMax);
         double remainder = fmod(logMax, 1);
         
-        for (int i = 1; i < 10; i++)
+        for (int i = 1; i <= 10; i++)
         {
             const double logi = log10(i);
             if (remainder <= logi)
@@ -281,6 +281,7 @@ typedef enum
 {
     GraphStyleScatter,
     GraphStyleLine,
+    GraphStyleHeatMap,
 } GraphStyle;
 
 void CSV::plotPNG(std::map<std::string, std::string> properties)
@@ -337,10 +338,10 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
         double maxY = FLT_MAX;
         bool round = (properties.count(roundKey) > 0);
         
-        if (properties.count("x" + minKey)) minX = atoi(properties["x" + minKey].c_str());
-        if (properties.count("y" + minKey)) minY = atoi(properties["y" + minKey].c_str());
-        if (properties.count("x" + maxKey)) maxX = atoi(properties["x" + maxKey].c_str());
-        if (properties.count("y" + maxKey)) maxY = atoi(properties["y" + maxKey].c_str());
+        if (properties.count("x" + minKey)) minX = atof(properties["x" + minKey].c_str());
+        if (properties.count("y" + minKey)) minY = atof(properties["y" + minKey].c_str());
+        if (properties.count("x" + maxKey)) maxX = atof(properties["x" + maxKey].c_str());
+        if (properties.count("y" + maxKey)) maxY = atof(properties["y" + maxKey].c_str());
         
         if (minX == -FLT_MAX || maxX == FLT_MAX) minMaxCol(xCol, &minX, &maxX, false);
         if (minY == -FLT_MAX || maxY == FLT_MAX) minMaxCol(yCol, &minY, &maxY, round);
@@ -408,6 +409,10 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
             else if (properties[styleKey] == "line")
             {
                 style = GraphStyleLine;
+            }
+            else if (properties[styleKey] == "line")
+            {
+                style = GraphStyleHeatMap;
             }
         }
         

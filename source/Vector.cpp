@@ -228,7 +228,7 @@ double length_of_vector_squared(vec vec)
     return vec.h * vec.h + vec.k * vec.k + vec.l * vec.l;
 }
 
-double length_of_vector(vec vec)
+double length_of_vector(vec &vec)
 {
 	return pow(vec.h * vec.h + vec.k * vec.k + vec.l * vec.l, 0.5);
 }
@@ -506,49 +506,6 @@ double gradient_between_vectors(vector<double> *vec1,
 
 	return grad;
 }
-
-double minimize_gradient_between_vectors(vector<double> *vec1,
-		vector<double> *vec2)
-{
-	double firstSlope = gradient_between_vectors(vec1, vec2);
-
-	double bestSlope = firstSlope;
-	double bestScore = least_squares_between_vectors(vec1, vec2, bestSlope);
-
-	int count = 0;
-	bool optimised = false;
-	double step = 0.05;
-	double finished = 0.001;
-
-	while (!optimised && count < 10)
-	{
-		double higherSlope = bestSlope + step;
-		double lowerSlope = bestSlope - step;
-
-		double higherScore = least_squares_between_vectors(vec1, vec2, higherSlope);
-		double lowerScore = least_squares_between_vectors(vec1, vec2, lowerSlope);
-
-		if (bestScore < higherScore && bestScore < lowerScore)
-		{
-			step /= 2;
-			continue;
-		}
-
-		double newScore = (higherScore < lowerScore) ? higherScore : lowerScore;
-		double newSlope = (higherScore < lowerScore) ? higherSlope : lowerSlope;
-
-		bestSlope = newSlope;
-		bestScore = newScore;
-
-		count++;
-
-		if (step < finished)
-			break;
-	}
-
-	return bestSlope;
-}
-
 
 double least_squares_between_vectors(vector<double> *vec1,
 		vector<double> *vec2, double slope)

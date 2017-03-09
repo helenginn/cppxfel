@@ -186,6 +186,8 @@ public:
     
     /* Are we using detectors? */
     
+    void resetNudgeBasis();
+    
     static bool isActive()
     {
         if (detectorActive == -1)

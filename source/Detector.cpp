@@ -189,6 +189,7 @@ void Detector::initialise(Coord unarrangedTopLeft, Coord unarrangedBottomRight,
 void Detector::prepareInterNudges()
 {
     rotateAxisRecursive(true);
+    resetNudgeBasis();
 }
 
 // MARK: Housekeeping and additional initialisation
@@ -277,6 +278,24 @@ void Detector::addToBasisChange(vec angles, MatrixPtr chosenMat)
     */
 }
 
+void Detector::resetNudgeBasis()
+{
+    vec midpoint = midPointOffsetFromParent();
+    
+    vec zAxis = new_vector(0, 0, 1);
+    scale_vector_to_distance(&midpoint, 1);
+    double angle = angleBetweenVectors(midpoint, zAxis);
+    vec cross = cross_product_for_vectors(midpoint, zAxis);
+    scale_vector_to_distance(&cross, 1);
+    
+    originalNudgeMat->setIdentity();
+    
+    if (cross.h == cross.h)
+    {
+        originalNudgeMat->rotateRoundUnitVector(cross, angle);
+    }
+    
+}
 
 void Detector::rotateAxisRecursive(bool fix)
 {
@@ -300,6 +319,12 @@ void Detector::rotateAxisRecursive(bool fix)
 
     addToBasisChange(rotationAngles, changeOfBasisMat);
     addToBasisChange(rotationAngles, tempNewChange);
+    
+    vec tempNudgeRot = nudgeRotation;
+    tempNudgeRot.l = 0;
+    originalNudgeMat->multiplyVector(&tempNudgeRot);
+    addToBasisChange(tempNudgeRot, changeOfBasisMat);
+    addToBasisChange(tempNudgeRot, tempNewChange);
 
     if (enabledNudge)
     {
@@ -319,6 +344,8 @@ void Detector::rotateAxisRecursive(bool fix)
         memset(&nudgeTranslation.h, 0, sizeof(nudgeTranslation.h) * 3);
         memset(&nudgeRotation.h, 0, sizeof(nudgeRotation.h) * 3);
         memset(&interNudge.h, 0, sizeof(interNudge.h) * 3);
+        
+        resetNudgeBasis();
     }
     
     slowRotated = slowDirection;
