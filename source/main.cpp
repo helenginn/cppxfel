@@ -116,6 +116,27 @@ void new_main(int argc, char *argv[])
         std::cout << "\tcppxfel.run --help verbosity_level" << std::endl;
         std::cout << "\tcppxfel.run --help intensity_threshold" << std::endl;
         
+        std::cout << "\nNow testing your CCP4 library installation..." << std::endl << std::endl;
+        
+        CSym::CCP4SPG *spg = ccp4spg_load_by_ccp4_num(1);
+        if (!spg)
+        {
+            std::cout << std::endl << "*****************************************************" << std::endl;
+            std::cout <<              "************* WARNING! VERY IMPORTANT!! *************" << std::endl;
+            std::cout <<              "*****************************************************" << std::endl;
+            std::cout << std::endl << "I can't seem to load space group P1!" << std::endl;
+            std::cout << "If CCP4 is installed, it may need sourcing." << std::endl;
+            std::cout << "Please make sure the value of the environment variable $SYMINFO is set correctly." << std::endl;
+            std::cout << "Something like (bash): export SYMINFO=/path/to/ccp4-vX.X.X/lib/data/syminfo.lib" << std::endl;
+            std::cout << "Something like (csh): setenv SYMINFO /path/to/ccp4-vX.X.X/lib/data/syminfo.lib" << std::endl;
+            std::cout << std::endl << "(... look carefully, those paths are almost certainly wrong!)" << std::endl;
+        }
+        else
+        {
+            std::cout << "I found space group P1! Everything is fine." << std::endl;
+        }
+        
+        
         exit(1);
 	}
     
