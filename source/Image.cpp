@@ -402,7 +402,7 @@ int Image::valueAt(int x, int y)
     
     if (!det)
     {
-   //     return 0;
+        return 0;
     }
     
     double panelGain = det->getGain();
