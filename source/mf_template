@@ -83,5 +83,5 @@ all:
 	g++ $(BEFORE) -c main.cpp
 	g++ $(BEFORE) -c misc.cpp
 	
-	g++ ../cppxfel -o *.o $(AFTER)
+	g++ -o ../cppxfel *.o $(AFTER)
 	
