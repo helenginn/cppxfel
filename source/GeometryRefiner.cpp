@@ -390,7 +390,6 @@ void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, std::ve
     
     me->reportProgress();
     
-    me->gridNudgedZ = true;
     me->firstCycle = false;
 }
 
