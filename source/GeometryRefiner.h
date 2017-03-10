@@ -21,7 +21,7 @@ private:
     int refinementEvent;
     int cycleNum;
     double tiltNudge;
-    bool gridNudgedZ;
+    double nudgeStep;
     bool firstCycle;
     void refineDetectorStrategy(DetectorPtr detector, GeometryScoreType type);
     static void refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, GeometryScoreType type);

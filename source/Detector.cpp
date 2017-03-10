@@ -233,6 +233,7 @@ bool Detector::directionSanityCheck()
 
 void Detector::lockNudges()
 {
+    return;
     getMaster()->rotateAxisRecursive(true);
 }
 

@@ -802,7 +802,7 @@ void FileParser::generateFunctionList()
     parserMap["TRUST_GLOBAL_GEOMETRY"] = simpleBool;
     parserMap["TRUST_QUADRANT_GEOMETRY"] = simpleBool;
     parserMap["TRUST_LOCAL_GEOMETRY"] = simpleBool;
-    
+    parserMap["EXPECTED_GEOMETRY_MOVEMENT"] = simpleFloat;
     
     parserMap["DETECTOR_LIST"] = simpleString;
 
