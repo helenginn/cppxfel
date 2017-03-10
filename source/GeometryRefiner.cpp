@@ -114,18 +114,6 @@ GeometryRefiner::GeometryRefiner()
     lastInterAngleScore = 0;
     lastIntraAngleScore = 0;
 
-    double distance = Detector::getArrangedMidPointZ(&*Detector::getMaster());
-    double expectedPixels = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 5.0);
-    
-    tiltNudge = atan(expectedPixels / distance);
-    nudgeStep = sqrt(pow(expectedPixels, 2) + pow(distance, 2)) - distance;
-    
-    tiltNudge /= 5;
-    nudgeStep *= 2;
-    
-    logged << "From " << expectedPixels << " pixel expected movement, setting tilt_nudge to " << tiltNudge
-    << " and nudgeStep to " << nudgeStep << std::endl;
-    sendLog();
 }
 
 void GeometryRefiner::refineGeometry()
@@ -409,12 +397,14 @@ void GeometryRefiner::checkGridSearch(DetectorPtr detector)
     
     detector->resetPoke();
     double distFromSample = detector->distanceFromSample();
-    
-    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge, 0.001, "poke_x");
-    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge, 0.001, "poke_y");
+    double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
+    detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
+
+    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge / 5, 0.001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge / 5, 0.001, "poke_y");
     strategy->setGridLength(99);
     
-    double pixelPerTiltNudge = sin(tiltNudge) * distFromSample;
+    double pixelPerTiltNudge = sin(nudgeTiltY) * distFromSample;
     double pixelsToCheck = 1.9;
     int gridPointsToCheck = pixelsToCheck / pixelPerTiltNudge + 0.5;
     gridPointsToCheck *= 2;
@@ -436,39 +426,40 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     
     detector->resetPoke();
     
-    double nudgeStep = FileParser::getKey("NUDGE_STEP", 0.2);
-    
-    RefinementStrategyPtr strategy = makeRefiner(detector, type);
-    
-    if (type == GeometryScoreTypeIntrapanel)
-    {
-        strategy->clearParameters();
-        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.1, "nudgetilt_x");
-        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.1, "nudgetilt_y");
-        strategy->refine();
-
-        strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.0001, "nudge_z");
-        
-    }
-    else if (type == GeometryScoreTypeInterpanel)
-    {
-        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, tiltNudge / 5, 0.000001, "poke_x");
-        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, tiltNudge / 5, 0.000001, "poke_y");
-        strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, tiltNudge / 5, 0.000001, "poke_z");
-    }
-    else if (type == GeometryScoreTypeBeamCentre)
-    {
-        strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, tiltNudge, 0.000001, "internudge_x");
-        strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, tiltNudge, 0.000001, "internudge_y");
-    }
-    
-    strategy->refine();
+    double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
+    detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
     
     if (type == GeometryScoreTypeIntrapanel)
     {
         gridSearchNudgeZ(detector, -nudgeStep * 20, nudgeStep * 20);
     }
+    
+    RefinementStrategyPtr strategy = makeRefiner(detector, type);
+    
+    if (type == GeometryScoreTypeIntrapanel)
+    {
+        detector->lockNudges();
+        strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX, 0.1, "nudgetilt_x");
+        strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setSmartTiltY, nudgeTiltY, 0.1, "nudgetilt_y");
+        strategy->refine();
 
+  //      strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.0001, "nudge_z");
+        
+    }
+    else if (type == GeometryScoreTypeInterpanel)
+    {
+        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge, 0.000001, "poke_x");
+        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge, 0.000001, "poke_y");
+        strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge, 0.000001, "poke_z");
+    }
+    else if (type == GeometryScoreTypeBeamCentre)
+    {
+        strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, nudgeTiltX, 0.000001, "internudge_x");
+        strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, nudgeTiltY, 0.000001, "internudge_y");
+    }
+    
+    strategy->refine();
+    
     IndexManager::pseudoDistanceScore(&*detector->getIndexManager(), true, "after_");
     detector->resetPoke();
     
@@ -488,8 +479,11 @@ void GeometryRefiner::refineBeamCentre()
     gridSearch->setJobName("grid_search_beam_centre_" + i_to_str(refinementEvent));
     gridSearch->setGridLength(99);
     
-    gridSearch->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, tiltNudge, 0.001, "poke_x");
-    gridSearch->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, tiltNudge, 0.001, "poke_y");
+    double nudgeStep, nudgeTiltX, nudgeTiltY;
+    detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep);
+    
+    gridSearch->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, nudgeTiltX, 0.001, "poke_x");
+    gridSearch->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, nudgeTiltY, 0.001, "poke_y");
     
     detector->getIndexManager()->setPseudoScoreType(PseudoScoreTypeBeamCentre);
     gridSearch->refine();
@@ -559,7 +553,7 @@ void GeometryRefiner::refineUnitCell()
 
 void GeometryRefiner::gridSearchNudgeZ(DetectorPtr detector, double start, double end)
 {
-    double step = FileParser::getKey("NUDGE_STEP", 0.2);
+    double step = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.5);
     double confidence = (end - start) / step;
     
     {

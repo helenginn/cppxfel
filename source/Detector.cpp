@@ -56,7 +56,6 @@ void Detector::initialiseZeros()
 
     parent = DetectorPtr();
     rotMat = MatrixPtr(new Matrix());
-    nudgeMat = MatrixPtr(new Matrix());
     changeOfBasisMat = MatrixPtr(new Matrix());
     fixedBasis = MatrixPtr(new Matrix());
     invWorkingBasisMat = MatrixPtr(new Matrix());
@@ -266,17 +265,6 @@ void Detector::addToBasisChange(vec angles, MatrixPtr chosenMat)
     rotMat->rotate(angles.h, angles.k, angles.l);
     
     chosenMat->multiply(*rotMat);
-    /*
-    logged << prettyDesc(genFast) << ", " << prettyDesc(genSlow) << std::endl;
-    sendLog();
-    rotMat->printDescription();
-    chosenMat->printDescription();
-    
-    MatrixPtr invBasis = MatrixPtr(new Matrix());
-    calculateChangeOfBasis(&genFast, &genSlow, invBasis);
-    chosenMat->multiply(*invBasis);
-    
-    */
 }
 
 void Detector::resetNudgeBasis()
@@ -1260,4 +1248,57 @@ double Detector::distanceFromSample()
 {
     vec midpoint = midPointOffsetFromParent();
     return length_of_vector(midpoint);
+}
+
+void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *nudgeStep, double *interNudge)
+{
+    double expectedPixels = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.5);
+
+    vec midpoint = midPointOffsetFromParent();
+    double distance = length_of_vector(midpoint);
+    MatrixPtr nudgeTranspose = originalNudgeMat->transpose();
+    
+    vec xWorkingAxis = new_vector(1, 0, 0);
+    vec yWorkingAxis = new_vector(0, 1, 0);
+    vec xAxisNudge = new_vector(1, 0, 0);
+    vec yAxisNudge = new_vector(0, 1, 0);
+    vec zAxisNudge = new_vector(0, 0, 1);
+    vec zAxisReal = new_vector(0, 0, 1);
+    
+    // how many basis X and basis Y vectors do we need
+    
+    originalNudgeMat->multiplyVector(&xAxisNudge);
+    originalNudgeMat->multiplyVector(&yAxisNudge);
+    originalNudgeMat->multiplyVector(&zAxisNudge);
+    
+    changeOfBasisMat->multiplyVector(&zAxisReal);
+
+    MatrixPtr zRotate = rotation_between_vectors(zAxisNudge, zAxisReal);
+    zRotate->multiplyVector(&xWorkingAxis);
+    zRotate->multiplyVector(&yWorkingAxis);
+    
+    // heading towards zero means we must send the detector BACK, so tilt is opposite
+    // sign of step. The step is proportional to both tan(angle). For shorter distances,
+    // the nudged step is smaller than for large distances.
+    
+    double xAngle = angleBetweenVectors(xWorkingAxis, xAxisNudge);
+    *nudgeTiltX = expectedPixels * tan(xAngle) / distance * (xAngle < 0 ? -1 : 1);
+
+    double yAngle = angleBetweenVectors(yWorkingAxis, yAxisNudge);
+    *nudgeTiltY = expectedPixels * tan(yAngle) / distance * (xAngle < 0 ? -1 : 1);
+    
+    if (interNudge)
+    {
+        *interNudge = atan(expectedPixels / distance);
+    }
+    
+    *nudgeStep = expectedPixels;
+    
+    this->nudgeTiltX = *nudgeTiltX;
+    this->nudgeTiltY = *nudgeTiltY;
+    this->nudgeStep = *nudgeStep;
+
+    logged << "From " << expectedPixels << " pixel expected movement, setting tilt_nudge to (" << *nudgeTiltX
+    << ", " << *nudgeTiltY << ") and nudgeStep to " << *nudgeStep << std::endl;
+    sendLog();
 }

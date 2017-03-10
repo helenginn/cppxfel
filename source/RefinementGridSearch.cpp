@@ -91,9 +91,8 @@ void RefinementGridSearch::refine()
         
         csv->addEntry(result);
     }
-    /*
-    logged << "Setting params ";
     
+    logged << "Setting params ";
     
     for (int i = 0; i < minParams.size(); i++)
     {
@@ -105,7 +104,7 @@ void RefinementGridSearch::refine()
     
     double val = (*evaluationFunction)(evaluateObject);
     logged << "score = " << val << std::endl;
-    sendLog();*/
+    sendLog(priority);
     
     csv->writeToFile(jobName + "_gridsearch.csv");
     

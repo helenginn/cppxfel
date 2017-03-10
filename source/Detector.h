@@ -121,17 +121,37 @@ private:
     std::string tag;
     std::vector<DetectorPtr> children;
     DetectorWeakPtr parent;
+    
+    /* Just for re-use it seems */
     MatrixPtr rotMat;
-    MatrixPtr nudgeMat;
+    
+    /* To go from 'real' axes into 'panel' axes (but NOT map to pixels) */
     MatrixPtr changeOfBasisMat;
-    MatrixPtr fixedBasis;
+    
+    /* To go from 'real' axes into 'panel' axes (AND map to pixels) */
     MatrixPtr workingBasisMat;
+    /* From relative pixel movements into 'real' axes */
     MatrixPtr invWorkingBasisMat;
     
+    /* Storing the bit which isn't re-calculated */
+    MatrixPtr fixedBasis;
+    
+    /* From 'real' axes into 'eye placed at sample looking at midpoint
+       of detector' axes */
     MatrixPtr originalNudgeMat;
+     
+    /* Matrix representing rotation around sample */
     MatrixPtr interRotation;
+    
+    /* midpoint of detector prior to any session of nudging */
     vec originalNudgePosition;
     
+    /* Keep track of nudge step ratios */
+    
+    double nudgeStep;
+    double nudgeTiltX;
+    double nudgeTiltY;
+
     /* Ancestor map for quick access for previously asked "are you my ancestor"? */
     AncestorMap ancestorMap;
     
@@ -184,9 +204,8 @@ public:
     static void fullDescription();
     void description(bool propogate = false);
     
-    /* Are we using detectors? */
-    
     void resetNudgeBasis();
+    void nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *nudgeStep, double *interNudge = NULL);
     
     static bool isActive()
     {
@@ -284,16 +303,6 @@ public:
     MatrixPtr getChangeOfBasis()
     {
         return changeOfBasisMat;
-    }
-    
-    MatrixPtr getRotation()
-    {
-        return rotMat;
-    }
-    
-    MatrixPtr getNudgeMat()
-    {
-        return nudgeMat;
     }
     
     void rotateAxisRecursive(bool fix = false);
@@ -531,6 +540,28 @@ public:
         static_cast<Detector *>(object)->nudgeRotation.h = horizTilt;
         static_cast<Detector *>(object)->updateCurrentRotation();
         static_cast<Detector *>(object)->setUpdateMidPointForDetector();
+    }
+    
+    static void setSmartTiltX(void *object, double horizTilt)
+    {
+        Detector *det = static_cast<Detector *>(object);
+        double angles = (det->nudgeRotation.k / det->nudgeTiltY
+                         + det->nudgeRotation.h / det->nudgeTiltX);
+        double distance = det->nudgeStep * angles;
+        det->nudgeRotation.h = horizTilt;
+        det->nudgeTranslation.l = distance;
+        det->updateCurrentRotation();
+    }
+    
+    static void setSmartTiltY(void *object, double vertTilt)
+    {
+        Detector *det = static_cast<Detector *>(object);
+        det->nudgeRotation.k = vertTilt;
+        double angles = (det->nudgeRotation.k / det->nudgeTiltY
+                         + det->nudgeRotation.h / det->nudgeTiltX);
+        double distance = det->nudgeStep * angles;
+        det->nudgeTranslation.l = distance;
+        det->updateCurrentRotation();
     }
     
     static double getNudgeTiltX(void *object)
