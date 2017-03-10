@@ -107,7 +107,7 @@ void RefinementStrategy::reportProgress(double score)
     for (int i = 0; i < objects.size(); i++)
     {
         double objectValue = (*getters[i])(objects[i]);
-        logged << objectValue << "\t";
+        logged << std::setprecision(5) << objectValue << "\t";
     }
 
     logged << " - score: ";

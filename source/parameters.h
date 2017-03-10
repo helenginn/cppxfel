@@ -11,6 +11,7 @@
 #define PARTIAL_CUTOFF 0.2
 #define MULTIPLIER 600
 #define OFFSET 300
+#define DISTANCE_BUFFER 0.025
 
 #define PARAM_HROT 0
 #define PARAM_KROT 1

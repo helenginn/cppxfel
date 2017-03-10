@@ -1352,10 +1352,5 @@ void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers)
 
 void Miller::setDetector(DetectorPtr newD)
 {
-    if (!(lastDetector.lock() == newD))
-    {
-        newD->addMillerCarefully(shared_from_this());
-    }
-    
     lastDetector = newD;
 }

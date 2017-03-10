@@ -19,7 +19,7 @@ bool within_vicinity(vec vec1, vec vec2, double maxD);
 vec cross_product_for_vectors(vec vec1, vec vec2);
 double dot_product_for_vectors(vec vec1, vec vec2);
 vec new_vector(double h, double k, double l);
-double length_of_vector(vec vect);
+double length_of_vector(vec &vect);
 double length_of_vector_squared(vec vec);
 double distance_between_vectors(vec vec1, vec vec2);
 double angleBetweenVectors(vec vec1, vec vec2, int isUnit = false);
@@ -60,8 +60,6 @@ double correlation_through_origin(vector<double> *vec1,
 double least_squares_between_vectors(vector<double> *vec1,
 		vector<double> *vec2, double slope);
 double gradient_between_vectors(vector<double> *vec1,
-		vector<double> *vec2);
-double minimize_gradient_between_vectors(vector<double> *vec1,
 		vector<double> *vec2);
 double weighted_mean(vector<double> *means, vector<double> *weights = NULL);
 double median(vector<double> *means);

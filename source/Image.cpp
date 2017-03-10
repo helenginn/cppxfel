@@ -402,7 +402,7 @@ int Image::valueAt(int x, int y)
     
     if (!det)
     {
-   //     return 0;
+        return 0;
     }
     
     double panelGain = det->getGain();
@@ -1180,6 +1180,75 @@ void Image::findSpots()
     
 }
 
+void Image::weedOutCloseSpots()
+{
+    bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
+    
+    if (!rejectCloseSpots)
+    {
+        return;
+    }
+    
+    std::vector<size_t> indicesToDelete;
+    double tooCloseDistance = IndexingSolution::getMinDistance() * 0.5;
+
+    for (int i = 0; i < spotCount() - 1; i++)
+    {
+        bool keepGoingI = true;
+        
+        SpotPtr firstSpot = spot(i);
+
+        for (int j = i + 1; j < spotCount(); j++)
+        {
+            bool keepGoingJ = true;
+            
+            for (int check = 0; check < indicesToDelete.size(); check++)
+            {
+                if (indicesToDelete[check] == i)
+                {
+                    keepGoingI = false;
+                }
+                
+                if (indicesToDelete[check] == j)
+                {
+                    keepGoingJ = false;
+                }
+            }
+            
+            if (!keepGoingI)
+            {
+                break;
+            }
+            
+            if (!keepGoingJ)
+            {
+                continue;
+            }
+            
+            SpotPtr secondSpot = spot(j);
+
+            vec firstVec = firstSpot->estimatedVector();
+            vec secondVec = secondSpot->estimatedVector();
+            take_vector_away_from_vector(firstVec, &secondVec);
+            
+            double distance = length_of_vector(secondVec);
+            if (distance < tooCloseDistance)
+            {
+                indicesToDelete.push_back(i);
+                indicesToDelete.push_back(j);
+            }
+        }
+    }
+    
+    logged << "Rejected " << indicesToDelete.size() << " spots for being too close." << std::endl;
+    sendLog();
+    
+    for (int i = (int)indicesToDelete.size() - 1; i >= 0; i--)
+    {
+        spots.erase(spots.begin() + i);
+    }
+}
+
 void Image::processSpotList()
 {
     std::string spotContents;
@@ -1228,13 +1297,6 @@ void Image::processSpotList()
         if (minIndexing > 0)
         {
             minIndexing = 1 / minIndexing;
-        }
-        
-        double tooCloseDistance = 0;
-        bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
-        if (rejectCloseSpots)
-        {
-            tooCloseDistance = IndexingSolution::getMinDistance() * 0.5;
         }
         
         for (int i = 0; i < spotLines.size(); i++)
@@ -1287,37 +1349,6 @@ void Image::processSpotList()
                 add = false;
             }
             
-            for (int j = 0; j < spots.size(); j++)
-            {
-                SpotPtr testSpot = spots[j];
-                
-                if (rejectCloseSpots && tooCloseDistance > 0)
-                {
-                    vec testVec = testSpot->estimatedVector();
-                    vec copyVec = copy_vector(myVec);
-                    take_vector_away_from_vector(testVec, &copyVec);
-                    
-                    double distance = length_of_vector(copyVec);
-                    if (distance < tooCloseDistance)
-                    {
-                        add = false;
-                    }
-                }
-            }
-            
-            for (int j = 0; j < spots.size(); j++)
-            {
-                if (newSpot->isSameAs(spots[j]))
-                {
-                    add = false;
-                }
-            }
-            
-            logged << "SPOT\t" << i << "\t" << newSpot->getRawXY().first << "\t"
-            << newSpot->getRawXY().second
-            << "\t" << newSpot->getX() << "\t" << newSpot->getY() << std::endl;
-            sendLog(LogLevelDebug);
-            
             if (add)
             {
                 addSpotIfNotMasked(newSpot);
@@ -1335,21 +1366,11 @@ void Image::processSpotList()
     
     double fractionToExclude = FileParser::getKey("EXCLUDE_WEAKEST_SPOT_FRACTION", 0.0);
     
+    weedOutCloseSpots();
+    
     if (fractionToExclude > 0)
     {
         excludeWeakestSpots(fractionToExclude);
-    }
-    
-    bool recentreSpots = FileParser::getKey("FORCE_RECENTRE_SPOTS", false);
-    
-    if (recentreSpots)
-    {
-        for (int i = 0; i < spotCount(); i++)
-        {
-            spots[i]->recentreInWindow();
-        }
-        
-        writeSpotsList("_" + getBasename() + "_strong.list");
     }
     
     loadedSpots = true;
@@ -1765,7 +1786,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     Logger::log(logged); logged.str("");
     goodSolutions.push_back(solutionPtr);
     int spotCountBefore = (int)spots.size();
-    myRefiner->showHistogram(false);
+  //  myRefiner->showHistogram(false);
     
     mtz->removeStrongSpots(&spots);
     compileDistancesFromSpots();

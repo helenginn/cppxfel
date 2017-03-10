@@ -338,6 +338,7 @@ void FileParser::generateDeprecatedList()
     deprecatedList["STEP_UNIT_CELL_C"] = "This option was badly worded. Please change this to STEP_SIZE_UNIT_CELL_C.";
     deprecatedList["DO_NOT_REJECT_REFLECTIONS"] = "This option was badly worded. Please change this to REJECT_OVERLAPPING_REFLECTIONS (setting may need swapping over - default is now ON).";
     deprecatedList["PANEL_LIST"] = "This option has been deprecated as the panels definitions were too basic. This can now be specified under DETECTOR_LIST and using GEOMETRY_FORMAT panel_list. However it is highly recommended that you switch to CrystFEL or ideally cppxfel format.";
+    deprecatedList["FREE_MILLER_LIST"] = "This option never worked properly and has been disabled for the time being.";
 }
 
 void FileParser::generateCodeList()

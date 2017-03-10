@@ -33,7 +33,7 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
 void UnitCellLattice::weightUnitCell()
 {
     CSVPtr distCSV = CSVPtr(new CSV(0));
-    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05;
+    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER;
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
     distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 1, "Perfect frequency");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
@@ -61,7 +61,7 @@ void UnitCellLattice::weightUnitCell()
         double firstDistance = orderedDistance(i);
         double secondDistance = orderedDistance(i + 1);
         double separation = secondDistance - firstDistance;
-        double vmax = sqrt(separation);
+        double vmax = 1;// / separation;
         
         if (separation < 0.000001)
         {
@@ -73,8 +73,7 @@ void UnitCellLattice::weightUnitCell()
             normDist = sqrt(secondDistance);
         }
         
-        vmax /= normDist;
-        vmax = 1;
+//        vmax = 1;
         
         while (true)
         {
@@ -214,7 +213,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     if (resolution == 0 && maxMillerIndexTrial == 0)
     {
-        resolution = 1 / (FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + 0.05);
+        resolution = 1 / (FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER);
     }
     
     if (resolution == 0)
@@ -258,8 +257,6 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 
                 SpotVectorPtr newStandardVector = SpotVectorPtr(new SpotVector(hkl_transformed, hkl));
                 
-                vec3<int> integer = vec3<int>(i, j, k);
-                integerVectors.push_back(integer);
                 int asym = CSym::ccp4spg_is_in_asu(spaceGroup, i, j, k);
                 
                 spotVectors.push_back(newStandardVector);

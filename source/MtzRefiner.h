@@ -11,7 +11,6 @@
 #include "parameters.h"
 #include "MtzManager.h"
 #include "LoggableObject.h"
-#include <scitbx/mat3.h>
 
 class IndexManager;
 

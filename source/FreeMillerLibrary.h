@@ -12,20 +12,16 @@
 #include <stdio.h>
 
 #include <vector>
-#include <scitbx/vec3.h>
 #include <string>
 #include "LoggableObject.h"
-
-using scitbx::vec3;
 
 class FreeMillerLibrary
 {
 private:
-    std::vector<vec3<int> > freeIndices;
-
     FreeMillerLibrary(std::string filename);
     FreeMillerLibrary(std::string filename, double maxResolution);
-
+    std::vector<vec> freeIndices;
+    
     static FreeMillerLibrary library;
     
     int freeIndexCount()

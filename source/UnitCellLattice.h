@@ -14,9 +14,6 @@
 #include "csymlib.h"
 #include "Matrix.h"
 #include "parameters.h"
-#include <scitbx/vec3.h>
-
-using scitbx::vec3;
 
 class UnitCellLattice : public FreeLattice
 {
@@ -32,7 +29,6 @@ private:
     double minDistance;
     double powderStep;
     double unitCell[6];
-    std::vector<vec3<int> > integerVectors;
     PowderHistogram histogram;
     std::vector<SpotVectorPtr> uniqueSymVectors;
     CSVPtr weightedUnitCell;
@@ -71,11 +67,6 @@ public:
     int uniqueSymVectorCount()
     {
         return (int)uniqueSymVectors.size();
-    }
-    
-    vec3<int> intVector(int i)
-    {
-        return (vec3<int>)integerVectors[i];
     }
     
     SpotVectorPtr uniqueSymVector(int i)
