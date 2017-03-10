@@ -923,7 +923,7 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     if (aFilename.length() && !FileReader::exists(aFilename))
     {
         std::ostringstream logged;
-        logged << "File specified in ORIENTATION_MATRIX_LIST " << *filename << " doesn't exist." << std::endl;
+        logged << "File specified in ORIENTATION_MATRIX_LIST " << aFilename << " doesn't exist." << std::endl;
         
         if (hdf5)
         {
@@ -1699,24 +1699,6 @@ void MtzRefiner::loadPanels(bool mustFail)
         geomParser.parse();
         
         return;
-    }
-}
-
-void MtzRefiner::findSteps()
-{
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        std::string mtzFile = mtzManagers[i]->getFilename();
-        std::string baseName = getBaseFilename(mtzFile);
-        std::string csvHK = "csv-hk-" + baseName + ".csv";
-        std::string csvHW = "csv-hw-" + baseName + ".csv";
-        std::string csvKW = "csv-kw-" + baseName + ".csv";
-        
-        mtzManagers[i]->gridSearch();
-        
-        mtzManagers[i]->findSteps(PARAM_HROT, PARAM_KROT, csvHK);
-        mtzManagers[i]->findSteps(PARAM_HROT, PARAM_WAVELENGTH, csvHW);
-        mtzManagers[i]->findSteps(PARAM_KROT, PARAM_WAVELENGTH, csvKW);
     }
 }
 

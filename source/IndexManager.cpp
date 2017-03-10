@@ -816,6 +816,11 @@ std::string targetString(PseudoScoreType type)
 
 void IndexManager::plotGoodVectors()
 {
+    if (!goodVectors.size())
+    {
+        return;
+    }
+    
     ImagePtr special = Detector::getSpecialImage();
     std::string filename = getActiveDetector()->getTag() + "_" + targetString(getPseudoScoreType()) + "_vec.png";
     

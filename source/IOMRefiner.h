@@ -89,10 +89,6 @@ public:
 
 	static void duplicateSpots(vector<ImagePtr>images);
 	
-	double minimizeParameter(double *meanStep, double *param, int whichAxis = 0);
-	void minimizeTwoParameters(double *meanStep1, double *meanStep2,
-			double *param1, double *param2);
-
 	void refineOrientationMatrix();
     void fakeSpots();
 	

@@ -406,7 +406,7 @@ void new_main(int argc, char *argv[])
 		reference->loadReflections(1);
 		MtzManager::setReference(reference);
         
-        double maxRes = 1.6;
+        double maxRes = 0;
         
         if (argc > 4)
         {
@@ -414,19 +414,17 @@ void new_main(int argc, char *argv[])
         }
         
         
-        MtzManager *mtz = new MtzManager();
+        MtzPtr mtz = MtzPtr(new MtzManager());
         mtz->setFilename(argv[3]);
         std::cout << "Partiality plot for " << argv[3] << std::endl;
         mtz->loadReflections(PartialityModelNone, true);
         
         vector<Reflection *>refReflections, imageReflections;
         
-        GraphDrawer graph = GraphDrawer(mtz);
+        GraphDrawer graph = GraphDrawer(&*mtz);
         
-        graph.partialityPlot("partiality", GraphMap(), maxRes);
+        graph.partialityPNG(mtz, maxRes);
         
-        delete mtz;
-
 		delete reference;
 	}
     
@@ -475,6 +473,7 @@ void new_main(int argc, char *argv[])
 		vector<MtzManager *> managers = vector<MtzManager *>();
 
 		MtzManager *reference = new MtzManager();
+        
 		reference->setFilename(argv[2]);
 		reference->loadReflections(1);
 		MtzManager::setReference(reference);
@@ -491,13 +490,6 @@ void new_main(int argc, char *argv[])
 		GraphDrawer graph = GraphDrawer(reference);
         graph.resolutionStatsCSV(managers);
 
-        /*
-		graph.resolutionStatsPlot(managers, "intensity_bins", GraphMap(), true,
-				false);
-		graph.resolutionStatsPlot(managers, "intensity_bins_2", GraphMap(),
-				true, true);
-		graph.resolutionStatsPlot(managers);
-        graph.bFactorPlot(managers);*/
         
 		for (int i = 0; i < managers.size(); i++)
 			delete managers[i];

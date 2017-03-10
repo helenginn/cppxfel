@@ -105,7 +105,6 @@ public:
     void setupFreeMillers();
     void polarisationGraph();
     void displayIndexingHands();
-    void findSteps();
     
     void writeAllNewOrientations();
     void writeNewOrientations(bool includeRots = false, bool detailed = false);

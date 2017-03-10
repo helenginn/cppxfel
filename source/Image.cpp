@@ -1190,7 +1190,7 @@ void Image::weedOutCloseSpots()
     }
     
     std::vector<size_t> indicesToDelete;
-    double tooCloseDistance = IndexingSolution::getMinDistance() * 0.5;
+    double tooCloseDistance = IndexingSolution::getMinDistance() * 0.8;
 
     for (int i = 0; i < spotCount() - 1; i++)
     {

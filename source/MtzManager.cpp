@@ -417,8 +417,10 @@ void MtzManager::removeReflection(int i)
 
 void MtzManager::addReflection(ReflectionPtr reflection)
 {
-    reflections.push_back(reflection);
-    sortLastReflection();
+    size_t lowestId = 0;
+    ReflectionPtr refl = findReflectionWithId(reflection, &lowestId);
+    
+    reflections.insert(reflections.begin() + lowestId, reflection);
 }
 
 void MtzManager::addReflections(vector<ReflectionPtr>reflections)
@@ -837,12 +839,6 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         this->findReflectionWithId(reflection_reflection_index, &prevReflection);
         miller->setImageAndIOMRefiner(getImagePtr(), IOMRefinerPtr());
-        
-        if (getImagePtr())
-        {
-       //     int x, y;
-       //     miller->positionOnDetector(MatrixPtr(), &x, &y, false);
-        }
 
         if (prevReflection)
         {
@@ -855,8 +851,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
             
             // reflection is a repeat so set flag.
         }
-        
-        if (!prevReflection)
+        else
         {
             ReflectionPtr newReflection = ReflectionPtr(new Reflection());
             newReflection->setUnitCell(cell);
@@ -945,14 +940,36 @@ void MtzManager::setSpaceGroup(int spgnum)
     spaceGroupMutex.unlock();
 }
 
+ReflectionPtr MtzManager::findReflectionWithId(ReflectionPtr exampleRefl, size_t *lowestId)
+{
+    if (reflectionCount() == 0)
+    {
+        if (lowestId) *lowestId = 0;
+        return ReflectionPtr();
+    }
+
+    std::vector<ReflectionPtr>::iterator low;
+    low = std::lower_bound(reflections.begin(), reflections.end(), exampleRefl, Reflection::reflLessThan);
+    if (lowestId) *lowestId = (low - reflections.begin());
+    
+    if (low < reflections.end() && (*low)->getReflId() == exampleRefl->getReflId())
+    {
+        return *low;
+    }
+    else
+    {
+        return ReflectionPtr();
+    }
+}
+
 int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *reflection, bool insertionPoint)
 {
     if (reflectionCount() == 0)
     {
         *reflection = ReflectionPtr();
-        return 0;
+        return -1;
     }
-    
+
     int lower = 0;
     int higher = reflectionCount() - 1;
     int new_bound = (higher + lower) / 2;
@@ -1043,11 +1060,7 @@ void MtzManager::findCommonReflections(MtzManager *other,
             continue;
         }
         
-        long int refl_id = reflection(i)->getReflId();
-        
-        ReflectionPtr otherReflection;
-        
-        other->findReflectionWithId(refl_id, &otherReflection);
+        ReflectionPtr otherReflection = other->findReflectionWithId(reflection(i));
         
         if (otherReflection && otherReflection->millerCount() > 0)
         {

@@ -183,6 +183,18 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 
 	for (int i = 0; i < mtzManagers.size(); i++)
     {
+        /*int percentage = ((i * 100) / mtzManagers.size());
+        if (percentage % 5 == 0)
+        {
+            logged << percentage << "% ";
+            sendLog();
+        }
+        else
+        {
+            logged << ".";
+            sendLog();
+        }*/
+        
         MtzPtr mtz = mtzManagers[i];
 
 		double correl = mtz->getRefCorrelation();
@@ -632,7 +644,7 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
     bool recalculateSigma = FileParser::getKey("RECALCULATE_SIGMA", false);
     bool minimumMultiplicity = FileParser::getKey("MINIMUM_MULTIPLICITY", 0);
     
-    for (int i = 0; i < (*mergeMtz)->reflectionCount(); i++)
+    for (int i = (int)(*mergeMtz)->reflectionCount() - 1; i >= 0; i--)
 	{
 		ReflectionPtr reflection = (*mergeMtz)->reflection(i);
         double addedRejects = reflection->rejectCount();

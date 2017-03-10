@@ -45,20 +45,21 @@ public:
 			vector<vector<double> > xs, vector<vector<double> > ys);
 
     void resolutionStatsCSV(std::vector<MtzManager *>& managers);
-	void resolutionStatsPlot(vector<MtzManager *>& managers, std::string filename = "resolution_stats",
-			GraphMap properties = GraphMap(), bool intensityBins = false, bool image = false);
-
+	
     void plotPolarisation(vector<MtzPtr> mtzs);
 	void correlationPlot(std::string filename, double xMax = 0, double yMax = 0);
-	void partialityPlot(std::string filename, GraphMap properties = GraphMap(), double maxRes = 1.6);
-	void bFactorPlot(vector<MtzManager *>& managers,
-                     std::string filename = "all_gradients", GraphMap properties = GraphMap());
-    
+	void partialityPNG(MtzPtr mtz, double maxRes = 0);
+
     void plotSingleMillerFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l);
     void plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h = 0, int k = 0, int l = 0);
     void plotOrientationStats(vector<MtzPtr> mtzs);
     void plotPartialityStats(int h = 0, int k = 0, int l = 0);
     void cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h = 0, int k = 0, int l = 0);
+    
+    void partialityPNGResolutionShell(std::string filename,
+                                      std::vector<ReflectionPtr> refRefls,
+                                      std::vector<ReflectionPtr> imageRefls,
+                                      double minRes, double maxRes);
     
     MtzManager*& getMtz()
 	{

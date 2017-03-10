@@ -137,12 +137,18 @@ void RefinementStrategy::finish()
     else
     {
         double reduction = (startingScore - endScore) / startingScore;
+        
         logged << "Reduction by " << std::fixed << std::setprecision(3) <<
-        reduction * 100 << "% for " << jobName << std::endl;
+        reduction * 100 << "% for " << jobName << ": ";
+        
+        for (int i = 0; i < objects.size(); i++)
+        {
+            double objectValue = (*getters[i])(objects[i]);
+            logged << tags[i] << "=" << objectValue << ", ";
+        }
+        logged << std::endl;
         sendLog();
     }
-    
-    logged << std::flush;
     
     cycleNum = 0;
 }

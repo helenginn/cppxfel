@@ -15,7 +15,7 @@
 #include "Matrix.h"
 #include "parameters.h"
 
-class UnitCellLattice : public FreeLattice
+class UnitCellLattice : public FreeLattice, public LoggableObject
 {
 private:
     static UnitCellLatticePtr mainLattice;

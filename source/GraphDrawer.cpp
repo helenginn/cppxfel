@@ -23,6 +23,7 @@
 #include "UnitCellLattice.h"
 #include "FileParser.h"
 #include "PNGFile.h"
+#include "CSV.h"
 #include "Image.h"
 
 GraphDrawer::GraphDrawer(MtzManager *mtz)
@@ -173,146 +174,6 @@ void GraphDrawer::correlationPlot(std::string filename, double xMax, double yMax
 	std::cout << "N: plot " << fullName << std::endl;
 }
 
-void GraphDrawer::resolutionStatsPlot(vector<MtzManager *>& managers,
-		std::string filename, GraphMap properties, bool intensityBins, bool image)
-{
-	if (!intensityBins)
-		properties["title"] = "Intensity agreement vs resolution";
-	else
-		properties["title"] = "Intensity agreement vs strength of signal";
-
-	if (!intensityBins)
-	{
-		properties["xTitle"] = "Resolution (1 / d^2)";
-	}
-	else
-	{
-		if (image)
-		{
-			properties["xTitle"] = "Log(image intensity)";
-		}
-		else
-		{
-			properties["xTitle"] = "Reference intensity";
-		}
-	}
-
-	properties["yTitle"] =
-			"Percentage of merged data set (individual reflections)";
-	properties["plotType"] = "point";
-
-	properties["xMin"] = 0;
-//	properties["xMax"] = 0.5;
-	properties["yMin"] = 0;
-	properties["yMax"] = 4;
-
-	properties["colour_0"] = 10;
-	properties["colour_1"] = 4;
-
-	vector<double> bins;
-	StatisticsManager::generateResolutionBins(50, 1.6, 18, &bins);
-
-	MtzManager *referenceManager = MtzManager::getReferenceManager();
-	double grad = 1000 / referenceManager->averageIntensity();
-	referenceManager->applyScaleFactor(grad);
-
-	vector<double> blueX, blueY, redX, redY;
-    
-    double percentSum = 0;
-    double sum = 0;
-    
-    for (int i = 0; i < managers.size(); i++)
-	{
-		mtz = managers[i];
-
-	//	mtz->excludeFromLogCorrelation();
-        
-        double correl = mtz->correlation(true);
-        double invCorrel = correl;
-        
-        if (correl < 0.85)
-            continue;
-        
-        if (MtzManager::getReferenceManager()->ambiguityCount() == 2)
-        {
-            mtz->setActiveAmbiguity(1);
-            invCorrel = mtz->correlation(true);
-            mtz->setActiveAmbiguity(0);
-            
-            if (invCorrel > correl)
-                mtz->setActiveAmbiguity(1);
-        }
-        double newCorrel = mtz->correlation(true);
-        mtz->setRefCorrelation(newCorrel);
-        
-        std::cout << mtz->getFilename() << "\t" << correl << "\t"
-        << invCorrel << std::endl;
-
-		double scale = mtz->gradientAgainstManager(referenceManager);
-        std::cout << "Scale: " << scale << std::endl;
-        mtz->applyScaleFactor(scale);
-     
-		vector<ReflectionPtr> refReflections, imgReflections;
-
-		mtz->findCommonReflections(referenceManager, imgReflections, refReflections,
-		NULL);
-
-		for (int j = 0; j < refReflections.size(); j++)
-		{
-			if (!imgReflections[j]->anyAccepted())
-				continue;
-
-			double imgIntensity = imgReflections[j]->meanIntensity();
-			double refIntensity = refReflections[j]->meanIntensity();
-            
-			double percent = imgIntensity / refIntensity;
-
-			vector<double> *chosenX = &redX;
-			vector<double> *chosenY = &redY;
-
-			if (log(imgIntensity) > 7)
-			{
-				chosenX = &blueX;
-				chosenY = &blueY;
-			}
-            
-			if (!intensityBins)
-			{
-				double resolution = refReflections[j]->getResolution();
-				double res_squared = pow(resolution, 2);
-				chosenX->push_back(res_squared);
-			}
-			else
-			{
-				double logIntensity = 0;
-				if (image)
-					logIntensity = log(imgIntensity);
-				else
-					logIntensity = log(refIntensity);
-
-				chosenX->push_back(logIntensity);
-			}
-			chosenY->push_back(percent);
-
-        }
-    }
-    
-    double aveSum = percentSum / (double)sum;
-    
-    std::cout << "Average sum = " << aveSum << std::endl;
-    
-	if (redX.size() == 0)
-		properties["colour_0"] = 1;
-
-	vector<vector<double> > xs, ys;
-	xs.push_back(blueX);
-	xs.push_back(redX);
-	ys.push_back(blueY);
-	ys.push_back(redY);
-
-	plot(filename, properties, xs, ys);
-}
-
 void GraphDrawer::resolutionStatsCSV(std::vector<MtzManager *>& managers)
 {
     double maxRes = this->mtz->maxResolution();
@@ -436,129 +297,6 @@ void GraphDrawer::resolutionStatsCSV(std::vector<MtzManager *>& managers)
     }
 }
 
-void GraphDrawer::bFactorPlot(vector<MtzManager *>& managers, std::string filename,
-		GraphMap properties)
-{
-	vector<vector<std::string> > filenames;
-	time_t cputime;
-	time(&cputime);
-
-	for (int i = 0; i < managers.size(); i++)
-	{
-		filenames.push_back(vector<std::string>());
-
-		for (int j = 0; j < 3; j++)
-		{
-			std::ostringstream stream;
-			stream << cputime << "_bfactor_" << i << "_" << j;
-			filenames[i].push_back(stream.str());
-		}
-
-		cputime++;
-	}
-
-	std::ostringstream results;
-
-	properties["title"] = "Scale and B factor plot";
-	properties["xTitle"] = "Resolution (1 / d^2)";
-	properties["yTitle"] = "Ratio of intensities (image over reference)";
-	properties["plotType"] = "line";
-
-	properties["xMin"] = 0;
-//	properties["xMax"] = 0.3;
-	properties["yMin"] = 0;
-	properties["yMax"] = 4;
-
-	vector<double> bins;
-	StatisticsManager::generateResolutionBins(50, 2.1, 18, &bins);
-
-	vector<vector<double> > xs;
-	vector<vector<double> > ys;
-
-	MtzManager *referenceManager = MtzManager::getReferenceManager();
-	/*
-	double grad = 1000 / referenceManager->averageIntensity();
-	referenceManager->applyScaleFactor(grad);
-*/
-	for (int i = 0; i < managers.size(); i++)
-	{
-		mtz = managers[i];
-		mtz->excludeFromLogCorrelation();
-
-		double correl = managers[i]->correlation(true);
-		if (correl < 0.85)
-			continue;
-
-		 double gradient = managers[i]->gradientAgainstManager(
-		 MtzManager::getReferenceManager());
-
-	//	 double bFactor = 0;
-
-	//	 managers[i]->bFactorAndScale(&gradient, &bFactor);
-		 //	gradient = 1000 / managers[i]->averageIntensity();
-
-		 	managers[i]->applyScaleFactor(gradient);
-
-
-		vector<double> bins;
-		StatisticsManager::generateResolutionBins(50, 1.6, 10, &bins);
-
-		vector<double> x, y;
-
-		for (int shell = 0; shell < bins.size() - 3; shell++)
-		{
-			double low = bins[shell];
-			double high = bins[shell + 3];
-
-			vector<ReflectionPtr> refReflections, imgReflections;
-
-			mtz->findCommonReflections(referenceManager, imgReflections, refReflections,
-			NULL);
-
-            double weights = 0;
-			double refMean = 0;
-			double imgMean = 0;
-			int count = 0;
-
-			for (int i = 0; i < imgReflections.size(); i++)
-			{
-				if (!imgReflections[i]->anyAccepted())
-					continue;
-
-				if (imgReflections[i]->betweenResolutions(low, high))
-				{
-					weights += imgReflections[i]->meanPartiality();
-					refMean += refReflections[i]->meanIntensity()
-							* imgReflections[i]->meanPartiality();
-					imgMean += imgReflections[i]->meanIntensity()
-							* imgReflections[i]->meanPartiality();
-					count++;
-				}
-			}
-
-			refMean /= weights;
-			imgMean /= weights;
-
-			double ratio = refMean / imgMean;
-			ratio = 1 / ratio;
-
-			if (ratio != ratio)
-				continue;
-
-			x.push_back(1 / pow(low, 2));
-			y.push_back(ratio);
-		}
-
-		xs.push_back(x);
-		ys.push_back(y);
-	}
-
-	this->plot(filename, properties, xs, ys);
-
-	xs.clear();
-	ys.clear();
-}
-
 void GraphDrawer::plotPolarisation(vector<MtzPtr> mtzs)
 {
     int count = 36;
@@ -629,8 +367,70 @@ void GraphDrawer::plotPolarisation(vector<MtzPtr> mtzs)
     plot("polarisation", graphMap, xs, ys);
 }
 
-void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, double maxRes)
+void GraphDrawer::partialityPNGResolutionShell(std::string filename,
+                                               std::vector<ReflectionPtr> refRefls,
+                                               std::vector<ReflectionPtr> imageRefls,
+                                               double minRes, double maxRes)
 {
+    CSVPtr csv = CSVPtr(new CSV(4, "wavelength", "intensity", "partiality", "percentage"));
+
+    for (int i = 0; i < refRefls.size(); i++)
+    {
+        ReflectionPtr imageRefl = imageRefls[i];
+        ReflectionPtr refRefl = refRefls[i];
+        
+        if (!(refRefl->betweenResolutions(minRes, maxRes)))
+        {
+            continue;
+        }
+        
+        for (int j = 0; j < imageRefl->millerCount(); j++)
+        {
+            MillerPtr miller = imageRefl->miller(j);
+            double wavelength = miller->getWavelength();
+            double intensity = miller->getRawIntensity();
+            double partiality = miller->getPartiality();
+            double percentage = intensity / refRefl->meanIntensity() * 100;
+            
+            csv->addEntry(0, wavelength, intensity, partiality, percentage);
+        }
+    }
+    
+    std::ostringstream logged;
+    logged << csv->entryCount() << " reflections between " << minRes << " and " << maxRes << std::endl;
+    Logger::log(logged);
+    
+    std::string extendedFilename = filename + "_" + f_to_str(minRes, 3) + "_to_" + f_to_str(maxRes, 3) + "_partiality";
+    
+    std::map<std::string, std::string> plotMap;
+    plotMap["filename"] = extendedFilename;
+    plotMap["xHeader0"] = "wavelength";
+    plotMap["yHeader0"] = "percentage";
+    plotMap["yMax0"] = "250";
+    plotMap["yMin0"] = "0";
+    plotMap["xTitle0"] = "Ewald sphere wavelength (Ang)";
+    plotMap["style0"] = "line";
+    
+    plotMap["xHeader1"] = "wavelength";
+    plotMap["yHeader1"] = "partiality";
+    plotMap["yMax1"] = "2.5";
+    plotMap["yMin1"] = "0";
+    plotMap["style1"] = "line";
+    plotMap["colour1"] = "blue";
+    
+    csv->writeToFile(extendedFilename + ".csv");
+    csv->plotPNG(plotMap);
+}
+
+void GraphDrawer::partialityPNG(MtzPtr mtz, double maxRes)
+{
+    MtzManager *reference = MtzManager::getReferenceManager();
+    
+    if (maxRes == 0)
+    {
+        maxRes = 1 / mtz->maxResolution();
+    }
+    
     double correl = mtz->correlation();
     mtz->setActiveAmbiguity(1);
     double invCorrel = mtz->correlation();
@@ -643,112 +443,18 @@ void GraphDrawer::partialityPlot(std::string filename, GraphMap properties, doub
     double gradient = mtz->gradientAgainstManager(MtzManager::getReferenceManager());
     mtz->applyScaleFactor(gradient);
     
-    properties["title"] = "Partiality plot " + mtz->getFilename();
-	properties["xTitle"] = "Wavelength (Å)";
-	properties["yTitle"] = "Fraction of merged data set (%)";
-	properties["plotType"] = "fill";
-
-	vector<double> resolutions;
-	StatisticsManager::generateResolutionBins(0, maxRes, 4, &resolutions);
-
-	vector<std::string> files;
-
-	vector<Partial> partials;
-	StatisticsManager::twoImagePartialityStatsWritten(&partials,
-			&MtzManager::getReferenceManager(), &mtz);
-
-	std::cout << "Total number of reflections in MTZ: " << partials.size() << std::endl;
-
-	double maxPercentage = 1000;
-	std::sort(partials.begin(), partials.end(), sortByPercentage);
-
-	maxPercentage = partials[partials.size() - 10].percentage;
-
-    if (maxPercentage < 500 || !std::isfinite(maxPercentage))
-		maxPercentage = 500;
-
-	maxPercentage = 500;
-
-	std::sort(partials.begin(), partials.end(), sortByWavelength);
-
-	double minX = partials[50].wavelength;
-	double maxX = partials[partials.size() - 50].wavelength;
-    double middle = partials[partials.size() / 2].wavelength;
-
-    double wantedWidth = 0.08;
+    const int binCount = 4;
+    vector<double> resolutions;
+    StatisticsManager::generateResolutionBins(0, maxRes, binCount, &resolutions);
     
-  //  std::cout << "minX: " << minX << ", maxX: " << maxX << ", middle: " << middle << std::endl;
+    std::vector<ReflectionPtr> refRefls, imageRefls;
+    mtz->findCommonReflections(reference, imageRefls, refRefls);
     
-	if (maxX - minX > wantedWidth)
-	{
-        maxX = middle + wantedWidth / 2;
-		minX = middle - wantedWidth / 2;
-	}
+    for (int i = 0; i < binCount; i++)
+    {
+        partialityPNGResolutionShell(mtz->getFilename(), refRefls, imageRefls, resolutions[i], resolutions[i + 1]);
+    }
 
-	int resCount = (int)resolutions.size();
-
-	properties["xMin"] = minX;
-	properties["xMax"] = maxX;
-	properties["yMin2"] = 0;
-	properties["yMax2"] = 5.0;
-	properties["yMax"] = maxPercentage;
-
-	vector<double> xs, xs2, xs3, xs4, ys, ys2, ys3, ys4, scatterX, scatterY;
-
-    std::cout << std::setw(12) << "Low res" << std::setw(12) << "High res" << std::setw(12) << "Num refl." << std::endl;
-    
-    
-	for (int shell = 0; shell < resCount - 1; shell++)
-	{
-		xs.clear();
-		ys.clear();
-        xs2.clear();
-		ys2.clear();
-        xs3.clear();
-        ys3.clear();
-
-		double lowRes = 1 / resolutions[shell];
-		double highRes = 1 / resolutions[shell + 1];
-
-        std::ofstream partLog;
-        partLog.open("partiality_" + i_to_str(shell) + ".csv");
-        partLog << "h,k,l,wavelength,partiality,percentage,intensity,resolution" << std::endl;
-        
-        int count = 0;
-        
-		for (int i = 0; i < partials.size(); i++)
-		{
-			if (partials[i].resolution > lowRes
-					&& partials[i].resolution < highRes)
-			{
-                if (partials[i].wavelength != partials[i].wavelength
-                    || partials[i].percentage != partials[i].percentage
-                    || partials[i].partiality != partials[i].partiality)
-                    continue;
-                
-                if (partials[i].percentage > maxPercentage)
-                    continue;
-
-                double h = partials[i].miller->getH();
-                double k = partials[i].miller->getK();
-                double l = partials[i].miller->getL();
-                double wavelength = partials[i].wavelength;
-                double partiality = partials[i].partiality;
-                double percentage = partials[i].percentage;
-                double intensity = partials[i].miller->getRawestIntensity();
-                double resolution = partials[i].resolution;
-
-                partLog << h << "," << k << "," << l << "," << wavelength << "," << partiality << "," <<
-                percentage << "," << intensity << "," << resolution << std::endl;
-                count++;
-            }
-		}
-        
-        partLog.close();
-
-		std::cout << std::setw(12) << 1 / lowRes << std::setw(12) <<  1 / highRes << std::setw(12) << count
-				<< std::endl;
-	}
 }
 
 void GraphDrawer::plotPartialityStats(int h, int k, int l)

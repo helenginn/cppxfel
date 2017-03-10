@@ -130,25 +130,6 @@ void GeometryRefiner::refineGeometry()
     
     int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
     
-    /*** TEST ***/
-    /*
-    DetectorPtr detector = Detector::getMaster();
-    
-    RefinementGridSearchPtr gridSearch = makeGridRefiner(detector, GeometryScoreTypeBeamCentre);
-    detector->getIndexManager()->setPseudoScoreType(PseudoScoreTypeIntraPanel);
-    gridSearch->setJobName("grid_search_beam_centre_" + i_to_str(refinementEvent));
-    gridSearch->setVerbose(false);
-    gridSearch->setGridLength(9);
-    Detector::setInterNudgeY(&*detector, 0.02);
-    detector->lockNudges();
-    gridSearch->addParameter(&*detector->getChild(0), Detector::getInterNudgeY, Detector::setInterNudgeY, 0.01, 0.001, "inter_y");
-    gridSearch->setEvaluationFunction(IndexManager::debugPseudoScore, &*detector->getIndexManager());
-    gridSearch->refine();
-    
-    exit(0);*/
-    
-    /*** END TEST ***/
-    
     std::vector<double> sweepDetectorDistance = FileParser::getKey("SWEEP_DETECTOR_DISTANCE", std::vector<double>());
     
     if (sweepDetectorDistance.size() >= 2)
@@ -334,7 +315,7 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
 
     if (hasRefineableDetectors && type == GeometryScoreTypeIntrapanel)
     {
-     //   for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 3; i++)
         {
             refineDetectorStrategyWrapper(this, detectors, type);
         }
@@ -450,11 +431,6 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     
     double nudgeStep = FileParser::getKey("NUDGE_STEP", 0.2);
     
-    if (type == GeometryScoreTypeIntrapanel)
-    {
-        gridSearchNudgeZ(detector, -nudgeStep * 10, nudgeStep * 10);
-    }
-    
     RefinementStrategyPtr strategy = makeRefiner(detector, type);
     
     if (type == GeometryScoreTypeIntrapanel)
@@ -480,6 +456,12 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
     }
     
     strategy->refine();
+    
+    if (type == GeometryScoreTypeIntrapanel)
+    {
+        gridSearchNudgeZ(detector, -nudgeStep * 20, nudgeStep * 20);
+    }
+
     IndexManager::pseudoDistanceScore(&*detector->getIndexManager(), true, "after_");
     detector->resetPoke();
     
@@ -570,26 +552,26 @@ void GeometryRefiner::refineUnitCell()
 
 void GeometryRefiner::gridSearchNudgeZ(DetectorPtr detector, double start, double end)
 {
-    double step = 0.5;
-    double confidence = (end - start) / step / 2;
+    double step = FileParser::getKey("NUDGE_STEP", 0.2);
+    double confidence = (end - start) / step;
     
     {
         RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypeIntrapanel);
         strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 1.0, 0.1, "nudge_z");
-        strategy->setGridLength(31);
+        strategy->setGridLength(confidence);
         strategy->setJobName("nudge_Z_wide_sweep_" + detector->getTag());
         strategy->refine();
     }
-    
+    /*
     {
         RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypeIntrapanel);
         strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, tiltNudge, 0.1, "nudgetilt_x");
         strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, tiltNudge, 0.1, "nudgetilt_y");
-        strategy->setGridLength(31);
+        strategy->setGridLength(65);
         strategy->setJobName("nudge_tilts_wide_sweep_" + detector->getTag());
         strategy->refine();
     }
-    
+    */
 }
 
 void GeometryRefiner::gridSearchDetectorDistance(DetectorPtr detector, double start, double end)

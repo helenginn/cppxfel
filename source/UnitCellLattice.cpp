@@ -35,7 +35,7 @@ void UnitCellLattice::weightUnitCell()
     CSVPtr distCSV = CSVPtr(new CSV(0));
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER;
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
-    distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 1, "Perfect frequency");
+    distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 2, "Perfect frequency", "Correction");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
     angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
     
@@ -61,7 +61,7 @@ void UnitCellLattice::weightUnitCell()
         double firstDistance = orderedDistance(i);
         double secondDistance = orderedDistance(i + 1);
         double separation = secondDistance - firstDistance;
-        double vmax = 1;// / separation;
+        double vmax = 100000 * separation;
         
         if (separation < 0.000001)
         {
@@ -72,8 +72,6 @@ void UnitCellLattice::weightUnitCell()
         {
             normDist = sqrt(secondDistance);
         }
-        
-//        vmax = 1;
         
         while (true)
         {
@@ -95,6 +93,61 @@ void UnitCellLattice::weightUnitCell()
         }
     }
     
+    double averageableDist = maxDistance / 8;
+    int stepsPerAverage = (averageableDist / powderStep + 0.5) / 2;
+    
+    csvPos = stepsPerAverage;
+    
+    while (true)
+    {
+        if (csvPos >= distCSV->entryCount() - stepsPerAverage)
+            break;
+        
+        double integration = 0;
+        
+        for (int i = -stepsPerAverage; i <= stepsPerAverage; i++)
+        {
+            int csvPosAdd = csvPos + i;
+            
+            double value = distCSV->valueForEntry("Perfect frequency", csvPosAdd);
+            
+            integration += value * powderStep;
+        }
+        
+        integration = 1 / integration;
+        
+        distCSV->setValueForEntry(csvPos, "Correction", integration);
+
+        csvPos++;
+    }
+    
+    csvPos = 0;
+    
+    while (true)
+    {
+        int checkPos = csvPos;
+        
+        if (checkPos < stepsPerAverage)
+        {
+            checkPos = stepsPerAverage;
+        }
+        
+        if (checkPos > distCSV->entryCount() - stepsPerAverage)
+        {
+            checkPos = distCSV->entryCount() - stepsPerAverage;
+        }
+        
+        if (csvPos >= distCSV->entryCount())
+            break;
+        
+        double correction = distCSV->valueForEntry("Correction", checkPos);
+        double weight = distCSV->valueForEntry("Perfect frequency", csvPos);
+        
+        weight *= correction;
+        distCSV->setValueForEntry(csvPos, "Perfect frequency", weight);
+        
+        csvPos++;
+    }
     
     for (int i = 0; i < uniqueSymVectorCount(); i++)
     {

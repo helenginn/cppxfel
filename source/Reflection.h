@@ -171,6 +171,11 @@ public:
     }
     
     static MatrixPtr getFlipMatrix(int i);
+    
+    static bool reflLessThan(ReflectionPtr refl1, ReflectionPtr refl2)
+    {
+        return (refl1->getReflId() < refl2->getReflId());
+    };
 };
 
 #endif /* REFLECTION_H_ */

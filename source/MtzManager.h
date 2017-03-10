@@ -186,6 +186,7 @@ public:
     void dropReflections();
 	void loadReflections(int partiality);
 	static void setReference(MtzManager *reference);
+    ReflectionPtr findReflectionWithId(ReflectionPtr exampleRefl, size_t *lowestId = NULL);
 	int findReflectionWithId(long unsigned int refl_id, ReflectionPtr *reflection, bool insertionPoint = false);
 	void findCommonReflections(MtzManager *other,
 			vector<ReflectionPtr> &reflectionVector1, vector<ReflectionPtr> &reflectionVector2,
@@ -274,7 +275,6 @@ public:
 	int accepted(void);
 	static double exclusionScoreWrapper(void *object, double lowRes = 0,
 			double highRes = 0);
-    static double bFactorScoreWrapper(void *object);
     static double scoreNelderMead(void *object);
 	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
     double leastSquaresPartiality(double low = 0, double high = 0, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
@@ -291,22 +291,14 @@ public:
                              double spotSize, double wavelength, double bandwidth, double exponent,
                              double a, double b, double c);
 	void refreshPartialities(double parameters[]);
-	double minimizeParameter(double *meanStep, double **params, int paramNum,
-			double (*score)(void *object, double lowRes, double highRes),
-			void *object, double lowRes, double highRes);
 	
 // more grid search
 
     void setParamLine(std::string line);
     std::string getParamLine();
-    void findSteps(int param1, int param2, std::string csvName);
-	void gridSearch(bool silent = false);
-	double minimize();
-	double minimizeTwoParameters(double *meanStep1, double *meanStep2,
-			double **params, int paramNum1, int paramNum2,
-			double (*score)(void *object, double lowRes, double highRes),
-			void *object, double lowRes, double highRes, double low);
-
+    double minimize();
+    void gridSearch(bool silent);
+	
     static void makeSuperGaussianLookupTable(double exponent);
     
     static std::string parameterHeaders();

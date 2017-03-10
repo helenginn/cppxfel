@@ -284,6 +284,19 @@ void Reflection::setUnitCellDouble(double *theUnitCell)
 
 void Reflection::setUnitCell(float *theUnitCell)
 {
+    if (setupUnitCell)
+    {
+        return;
+    }
+    
+    setupMutex.lock();
+    
+    if (setupUnitCell)
+    {
+        setupMutex.unlock();
+        return;
+    }
+    
     double params[6];
     params[0] = theUnitCell[0];
     params[1] = theUnitCell[1];
@@ -294,6 +307,7 @@ void Reflection::setUnitCell(float *theUnitCell)
     
     unitCellMatrix = Matrix::matrixFromUnitCell(params);
     
+    setupMutex.unlock();
     setupUnitCell = true;
 }
 
