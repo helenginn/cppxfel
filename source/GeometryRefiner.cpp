@@ -442,15 +442,12 @@ void GeometryRefiner::refineDetector(DetectorPtr detector, GeometryScoreType typ
         strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX, 0.1, "nudgetilt_x");
         strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setSmartTiltY, nudgeTiltY, 0.1, "nudgetilt_y");
         strategy->refine();
-
-  //      strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.0001, "nudge_z");
-        
     }
     else if (type == GeometryScoreTypeInterpanel)
     {
-        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge, 0.000001, "poke_x");
-        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge, 0.000001, "poke_y");
-        strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge, 0.000001, "poke_z");
+        strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge / 20, 0.000001, "poke_x");
+        strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge / 20, 0.000001, "poke_y");
+        strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge / 20, 0.000001, "poke_z");
     }
     else if (type == GeometryScoreTypeBeamCentre)
     {

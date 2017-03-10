@@ -53,6 +53,9 @@ void Detector::initialiseZeros()
     memset(&interNudge.h, 0, sizeof(interNudge.h) * 3);
     memset(&originalNudgePosition.h, 0, sizeof(originalNudgePosition.h) * 3);
 
+    nudgeTiltY = 0;
+    nudgeTiltX = 0;
+    nudgeStep = 0;
 
     parent = DetectorPtr();
     rotMat = MatrixPtr(new Matrix());
@@ -61,7 +64,7 @@ void Detector::initialiseZeros()
     invWorkingBasisMat = MatrixPtr(new Matrix());
     
     originalNudgeMat = MatrixPtr(new Matrix());
-    interRotation = MatrixPtr(new Matrix());;
+    interRotation = MatrixPtr(new Matrix());
     
     mustUpdateMidPoint = true;
     
@@ -1284,9 +1287,19 @@ void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *
     double xAngle = angleBetweenVectors(xWorkingAxis, xAxisNudge);
     *nudgeTiltX = expectedPixels * tan(xAngle) / distance * (xAngle < 0 ? -1 : 1);
 
+    if (*nudgeTiltX != *nudgeTiltX)
+    {
+        *nudgeTiltX = 0;
+    }
+    
     double yAngle = angleBetweenVectors(yWorkingAxis, yAxisNudge);
     *nudgeTiltY = expectedPixels * tan(yAngle) / distance * (xAngle < 0 ? -1 : 1);
     
+    if (*nudgeTiltX != *nudgeTiltX)
+    {
+        *nudgeTiltY = 0;
+    }
+
     if (interNudge)
     {
         *interNudge = atan(expectedPixels / distance);
