@@ -51,6 +51,7 @@ Image::Image(std::string filename, double wavelength,
     highScore = 0;
     fake = false;
     _isMask = false;
+    averageZ = 0;
     
     if (dims.size())
     {
@@ -1445,12 +1446,6 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     
     for (int i = 0; i < spots.size() - 1; i++)
     {
-        if (spots[i]->isRejected() && rejectCloseSpots)
-        {
-            i++;
-            continue;
-        }
-        
         vec spotPos1 = spots[i]->estimatedVector();
         
         if (minResolution != 0)
@@ -1467,24 +1462,9 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         
         for (int j = i + 1; j < spots.size(); j++)
         {
-            if (spots[j]->isRejected())
-            {
-                j++;
-                continue;
-            }
-            
             vec spotPos2 = spots[j]->estimatedVector();
             
             bool close = within_vicinity(spotPos1, spotPos2, maxReciprocalDistance);
-            
-            bool tooClose = within_vicinity(spotPos1, spotPos2, tooCloseDistance);
-            
-            if (tooClose && rejectCloseSpots)
-            {
-                spots[j]->setRejected();
-                spots[i]->setRejected();
-                i++;
-            }
             
             if (close)
             {
@@ -1497,9 +1477,6 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
                 
                 if (distance > maxReciprocalDistance)
                     continue;
-                
-                logged << "vec\t" << spots[i]->getX() << "\t" << spots[i]->getY() << "\t" << spots[j]->getX() << "\t" << spots[j]->getY() << "\t0\t0\t0\t" << distance << std::endl;
-                sendLog(LogLevelDebug);
                 
                 spotVectors.push_back(newVec);
             }
@@ -2451,12 +2428,15 @@ void Image::writePNG(PNGFilePtr file)
         Detector::getMaster()->zLimits(&minZ, &maxZ);
         double nudge = std::max(0.1 * (maxZ - minZ), 0.1);
         
-        double ave = (maxZ + minZ) / 2;
+        if (averageZ <= 0)
+        {
+            averageZ = (maxZ + minZ) / 2;
+        }
         
         logged << "Image " << getFilename() << " (min/max Z: " << minZ << ", " << maxZ << ")" << std::endl;
         sendLog();
-        minZ = ave - 5;
-        maxZ = ave + 5;
+        minZ = averageZ - 5;
+        maxZ = averageZ + 5;
     }
     
     for (int j = 0; j < yDim; j++)

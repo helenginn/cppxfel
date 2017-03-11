@@ -24,7 +24,6 @@ private:
     MatrixPtr unitCellOnly;
     MatrixPtr unitCellMatrixInverse;
     static std::vector<MatrixPtr> symOperators;
-    int maxMillerIndexTrial;
     double maxDistance;
     double minDistance;
     double powderStep;

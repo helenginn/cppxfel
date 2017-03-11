@@ -704,7 +704,6 @@ public:
     void reportMillerScores();
     
     void prepareInterNudges();
-    void lockNudges();
     static void enableNudge();
     
     

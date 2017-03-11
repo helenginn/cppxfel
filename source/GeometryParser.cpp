@@ -727,7 +727,7 @@ void GeometryParser::parse()
 
 void GeometryParser::writeToFile(std::string newName)
 {
-    Detector::getMaster()->lockNudges();
+    Detector::getMaster()->prepareInterNudges();
     std::string geometry = Detector::getMaster()->writeGeometryFile();
     
     std::ofstream file;

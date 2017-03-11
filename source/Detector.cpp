@@ -233,12 +233,6 @@ bool Detector::directionSanityCheck()
     return (fabs(slowLength - 1.) < 0.05 && fabs(fastLength - 1.) < 0.05);
 }
 
-void Detector::lockNudges()
-{
-    return;
-    getMaster()->rotateAxisRecursive(true);
-}
-
 void Detector::recalculateChangeOfBasis(vec *fastAxis, vec *slowAxis)
 {
     changeOfBasisMat = calculateChangeOfBasis(fastAxis, slowAxis, MatrixPtr(new Matrix()));
@@ -1176,7 +1170,7 @@ void Detector::resetPoke()
         return;
     }
     
-    rotateAxisRecursive(true);
+    prepareInterNudges();
     
     poke.h = 0;
     poke.k = 0;
@@ -1295,7 +1289,7 @@ void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *
     double yAngle = angleBetweenVectors(yWorkingAxis, yAxisNudge);
     *nudgeTiltY = expectedPixels * tan(yAngle) / distance * (xAngle < 0 ? -1 : 1);
     
-    if (*nudgeTiltX != *nudgeTiltX)
+    if (*nudgeTiltY != *nudgeTiltY)
     {
         *nudgeTiltY = 0;
     }

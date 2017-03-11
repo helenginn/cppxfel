@@ -259,26 +259,16 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     
     unitCellMatrixInverse = unitCellMatrix->inverse3DMatrix();
     
-    maxMillerIndexTrial = 0;
     maxDistance = 0;
     
     int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
     
-    if (resolution == 0 && maxMillerIndexTrial == 0)
+    if (resolution == 0)
     {
         resolution = 1 / (FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER);
     }
     
-    if (resolution == 0)
-    {
-        maxMillerIndexTrialH = maxMillerIndexTrial;
-        maxMillerIndexTrialK = maxMillerIndexTrial;
-        maxMillerIndexTrialL = maxMillerIndexTrial;
-    }
-    else
-    {
-        getMaxMillerIndicesForResolution(resolution, &maxMillerIndexTrialH, &maxMillerIndexTrialK, &maxMillerIndexTrialL);
-    }
+    getMaxMillerIndicesForResolution(resolution, &maxMillerIndexTrialH, &maxMillerIndexTrialK, &maxMillerIndexTrialL);
     
     int count = 0;
     

@@ -64,6 +64,7 @@ private:
 	double beamY;
 	double mmPerPixel;
     double detectorGain;
+    double averageZ;
 
     static double globalDetectorDistance;
     static double globalBeamX;
