@@ -145,6 +145,8 @@ void RefinementGridSearch::assignInterpanelMinimum()
             
             std::vector<double> localRegion, increments;
             
+            if (coverPadding < 2) coverPadding = 2;
+            
             if (lineMin - coverPadding < 0)
                 continue;
             
