@@ -151,7 +151,9 @@ private:
     double nudgeStep;
     double nudgeTiltX;
     double nudgeTiltY;
-
+    
+    vec originalCorners[4];
+    
     /* Ancestor map for quick access for previously asked "are you my ancestor"? */
     AncestorMap ancestorMap;
     
@@ -204,6 +206,7 @@ public:
     static void fullDescription();
     void description(bool propogate = false);
     
+    void postInit();
     void resetNudgeBasis();
     void nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *nudgeStep, double *interNudge = NULL);
     
@@ -427,7 +430,7 @@ public:
     
     /* Write geometry file */
     
-    std::string writeGeometryFile(int indentCount = 0);
+    std::string writeGeometryFile(int fileCount, int indentCount = 0, CSVPtr differenceCSV = CSVPtr());
     
     /* Refinement getter/setters */
     

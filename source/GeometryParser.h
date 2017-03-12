@@ -40,7 +40,7 @@ public:
     GeometryParser(std::string aFilename, GeometryFormat aFormat = GeometryFormatCrystFEL);
     
     void parse();
-    void writeToFile(std::string newName);
+    void writeToFile(std::string newName, int fileCount);
 };
 
 #endif /* defined(__cppxfel__GeometryParser__) */

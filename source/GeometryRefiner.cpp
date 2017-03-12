@@ -264,7 +264,7 @@ void GeometryRefiner::reportProgress()
 
     manager->powderPattern("geom_refinement_event_" + i_to_str(refinementEvent) + ".csv", false);
     GeometryParser geomParser = GeometryParser("whatever", GeometryFormatCppxfel);
-    geomParser.writeToFile("new_" + i_to_str(refinementEvent) + ".cppxfel_geom");
+    geomParser.writeToFile("new_" + i_to_str(refinementEvent) + ".cppxfel_geom", refinementEvent);
     refinementEvent++;
     
     sendLog();
@@ -390,8 +390,8 @@ void GeometryRefiner::interPanelGridSearch(DetectorPtr detector)
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
-    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge / 5, 0.001, "poke_x");
-    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge / 5, 0.001, "poke_y");
+    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge / 2, 0.001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge / 2, 0.001, "poke_y");
     strategy->setGridLength(99);
     
     double pixelPerTiltNudge = sin(nudgeTiltY) * distFromSample;

@@ -52,7 +52,12 @@ void Detector::initialiseZeros()
     memset(&poke.h, 0, sizeof(poke.h) * 3);
     memset(&interNudge.h, 0, sizeof(interNudge.h) * 3);
     memset(&originalNudgePosition.h, 0, sizeof(originalNudgePosition.h) * 3);
-
+    
+    for (int i = 0; i < 4; i++)
+    {
+        memset(&originalCorners[i].h, 0, sizeof(originalCorners[i].h) * 3);
+    }
+    
     nudgeTiltY = 0;
     nudgeTiltX = 0;
     nudgeStep = 0;
@@ -144,7 +149,24 @@ Detector::Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBott
     
     setUnarrangedTopLeft(std::min(topLeft.h, bottomRight.h), std::min(topLeft.k, bottomRight.k));
     setUnarrangedBottomRight(std::max(topLeft.h, bottomRight.h), std::max(topLeft.k, bottomRight.k));
+}
+
+void Detector::postInit()
+{
+    setUpdateMidPointForDetector();
     
+    for (int i = 0; i < 4; i++)
+    {
+        int xPix = (i < 2) ? unarrangedTopLeftX : unarrangedBottomRightX;
+        int yPix = (i % 2 == 0) ? unarrangedTopLeftY : unarrangedBottomRightY;
+        
+        spotCoordToAbsoluteVec(xPix, yPix, &originalCorners[i]);
+    }
+    
+    for (int i = 0; i < childrenCount(); i++)
+    {
+        getChild(i)->postInit();
+    }
 }
 
 Detector::Detector(DetectorPtr parent)
@@ -798,7 +820,7 @@ std::string indents(int indentCount)
 }
 
 
-std::string Detector::writeGeometryFile(int indentCount)
+std::string Detector::writeGeometryFile(int fileCount, int indentCount, CSVPtr differenceCSV)
 {
   //  lockNudges();
     std::ostringstream output;
@@ -820,12 +842,36 @@ std::string Detector::writeGeometryFile(int indentCount)
     output << indents(indentCount + 1) << "midpoint_z = " << arrangedMidPoint.l << std::endl;
     output << indents(indentCount + 1) << "ghost = " << (hasChildren() ? "true" : "false") << std::endl;
 
+    if (!differenceCSV)
+    {
+        differenceCSV = CSVPtr(new CSV(3, "xDiff", "yDiff", "zDiff"));
+    }
+    
+    vec nowMidpoint = midPointOffsetFromParent();
+    
+    for (int i = 0; i < 4; i++)
+    {
+        int xPix = (i < 2) ? unarrangedTopLeftX : unarrangedBottomRightX;
+        int yPix = (i % 2 == 0) ? unarrangedTopLeftY : unarrangedBottomRightY;
+        
+        vec diff;
+        spotCoordToAbsoluteVec(xPix, yPix, &diff);
+
+        take_vector_away_from_vector(originalCorners[i], &diff);
+        differenceCSV->addEntry(3, diff.h, diff.k, diff.l);
+    }
+    
     for (int i = 0; i < childrenCount(); i++)
     {
-        output << std::endl << getChild(i)->writeGeometryFile(indentCount + 1);
+        output << std::endl << getChild(i)->writeGeometryFile(fileCount, indentCount + 1, differenceCSV);
     }
     
     output << indents(indentCount) << "}" << std::endl;
+    
+    if (indentCount == 0)
+    {
+        differenceCSV->writeToFile("cgeom_diff_" + i_to_str(fileCount) + ".csv");
+    }
     
     return output.str();
 }

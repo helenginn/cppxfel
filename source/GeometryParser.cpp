@@ -659,6 +659,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     
     Detector::getMaster()->updateCurrentRotation();
     Detector::getMaster()->fixMidpoints();
+    Detector::getMaster()->postInit();
 }
 
 void GeometryParser::parse()
@@ -720,15 +721,15 @@ void GeometryParser::parse()
     }
     
     filename = "converted.cgeom";
-    writeToFile(filename);
+    writeToFile(filename, 0);
 
     Detector::fullDescription();
 }
 
-void GeometryParser::writeToFile(std::string newName)
+void GeometryParser::writeToFile(std::string newName, int fileCount)
 {
     Detector::getMaster()->prepareInterNudges();
-    std::string geometry = Detector::getMaster()->writeGeometryFile();
+    std::string geometry = Detector::getMaster()->writeGeometryFile(fileCount);
     
     std::ofstream file;
     file.open(FileReader::addOutputDirectory(newName.c_str()));
