@@ -698,7 +698,7 @@ std::vector<IndexingSolutionPtr> IndexingSolution::startingSolutionsForVectors(S
     {
         std::ostringstream logged;
         logged << "Seed matches " << firstMatches.size() << " combinations." << std::endl;
-        Logger::log(logged);
+        Logger::mainLogger->addStream(&logged, LogLevelDetailed);
     }
     
     for (int i = 0; i < firstMatches.size(); i++)
