@@ -176,7 +176,7 @@ bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVector
                         matchPairs[score] = aPair;
                         firstMatches->push_back(uniqueSymVector(i));
                         secondMatches->push_back(standardVector(j));
-                        return true;
+//                        return true;
                     }
                 }
             }
@@ -498,7 +498,7 @@ int IndexingSolution::extendFromSpotVectors(std::vector<SpotVectorPtr> *possible
 {
     int added = 0;
     
-    for (int i = lastUsed; i < possibleVectors->size() && i < lastUsed + 3000; i++)
+    for (int i = lastUsed; i < possibleVectors->size() && i < lastUsed + 15000; i++)
     {
         SpotVectorPtr possibleVector = (*possibleVectors)[i];
         bool commonSpots = false;
@@ -696,7 +696,9 @@ std::vector<IndexingSolutionPtr> IndexingSolution::startingSolutionsForVectors(S
     }
     else
     {
-//        logged << "Seed matches " << firstMatches.size() << " combinations." << std::endl;
+        std::ostringstream logged;
+        logged << "Seed matches " << firstMatches.size() << " combinations." << std::endl;
+        Logger::log(logged);
     }
     
     for (int i = 0; i < firstMatches.size(); i++)
