@@ -57,6 +57,9 @@ Image::Image(std::string filename, double wavelength,
     {
         xDim = dims[0];
         yDim = dims[1];
+        
+        logged << "Setting xDim/yDim to " << xDim << ", " << yDim << std::endl;
+        sendLog();
     }
     
     minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
@@ -219,10 +222,11 @@ void Image::checkAndSetupLookupTable()
         
         if (!perPixelDetectors.size())
         {
-            logged << "Setting up detector lookup table" << std::endl;
+            int totalSize = xDim * yDim;
+
+            logged << "Setting up detector lookup table for size " << xDim << " " << yDim << std::endl;
             sendLog();
             
-            int totalSize = xDim * yDim;
             
             generalMask = vector<signed char>(totalSize, -1);
             perPixelDetectors = vector<DetectorPtr>(totalSize, DetectorPtr());
@@ -255,6 +259,8 @@ void Image::loadImage()
         return;
     }
     
+    bool asFloat = FileParser::getKey("HDF5_AS_FLOAT", true);
+    
     std::streampos size;
     vector<char> memblock;
     
@@ -286,10 +292,36 @@ void Image::loadImage()
         << filename << std::endl;
         sendLog();
         
-        if (!useShortData)
+        if (asFloat)
+        {
+            data.reserve(size / sizeof(int));
+            
+            float test = 0x41271e80;
+//            float test = 0x801e2741;
+            logged << "test = " << test << std::endl;
+            
+            for (int i = 0; i < memblock.size(); i++)
+            {
+         //       logged << i << " - " << (int)(unsigned char)memblock[i] << std::endl;
+            }
+            
+            sendLog();
+
+            for (int i = 0; i < memblock.size(); i += sizeof(float))
+            {
+                float value = (float)memblock[i];
+             //   printf("i=%i, %.0f \n", i, value);
+                data.push_back(value);
+            }
+           // std::cout << std::endl;
+            
+            sendLog();
+        }
+        else if (!useShortData)
+        {
             memcpy(&data[0], &memblock[0], memblock.size());
-        
-        if (useShortData)
+        }
+        else if (useShortData)
         {
             memcpy(&shortData[0], &memblock[0], memblock.size());
         }
@@ -306,7 +338,7 @@ void Image::loadImage()
         shortData.erase(shortData.begin(), shortData.begin() + 4);
     }
     
-    
+    checkAndSetupLookupTable();
 }
 
 void Image::dropImage()

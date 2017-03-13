@@ -518,7 +518,8 @@ void FileParser::generateHelpList()
     helpMap["GEOMETRY_FORMAT"] = "Read in with the detector information from cppxfel or CrystFEL format. Can also load in panel_list format for backwards compatibility.";
     helpMap["HDF5_SOURCE_FILES"] = "HDF5 files from which image data should be found. Supports glob strings (e.g. run*.h5 for SACLA HDF5 files from cheetah-dispatcher).";
     helpMap["USE_HDF5_WAVELENGTH"] = "Use the wavelengths stored within HDF5 files. If you do not trust these values, disable this in order to default to the value of INTEGRATION_WAVELENGTH.";
-
+    helpMap["HDF5_AS_FLOAT"] = "HDF5 file image data should be interpreted as float (rudimentary conversion to ints!)";
+    
     helpMap["FREE_ELECTRON_LASER"] = "Which free electron laser did this data come from? This is used for interpreting HDF5 files. Only LCLS and SACLA currently supported.";
     helpMap["OUTPUT_DIRECTORY"] = "Path to a directory into which almost all processing files will be deposited, except for spot-finding results.";
     
@@ -605,6 +606,7 @@ void FileParser::generateFunctionList()
     parserMap["CHEETAH_DATA_ADDRESSES"] = simpleString;
     parserMap["CHEETAH_ID_ADDRESSES"] = simpleString;
     parserMap["HDF5_MASK_ADDRESS"] = simpleString;
+    parserMap["HDF5_AS_FLOAT"] = simpleBool;
     
 	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
 	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
