@@ -26,7 +26,7 @@ DetectorPtr GeometryParser::makeDetector(DetectorPtr parent, int min_fs, int min
                                          double ss_x, double ss_y, double ss_z,
                                          double fs_x, double fs_y, double fs_z,
                                          double midpoint_x, double midpoint_y, double midpoint_z,
-                                         double alpha, double beta, double gamma, bool ghost)
+                                         double alpha, double beta, double gamma, bool ghost, bool refinable)
 {
     Coord topLeft = std::make_pair(min_fs, min_ss);
     Coord bottomRight = std::make_pair(max_fs, max_ss);
@@ -153,6 +153,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
     double beta = 0;
     double gamma = 0;
     bool ghost = false;
+    bool refinable = false;
     
     for (int i = 0; i < lines.size(); i++)
     {
@@ -208,7 +209,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
                     DetectorPtr segment = makeDetector(parent, min_fs, min_ss, max_fs, max_ss,
                                                        ss_x, ss_y, ss_z, fs_x, fs_y, fs_z,
                                                        midpoint_x, midpoint_y, midpoint_z,
-                                                       alpha, beta, gamma, ghost);
+                                                       alpha, beta, gamma, ghost, refinable);
                     segment->setTag(tag);
                     
                     if (!Detector::getMaster())
@@ -284,6 +285,8 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
         
         if (components[0] == "ghost")
             ghost = (strcmp(components[2].c_str(), "true") == 0);
+        if (components[0] == "refinable")
+            refinable = (strcmp(components[2].c_str(), "true") == 0);
     }
     
     if (!Detector::getMaster())

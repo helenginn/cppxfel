@@ -31,6 +31,36 @@ PseudoScoreType pseudoScoreTypeForGeometryType(GeometryScoreType type)
     }
 }
 
+std::string stringForScoreType(GeometryScoreType type)
+{
+    std::string typeString = "";
+    
+    switch (type) {
+        case GeometryScoreTypeBeamCentre:
+            typeString = "beam_centre";
+            break;
+        case GeometryScoreTypeInterpanel:
+            typeString = "interpanel";
+            break;
+        case GeometryScoreTypeIntrapanel:
+            typeString = "intrapanel";
+            break;
+        case GeometryScoreTypeIntrapanelParent:
+            typeString = "intrapanel_parent";
+            break;
+        case GeometryScoreTypeMiller:
+            typeString = "miller";
+            break;
+        case GeometryScoreTypeMillerStdev:
+            typeString = "miller_stdev";
+            break;
+        default:
+            break;
+    }
+
+    return typeString;
+}
+
 RefinementGridSearchPtr GeometryRefiner::makeGridRefiner(DetectorPtr detector, GeometryScoreType type)
 {
     RefinementGridSearchPtr strategy = RefinementGridSearchPtr(new RefinementGridSearch());
@@ -50,24 +80,7 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
 {
     RefinementStrategyPtr strategy = RefinementStrategy::userChosenStrategy();
     
-    std::string typeString = "";
-    
-    switch (type) {
-        case GeometryScoreTypeBeamCentre:
-            typeString = "beam_centre";
-            break;
-        case GeometryScoreTypeInterpanel:
-            typeString = "interpanel";
-            break;
-        case GeometryScoreTypeIntrapanel:
-            typeString = "intrapanel";
-            break;
-        case GeometryScoreTypeIntrapanelParent:
-            typeString = "intrapanel_parent";
-            break;
-        default:
-            break;
-    }
+    std::string typeString = stringForScoreType(type);
     
     strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
 
@@ -296,11 +309,12 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
             hasRefineableDetectors = true;
             type = GeometryScoreTypeIntrapanel;
         }
-        
-        if (interPanelOnly)
-        {
-            hasRefineableDetectors = false;
-        }
+    }
+
+    if (interPanelOnly)
+    {
+        hasRefineableDetectors = false;
+        type = GeometryScoreTypeInterpanel;
     }
     
     if (hasRefineableDetectors && type == GeometryScoreTypeIntrapanel)
@@ -314,8 +328,8 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     {
         for (int i = 0; i < 3; i++)
         {
-            refineDetectorStrategyWrapper(this, detectors, type, 0);
-            refineDetectorStrategyWrapper(this, detectors, type, 1);
+            refineDetectorStrategyWrapper(this, detectors, GeometryScoreTypeIntrapanel, 0);
+            refineDetectorStrategyWrapper(this, detectors, GeometryScoreTypeIntrapanel, 1);
         }
     }
     
@@ -347,7 +361,7 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     
     refineUnitCell();
     
-    return true;
+    return hasRefineableDetectors;
 }
 
 void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, GeometryScoreType type, int strategyType)
@@ -390,12 +404,12 @@ void GeometryRefiner::interPanelGridSearch(DetectorPtr detector)
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
-    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge / 2, 0.001, "poke_x");
-    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge / 2, 0.001, "poke_y");
+    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge, 0.001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge, 0.001, "poke_y");
     strategy->setGridLength(99);
     
     double pixelPerTiltNudge = sin(nudgeTiltY) * distFromSample;
-    double pixelsToCheck = 1.9;
+    double pixelsToCheck = 1.0;
     int gridPointsToCheck = pixelsToCheck / pixelPerTiltNudge + 0.5;
     gridPointsToCheck *= 2;
     
@@ -411,13 +425,51 @@ void GeometryRefiner::interPanelNormalSearch(DetectorPtr detector)
 {
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
-    
     RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeInterpanel);
+    detector->prepareInterNudges();
+    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge / 10, 0.001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge / 10, 0.001, "poke_y");
+    strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge / 10, 0.001, "poke_y");
+    strategy->refine();
+    
+    detector->prepareInterNudges();
+    
+    
+    return;
+}
+
+void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector)
+{
+    double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
+    detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
+    
+    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeIntrapanel);
+    detector->prepareInterNudges();
+    strategy->setJobName(detector->getTag() + "_miller_stdev_z");
+    strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.1, "nudge_z");
+    strategy->refine();
+    strategy->clearParameters();
+    detector->prepareInterNudges();
+    strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX, 0.1, "nudgetilt_x");
+    strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setSmartTiltY, nudgeTiltY, 0.1, "nudgetilt_y");
+    strategy->setJobName(detector->getTag() + "_miller_stdev_tilt");
+    strategy->refine();
+    
+    detector->prepareInterNudges();
+}
+
+void GeometryRefiner::interPanelMillerSearch(DetectorPtr detector)
+{
+    double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
+    detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
+    
+    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeMiller);
+    strategy->setJobName(detector->getTag() + "_miller");
     detector->resetPoke();
   
-    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge / 20, 0.000001, "poke_x");
-    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge / 20, 0.000001, "poke_y");
-    strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge / 20, 0.000001, "poke_z");
+    strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge / 5, 0.000001, "poke_x");
+    strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge / 5, 0.000001, "poke_y");
+    strategy->addParameter(&*detector, Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge / 5, 0.000001, "poke_z");
     strategy->refine();
     
     detector->resetPoke();
@@ -452,11 +504,11 @@ void GeometryRefiner::refineBeamCentre()
     gridSearch->setJobName("grid_search_beam_centre_" + i_to_str(refinementEvent));
     gridSearch->setGridLength(99);
     
-    double nudgeStep, nudgeTiltX, nudgeTiltY;
-    detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep);
+    double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
+    detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
     
-    gridSearch->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, nudgeTiltX, 0.001, "poke_x");
-    gridSearch->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, nudgeTiltY, 0.001, "poke_y");
+    gridSearch->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge / 2, 0.001, "poke_x");
+    gridSearch->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge / 2, 0.001, "poke_y");
     
     detector->getIndexManager()->setPseudoScoreType(PseudoScoreTypeBeamCentre);
     gridSearch->refine();
@@ -526,7 +578,7 @@ void GeometryRefiner::refineUnitCell()
 
 void GeometryRefiner::nudgeZGridSearch(DetectorPtr detector)
 {
-    int num = 50;
+    int num = 150;
     
     double step = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.5);
     
@@ -569,12 +621,22 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
         RefinementStrategyPtr strategy = makeRefiner(detector, type);
         IndexManager::pseudoDistanceScore(&*detector->getIndexManager(), true, "before_");
     }
+    
+    std::string typeString = stringForScoreType(type);
+    
+    logged << "Approaching detector with score type " << typeString << " strategy " << strategyType << std::endl;
+    sendLog();
+
+    if (!detector->isRefinable(type))
+        return;
 
     if (type == GeometryScoreTypeInterpanel)
     {
-        if (!detector->isRefinable(type))
-            return;
-       
+        if (detector->millerCount())
+        {
+            interPanelMillerSearch(detector);
+        }
+        
         if (strategyType == 0)
         {
             interPanelGridSearch(detector);
@@ -586,8 +648,10 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
     }
     else if (type == GeometryScoreTypeIntrapanel)
     {
-        if (!detector->isRefinable(type))
-            return;
+        if (detector->millerCount())
+        {
+            intraPanelMillerSearch(detector);
+        }
         
         if (strategyType == 0)
         {

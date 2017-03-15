@@ -122,7 +122,7 @@ void RefinementGridSearch::assignInterpanelMinimum()
     // y first, then x! Think about it!
     
     double maxSteepness = 0;
-    int maxSteepnessValue = 0;
+    int maxSteepnessValue = (int)(results.size() - 1) / 2;
     
     for (int x = 0; x < gridLength; x++)
     {

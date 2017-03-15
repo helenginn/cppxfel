@@ -156,7 +156,8 @@ void Hdf5Image::loadImage()
             data.reserve(size / sizeof(int));
             for (int i = 0; i < size; i += sizeof(float))
             {
-                float value = (float)buffer[i];
+                float value = 0;
+                memcpy(&value, &buffer[i], sizeof(float));
                 data.push_back(value);
             }
         }

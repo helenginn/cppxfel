@@ -32,8 +32,8 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     _canLockVectors = false;
     _axisWeighting = PseudoScoreWeightingAxisNone;
     _maxFrequency = -1;
-    interPanelDistance = 0.12;
-    intraPanelDistance = 0.08;
+    interPanelDistance = 0.07;
+    intraPanelDistance = 0.07;
     
     spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
     
@@ -734,9 +734,10 @@ bool IndexManager::processVector(SpotVectorPtr vec, double *score, double *count
     
     vec->setUpdate();
     double realDistance = vec->distance();
+    double origDistance = vec->getOriginalDistance();
     
     double value = lattice->weightForDistance(realDistance);
-    double weight = realDistance;
+    double weight = 1;
     
     *score += weight * value;
     (*count) += weight;
