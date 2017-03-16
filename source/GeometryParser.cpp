@@ -126,6 +126,15 @@ void GeometryParser::parsePanelListLines(std::vector<std::string> lines)
     
     Detector::setArrangedMidPointX(&*master, beamCentre[0]);
     Detector::setArrangedMidPointY(&*master, beamCentre[1]);
+
+    for (int i = 0; i < master->childrenCount(); i++)
+    {
+        master->getChild(i)->removeMidPointRelativeToParent();
+    }
+    
+    Detector::setArrangedMidPointX(&*master, 0);
+    Detector::setArrangedMidPointY(&*master, 0);
+
 }
 
 void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)

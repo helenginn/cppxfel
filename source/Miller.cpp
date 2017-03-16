@@ -98,7 +98,7 @@ double Miller::integrate_sphere(double p, double q)
 }
 
 double Miller::superGaussian(double bandwidth, double mean,
-                            double sigma, double exponent)
+                             double sigma, double exponent)
 {
     if (mtzParent == NULL || !mtzParent->setupGaussianTable())
     {
@@ -130,7 +130,7 @@ double Miller::integrate_special_beam_slice(double pBandwidth, double qBandwidth
 }
 
 double Miller::integrate_beam_slice(double pBandwidth, double qBandwidth, double mean,
-                                   double sigma, double exponent)
+                                    double sigma, double exponent)
 {
     if (mean != mean || sigma != sigma)
         return 0;
@@ -146,7 +146,7 @@ double Miller::integrate_beam_slice(double pBandwidth, double qBandwidth, double
 }
 
 double integrate_beam(double pBandwidth, double qBandwidth, double mean,
-                     double sigma)
+                      double sigma)
 {
     double normal_add = cdf(pBandwidth, mean, sigma);
     double normal_remove = cdf(qBandwidth, mean, sigma);
@@ -157,8 +157,8 @@ double integrate_beam(double pBandwidth, double qBandwidth, double mean,
 }
 
 double Miller::sliced_integral(double low_wavelength, double high_wavelength,
-                              double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
-                              double exponent, bool binary, bool withBeamObject, bool fixPredicted)
+                               double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
+                               double exponent, bool binary, bool withBeamObject, bool fixPredicted)
 {
     double mySlices = slices;
     
@@ -193,7 +193,7 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
         if (!withBeamObject)
         {
             normalSlice = integrate_beam_slice(pBandwidth, qBandwidth, mean,
-                                                 sigma, exponent);
+                                               sigma, exponent);
         }
         else
         {
@@ -207,7 +207,11 @@ double Miller::sliced_integral(double low_wavelength, double high_wavelength,
             sphereSlice = integrate_sphere(currentP, currentQ);
         }
         
-        double totalSlice = normalSlice * sphereSlice;
+        sphereSlice = 4 * currentQ * (1 - currentQ);
+        normalSlice = superGaussian(qBandwidth, mean, sigma, exponent);
+        
+        double totalHeight = normalSlice * sphereSlice;
+        double totalSlice = totalHeight * (currentQ - currentP);
         
         if (binary && normalSlice > 0.01)
             return 1.0;
@@ -322,7 +326,7 @@ void Miller::recalculatePredictedWavelength()
     }
     
     recalculatePartiality(matrix, mosaicity, rlpSize, wavelength, bandwidth, exponent, false, true);
-
+    
 }
 
 Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
@@ -355,7 +359,7 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     
     int rlpInt = FileParser::getKey("RLP_MODEL", 0);
     rlpModel = (RlpModel)rlpInt;
-  
+    
     if (calcFree)
     {
         free = FreeMillerLibrary::isMillerFree(this);
@@ -392,7 +396,7 @@ int Miller::getH()
 int Miller::getK()
 {
     return hklVector().k;
-
+    
 }
 
 int Miller::getL()
@@ -428,7 +432,7 @@ bool Miller::accepted(void)
 {
     if (this->model == PartialityModelNone)
         return true;
-
+    
     if (this->partiality < partialCutoff)
     {
         return false;
@@ -474,7 +478,7 @@ double Miller::getBFactorScale()
 }
 
 double Miller::scaleForScaleAndBFactor(double scaleFactor, double bFactor,
-                                      double resn, double exponent_exponent)
+                                       double resn, double exponent_exponent)
 {
     double four_d_squared = 4 * pow(resn, 2); // = 1 / (4d^2) = (sinTheta / lambda) ^ 2
     
@@ -519,7 +523,7 @@ double Miller::intensity(bool withCutoff)
 void Miller::makeScalesPermanent()
 {
     double scale = scaleForScaleAndBFactor(this->scale, this->bFactor,
-                                          1 / this->resol);
+                                           1 / this->resol);
     
     this->rawIntensity *= scale;
     this->sigma *= scale;
@@ -535,10 +539,10 @@ double Miller::getSigma(void)
     
     double correction = scale;
     /*
-    double bFactorScale = getBFactorScale();
-    correction /= bFactorScale;
-    
-    if (bFactorScale == 0) correction = 0;*/
+     double bFactorScale = getBFactorScale();
+     correction /= bFactorScale;
+     
+     if (bFactorScale == 0) correction = 0;*/
     
     return sigma * correction;
 }
@@ -641,7 +645,7 @@ double Miller::getWeight(bool cutoff, WeightType weighting)
     }
     
     weight *= getBFactorScale();
-
+    
     return weight;
 }
 
@@ -721,7 +725,7 @@ void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize
 }
 
 double Miller::partialityForHKL(vec hkl, double mosaicity,
-                               double spotSize, double wavelength, double bandwidth, double exponent, bool binary, bool fixPredicted)
+                                double spotSize, double wavelength, double bandwidth, double exponent, bool binary, bool fixPredicted)
 {
     double radius = expectedRadius(spotSize, mosaicity, &hkl);
     
@@ -758,25 +762,92 @@ double Miller::partialityForHKL(vec hkl, double mosaicity,
     
 }
 
-double Miller::calculateNormPartiality(MatrixPtr rotatedMatrix, double mosaicity,
-                                      double spotSize, double wavelength, double bandwidth, double exponent)
+double Miller::calculatePartiality(double pB, double qB, double beamMean, double beamSigma, double beamExp)
+
+//double sigma, double angleFromOrigin, double beamMean, double exponent)
+{
+    beamSigma *= beamMean;
+    beamSigma /= 2;
+    
+    double correction_sigma = pow(M_PI, (2 / beamExp - 1));
+    const double lnNum = 3.0;
+    double limit = correction_sigma * pow(lnNum, 1 / beamExp);
+    
+    double limitP = limit * beamSigma;
+    
+    double diffLimit = limitP;
+    double pqMin = std::min(pB - beamMean, qB - beamMean);
+    double pqMax = std::max(pB - beamMean, qB - beamMean);
+    
+    
+    
+    if ((pqMin > 0 && pqMax > 0 && diffLimit > pqMin && diffLimit > pqMax) ||
+        (pqMin < 0 && pqMax < 0 && -diffLimit < pqMin && -diffLimit < pqMax))
+    {
+        // way too far from the diffraction condition
+       //     return 0;
+    }
+    
+    int sampling = 20;
+    double bValue = -limitP;
+    double integralBeam = 0;
+    double bIncrement = limitP * 2 / (double)sampling;
+    
+    for (int i = 0; i < sampling; i++)
+    {
+        double evalE = superGaussian(bValue, 0, beamSigma, beamExp);
+        integralBeam += evalE * bIncrement;
+        
+        bValue += bIncrement;
+    }
+    
+    double pDiff = fabs(qB - pB);
+    bValue = -limitP + beamMean;
+    double squash = 1 / pDiff;
+    double offset = (qB + pB) / 2;
+
+    if (limitP > pDiff / 2)
+    {
+        bValue = std::min(pB, qB);
+        bIncrement = fabs(pDiff) / (double)sampling;
+    }
+    
+    double integralAll = 0;
+    
+ //   logged << "-----" << std::endl;
+    
+    for (int i = 0; i < sampling; i++)
+    {
+        double pValue = (bValue - offset) * squash;
+        double evalP = std::max(0., 1 - 4 * pValue * pValue);
+        double evalE = superGaussian(bValue, beamMean, beamSigma, beamExp);
+        integralAll += (evalE * evalP) * bIncrement;
+       /*
+        logged << bValue << ", " << beamMean << ", " << beamSigma << ", " << evalP << ", " << evalE << std::endl;
+        sendLog();
+        */
+        bValue += bIncrement;
+    }
+
+    integralAll /= integralBeam;
+    
+ //   logged <<  integralAll << std::endl;
+ //   sendLog();
+    
+    
+    return integralAll;
+}
+
+double Miller::sinTwoTheta(MatrixPtr rotatedMatrix)
 {
     vec hkl = new_vector(h, k, l);
-    
     rotatedMatrix->multiplyVector(&hkl);
+    hkl.l += 1 / wavelength;
+    vec zAxis = new_vector(0, 0, 1);
+    double twoTheta = cosineBetweenVectors(zAxis, hkl);
+    double sinTwoTheta = sqrt(1 - twoTheta * twoTheta);
     
-    double d = length_of_vector(hkl);
-    
-    double newH = 0;
-    double newK = sqrt((4 * pow(d, 2) - pow(d, 4) * pow(wavelength, 2)) / 4);
-    double newL = 0 - pow(d, 2) * wavelength / 2;
-    
-    vec newHKL = new_vector(newH, newK, newL);
-    
-    double normPartiality = partialityForHKL(newHKL, mosaicity,
-                                            spotSize, wavelength, bandwidth, exponent, false);
-    
-    return normPartiality;
+    return sinTwoTheta;
 }
 
 double Miller::resolution()
@@ -792,7 +863,7 @@ double Miller::resolution()
 }
 
 bool Miller::crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
-                         double spotSize, double wavelength, double bandwidth)
+                                double spotSize, double wavelength, double bandwidth)
 {
     vec hkl = new_vector(h, k, l);
     
@@ -835,36 +906,75 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
         return;
     }
     
+    double sin2Theta = sinTwoTheta(rotatedMatrix);
     vec hkl = new_vector(h, k, l);
-    
     rotatedMatrix->multiplyVector(&hkl);
+    double dStar = length_of_vector(hkl);
     
-    this->wavelength = getEwaldSphereNoMatrix(hkl);
+    double rlpWavelength = getEwaldSphereNoMatrix(hkl);
+    this->wavelength = rlpWavelength;
     
-    double tempPartiality = partialityForHKL(hkl, mosaicity,
-                                            spotSize, wavelength, bandwidth, exponent, true, true);
+    MatrixPtr mat = MatrixPtr(new Matrix());
+    double pB = 0;
+    double qB = 0;
     
-    if (binary && tempPartiality == 1.0)
-        return;
+    limitingEwaldWavelengths(hkl, mosaicity, spotSize, wavelength, &pB, &qB);
     
-    double normPartiality = 1;
+    double integral = calculatePartiality(pB, qB, wavelength, bandwidth, exponent);
+    partiality = integral;
     
-    if (!no_norm && normalised && tempPartiality > 0)
+    if (integral > 0)
     {
-        normPartiality = calculateNormPartiality(rotatedMatrix, mosaicity, spotSize, wavelength, bandwidth, exponent);
+        double newH = 0;
+        double newK = sqrt((4 * pow(dStar, 2) - pow(dStar, 4) * pow(wavelength, 2)) / 4);
+        double newL = 0 - pow(dStar, 2) * wavelength / 2;
+        
+        double pB = 0;
+        double qB = 0;
+        
+        vec newHKL = new_vector(newH, newK, newL);
+    
+        limitingEwaldWavelengths(newHKL, mosaicity, spotSize, wavelength, &pB, &qB);
+        
+        double norm = calculatePartiality(pB, qB, wavelength, bandwidth, exponent);
+        
+//        logged << dStar << ", " << pB << ", " << qB << ", " << wavelength << ", " << partiality << ", " << norm << std::endl;
+//        sendLog();
+        
+        partiality /= norm;
     }
     
-    partiality = tempPartiality / normPartiality;
-    
-    if (partiality > 2.0)
-        partiality = 0;
-    if (partiality > 2.0)
-        partiality = 2;
-    
-    if ((!std::isfinite(partiality)) || (partiality != partiality))
-    {
-        partiality = 0;
-    }
+    /*
+     vec hkl = new_vector(h, k, l);
+     
+     rotatedMatrix->multiplyVector(&hkl);
+     
+     this->wavelength = getEwaldSphereNoMatrix(hkl);
+     
+     double tempPartiality = partialityForHKL(hkl, mosaicity,
+     spotSize, wavelength, bandwidth, exponent, true, true);
+     
+     if (binary && tempPartiality == 1.0)
+     return;
+     
+     double normPartiality = 1;
+     
+     if (!no_norm && normalised && tempPartiality > 0)
+     {
+     normPartiality = calculateNormPartiality(rotatedMatrix, mosaicity, spotSize, wavelength, bandwidth, exponent);
+     }
+     
+     partiality = tempPartiality / normPartiality;
+     
+     if (partiality > 2.0)
+     partiality = 0;
+     if (partiality > 2.0)
+     partiality = 2;
+     
+     if ((!std::isfinite(partiality)) || (partiality != partiality))
+     {
+     partiality = 0;
+     }*/
 }
 
 double Miller::twoTheta(bool horizontal)
@@ -887,7 +997,7 @@ double Miller::twoTheta(bool horizontal)
     beamCoordinates[0] = 0;
     beamCoordinates[1] = 1 / usedWavelength;
     
-  //  double cosTwoTheta = dotProduct / (rlpMagnitude * beamMagnitude);
+    //  double cosTwoTheta = dotProduct / (rlpMagnitude * beamMagnitude);
     
     double hOrK = (horizontal ? hkl.h : hkl.k);
     double effectiveResolution = 1 / sqrt(hOrK * hOrK + hkl.l * hkl.l);
@@ -916,7 +1026,7 @@ double Miller::getPolarisationCorrection()
         // P = (1 + cos2 2θM cos2 2θ) / (1 + cos2 2θM)
         
         // calculate polarisation factor
-
+        
         double horizontalFactor = polarisationFactor;
         double verticalFactor = 1 - polarisationFactor;
         
@@ -1159,7 +1269,7 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDel
         
         double xDiff = fabs(x2 - x);
         double yDiff = fabs(y2 - y);
-
+        
         if (xDiff < tolerance && yDiff < tolerance)
         {
             if (actuallyDelete)
@@ -1201,7 +1311,7 @@ void Miller::setRejected(RejectReason reason, bool rejection)
 }
 
 bool Miller::isRejected(RejectReason reason)
-{   
+{
     return (rejectedReasons > 0);
 }
 
@@ -1240,7 +1350,7 @@ double Miller::observedPartiality(MtzManager *reference)
 
 Miller::~Miller()
 {
-
+    
 }
 
 void Miller::recalculateBetterPartiality()

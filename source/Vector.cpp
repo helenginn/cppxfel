@@ -349,7 +349,7 @@ double super_gaussian(double x, double mean, double sigma_0, double exponent)
 
     double exp = pow(M_E, power);
 
-	double denominator = sigma * sqrt(2 * M_PI);
+    double denominator = 1;
 
 	return exp / denominator;
 }

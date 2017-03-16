@@ -56,7 +56,7 @@ public:
     void plotPartialityStats(int h = 0, int k = 0, int l = 0);
     void cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h = 0, int k = 0, int l = 0);
     
-    void partialityPNGResolutionShell(std::string filename,
+    void partialityPNGResolutionShell(std::string filename, double meanWavelength,
                                       std::vector<ReflectionPtr> refRefls,
                                       std::vector<ReflectionPtr> imageRefls,
                                       double minRes, double maxRes);

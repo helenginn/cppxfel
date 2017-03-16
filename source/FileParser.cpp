@@ -711,6 +711,7 @@ void FileParser::generateFunctionList()
     parserMap["SPHERE_THICKNESS"] = simpleFloat;
     parserMap["SIGMA_RESOLUTION_CUTOFF"] = simpleFloat;
     parserMap["PIXEL_COUNT_CUTOFF"] = simpleInt;
+    parserMap["BAD_PIXELS"] = simpleString;
     parserMap["EXPECTED_SPOTS"] = simpleInt;
     parserMap["REFINE_AGAINST_PSEUDO"] = simpleBool;
     parserMap["INDEXING_SLICE_ANGLE"] = simpleFloat;
@@ -792,6 +793,7 @@ void FileParser::generateFunctionList()
     parserMap["PNG_TOTAL"] = simpleInt;
     parserMap["PNG_THRESHOLD"] = simpleFloat;
     parserMap["PNG_SHOEBOX"] = simpleBool;
+    parserMap["PNG_STRONG_ONLY"] = simpleBool;
     parserMap["PNG_ALL_LATTICES"] = simpleBool;
     parserMap["PNG_HEIGHT"] = simpleInt;
     parserMap["DRAW_GEOMETRY_PNGS"] = simpleBool;

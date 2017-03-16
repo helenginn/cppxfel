@@ -176,7 +176,6 @@ private:
     
     void spotCoordToRelativeVec(double unarrangedX, double unarrangedY,
                                 vec *arrangedPos);
-    void removeMidPointRelativeToParent();
     void addToBasisChange(vec angles, MatrixPtr chosenMat = MatrixPtr());
     void fixBasisChange();
 
@@ -428,6 +427,8 @@ public:
         return millers[i].lock();
     }
     
+    void removeMidPointRelativeToParent();
+
     /* Write geometry file */
     
     std::string writeGeometryFile(int fileCount, int indentCount = 0, CSVPtr differenceCSV = CSVPtr());

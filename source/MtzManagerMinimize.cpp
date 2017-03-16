@@ -98,7 +98,7 @@ double MtzManager::rSplit(double low, double high)
     vector<ReflectionPtr> referenceRefs;
     vector<ReflectionPtr> imageRefs;
     
-    this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true);
+    this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true, true);
     
     for (int i = 0; i < referenceRefs.size(); i++)
     {
@@ -379,6 +379,8 @@ double MtzManager::minimize()
     
     refiner->setEvaluationFunction(scoreNelderMead, this);
     refiner->setVerbose((verbosity > 0));
+    
+    matchReflections.clear();
     
     if (optimisingWavelength)
     {

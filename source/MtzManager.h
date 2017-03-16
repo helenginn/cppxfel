@@ -69,8 +69,8 @@ protected:
     int millerCount();
     
 	vector<ReflectionPtr> reflections;
-	vector<Reflection *> refReflections;
-	vector<Reflection *> matchReflections;
+	vector<ReflectionPtr> refReflections;
+	vector<ReflectionPtr> matchReflections;
     MtzManager *previousReference;
     int previousAmbiguity;
     bool allowTrust;
@@ -190,7 +190,7 @@ public:
 	int findReflectionWithId(long unsigned int refl_id, ReflectionPtr *reflection, bool insertionPoint = false);
 	void findCommonReflections(MtzManager *other,
 			vector<ReflectionPtr> &reflectionVector1, vector<ReflectionPtr> &reflectionVector2,
-			int *num = NULL, bool acceptableOnly = false);
+			int *num = NULL, bool acceptableOnly = false, bool preserve = false);
 	double gradientAgainstManager(MtzManager *otherManager, bool withCutoff = true, double lowRes = 0, double highRes = 0);
 	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1);
 	void applyBFactor(double bFactor);

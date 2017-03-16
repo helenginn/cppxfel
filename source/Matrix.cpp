@@ -258,10 +258,8 @@ void Matrix::unitCellLengths(double *lengths)
 
 void Matrix::recalculateOrientationMatrix()
 {
-    MatrixPtr newMat = unitCell->copy();
-    
-    *newMat *= *rotation;
-    memcpy(components, newMat->components, 16 * sizeof(double));
+    copyComponents(unitCell);
+    multiply(*rotation);
 }
 
 void Matrix::setComplexMatrix(MatrixPtr newUnitCell, MatrixPtr newRotation)

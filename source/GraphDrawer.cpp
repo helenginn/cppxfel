@@ -367,7 +367,7 @@ void GraphDrawer::plotPolarisation(vector<MtzPtr> mtzs)
     plot("polarisation", graphMap, xs, ys);
 }
 
-void GraphDrawer::partialityPNGResolutionShell(std::string filename,
+void GraphDrawer::partialityPNGResolutionShell(std::string filename, double meanWavelength,
                                                std::vector<ReflectionPtr> refRefls,
                                                std::vector<ReflectionPtr> imageRefls,
                                                double minRes, double maxRes)
@@ -388,6 +388,12 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename,
         {
             MillerPtr miller = imageRefl->miller(j);
             double wavelength = miller->getWavelength();
+            
+            if (fabs(wavelength - meanWavelength) > meanWavelength * 0.05)
+            {
+                continue;
+            }
+            
             double intensity = miller->getRawIntensity();
             double partiality = miller->getPartiality();
             double percentage = intensity / refRefl->meanIntensity() * 100;
@@ -425,6 +431,7 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename,
 void GraphDrawer::partialityPNG(MtzPtr mtz, double maxRes)
 {
     MtzManager *reference = MtzManager::getReferenceManager();
+    double wavelength = mtz->bestWavelength();
     
     if (maxRes == 0)
     {
@@ -452,7 +459,7 @@ void GraphDrawer::partialityPNG(MtzPtr mtz, double maxRes)
     
     for (int i = 0; i < binCount; i++)
     {
-        partialityPNGResolutionShell(mtz->getFilename(), refRefls, imageRefls, resolutions[i], resolutions[i + 1]);
+        partialityPNGResolutionShell(mtz->getFilename(), wavelength, refRefls, imageRefls, resolutions[i], resolutions[i + 1]);
     }
 
 }

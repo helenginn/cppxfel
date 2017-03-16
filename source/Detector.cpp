@@ -117,6 +117,8 @@ Detector::Detector(DetectorPtr parent, Coord arrangedTopLeft, Coord arrangedBott
     vec slowAxis = new_vector(0, 1, 0);
     vec fastAxis = new_vector(1, 0, 0);
     
+    _refinable = true;
+    
     MatrixPtr mat = MatrixPtr(new Matrix());
     mat->rotate2D(rad);
     
@@ -470,6 +472,12 @@ void Detector::removeMidPointRelativeToParent()
     
     std::lock_guard<std::mutex> lg(getParent()->threadMutex);
     vec parentPos = getParent()->midPointOffsetFromParent(false, false);
+    
+    if (getParent()->isLUCA())
+    {
+        parentPos.l = 0;
+    }
+    
     take_vector_away_from_vector(parentPos, &arrangedMidPoint);
 }
 
@@ -1044,6 +1052,7 @@ double Detector::millerScore(bool ascii, bool stdev)
     
     Miller::refreshMillerPositions(millers);
     
+    
     if (!xShifts.size())
     {
         yShifts.clear();
@@ -1070,14 +1079,21 @@ double Detector::millerScore(bool ascii, bool stdev)
     double meanDistance = 0;
     double xSum = 0;
     double ySum = 0;
+    int count = 0;
     
     for (int i = 0; i < xShifts.size(); i++)
     {
         double x = *xShifts[i];
         double y = *yShifts[i];
         
+        if (x != x || y != y)
+        {
+            continue;
+        }
+        
         xSum += x;
         ySum += y;
+        count ++;
         
         double distance = sqrt(x * x + y * y);
         
@@ -1089,10 +1105,13 @@ double Detector::millerScore(bool ascii, bool stdev)
         meanDistance += distance;
     }
     
-    meanDistance /= xShifts.size();
-    xSum /= xShifts.size();
-    ySum /= xShifts.size();
-    
+    if (count)
+    {
+        meanDistance /= count;
+        xSum /= count;
+        ySum /= count;
+    }
+        
     double leastSquares = 0;
     
     for (int i = 0; i < xShifts.size(); i++)
@@ -1102,6 +1121,11 @@ double Detector::millerScore(bool ascii, bool stdev)
         
         double distance = sqrt((x - xSum) * (x - xSum) + (y - ySum) * (y - ySum));
         
+        if (x != x || y != y)
+        {
+            continue;
+        }
+        
         if (ascii)
         {
             csv->addEntry(0, x, y);
@@ -1110,7 +1134,10 @@ double Detector::millerScore(bool ascii, bool stdev)
         leastSquares += distance;
     }
     
-    leastSquares /= xShifts.size();
+    if (count > 0)
+    {
+        leastSquares /= count;
+    }
     
     if (ascii)
     {

@@ -214,6 +214,51 @@ void Image::newImage()
 
 }
 
+void Image::loadBadPixels()
+{
+    std::string pixelList = FileParser::getKey("BAD_PIXELS", std::string(""));
+    
+    if (!pixelList.length())
+    {
+        return;
+    }
+    else if (!FileReader::exists(pixelList))
+    {
+        logged << "Pixel list file " << pixelList << " appears to be missing." << std::endl;
+        sendLogAndExit();
+    }
+    
+    std::string pixelContents = FileReader::get_file_contents(pixelList.c_str());
+    std::vector<std::string> pixels = FileReader::split(pixelContents, '\n');
+    int count = 0;
+    
+    for (int i = 0; i < pixels.size(); i++)
+    {
+        std::vector<std::string> coords = FileReader::split(pixels[i], ' ');
+
+        if (coords.size() < 2)
+        {
+            coords = FileReader::split(pixels[i], '\t');
+
+            if (coords.size() < 2)
+            {
+                continue;
+            }
+        }
+        
+        int xCoord = atoi(coords[0].c_str());
+        int yCoord = atoi(coords[1].c_str());
+        
+        int pos = yCoord * xDim + xCoord;
+        generalMask[pos] = 0;
+        
+        count++;
+    }
+    
+    logged << "Loaded " << count << " bad pixels from " << pixelList << "." << std::endl;
+    sendLog();
+}
+
 void Image::checkAndSetupLookupTable()
 {
     if (!perPixelDetectors.size() && (!_isMask))
@@ -248,6 +293,8 @@ void Image::checkAndSetupLookupTable()
             }
         }
         
+        loadBadPixels();
+        
         setupMutex.unlock();
     }
 }
@@ -259,7 +306,7 @@ void Image::loadImage()
         return;
     }
     
-    bool asFloat = FileParser::getKey("HDF5_AS_FLOAT", true);
+    bool asFloat = FileParser::getKey("HDF5_AS_FLOAT", false);
     
     std::streampos size;
     vector<char> memblock;
@@ -927,7 +974,7 @@ vector<MtzPtr> Image::currentMtzs()
 {
     vector<MtzPtr> mtzs;
     int count = 0;
-    bool rejecting = !FileParser::getKey("REJECT_OVERLAPPING_REFLECTIONS", true);
+    bool rejecting = FileParser::getKey("REJECT_OVERLAPPING_REFLECTIONS", true);
     
     for (int i = 0; i < IOMRefinerCount(); i++)
     {
@@ -1031,7 +1078,7 @@ void Image::setTestBandwidth(double bandwidth)
 
 void Image::incrementOverlapMask(int x, int y)
 {
-    int position = y * yDim + x;
+    int position = y * xDim + x;
     
     if (position < 0 || position >= overlapMask.size())
         return;
@@ -1050,11 +1097,19 @@ void Image::incrementOverlapMask(int x, int y, ShoeboxPtr shoebox)
     
     int startX = x - slowTol;
     int startY = y - fastTol;
-    for (int i = startX; i < startX + slowSide; i++)
+    for (int i = 0; i < slowSide; i++)
     {
-        for (int j = startY; j < startY + fastSide; j++)
+        for (int j = 0; j < fastSide; j++)
         {
-            incrementOverlapMask(i, j);
+            double x = j + startX;
+            double y = i + startY;
+            
+            if (flagAtShoeboxIndex(shoebox, i, j) != MaskForeground)
+            {
+                continue;
+            }
+
+            incrementOverlapMask(x, y);
         }
     }
 }
@@ -1083,10 +1138,15 @@ unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
     
     int startX = x - slowTol;
     int startY = y - fastTol;
-    for (int i = startX; i < startX + slowSide; i++)
+    for (int i = 0; i < slowSide; i++)
     {
-        for (int j = startY; j < startY + fastSide; j++)
+        for (int j = 0; j < fastSide; j++)
         {
+            double x = j + startX;
+            double y = i + startY;
+            
+            if (flagAtShoeboxIndex(shoebox, i, j))
+            
             if (maskValueAt(&overlapMask[0], x, y) > max)
             {
                 max = maskValueAt(&overlapMask[0], x, y);
@@ -2352,6 +2412,7 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
 {
     int count = 0;
     bool addShoebox = FileParser::getKey("PNG_SHOEBOX", false);
+    bool strongOnly = FileParser::getKey("PNG_STRONG_ONLY", false);
     
     for (int i = 0; i < myMtz->reflectionCount(); i++)
     {
@@ -2369,6 +2430,12 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             }
             
             bool strong = myMiller->reachesThreshold();
+            
+            if (strongOnly && !strong)
+            {
+                continue;
+            }
+            
             file->drawCircleAroundPixel(pngCoord.first, pngCoord.second, 14, (strong ? 2 : 1), red, green, blue, (strong ? 4 : 1));
             count++;
             

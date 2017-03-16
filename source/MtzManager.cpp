@@ -1045,8 +1045,21 @@ int MtzManager::findReflectionWithId(long unsigned int refl_id, ReflectionPtr *r
 
 void MtzManager::findCommonReflections(MtzManager *other,
                                        vector<ReflectionPtr> &reflectionVector1, vector<ReflectionPtr> &reflectionVector2,
-                                       int *num, bool acceptableOnly)
+                                       int *num, bool acceptableOnly, bool preserve)
 {
+    if (matchReflections.size() > 0)
+    {
+        reflectionVector1 = matchReflections;
+        reflectionVector2 = refReflections;
+        
+        if (num != NULL)
+        {
+            *num = (int)reflectionVector1.size();
+        }
+        
+        return;
+    }
+    
     matchReflections.clear();
     refReflections.clear();
     
@@ -1064,10 +1077,17 @@ void MtzManager::findCommonReflections(MtzManager *other,
         
         if (otherReflection && otherReflection->millerCount() > 0)
         {
-            reflectionVector1.push_back(reflection(i));
-            reflectionVector2.push_back(otherReflection);
+            matchReflections.push_back(reflection(i));
+            refReflections.push_back(otherReflection);
         }
     }
+    
+    reflectionVector1 = matchReflections;
+    reflectionVector2 = refReflections;
+    
+    matchReflections.clear();
+    refReflections.clear();
+
     
     if (num != NULL)
     {
@@ -1214,7 +1234,7 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
     int count = 0;
     int num = 0;
     
-    this->findCommonReflections(otherManager, reflections1, reflections2, &num);
+    this->findCommonReflections(otherManager, reflections1, reflections2, &num, true, true);
     
     if (num <= 1)
         return 1;

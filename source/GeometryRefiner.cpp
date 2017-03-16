@@ -627,8 +627,14 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
     logged << "Approaching detector with score type " << typeString << " strategy " << strategyType << std::endl;
     sendLog();
 
-    if (!detector->isRefinable(type))
+    if (type == GeometryScoreTypeIntrapanel && !detector->isRefinable(type))
+    {
         return;
+    }
+    else if (type == GeometryScoreTypeInterpanel && !detector->millerCount() && !detector->isRefinable(type))
+    {
+        return;
+    }
 
     if (type == GeometryScoreTypeInterpanel)
     {

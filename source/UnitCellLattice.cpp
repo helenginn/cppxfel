@@ -34,7 +34,7 @@ void UnitCellLattice::weightUnitCell()
 {
     CSVPtr distCSV = CSVPtr(new CSV(0));
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER;
-    double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
+    double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
     distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 2, "Perfect frequency", "Correction");
     CSVPtr angleCSV = CSVPtr(new CSV(0));
     angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
