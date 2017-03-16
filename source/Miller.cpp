@@ -781,11 +781,11 @@ double Miller::calculatePartiality(double pB, double qB, double beamMean, double
     
     
     
-    if ((pqMin > 0 && pqMax > 0 && diffLimit > pqMin && diffLimit > pqMax) ||
-        (pqMin < 0 && pqMax < 0 && -diffLimit < pqMin && -diffLimit < pqMax))
+    if ((pqMin > 0 && pqMax > pqMin && diffLimit < pqMin) ||
+        (pqMax < 0 && pqMin < pqMax && -diffLimit > pqMax))
     {
         // way too far from the diffraction condition
-       //     return 0;
+        return 0;
     }
     
     int sampling = 20;

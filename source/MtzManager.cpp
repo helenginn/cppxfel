@@ -1296,6 +1296,11 @@ void MtzManager::applyBFactor(double bFactor)
  //   if (bFactor < 0)
  //       bFactor = 0 - bFactor;
     
+    if (bFactor == 0)
+    {
+        return;
+    }
+    
     this->bFactor = bFactor;
     
     for (int i = 0; i < reflections.size(); i++)
