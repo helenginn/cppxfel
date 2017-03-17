@@ -1264,8 +1264,8 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
             if ((int1 != int1) || (int2 != int2) || (weight != weight))
                 continue;
             
-            x_squared += int1 * weight;
-            x_y += int2 * weight;
+            x_squared += int1 * int2 * weight;
+            x_y += int2 * int2 * weight;
             
             count++;
         }
