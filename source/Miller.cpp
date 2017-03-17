@@ -788,7 +788,7 @@ double Miller::calculatePartiality(double pB, double qB, double beamMean, double
         return 0;
     }
     
-    int sampling = 20;
+    int sampling = 10;
     double bValue = -limitP;
     double integralBeam = 0;
     double bIncrement = limitP * 2 / (double)sampling;

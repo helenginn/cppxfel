@@ -1244,29 +1244,34 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
     
     for (int i = 0; i < num; i++)
     {
-        if (reflections1[i]->miller(0)->isFree())
-            continue;
-        
-        if (reflections1[i]->acceptedCount() == 0 && withCutoff)
-            continue;
-        
-        if (!reflections1[i]->betweenResolutions(lowRes, highRes))
-            continue;
-        
-        double int1 = reflections1[i]->meanIntensity();
-        double int2 = reflections2[i]->meanIntensity();
-        double weight = reflections1[i]->meanPartiality();
-        
-        if ((int1 != int1) || (int2 != int2) || (weight != weight))
-            continue;
-        
-        x_squared += int1 * int1 * weight;
-        x_y += int1 * int2 * weight;
-        
-        count++;
+        for (int j = 0; j < reflections1[i]->millerCount(); j++)
+        {
+            MillerPtr miller = reflections1[i]->miller(j);
+            
+            if (miller->isFree())
+                continue;
+            
+            if (!miller->accepted())
+                continue;
+            
+            if (!reflections1[i]->betweenResolutions(lowRes, highRes))
+                continue;
+            
+            double int1 = miller->intensity();
+            double int2 = reflections2[i]->meanIntensity();
+            double weight = miller->getPartiality();// * miller->getCountingSigma();
+            
+            if ((int1 != int1) || (int2 != int2) || (weight != weight))
+                continue;
+            
+            x_squared += int1 * weight;
+            x_y += int2 * weight;
+            
+            count++;
+        }
     }
     
-    double grad = x_y / x_squared;
+    double grad = (x_y / x_squared);
     
     if (grad < 0)
         grad = -1;
