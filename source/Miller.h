@@ -40,6 +40,7 @@ private:
     static short int slices;
     static float trickyRes;
     static bool setupStatic;
+    static std::mutex millerMutex;
     static int peakSize;
     static bool individualWavelength;
     
@@ -198,6 +199,11 @@ public:
     }
     
     void setDetector(DetectorPtr newD);
+    
+    bool hasDetector()
+    {
+        return (!lastDetector.expired());
+    }
     
     ShoeboxPtr getShoebox()
     {

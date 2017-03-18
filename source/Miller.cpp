@@ -37,11 +37,17 @@ bool Miller::correctedPartiality = false;
 bool Miller::absoluteIntensity = false;
 double Miller::intensityThreshold = 0;
 bool Miller::individualWavelength = false;
+std::mutex Miller::millerMutex;
 
 void Miller::setupStaticVariables()
 {
+    millerMutex.lock();
+    
     if (setupStatic)
+    {
+        millerMutex.unlock();
         return;
+    }
     
     model = FileParser::getKey("BINARY_PARTIALITY", false) ? PartialityModelBinary : PartialityModelScaled;
     
@@ -58,6 +64,8 @@ void Miller::setupStaticVariables()
     intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", INTENSITY_THRESHOLD);
     
     setupStatic = true;
+    
+    millerMutex.unlock();
 }
 
 double Miller::integrate_sphere_gaussian(double p, double q)
@@ -1462,5 +1470,8 @@ void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers)
 
 void Miller::setDetector(DetectorPtr newD)
 {
-    lastDetector = newD;
+    if (lastDetector.expired())
+    {
+        lastDetector = newD;
+    }
 }
