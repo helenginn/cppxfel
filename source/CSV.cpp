@@ -460,6 +460,11 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
 
         for (int i = 0; i < entries.size(); i++)
         {
+            if (entries[i][xCol] != entries[i][xCol] || entries[i][yCol] != entries[i][yCol])
+            {
+                continue;
+            }
+            
             points.push_back(std::make_pair(entries[i][xCol], entries[i][yCol]));
         }
         
