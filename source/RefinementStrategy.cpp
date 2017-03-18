@@ -125,7 +125,7 @@ void RefinementStrategy::finish()
     
     if (endScore > startingScore || endScore != endScore)
     {
-        logged << "No change for " << jobName << std::endl;
+        logged << "No change for " << jobName << " (" << startingScore << ")" << std::endl;
         sendLog();
         
         for (int i = 0; i < objects.size(); i++)
