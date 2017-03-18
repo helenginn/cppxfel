@@ -765,9 +765,10 @@ DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
     hkl.h = -tmp;
     hkl.l += 1 / imageWavelength;
     
-    DetectorPtr probe = miller->hasDetector();
+    DetectorPtr probe;
+    bool hasDetector = miller->hasDetector();
     
-    if (!probe)
+    if (!hasDetector)
     {
         probe = detectorForRayIntersection(hkl, intersection);
         
@@ -778,6 +779,7 @@ DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
     }
     else
     {
+        probe = miller->getDetector();
         probe->intersectionWithRay(hkl, intersection);
     }
     
