@@ -520,8 +520,8 @@ void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector)
     strategy->refine();
     strategy->clearParameters();
     detector->prepareInterNudges();
-    strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX, 0.1, "nudgetilt_x");
-    strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setSmartTiltY, nudgeTiltY, 0.1, "nudgetilt_y");
+    strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, interNudge, 0.01, "nudgetilt_x");
+    strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, interNudge, 0.01, "nudgetilt_y");
     strategy->setJobName(detector->getTag() + "_miller_stdev_tilt");
     strategy->refine();
     
