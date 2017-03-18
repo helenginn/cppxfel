@@ -1098,7 +1098,9 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     {
         detector = getDetector();
         vec ray = getRay();
-        detector->intersectionToSpotCoord(ray, &xSpotPred, &ySpotPred);
+        vec intersection;
+        detector->intersectionWithRay(ray, &intersection);
+        detector->intersectionToSpotCoord(intersection, &xSpotPred, &ySpotPred);
     }
     else
     {
