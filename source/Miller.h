@@ -178,6 +178,7 @@ public:
     static void refreshMillerPositions(std::vector<MillerWeakPtr> millers);
     static void refreshMillerPositions(std::vector<MillerPtr> millers);
     vec getTransformedHKL(MatrixPtr matrix = MatrixPtr());
+    vec getRay();
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
     
     void setHKL(int _h, int _k, int _l)

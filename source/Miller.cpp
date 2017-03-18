@@ -565,6 +565,20 @@ double Miller::getWavelength()
     return wavelength;
 }
 
+vec Miller::getRay()
+{
+    vec hkl = getTransformedHKL();
+    
+    double imageWavelength = getPredictedWavelength();
+    
+    double tmp = hkl.k;
+    hkl.k = -hkl.h;
+    hkl.h = -tmp;
+    hkl.l += 1 / imageWavelength;
+    
+    return hkl;
+}
+
 vec Miller::getTransformedHKL(MatrixPtr myMatrix)
 {
     if (!myMatrix)
@@ -1076,49 +1090,57 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     if (shoebox)
         even = shoebox->isEven();
     
-    if (Detector::isActive())
+    double xSpotPred = 0;
+    double ySpotPred = 0;
+    DetectorPtr detector;
+    
+    if (hasDetector())
     {
-        double xSpotPred, ySpotPred;
-        DetectorPtr detector = Detector::getMaster()->spotCoordForMiller(shared_from_this(), &xSpotPred, &ySpotPred);
-        
-        if (!detector)
-        {
-            return;
-        }
-        
-        lastX = xSpotPred;
-        lastY = ySpotPred;
-        
-        int xInt = xSpotPred;
-        int yInt = ySpotPred;
-        
-        bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0)) && getIOMRefiner();
-        
-        if (refocus)
-        {
-            int search = getIOMRefiner()->getSearchSize();
-            getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
-        }
-        else
-        {
-            xInt = correctedX;
-            yInt = correctedY;
-        }
-        
-        shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
-        detector->rearrangeCoord(&shift);
-        
-        if (refocus)
-        {
-            correctedX = xInt;
-            correctedY = yInt;
-        }
-        
-        *x = correctedX;
-        *y = correctedY;
-        
+        detector = getDetector();
+        vec ray = getRay();
+        detector->intersectionToSpotCoord(ray, &xSpotPred, &ySpotPred);
+    }
+    else
+    {
+        detector = Detector::getMaster()->spotCoordForMiller(shared_from_this(), &xSpotPred, &ySpotPred);
+    }
+    
+    if (!detector)
+    {
         return;
     }
+    
+    lastX = xSpotPred;
+    lastY = ySpotPred;
+    
+    int xInt = xSpotPred;
+    int yInt = ySpotPred;
+    
+    bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0)) && getIOMRefiner();
+    
+    if (refocus)
+    {
+        int search = getIOMRefiner()->getSearchSize();
+        getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+    }
+    else
+    {
+        xInt = correctedX;
+        yInt = correctedY;
+    }
+    
+    shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
+    detector->rearrangeCoord(&shift);
+    
+    if (refocus)
+    {
+        correctedX = xInt;
+        correctedY = yInt;
+    }
+    
+    *x = correctedX;
+    *y = correctedY;
+    
 }
 
 vec Miller::getShiftedRay()
@@ -1389,7 +1411,8 @@ void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers)
         MillerPtr miller = millers[i].lock();
         if (miller)
         {
-            miller->positionOnDetector(MatrixPtr(), &x, &y, false);
+            bool shouldSearch = (miller->lastX == 0 && miller->lastY == 0);
+            miller->positionOnDetector(MatrixPtr(), &x, &y, shouldSearch);
         }
     }
 }

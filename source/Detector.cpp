@@ -757,13 +757,7 @@ DetectorPtr Detector::detectorForRayIntersection(vec ray, vec *intersection)
 
 DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
 {
-    vec hkl = miller->getTransformedHKL();
-    double imageWavelength = miller->getPredictedWavelength();
-    
-    double tmp = hkl.k;
-    hkl.k = -hkl.h;
-    hkl.h = -tmp;
-    hkl.l += 1 / imageWavelength;
+    vec hkl = miller->getRay();
     
     DetectorPtr probe;
     bool hasDetector = miller->hasDetector();
