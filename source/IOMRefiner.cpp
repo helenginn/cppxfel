@@ -1040,7 +1040,6 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
             reflection->calculateResolution(&*mtz);
             miller->setParent(reflection);
             mtz->addReflection(reflection);
-            mtz->sortLastReflection();
         }
     }
     
