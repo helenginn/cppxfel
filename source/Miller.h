@@ -166,18 +166,12 @@ public:
     void recalculateBetterPartiality();
     
     void setHorizontalPolarisationFactor(double newFactor);
-	double partialityForHKL(vec hkl, double mosaicity,
-			double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false, bool fixPredicted = false);
 	void applyScaleFactor(double scaleFactor);
     
     void recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
                                double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false, bool no_norm = false);
-    double calculateNormPartiality(double dStar, double beamMean, double sigma, double exponent);
     double calculatePartiality(double pB, double qB, double beamMean, double beamSigma, double beamExp);
 
-    double calculateNormFromResolution(MatrixPtr rotatedMatrix, double mosaicity,
-			double spotSize, double wavelength, double bandwidth, double exponent,
-			double d);
     double observedPartiality(double reference);
     double observedPartiality(MtzManager *reference);
     

@@ -732,44 +732,6 @@ void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize
     *limitLow = outwards_bandwidth;
 }
 
-double Miller::partialityForHKL(vec hkl, double mosaicity,
-                                double spotSize, double wavelength, double bandwidth, double exponent, bool binary, bool fixPredicted)
-{
-    double radius = expectedRadius(spotSize, mosaicity, &hkl);
-    
-    bandwidth = fabs(bandwidth);
-    
-    double inwards_bandwidth = 0; double outwards_bandwidth = 0;
-    vec inwards_vec, outwards_vec;
-    
-    limitingEwaldWavelengths(hkl, mosaicity, spotSize, wavelength, &outwards_bandwidth, &inwards_bandwidth, &inwards_vec, &outwards_vec);
-    
-    double stdev = wavelength * bandwidth / 2;
-    
-    double limit = 4 * stdev;
-    double inwardsLimit = wavelength + limit;
-    double outwardsLimit = wavelength - limit;
-    
-    if ((outwards_bandwidth > inwardsLimit || inwards_bandwidth < outwardsLimit) && resolution() > (2 / trickyRes))
-    {
-        return 0;
-    }
-    
-    double thisPartiality = 0;
-    
-    if (correctedPartiality)
-    {
-        thisPartiality = slicedIntegralWithVectors(inwards_vec, outwards_vec, radius, wavelength, stdev, exponent);
-    }
-    else
-    {
-        thisPartiality = sliced_integral(outwards_bandwidth, inwards_bandwidth, radius, 0, 1, wavelength, stdev, exponent, false, false, fixPredicted);
-    }
-    
-    return thisPartiality;
-    
-}
-
 double Miller::calculatePartiality(double pB, double qB, double beamMean, double beamSigma, double beamExp)
 
 //double sigma, double angleFromOrigin, double beamMean, double exponent)
@@ -914,7 +876,6 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
         return;
     }
     
-    double sin2Theta = sinTwoTheta(rotatedMatrix);
     vec hkl = new_vector(h, k, l);
     rotatedMatrix->multiplyVector(&hkl);
     double dStar = length_of_vector(hkl);
@@ -946,43 +907,8 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
         
         double norm = calculatePartiality(pB, qB, wavelength, bandwidth, exponent);
         
-//        logged << dStar << ", " << pB << ", " << qB << ", " << wavelength << ", " << partiality << ", " << norm << std::endl;
-//        sendLog();
-        
         partiality /= norm;
     }
-    
-    /*
-     vec hkl = new_vector(h, k, l);
-     
-     rotatedMatrix->multiplyVector(&hkl);
-     
-     this->wavelength = getEwaldSphereNoMatrix(hkl);
-     
-     double tempPartiality = partialityForHKL(hkl, mosaicity,
-     spotSize, wavelength, bandwidth, exponent, true, true);
-     
-     if (binary && tempPartiality == 1.0)
-     return;
-     
-     double normPartiality = 1;
-     
-     if (!no_norm && normalised && tempPartiality > 0)
-     {
-     normPartiality = calculateNormPartiality(rotatedMatrix, mosaicity, spotSize, wavelength, bandwidth, exponent);
-     }
-     
-     partiality = tempPartiality / normPartiality;
-     
-     if (partiality > 2.0)
-     partiality = 0;
-     if (partiality > 2.0)
-     partiality = 2;
-     
-     if ((!std::isfinite(partiality)) || (partiality != partiality))
-     {
-     partiality = 0;
-     }*/
 }
 
 double Miller::twoTheta(bool horizontal)
