@@ -1115,8 +1115,8 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     lastX = xSpotPred;
     lastY = ySpotPred;
     
-    int xInt = xSpotPred;
-    int yInt = ySpotPred;
+    int xInt = xSpotPred + (even ? 0 : 0);
+    int yInt = ySpotPred + (even ? 0 : 0);
     
     bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0)) && getIOMRefiner();
     
@@ -1414,7 +1414,7 @@ void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers)
         if (miller)
         {
             bool shouldSearch = (miller->lastX == 0 && miller->lastY == 0);
-            miller->positionOnDetector(MatrixPtr(), &x, &y, shouldSearch);
+            miller->positionOnDetector(MatrixPtr(), &x, &y, false);
         }
     }
 }

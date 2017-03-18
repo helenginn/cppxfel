@@ -290,8 +290,6 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
     
     double height = 900.;
     
-    std::cout << "Got here ok 1" << std::endl;
-    
     if (properties.count("height"))
     {
         height = atof(properties["height"].c_str());
@@ -304,8 +302,6 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
         width = atof(properties["width"].c_str());
     }
 
-    std::cout << "Got here ok 2" << std::endl;
-    
     const int xIntervals = 5;
     const int yIntervals = 5;
     const double xAxis = 0.8;
@@ -323,8 +319,6 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
     png->setCentre(width * (1 - xAxis) / 2, height * (yAxis + 1) / 2);
     png->drawLine(0, 0, width * xAxis, 0, 0, 0, 0, 0);
     png->drawLine(0, 0, 0, -height * yAxis, 0, 0, 0, 0);
-    
-    std::cout << "Got here ok 3" << std::endl;
     
     while (true)
     {
@@ -363,8 +357,6 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
         
         if (minX == -FLT_MAX || maxX == FLT_MAX) minMaxCol(xCol, &minX, &maxX, false);
         if (minY == -FLT_MAX || maxY == FLT_MAX) minMaxCol(yCol, &minY, &maxY, round);
-        
-        std::cout << "Got here ok 4" << std::endl;
         
         if (count == 0)
         {
@@ -419,8 +411,6 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
         
         GraphStyle style = GraphStyleScatter;
         std::string styleKey = "style" + i_to_str(count);
-        std::cout << "Got here ok 5" << std::endl;
-
         if (properties.count(styleKey))
         {
             if (properties[styleKey] == "scatter")
@@ -465,7 +455,6 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
             transparency = atof(properties[transKey].c_str());
         }
         
-        std::cout << "Got here ok 6" << std::endl;
         std::vector<Coord> points;
 
         for (int i = 0; i < entries.size(); i++)
@@ -483,8 +472,11 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
             std::sort(points.begin(), points.end(), std::less<Coord>());
         }
         
-        std::cout << "Got here ok 7" << std::endl;
-
+        if (points.size() == 0)
+        {
+            continue;
+        }
+        
         double lastX = (points[0].first - minX) / (maxX - minX);
         double lastY = (points[0].second - minY) / (maxY - minY);
         
@@ -496,8 +488,6 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
             double xProp = (x - minX) / (maxX - minX);
             double yProp = (y - minY) / (maxY - minY);
             
-            std::cout << "Got here ok 8" << std::endl;
-
             if (xProp > 1 || yProp > 1 || xProp < 0 || yProp < 0)
             {
                 continue;

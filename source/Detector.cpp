@@ -1160,10 +1160,12 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
             plotMap["width"] = "1000";
             plotMap["xHeader0"] = "x";
             plotMap["yHeader0"] = "y";
+     
             plotMap["xMax0"] = f_to_str(edge);
             plotMap["xMin0"] = f_to_str(-edge);
             plotMap["yMax0"] = f_to_str(edge);
             plotMap["yMin0"] = f_to_str(-edge);
+      
             plotMap["xTitle0"] = "x shift in pix";
             plotMap["yTitle0"] = "y shift in pix";
             plotMap["style0"] = "scatter";
