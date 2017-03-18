@@ -483,9 +483,9 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
     std::string bestPixels;
     std::vector<double> values;
     
-    for (int j = *y - tolerance1; j <= *y + tolerance1 + 1; j++)
+    for (int j = *y - tolerance1; j <= *y + tolerance1; j++)
     {
-        for (int i = *x - tolerance1; i <= *x + tolerance1 + 1; i++)
+        for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
         {
             if (!accepted(i, j))
                 continue;
