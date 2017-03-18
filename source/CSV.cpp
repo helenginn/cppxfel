@@ -474,6 +474,7 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
         
         if (points.size() == 0)
         {
+            count++;
             continue;
         }
         
