@@ -468,7 +468,10 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
             points.push_back(std::make_pair(entries[i][xCol], entries[i][yCol]));
         }
         
-        std::sort(points.begin(), points.end(), std::less<Coord>());
+        if (style != GraphStyleScatter)
+        {
+            std::sort(points.begin(), points.end(), std::less<Coord>());
+        }
         
         double lastX = (points[0].first - minX) / (maxX - minX);
         double lastY = (points[0].second - minY) / (maxY - minY);
