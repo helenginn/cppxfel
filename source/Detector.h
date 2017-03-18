@@ -654,7 +654,7 @@ public:
     
     /* MARK: Scoring functions */
     
-    double millerScore(bool ascii = false, bool stdev = false);
+    double millerScore(bool ascii = false, bool stdev = false, int number = -1);
     static double millerScoreWrapper(void *object);
     static double millerStdevScoreWrapper(void *object);
     
@@ -705,7 +705,7 @@ public:
     vec midPointOffsetFromParent(bool useParent = true, bool resetNudge = false);
     void getAllSubDetectors(std::vector<DetectorPtr> &array, bool childrenOnly = false);
     
-    void reportMillerScores();
+    void reportMillerScores(int refinementNum = 0);
     
     void prepareInterNudges();
     static void enableNudge();

@@ -1043,7 +1043,7 @@ double Detector::millerScoreWrapper(void *object)
     return static_cast<Detector *>(object)->millerScore();
 }
 
-double Detector::millerScore(bool ascii, bool stdev)
+double Detector::millerScore(bool ascii, bool stdev, int number)
 {
     if (!millers.size())
     {
@@ -1051,7 +1051,6 @@ double Detector::millerScore(bool ascii, bool stdev)
     }
     
     Miller::refreshMillerPositions(millers);
-    
     
     if (!xShifts.size())
     {
@@ -1096,13 +1095,19 @@ double Detector::millerScore(bool ascii, bool stdev)
         count ++;
         
         double distance = sqrt(x * x + y * y);
+        double contribution = 0.25 / distance / distance;
+        
+        if (distance < 0.5)
+        {
+            contribution = 1.5 - 2 * (distance * distance);
+        }
         
         if (ascii)
         {
             csv->addEntry(0, x, y);
         }
         
-        meanDistance += distance;
+        meanDistance -= contribution;
     }
     
     if (count)
@@ -1131,7 +1136,7 @@ double Detector::millerScore(bool ascii, bool stdev)
             csv->addEntry(0, x, y);
         }
         
-        leastSquares += distance;
+        leastSquares += sqrt(distance);
     }
     
     if (count > 0)
@@ -1141,11 +1146,34 @@ double Detector::millerScore(bool ascii, bool stdev)
     
     if (ascii)
     {
-        logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;
-        sendLog();
-        double edge = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3);
-        csv->setMinMaxXY(-edge, -edge, +edge, +edge);
-        csv->plotColumns(0, 1);
+        double edge = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3) + 0.5;
+
+        if (number < 0)
+        {
+            logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;
+            sendLog();
+            csv->setMinMaxXY(-edge, -edge, +edge, +edge);
+            csv->plotColumns(0, 1);
+        }
+        
+        if (number >= 0)
+        {
+            std::map<std::string, std::string> plotMap;
+            plotMap["filename"] = getTag() + "_miller_" + i_to_str(number);
+            plotMap["height"] = "1000";
+            plotMap["width"] = "1000";
+            plotMap["xHeader0"] = "x";
+            plotMap["yHeader0"] = "y";
+            plotMap["xMax0"] = f_to_str(edge);
+            plotMap["xMin0"] = f_to_str(-edge);
+            plotMap["yMax0"] = f_to_str(edge);
+            plotMap["yMin0"] = f_to_str(-edge);
+            plotMap["xTitle0"] = "x shift in pix";
+            plotMap["yTitle0"] = "y shift in pix";
+            plotMap["style0"] = "scatter";
+            plotMap["colour0"] = "blue";
+            csv->plotPNG(plotMap);
+        }
     }
     
     if (!stdev)
@@ -1211,13 +1239,13 @@ void Detector::fixMidpoints()
     }
 }
 
-void Detector::reportMillerScores()
+void Detector::reportMillerScores(int refinementNum)
 {
-    millerScore(true);
+    millerScore(true, false, refinementNum);
     
     for (int i = 0; i < childrenCount(); i++)
     {
-        getChild(i)->reportMillerScores();
+        getChild(i)->reportMillerScores(refinementNum);
     }
 }
 
