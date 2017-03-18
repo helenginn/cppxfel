@@ -18,6 +18,7 @@
 #include "ccp4_general.h"
 #include "ccp4_parser.h"
 #include "FreeMillerLibrary.h"
+#include "StatisticsManager.h"
 
 // MARK: Miscellaneous
 
@@ -751,35 +752,58 @@ void MtzMerger::removeReflections()
 
 void MtzMerger::fixSigmas()
 {
-    double iOverSigiSum = 0;
-    int reflNum = 0;
     
-    for (int i = 0; i < mergedMtz->reflectionCount(); i++)
+    double minRes = 0;
+    double maxRes = maxResolution();
+    
+    std::vector<double> bins;
+    StatisticsManager::generateResolutionBins(minRes, maxRes, 20, &bins);
+    
+    for (int bin = 0; bin < bins.size() - 1; bin++)
     {
-        MillerPtr miller = mergedMtz->reflection(i)->miller(0);
+        double iOverSigiSum = 0;
+        int reflNum = 0;
+        std::vector<MillerPtr> millersToCorrect;
         
-        if (miller->getCountingSigma() > 0)
+        for (int i = 0; i < mergedMtz->reflectionCount(); i++)
         {
-            iOverSigiSum += (miller->intensity() / miller->getCountingSigma());
-            reflNum++;
+            if (!mergedMtz->reflection(i)->betweenResolutions(bins[bin], bins[bin + 1]))
+            {
+                continue;
+            }
+            
+            MillerPtr miller = mergedMtz->reflection(i)->miller(0);
+            
+            if (miller->getCountingSigma() > 0)
+            {
+                iOverSigiSum += (miller->intensity() / miller->getCountingSigma());
+                reflNum++;
+            }
+            else
+            {
+                millersToCorrect.push_back(miller);
+            }
         }
-    }
-    
-    if (reflNum == 0)
-    {
-        return;
-    }
-    
-    double iOverSigi = iOverSigiSum / (double)reflNum;
-    
-    for (int i = 0; i < mergedMtz->reflectionCount(); i++)
-    {
-        MillerPtr miller = mergedMtz->reflection(i)->miller(0);
         
-        if (miller->getCountingSigma() == -1)
+        if (reflNum == 0)
         {
-            double intensity = miller->intensity();
-            miller->setCountingSigma(intensity / iOverSigi);
+            return;
+        }
+        
+        double iOverSigi = iOverSigiSum / (double)reflNum;
+        
+        logged << "<Isigi> for " << bins[bin] << " to " << bins[bin + 1] << " Å is " << iOverSigi << std::endl;
+        sendLog();
+        
+        for (int i = 0; i < millersToCorrect.size(); i++)
+        {
+            MillerPtr miller = millersToCorrect[i];
+            
+            if (miller->getCountingSigma() < -0.5)
+            {
+                double intensity = miller->intensity();
+                miller->setCountingSigma(fabs(intensity / iOverSigi));
+            }
         }
     }
 }
