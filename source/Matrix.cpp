@@ -298,8 +298,6 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
         return;
     }
     
-    logged << "Original cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2];
-    
     double cosAlpha = cos(alpha * M_PI / 180);
     double cosBeta = cos(beta * M_PI / 180);
     double cosGamma = cos(gamma * M_PI / 180);
@@ -326,11 +324,6 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     this->unitCell = ortho->inverse3DMatrix();
     
     recalculateOrientationMatrix();
-    
-    unitCellLengths(lengths);
-    logged << "; new cell axes: " << lengths[0] << ", " << lengths[1] << ", " << lengths[2] << std::endl;
-    
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
 }
 
 // Order = b * this
