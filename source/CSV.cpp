@@ -288,8 +288,20 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
 {
     int count = 0;
     
-    const double height = 900.;
-    const double width = 1200.;
+    double height = 900.;
+    
+    if(properties.count("height"))
+    {
+        height = atof(properties["height"].c_str());
+    }
+    
+    double width = 1200.;
+
+    if(properties.count("width"))
+    {
+        width = atof(properties["width"].c_str());
+    }
+
     const int xIntervals = 5;
     const int yIntervals = 5;
     const double xAxis = 0.8;
