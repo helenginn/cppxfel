@@ -31,6 +31,7 @@ private:
     double lastIntraScore;
     double lastIntraAngleScore;
     double lastInterAngleScore;
+    bool _changed;
     
     void refineBeamCentre();
 

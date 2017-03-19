@@ -84,7 +84,7 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
     
     strategy->setJobName("Refining " + detector->getTag() + " (" + typeString + ")");
 
-    strategy->setVerbose(true);
+    strategy->setVerbose(false);
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
     aManager->setActiveDetector(detector);
@@ -126,7 +126,7 @@ GeometryRefiner::GeometryRefiner()
     lastInterScore = 0;
     lastInterAngleScore = 0;
     lastIntraAngleScore = 0;
-
+    _changed = true;
 }
 
 
@@ -166,6 +166,13 @@ void GeometryRefiner::startingGraphs()
 
 void GeometryRefiner::reportProgress()
 {
+    if (!_changed)
+    {
+        return;
+    }
+    
+    _changed = false;
+    
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.);
     std::string filename = "special_image_" + i_to_str(refinementEvent) + ".png";
     Detector::drawSpecialImage(filename);
@@ -188,8 +195,8 @@ void GeometryRefiner::reportProgress()
     double interIncrease = 100;
     double intraAngleIncrease = 100;
     double interAngleIncrease = 100;
-    double mScore = Detector::getMaster()->millerScore(true, false);
-    double sScore = Detector::getMaster()->millerScore(false, true);
+    double mScore = Detector::getMaster()->millerScore(false, false);
+    double sScore = Detector::getMaster()->millerScore(true, true);
     Detector::getMaster()->reportMillerScores(refinementEvent);
 
     interIncrease = -100 * (interScore - lastInterScore) / interScore;
@@ -216,7 +223,7 @@ void GeometryRefiner::reportProgress()
         << " (" << (interAngleIncrease > 0 ? "+" : "") << interAngleIncrease << "% from last round)" << std::endl;
     }
     
-    if (mScore > 0 || sScore > 0)
+    if (mScore != 0 || sScore != 0)
     {
         logged << "N: Progress score (event " << refinementEvent << ", miller mean): " << mScore << std::endl;
         logged << "N: Progress score (event " << refinementEvent << ", miller stdev): " << sScore << std::endl;
@@ -301,7 +308,7 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
     
     bool hasRefineableDetectors = false;
     GeometryScoreType type = GeometryScoreTypeIntrapanel;
-
+    
     for (int j = 0; j < detectors.size(); j++)
     {
         detectorList << detectors[j]->getTag() << " ";
@@ -328,15 +335,7 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
 
     if (hasRefineableDetectors && type == GeometryScoreTypeIntrapanel)
     {
-        if (Detector::getMaster()->millerCount() > 0)
-        {
-            for (int i = 0; i < 2; i++)
-            {
-                refineDetectorStrategyWrapper(this, detectors, GeometryScoreTypeInterpanel, 0);
-            }
-        }
-        
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 4; i++)
         {
             refineDetectorStrategyWrapper(this, detectors, GeometryScoreTypeIntrapanel, 0);
             refineDetectorStrategyWrapper(this, detectors, GeometryScoreTypeIntrapanel, 1);
@@ -363,7 +362,8 @@ bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detector
         }
     }
     
-    for (int i = 0; i < 1; i++)
+    
+    for (int i = 0; i < 4; i++)
     {
         refineDetectorStrategyWrapper(this, detectors, GeometryScoreTypeInterpanel, 0);
         refineDetectorStrategyWrapper(this, detectors, GeometryScoreTypeInterpanel, 1);
@@ -414,17 +414,17 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
     
     std::string typeString = stringForScoreType(type);
     
-    logged << "Approaching detector with score type " << typeString << " strategy " << strategyType << std::endl;
-    sendLog();
+    if (!detector->millerCount() && !detector->isRefinable(type))
+    {
+        return;
+    }
     
-    if (type == GeometryScoreTypeIntrapanel && !detector->isRefinable(type))
+    else if (detector->millerCount() && !detector->isRefinable(GeometryScoreTypeIntrapanel))
     {
         return;
     }
-    else if (type == GeometryScoreTypeInterpanel && !detector->millerCount() && !detector->isRefinable(type))
-    {
-        return;
-    }
+    
+    _changed = true;
     
     if (type == GeometryScoreTypeInterpanel)
     {
@@ -513,7 +513,7 @@ void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector)
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
     
-    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeMiller);
+    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeMillerStdev);
     detector->prepareInterNudges();
     strategy->setJobName(detector->getTag() + "_miller_stdev_z");
     strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.1, "nudge_z");
@@ -563,6 +563,11 @@ void GeometryRefiner::intraPanelNormalSearch(DetectorPtr detector)
 void GeometryRefiner::refineBeamCentre()
 {
     DetectorPtr detector = Detector::getMaster();
+    
+    if (detector->millerCount() > 0)
+    {
+        return;
+    }
     
     logged << "***************************************************" << std::endl;
     logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
@@ -674,7 +679,7 @@ void GeometryRefiner::gridSearchDetectorDistance(DetectorPtr detector, double st
     strategy->addParameter(&*detector, Detector::getArrangedMidPointZ, Detector::setArrangedMidPointZ, step, 0.1, "nudge_z");
     
     strategy->setGridLength(confidence * 2 + 1);
-    strategy->setVerbose(true);
+    strategy->setVerbose(false);
     strategy->setJobName("Wide sweep detector " + detector->getTag());
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));

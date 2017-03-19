@@ -59,7 +59,7 @@ Image::Image(std::string filename, double wavelength,
         yDim = dims[1];
         
         logged << "Setting xDim/yDim to " << xDim << ", " << yDim << std::endl;
-        sendLog();
+        sendLog(LogLevelDebug);
     }
     
     minimumSolutionNetworkCount = FileParser::getKey("MINIMUM_SOLUTION_NETWORK_COUNT", 20);
@@ -2506,22 +2506,20 @@ void Image::writePNG(PNGFilePtr file)
     DetectorPtr lastDetector = DetectorPtr();
     double minZ = 0;
     double maxZ = 0;
+    double halfTol = 0.5 / mmPerPixel;
     
-    if (Detector::isActive())
+    Detector::getMaster()->zLimits(&minZ, &maxZ);
+    
+    if (averageZ <= 0)
     {
-        Detector::getMaster()->zLimits(&minZ, &maxZ);
-        double nudge = std::max(0.1 * (maxZ - minZ), 0.1);
-        
-        if (averageZ <= 0)
-        {
-            averageZ = (maxZ + minZ) / 2;
-        }
-        
-        logged << "Image " << getFilename() << " (min/max Z: " << minZ << ", " << maxZ << ")" << std::endl;
-        sendLog();
-        minZ = averageZ - 5;
-        maxZ = averageZ + 5;
+        averageZ = (maxZ + minZ) / 2;
     }
+    
+    logged << "Image " << getFilename() << " (min/max Z: " << minZ * mmPerPixel << ", " << maxZ * mmPerPixel << ")" << std::endl;
+    sendLog();
+    
+    minZ = averageZ - halfTol;
+    maxZ = averageZ + halfTol;
     
     for (int j = 0; j < yDim; j++)
     {

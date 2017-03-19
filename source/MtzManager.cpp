@@ -1949,3 +1949,34 @@ ImagePtr MtzManager::loadParentImage()
     
     return currentImage;
 }
+
+void MtzManager::millersToDetector()
+{
+    for (int i = 0; i < reflectionCount(); i++)
+    {
+        for (int j = 0; j < reflection(i)->millerCount(); j++)
+        {
+            MillerPtr miller = reflection(i)->miller(j);
+            
+            DetectorPtr det = miller->getDetector();
+            
+            if (!det)
+            {
+                miller->positionOnDetector(NULL, NULL, false);
+                det = miller->getDetector();
+                
+                if (!det)
+                {
+                    continue;
+                }
+            }
+            
+            if (!miller->reachesThreshold())
+            {
+                continue;
+            }
+            
+            det->addMillerCarefully(miller);
+        }
+    }
+}

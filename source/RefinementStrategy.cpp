@@ -119,7 +119,7 @@ void RefinementStrategy::finish()
 {
     double endScore = (*evaluationFunction)(evaluateObject);
     
-    Logger::mainLogger->addStream(&logged, LogLevelDebug);
+    Logger::mainLogger->addStream(&logged, priority);
     logged.clear();
     logged.str("");
     

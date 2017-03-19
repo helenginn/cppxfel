@@ -2018,12 +2018,16 @@ void MtzRefiner::plotIntensities()
 
 void MtzRefiner::refineMetrology(bool global)
 {
-    if (Detector::isActive())
+    loadImageFiles();
+    
+    for (int i = 0; i < mtzManagers.size(); i++)
     {
-        GeometryRefiner refiner = GeometryRefiner();
-        refiner.setImages(images);
-        refiner.refineGeometry();
+        mtzManagers[i]->millersToDetector();
     }
+    
+    GeometryRefiner refiner = GeometryRefiner();
+    refiner.setImages(images);
+    refiner.refineGeometry();
 }
 
 void MtzRefiner::reportMetrology()

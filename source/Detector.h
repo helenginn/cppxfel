@@ -160,6 +160,13 @@ private:
     // MARK: keeping track of millers, etc.
     std::vector<MillerWeakPtr> millers;
     std::mutex millerMutex;
+    static double cacheStep;
+    double lookupCache(double distSq);
+    
+    /* In the interests of caching distance target function */
+    void setupCache();
+    static std::mutex setupMutex;
+    std::vector<double> millerTargetTable;
     
     /* These keep track of the pointers to the Miller index shifts for easy access */
     std::vector<float *> xShifts;

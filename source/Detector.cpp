@@ -24,8 +24,46 @@ ImagePtr Detector::drawImage = ImagePtr();
 DetectorType Detector::detectorType = DetectorTypeMPCCD;
 bool Detector::enabledNudge = false;
 int Detector::specialImageCounter = 0;
+std::mutex Detector::setupMutex;
+double Detector::cacheStep = 0;
 
 // MARK: initialisation and constructors
+
+void Detector::setupCache()
+{
+    std::lock_guard<std::mutex> lg(setupMutex);
+    
+    if (millerTargetTable.size())
+    {
+        return;
+    }
+    
+    double maxSqr = 1;
+    double intervals = 100;
+    cacheStep = maxSqr / intervals; // & lower down
+    intervals = 1000;
+    double distSq = 0;
+
+    for (int i = 0; i < intervals; i++)
+    {
+        double dist = sqrt(distSq);
+        double target = exp(-fabs(dist / maxSqr));
+        millerTargetTable.push_back(target);
+        distSq += cacheStep;
+    }
+}
+
+double Detector::lookupCache(double distSq)
+{
+    double category = distSq / cacheStep;
+    
+    if (category > millerTargetTable.size())
+    {
+        return exp(-fabs(sqrt(distSq)));
+    }
+    
+    return millerTargetTable[category];
+}
 
 void Detector::initialiseZeros()
 {
@@ -77,6 +115,8 @@ void Detector::initialiseZeros()
     {
         mmPerPixel = FileParser::getKey("MM_PER_PIXEL", 0.11);
     }
+    
+    setupCache();
 }
 
 Detector::Detector()
@@ -279,8 +319,6 @@ void Detector::addToBasisChange(vec angles, MatrixPtr chosenMat)
     {
         chosenMat = changeOfBasisMat;
     }
-    vec genFast = new_vector(1, 0, 0);
-    vec genSlow = new_vector(0, 1, 0);
 
     rotMat->setIdentity();
     rotMat->rotate(angles.h, angles.k, angles.l);
@@ -1048,33 +1086,48 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
     
     Miller::refreshMillerPositions(millers);
     
-    if (!xShifts.size())
+    xShifts.clear();
+    yShifts.clear();
+    
+    for (int i = 0; i < millerCount(); i++)
     {
-        yShifts.clear();
+        MillerPtr myMiller = miller(i);
         
-        for (int i = 0; i < millerCount(); i++)
+        if (!myMiller || !myMiller->reachesThreshold())
+            continue;
+        
+        float *shiftX = NULL;
+        float *shiftY = NULL;
+        
+        if (stdev)
         {
-            MillerPtr myMiller = miller(i);
-            
-            if (!myMiller || !myMiller->reachesThreshold())
-                continue;
-            
-            float *shiftX = myMiller->getXShiftPointer();
-            float *shiftY = myMiller->getYShiftPointer();
-            
-            xShifts.push_back(shiftX);
-            yShifts.push_back(shiftY);
+            // pixels
+            shiftX = myMiller->getXShiftPointer();
+            shiftY = myMiller->getYShiftPointer();
         }
+        else if (!stdev)
+        {
+            shiftX = myMiller->getRecipXShiftPtr();
+            shiftY = myMiller->getRecipYShiftPtr();
+        }
+        
+        xShifts.push_back(shiftX);
+        yShifts.push_back(shiftY);
     }
 
     std::vector<double> distances;
     
     CSVPtr csv = CSVPtr(new CSV(2, "x", "y"));
     
-    double meanDistance = 0;
-    double xSum = 0;
-    double ySum = 0;
+    double totalScore = 0;
     int count = 0;
+    double maxSqr = 16;
+    
+    if (!stdev)
+    {
+        maxSqr = 5 * FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+        maxSqr *= maxSqr;
+    }
     
     for (int i = 0; i < xShifts.size(); i++)
     {
@@ -1085,65 +1138,62 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
         {
             continue;
         }
+
+        double x0 = 0;
+        double y0 = 0;
         
-        xSum += x;
-        ySum += y;
-        count ++;
-        
-        double distance = sqrt(x * x + y * y);
-        double contribution = 0.25 / distance / distance;
-        
-        if (distance < 0.5)
+        if (stdev)
         {
-            contribution = 1.5 - 2 * (distance * distance);
+            x0 = x;
+            y0 = y;
+        }
+
+        for (int j = 0; j < xShifts.size(); j++)
+        {
+            count++;
+
+            double x1 = *xShifts[j];
+            double y1 = *yShifts[j];
+            
+            double xDiff = x1 - x0;
+            double yDiff = y1 - y0;
+            
+            double distSq = xDiff * xDiff + yDiff * yDiff;
+            distSq /= maxSqr;
+            
+            if ((ascii || number >= 0) && i == 0)
+            {
+                csv->addEntry(0, x1, y1);
+            }
+            
+            // polynomial fit to below
+            double contribution = 0;
+            
+            contribution = lookupCache(distSq);
+            
+            totalScore -= contribution;
         }
         
-        if (ascii)
+        if (!stdev)
         {
-            csv->addEntry(0, x, y);
+            break;
         }
-        
-        meanDistance -= contribution;
     }
     
     if (count)
     {
-        meanDistance /= count;
-        xSum /= count;
-        ySum /= count;
+        totalScore /= count;
     }
         
-    double leastSquares = 0;
-    
-    for (int i = 0; i < xShifts.size(); i++)
-    {
-        double x = *xShifts[i];
-        double y = *yShifts[i];
-        
-        double distance = sqrt((x - xSum) * (x - xSum) + (y - ySum) * (y - ySum));
-        
-        if (x != x || y != y)
-        {
-            continue;
-        }
-        
-        if (ascii)
-        {
-            csv->addEntry(0, x, y);
-        }
-        
-        leastSquares += sqrt(distance);
-    }
-    
-    if (count > 0)
-    {
-        leastSquares /= count;
-    }
-    
     if (ascii)
     {
         double edge = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3) + 0.5;
-
+        
+        if (!stdev)
+        {
+            edge = 10 * FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+        }
+        
         if (number < 0)
         {
             logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;
@@ -1155,7 +1205,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
         if (number >= 0)
         {
             std::map<std::string, std::string> plotMap;
-            plotMap["filename"] = getTag() + "_miller_" + i_to_str(number);
+            plotMap["filename"] = getTag() + "_miller_" + (stdev ? "pix_" : "recip_") + i_to_str(number);
             plotMap["height"] = "1000";
             plotMap["width"] = "1000";
             plotMap["xHeader0"] = "x";
@@ -1166,22 +1216,23 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
             plotMap["yMax0"] = f_to_str(edge);
             plotMap["yMin0"] = f_to_str(-edge);
       
-            plotMap["xTitle0"] = "x shift in pix";
-            plotMap["yTitle0"] = "y shift in pix";
+            if (stdev)
+            {
+                plotMap["xTitle0"] = "x shift in pix";
+                plotMap["yTitle0"] = "y shift in pix";
+            }
+            else
+            {
+                plotMap["xTitle0"] = "x shift in inv Ang";
+                plotMap["yTitle0"] = "y shift in inv Ang";
+            }
             plotMap["style0"] = "scatter";
             plotMap["colour0"] = "blue";
             csv->plotPNG(plotMap);
         }
     }
     
-    if (!stdev)
-    {
-        return meanDistance;
-    }
-    else
-    {
-        return leastSquares;
-    }
+    return totalScore;
 }
 
 void Detector::drawSpecialImage(std::string filename)
@@ -1239,6 +1290,7 @@ void Detector::fixMidpoints()
 
 void Detector::reportMillerScores(int refinementNum)
 {
+    millerScore(true, true, refinementNum);
     millerScore(true, false, refinementNum);
     
     for (int i = 0; i < childrenCount(); i++)

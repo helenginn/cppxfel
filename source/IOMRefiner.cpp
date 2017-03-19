@@ -450,8 +450,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
 
         if (recalculateMillerPositions)
         {
-            int x, y;
-            miller->positionOnDetector(lastRotatedMatrix, &x, &y, false);
+            miller->positionOnDetector();
         }
         
         rawIntensity = miller->getRawIntensity();
@@ -1018,8 +1017,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         
         miller->incrementOverlapMask();
         miller->setMtzParent(&*mtz);
-        miller->getDetector()->addMillerCarefully(miller);
-
+        
         int index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
                                                    mtz->getLowGroup(), false);
         
@@ -1089,7 +1087,7 @@ void IOMRefiner::fakeSpots()
         {
             int x = 0;
             int y = 0;
-            millers[i]->positionOnDetector(lastRotatedMatrix, &x, &y);
+            millers[i]->positionOnDetector(&x, &y);
             vec intersection;
             double xSpot = 0;
             double ySpot = 0;

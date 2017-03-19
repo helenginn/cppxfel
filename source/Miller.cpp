@@ -361,6 +361,8 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     correctedX = 0;
     correctedY = 0;
     predictedWavelength = 0;
+    recipShiftX = 0;
+    recipShiftY = 0;
     
     partialCutoff = FileParser::getKey("PARTIALITY_CUTOFF",
                                        PARTIAL_CUTOFF);
@@ -1082,8 +1084,7 @@ double Miller::getPredictedWavelength()
     }
 }
 
-void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
-                                int *y, bool shouldSearch)
+void Miller::positionOnDetector(int *x, int *y, bool shouldSearch)
 {
     
     bool even = false;
@@ -1093,11 +1094,11 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     double xSpotPred = 0;
     double ySpotPred = 0;
     DetectorPtr detector;
+    vec ray = getRay();
     
     if (hasDetector())
     {
         detector = getDetector();
-        vec ray = getRay();
         vec intersection;
         detector->intersectionWithRay(ray, &intersection);
         detector->intersectionToSpotCoord(intersection, &xSpotPred, &ySpotPred);
@@ -1115,15 +1116,24 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
     lastX = xSpotPred;
     lastY = ySpotPred;
     
-    int xInt = xSpotPred + (even ? 0 : 0);
-    int yInt = ySpotPred + (even ? 0 : 0);
+    int xInt = xSpotPred;
+    int yInt = ySpotPred;
     
-    bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0)) && getIOMRefiner();
+    bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0));
     
     if (refocus)
     {
-        int search = getIOMRefiner()->getSearchSize();
+        int search = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3);
+        
+        if (getIOMRefiner())
+        {
+            search = getIOMRefiner()->getSearchSize();
+        }
+        
         getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+        
+        correctedX = xInt;
+        correctedY = yInt;
     }
     else
     {
@@ -1131,27 +1141,42 @@ void Miller::positionOnDetector(MatrixPtr transformedMatrix, int *x,
         yInt = correctedY;
     }
     
+    vec cross = ray;
+    
     shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
     detector->rearrangeCoord(&shift);
     
-    if (refocus)
-    {
-        correctedX = xInt;
-        correctedY = yInt;
-    }
+    scale_vector_to_distance(&cross, 1);
+    vec horiz = new_vector(1, 0, -cross.h / cross.l);
+    scale_vector_to_distance(&horiz, 1);
+    vec vert = cross_product_for_vectors(cross, horiz);
     
-    *x = correctedX;
-    *y = correctedY;
+    double matComponents[9] = {horiz.h, vert.h, cross.h,
+        horiz.k, vert.k, cross.k,
+        horiz.l, vert.l, cross.l};
+    
+    MatrixPtr changeOfBasis = MatrixPtr(new Matrix(matComponents))->transpose();
+    
+    vec newRay = getShiftedRay();
+    scale_vector_to_distance(&newRay, 1);
+    changeOfBasis->multiplyVector(&newRay);
+    
+    take_vector_away_from_vector(new_vector(0, 0, 1), &newRay);
+    newRay.l = 0;
+    recipShiftX = newRay.h;
+    recipShiftY = newRay.k;
+    
+    if (x != NULL && y != NULL)
+    {
+        *x = correctedX;
+        *y = correctedY;
+    }
     
 }
 
 vec Miller::getShiftedRay()
 {
-    // if unassigned, should be genuine zeros
-    if (length_of_vector(shiftedRay) < 0.1)
-    {
-        Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
-    }
+    Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
     
     return shiftedRay;
 }
@@ -1190,7 +1215,7 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     int x = 0;
     int y = 0;
     
-    positionOnDetector(transformedMatrix, &x, &y);
+    positionOnDetector(&x, &y);
     
     if (x == -INT_MAX || y == -INT_MAX)
     {
@@ -1400,8 +1425,7 @@ void Miller::refreshMillerPositions(std::vector<MillerPtr> millers)
 {
     for (int i = 0; i < millers.size(); i++)
     {
-        int x, y;
-        millers[i]->positionOnDetector(MatrixPtr(), &x, &y, false);
+        millers[i]->positionOnDetector();
     }
 }
 
@@ -1409,12 +1433,10 @@ void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers)
 {
     for (int i = 0; i < millers.size(); i++)
     {
-        int x, y;
         MillerPtr miller = millers[i].lock();
         if (miller)
         {
-            bool shouldSearch = (miller->lastX == 0 && miller->lastY == 0);
-            miller->positionOnDetector(MatrixPtr(), &x, &y, false);
+            miller->positionOnDetector(NULL, NULL, false);
         }
     }
 }

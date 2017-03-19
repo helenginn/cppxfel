@@ -305,8 +305,9 @@ public:
     std::string writeParameterSummary();
     static MtzPtr trajectoryMtz(MtzPtr one, MtzPtr two, double fractionExcited);
     
-    int ambiguityCount();
+    void millersToDetector();
     
+    int ambiguityCount();
     void flipToActiveAmbiguity();
     void resetFlip();
     

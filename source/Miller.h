@@ -67,7 +67,13 @@ private:
     
     float bFactorScale; // should be extracted from Mtz.
     
+    
+    // in pixels
 	std::pair<float, float> shift;
+    
+    // in reciprocal angstroms
+    float recipShiftX;
+    float recipShiftY;
     float resol;
  
     double superGaussian(double bandwidth, double mean,
@@ -161,8 +167,7 @@ public:
     
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
-	void positionOnDetector(MatrixPtr transformedMatrix, int *x,
-			int *y, bool search = true);
+	void positionOnDetector(int *x = NULL, int *y = NULL, bool search = true);
     void recalculateBetterPartiality();
     
     void setHorizontalPolarisationFactor(double newFactor);
@@ -405,6 +410,16 @@ public:
     float *getYShiftPointer()
     {
         return &(shift.second);
+    }
+    
+    float *getRecipXShiftPtr()
+    {
+        return &recipShiftX;
+    }
+
+    float *getRecipYShiftPtr()
+    {
+        return &recipShiftY;
     }
 
 	void setShift(const std::pair<int, int>& shift)
