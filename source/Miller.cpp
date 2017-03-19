@@ -1176,7 +1176,7 @@ void Miller::positionOnDetector(int *x, int *y, bool shouldSearch)
 
 vec Miller::getShiftedRay()
 {
-    Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
+    Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX + 0.5, correctedY + 0.5, &shiftedRay);
     
     return shiftedRay;
 }
