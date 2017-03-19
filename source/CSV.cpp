@@ -499,8 +499,9 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
             
             if (style == GraphStyleScatter)
             {
-                png->drawLine(xProp - 6, yProp - 6, xProp + 6, yProp + 6, transparency, red, green, blue);
-                png->drawLine(xProp - 6, yProp + 6, xProp + 6, yProp - 6, transparency, red, green, blue);
+                const int length = 3;
+                png->drawLine(xProp - length, yProp - length, xProp + length, yProp + length, transparency, red, green, blue);
+                png->drawLine(xProp - length, yProp + length, xProp + length, yProp - length, transparency, red, green, blue);
             }
             else if (style == GraphStyleLine)
             {
