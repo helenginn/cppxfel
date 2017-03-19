@@ -104,7 +104,7 @@ void Hdf5Image::loadImage()
         return;
     }
     
-    bool asFloat = FileParser::getKey("HDF5_AS_FLOAT", true);
+    bool asFloat = FileParser::getKey("HDF5_AS_FLOAT", false);
     Hdf5ManagerCheetahPtr manager = getManager();
     
     if (!manager)

@@ -933,7 +933,7 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
 
 void IndexManager::pseudoAngleCSV()
 {
-    double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
+    double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
     
     if (angleDistance <= 0)
     {
@@ -1078,7 +1078,7 @@ double IndexManager::pseudoAngleScore(void *object)
     IndexManager *me = static_cast<IndexManager *>(object);
     DetectorPtr activeDetector = me->getActiveDetector();
     
-    double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.04);
+    double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
     double score = 0;
     double count = 0;
     int panelCount = 0;
