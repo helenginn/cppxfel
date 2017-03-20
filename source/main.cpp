@@ -85,9 +85,8 @@ void new_main(int argc, char *argv[])
         std::cout << "Please refer to & cite paper (Ginn et al., J. Appl. Cryst. (2016). 49, 1065-1072)" << std::endl << std::endl;
 
         
-        std::cout << "Command order for regular structure solution:" << std::endl;
-        std::cout << "\tcppxfel.run_dials shot*.pickle" << std::endl;
-        std::cout << "\tcppxfel.input_gen" << std::endl;
+        std::cout << "Specify input file, e.g.:" << std::endl;
+        std::cout << "\tcppxfel.run -i index.txt" << std::endl;
         std::cout << "\tcppxfel.run -i integrate.txt" << std::endl;
         std::cout << "\tcppxfel.run -i refine.txt" << std::endl;
         std::cout << "\tcppxfel.run -i merge.txt" << std::endl << std::endl;;
@@ -113,6 +112,7 @@ void new_main(int argc, char *argv[])
         std::cout << "bins: number of bins to report correlation statistics. Default 20." << std::endl << std::endl;
         
         std::cout << "General help for most of the parameters which are specified in input files can be found using --help or -h, for example:" << std::endl;
+        std::cout << "\tcppxfel.run --help                       (full list)" << std::endl;
         std::cout << "\tcppxfel.run --help verbosity_level" << std::endl;
         std::cout << "\tcppxfel.run --help intensity_threshold" << std::endl;
         
