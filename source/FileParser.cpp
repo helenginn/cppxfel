@@ -30,6 +30,7 @@ ParserMap FileParser::parserMap;
 std::map<std::string, std::string> FileParser::deprecatedList;
 std::map<std::string, std::string> FileParser::helpMap;
 std::map<std::string, CodeMap> FileParser::codeMaps;
+CategoryTree FileParser::categoryTree;
 
 int FileParser::getMaxThreads()
 {
@@ -113,10 +114,54 @@ void FileParser::printAllCommands()
     logged << "--- List of all cppxfel commands ---" << std::endl;
     logged << "------------------------------------" << std::endl << std::endl;
     
+    std::vector<std::string> categorised;
+    
+    for (CategoryTree::iterator treeit = categoryTree.begin(); treeit != categoryTree.end(); treeit++)
+    {
+        std::string treeString = treeit->first;
+        
+        logged << treeString << std::endl << std::endl;
+        
+        for (CategoryMap::iterator mapit = treeit->second.begin(); mapit != treeit->second.end(); mapit++)
+        {
+            std::string mapString = mapit->first;
+            
+            logged << "    " << mapString << std::endl << std::endl;
+            
+            for (int i = 0; i < mapit->second.size(); i++)
+            {
+                std::string command = mapit->second[i];
+                
+                if (!parserMap.count(command))
+                {
+                    logged << "(!! cannot find " << command << " in parameter list!)" << std::endl;
+                }
+                
+                logged << "        ";
+                
+                bool helpExists = helpMap.count(command);
+                logged << std::setw(35) << command << (helpExists ? " --help exists." : "") << std::endl;
+
+                categorised.push_back(command);
+            }
+            
+            logged << std::endl;
+        }
+    }
+    
+    logged << std::endl << "Uncategorised commands below:" << std::endl << std::endl;
+    
     for (ParserMap::iterator it = parserMap.begin(); it != parserMap.end(); it++)
     {
-        bool helpExists = helpMap.count(it->first);
+        std::vector<std::string>::iterator done_it;
+        done_it = std::find(categorised.begin(), categorised.end(), it->first);
         
+        if (*done_it == it->first)
+        {
+            continue;
+        }
+        
+        bool helpExists = helpMap.count(it->first);
         logged << std::setw(35) << it->first << (helpExists ? " --help exists." : "") << std::endl;
     }
     
@@ -340,6 +385,12 @@ void FileParser::generateDeprecatedList()
     deprecatedList["PANEL_LIST"] = "This option has been deprecated as the panels definitions were too basic. This can now be specified under DETECTOR_LIST and using GEOMETRY_FORMAT panel_list. However it is highly recommended that you switch to CrystFEL or ideally cppxfel format.";
     deprecatedList["FREE_MILLER_LIST"] = "This option never worked properly and has been disabled for the time being.";
     deprecatedList["RECALCULATE_SIGMA"] = "This option has been removed. The sigmas are recalculated automatically and stored in the CSIGI column of the MTZ file.";
+    
+    deprecatedList["PARTIALITY_SLICES"] = "The slicing of reciprocal lattice points is now determined automatically on a resolution-independent basis and so this option has been removed.";
+    deprecatedList["MAX_SLICES"] = "The slicing of reciprocal lattice points is now determined automatically on a resolution-independent basis and so this option has been removed.";
+    deprecatedList["CAREFUL_RESOLUTION"] = "The slicing of reciprocal lattice points is now determined automatically on a resolution-independent basis and so this option has been removed.";
+    deprecatedList["RLP_MODEL"] = "This parameter made little to no difference and so has been removed.";
+    
 }
 
 void FileParser::generateCodeList()
@@ -402,6 +453,215 @@ void FileParser::generateCodeList()
     }
 }
 
+void FileParser::generateCategories()
+{
+    CategoryMap spotFinding;
+    std::vector<std::string> easySpotFindings;
+    easySpotFindings.push_back("IMAGE_MIN_SPOT_INTENSITY");
+    easySpotFindings.push_back("IMAGE_MIN_CORRELATION");
+    easySpotFindings.push_back("IMAGE_SPOT_PROBE_PADDING");
+    easySpotFindings.push_back("IMAGE_SPOT_PROBE_BG_PADDING");
+    easySpotFindings.push_back("FORCE_SPOT_FINDING");
+    easySpotFindings.push_back("REJECT_CLOSE_SPOTS");
+    easySpotFindings.push_back("SPOT_FINDING_ALGORITHM");
+    spotFinding["Basic parameters"] = easySpotFindings;
+    
+    std::vector<std::string> hardSpotFindings;
+    hardSpotFindings.push_back("IMAGE_SPOT_PROBE_BACKGROUND");
+    hardSpotFindings.push_back("IMAGE_SPOT_PROBE_HEIGHT");
+    hardSpotFindings.push_back("EXCLUDE_WEAKEST_SPOT_FRACTION");
+    hardSpotFindings.push_back("IMAGE_ACCEPTABLE_COMBO");
+    spotFinding["Expert parameters"] = hardSpotFindings;
+    
+    categoryTree["Spot finding"] = spotFinding;
+    
+    CategoryMap indexing;
+    std::vector<std::string> indexingSolutionChecks;
+    indexingSolutionChecks.push_back("GOOD_SOLUTION_HIGHEST_PEAK");
+    indexingSolutionChecks.push_back("GOOD_SOLUTION_ST_DEV");
+    indexingSolutionChecks.push_back("GOOD_SOLUTION_SUM_RATIO");
+    indexingSolutionChecks.push_back("BAD_SOLUTION_HIGHEST_PEAK");
+    indexingSolutionChecks.push_back("BAD_SOLUTION_HIGHEST_PEAK");
+    indexingSolutionChecks.push_back("BAD_SOLUTION_ST_DEV");
+    indexingSolutionChecks.push_back("MINIMUM_SPOTS_EXPLAINED");
+    
+    std::vector<std::string> easyIndexingParameters;
+    easyIndexingParameters.push_back("INITIAL_RLP_SIZE");
+    easyIndexingParameters.push_back("MAX_RECIPROCAL_DISTANCE");
+    easyIndexingParameters.push_back("INDEXING_TIME_LIMIT");
+    easyIndexingParameters.push_back("SOLUTION_ATTEMPTS");
+
+    std::vector<std::string> hardIndexingParameters;
+    hardIndexingParameters.push_back("SOLUTION_ANGLE_SPREAD");
+    hardIndexingParameters.push_back("ALWAYS_FILTER_SPOTS");
+    hardIndexingParameters.push_back("MINIMUM_TRUST_ANGLE");
+    hardIndexingParameters.push_back("MINIMUM_SOLUTION_NETWORK_COUNT");
+    hardIndexingParameters.push_back("ACCEPT_ALL_SOLUTIONS");
+    hardIndexingParameters.push_back("CHECKING_COMMON_SPOTS");
+    hardIndexingParameters.push_back("POWDER_PATTERN_STEP");
+    hardIndexingParameters.push_back("NETWORK_TRIAL_LIMIT");
+    
+    indexing["Indexing solution checks"] = indexingSolutionChecks;
+    indexing["Basic indexing parameters"] = easyIndexingParameters;
+    indexing["Expert indexing parameters"] = hardIndexingParameters;
+    
+    categoryTree["Indexing"] = indexing;
+    
+    CategoryMap hdf5Imports;
+    std::vector<std::string> easyHdf5Imports;
+    easyHdf5Imports.push_back("HDF5_SOURCE_FILES");
+    easyHdf5Imports.push_back("IMAGE_LIMIT");
+    easyHdf5Imports.push_back("IMAGE_SKIP");
+    easyHdf5Imports.push_back("ORIENTATION_MATRIX_LIST");
+
+    std::vector<std::string> hardHdf5Imports;
+    hardHdf5Imports.push_back("HDF5_AS_FLOAT");
+    hardHdf5Imports.push_back("CHEETAH_DATA_ADDRESSES");
+    hardHdf5Imports.push_back("HDF5_MASK_ADDRESS");
+    hardHdf5Imports.push_back("CHEETAH_ID_ADDRESSES");
+    hardHdf5Imports.push_back("BITS_PER_PIXEL");
+    hardHdf5Imports.push_back("MATRIX_LIST_VERSION");
+    hardHdf5Imports.push_back("FREE_ELECTRON_LASER");
+
+    hdf5Imports["Basic image import parameters"] = easyHdf5Imports;
+    hdf5Imports["Expert image import parameters"] = hardHdf5Imports;
+    
+    categoryTree["Importing images and metadata"] = hdf5Imports;
+
+    CategoryMap pngOutput;
+    std::vector<std::string> easyPNG;
+    easyPNG.push_back("PNG_SHOEBOX");
+    easyPNG.push_back("PNG_STRONG_ONLY");
+    easyPNG.push_back("PNG_TOTAL");
+    easyPNG.push_back("PNG_HEIGHT");
+    easyPNG.push_back("DRAW_GEOMETRY_PNGS");
+    
+    std::vector<std::string> hardPNG;
+    hardPNG.push_back("PNG_THRESHOLD");
+    hardPNG.push_back("PNG_ALL_LATTICES");
+
+    pngOutput["Basic PNG parameters"] = easyPNG;
+    pngOutput["Expert PNG parameters"] = hardPNG;
+    
+    categoryTree["Output PNG files"] = pngOutput;
+
+    CategoryMap integration;
+    std::vector<std::string> easyShoeboxes;
+    easyShoeboxes.push_back("SHOEBOX_BACKGROUND_PADDING");
+    easyShoeboxes.push_back("SHOEBOX_FOREGROUND_PADDING");
+    easyShoeboxes.push_back("SHOEBOX_NEITHER_PADDING");
+    easyShoeboxes.push_back("METROLOGY_SEARCH_SIZE");
+    
+    std::vector<std::string> hardShoeboxes;
+    hardShoeboxes.push_back("SHOEBOX_MAKE_EVEN");
+    hardShoeboxes.push_back("COMPLEX_SHOEBOX");
+    hardShoeboxes.push_back("PIXEL_LEAK");
+    hardShoeboxes.push_back("SHOEBOX_BANDWIDTH_MULTIPLIER");
+    
+    std::vector<std::string> generalIntegration;
+    generalIntegration.push_back("MIN_INTEGRATED_RESOLUTION");
+    generalIntegration.push_back("MAX_INTEGRATED_RESOLUTION");
+    generalIntegration.push_back("MM_PER_PIXEL");
+    generalIntegration.push_back("OVER_PRED_BANDWIDTH");
+    generalIntegration.push_back("OVER_PRED_RLP_SIZE");
+    generalIntegration.push_back("SPACE_GROUP");
+    generalIntegration.push_back("UNIT_CELL");
+    generalIntegration.push_back("INTENSITY_THRESHOLD");
+    generalIntegration.push_back("REFINE_ORIENTATIONS");
+    generalIntegration.push_back("ROUGH_CALCULATION");
+    generalIntegration.push_back("INTEGRATION_WAVELENGTH");
+
+    std::vector<std::string> hardIntegration;
+    hardIntegration.push_back("REFINE_IN_PLANE_OF_DETECTOR");
+    hardIntegration.push_back("SPHERE_THICKNESS");
+    hardIntegration.push_back("ABSOLUTE_INTENSITY");
+    hardIntegration.push_back("UNBALANCED_REFLECTIONS");
+    hardIntegration.push_back("IGNORE_MISSING_IMAGES");
+    
+    integration["Basic integration window parameters"] = easyShoeboxes;
+    integration["Expert integration window parameters"] = hardShoeboxes;
+    integration["General integration parameters"] = generalIntegration;
+    integration["Expert integration parameters"] = hardIntegration;
+    
+    categoryTree["Integration parameters"] = integration;
+
+    CategoryMap postRefinement;
+    std::vector<std::string> postRefOptimisers;
+    postRefOptimisers.push_back("OPTIMISING_BANDWIDTH");
+    postRefOptimisers.push_back("OPTIMISING_EXPONENT");
+    postRefOptimisers.push_back("OPTIMISING_ORIENTATION");
+    postRefOptimisers.push_back("OPTIMISING_RLP_SIZE");
+    postRefOptimisers.push_back("OPTIMISING_WAVELENGTH");
+    
+    std::vector<std::string> postRefStepSizes;
+    postRefStepSizes.push_back("STEP_SIZE_BANDWIDTH");
+    postRefStepSizes.push_back("STEP_SIZE_EXPONENT");
+    postRefStepSizes.push_back("STEP_SIZE_ORIENTATION");
+    postRefStepSizes.push_back("STEP_SIZE_RLP_SIZE");
+    postRefStepSizes.push_back("STEP_SIZE_WAVELENGTH");
+    
+    std::vector<std::string> postRefTolerances;
+    postRefTolerances.push_back("TOLERANCE_BANDWIDTH");
+    postRefTolerances.push_back("TOLERANCE_EXPONENT");
+    postRefTolerances.push_back("TOLERANCE_ORIENTATION");
+    postRefTolerances.push_back("TOLERANCE_RLP_SIZE");
+    postRefTolerances.push_back("TOLERANCE_WAVELENGTH");
+    
+    std::vector<std::string> initialValues;
+    postRefTolerances.push_back("INITIAL_BANDWIDTH");
+    postRefTolerances.push_back("INITIAL_EXPONENT");
+    postRefTolerances.push_back("INITIAL_RLP_SIZE");
+    postRefTolerances.push_back("INITIAL_WAVELENGTH");
+    
+    std::vector<std::string> postRefGeneral;
+    postRefGeneral.push_back("REFINEMENT_INTENSITY_THRESHOLD");
+    postRefGeneral.push_back("PARTIALITY_CUTOFF");
+    postRefGeneral.push_back("OUTPUT_INDIVIDUAL_CYCLES");
+    postRefGeneral.push_back("DEFAULT_TARGET_FUNCTION");
+    postRefGeneral.push_back("BINARY_PARTIALITY");
+    postRefGeneral.push_back("INITIAL_MTZ");
+    
+    postRefinement["On/off optimisation switches"] = postRefOptimisers;
+    postRefinement["Step sizes for parameters"] = postRefStepSizes;
+    postRefinement["Post-refinement tolerance values"] = postRefTolerances;
+    postRefinement["Post-refinement initial values"] = initialValues;
+    postRefinement["General options"] = postRefGeneral;
+    
+    categoryTree["Post-refinement"] = postRefinement;
+    
+    CategoryMap others;
+    std::vector<std::string> generalOptions;
+    generalOptions.push_back("MAX_THREADS");
+    generalOptions.push_back("OUTPUT_DIRECTORY");
+    generalOptions.push_back("VERBOSITY_LEVEL");
+    generalOptions.push_back("MAXIMUM_CYCLES");
+    others["General options"] = generalOptions;
+
+    std::vector<std::string> nonOperational;
+    nonOperational.push_back("STEP_SIZE_UNIT_CELL_A");
+    nonOperational.push_back("STEP_SIZE_UNIT_CELL_ALPHA");
+    nonOperational.push_back("STEP_SIZE_UNIT_CELL_B");
+    nonOperational.push_back("STEP_SIZE_UNIT_CELL_BETA");
+    nonOperational.push_back("STEP_SIZE_UNIT_CELL_C");
+    nonOperational.push_back("STEP_SIZE_UNIT_CELL_GAMMA");
+    nonOperational.push_back("STEP_SIZE_MOSAICITY");
+    nonOperational.push_back("INITIAL_MOSAICITY");
+    nonOperational.push_back("TOLERANCE_MOSAICITY");
+    nonOperational.push_back("OPTIMISING_MOSAICITY");
+    nonOperational.push_back("REFINE_ENERGY_SPECTRUM");
+    nonOperational.push_back("NORMALISE_PARTIALITIES");
+    nonOperational.push_back("MILLER_INDEX");
+    nonOperational.push_back("FREE_MILLER_LIST");
+    nonOperational.push_back("MILLER_INDEX");
+    nonOperational.push_back("FIT_BACKGROUND_AS_PLANE");
+    nonOperational.push_back("FREE_MILLER_PROPORTION");
+    others["Non-operational but upcoming, or not entirely abandoned"] = nonOperational;
+
+    
+    categoryTree["Other"] = others;
+
+}
+
 void FileParser::generateHelpList()
 {
     helpMap["VERBOSITY_LEVEL"] = "Sets the level of output to the terminal. Default normal.";
@@ -430,7 +690,6 @@ void FileParser::generateHelpList()
     helpMap["MINIMUM_REFLECTION_CUTOFF"] = "If a crystal refines to have fewer than x reflections then it is not included in the final merge. Default 30.";
     helpMap["DEFAULT_TARGET_FUNCTION"] = "Target function used for post-refinement minimisation.";
     helpMap["TARGET_FUNCTIONS"] = "Not recommended right now.";
-    helpMap["RLP_MODEL"] = "Model for reciprocal lattice point. Doesn't make a huge difference. Default uniform.";
     helpMap["CORRELATION_THRESHOLD"] = "Threshold for merging images; image which correlate less than x with reference will not be included in refinement. Also see INITIAL_CORRELATION_THRESHOLD. Default 0.9.";
     helpMap["INITIAL_CORRELATION_THRESHOLD"] = "For a certain number of rounds of refinement determined by THRESHOLD_SWAP, a lower correlation threshold of x will be used. Also see CORRELATION_THRESHOLD. Default 0.8.";
     helpMap["THRESHOLD_SWAP"] = "This specifies the number of rounds of refinement before swapping from INITIAL_CORRELATION_THRESHOLD to CORRELATION_THRESHOLD. Default 2.";
@@ -443,8 +702,6 @@ void FileParser::generateHelpList()
     helpMap["CORRELATION_REJECTION"] = "Rejection on a per image basis if individual reflections correlate poorly with the image. Good for unindexed multiple lattices or bad-pixel detectors. Default ON.";
     helpMap["POLARISATION_CORRECTION"] = "If switched on, polarisation factor is applied. Default OFF. Does this even still work?";
     helpMap["POLARISATION_FACTOR"] = "Number between 0 for fully horizontal polarisation, 1 for fully vertical polarisation.";
-    helpMap["PARTIALITY_SLICES"] = "Number of slices to make for individual reflections when calculating partiality higher than the resolution set by CAREFUL_RESOLUTION. Fewer slices can be made for smaller rlp sizes, increasing computation speed but running the risk of overfitting. Default 8, may need to be increased for high rlp size/mosaicity systems.";
-    helpMap["MAX_SLICES"] = "Number of slices to make for reflections with a resolution lower than CAREFUL_RESOLUTION. May need to be increased for high rlp size/mosaicity systems. Default 100.";
     helpMap["REPLACE_REFERENCE"] = "If ON, reference is updated on each merging cycle (recommended). Otherwise reference is not replaced. Only generally used to measure degree of overfitting from refining a small number of images. Default ON.";
     helpMap["INITIAL_WAVELENGTH"] = "Does not need to be set, but if set, wavelength is always set to this value and not calculated per image. Possibly useful for very low resolution structures where individual spots deviate far from the true wavelength. Default 0 (not set).";
     helpMap["INITIAL_BANDWIDTH"] = "Initial bandwidth standard deviation for beam model. Multiply this by the wavelength to get the standard deviation in Å. Default 0.0013 (calibrated for a SASE pulse).";
@@ -542,6 +799,11 @@ void FileParser::generateHelpList()
     helpMap["PNG_SHOEBOX"] = "If writing PNGs when WRITE_PNGS is called, whether to draw the integration shoeboxes (currently might be buggy for complex/non-symmetrical shoeboxes).";
     helpMap["IMAGE_IGNORE_UNDER_VALUE"] = "If a value on an image goes below this value, it is masked out.";
 
+    
+    helpMap["SWEEP_DETECTOR_DISTANCE"] = "If you wish to refine geometry, specifying two distances in mm for this parameter will perform a sweep of intervening detector distances before continuing with geometry refinement. At the moment it will refine against the pseudo-powder pattern. Not completely tested, default is not to be set.";
+    helpMap["EXPECTED_GEOMETRY_MOVEMENT"] = "Default increment for geometry refinement. The default is 0.02, but if you suspect convergence is too slow or you are driving into a local minimum too quickly, try increasing or decreasing this value respectively. Helen is not yet aware if it is worth changing this value.";
+    
+    
 }
 
 void FileParser::generateFunctionList()
@@ -557,7 +819,7 @@ void FileParser::generateFunctionList()
     parserMap["MAXIMUM_CYCLES"] = simpleInt;
     parserMap["STOP_REFINEMENT"] = simpleBool;
     parserMap["OLD_MERGE"] = simpleBool;
-    parserMap["MERGE_MEDIAN"] = simpleBool;
+    //parserMap["MERGE_MEDIAN"] = simpleBool;
     parserMap["READ_REFINED_MTZS"] = simpleBool;
     
     parserMap["SET_SIGMA_TO_UNITY"] = simpleBool;
@@ -568,13 +830,11 @@ void FileParser::generateFunctionList()
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
     parserMap["WAVELENGTH_FROM_REF_COUNT"] = simpleInt;
-    parserMap["EXCLUSION_BY_CC_HALF"] = simpleBool;
     parserMap["ALLOW_TRUST"] = simpleBool;
-    parserMap["EXCLUDE_OWN_REFLECTIONS"] = simpleBool;
     parserMap["PARTIALITY_CUTOFF"] = simpleFloat;
 	parserMap["DEFAULT_TARGET_FUNCTION"] = simpleInt;
     parserMap["TARGET_FUNCTIONS"] = intVector;
-    parserMap["RLP_MODEL"] = simpleInt;
+   // parserMap["RLP_MODEL"] = simpleInt;
 	parserMap["CORRELATION_THRESHOLD"] = simpleFloat;
     parserMap["PARTIALITY_CORRELATION_THRESHOLD"] = simpleFloat;
 	parserMap["MAX_REFINED_RESOLUTION"] = simpleFloat;
@@ -593,9 +853,6 @@ void FileParser::generateFunctionList()
     parserMap["CUSTOM_AMBIGUITY"] = doubleVector;
     parserMap["R_FACTOR_THRESHOLD"] = simpleFloat;
     parserMap["REINITIALISE_WAVELENGTH"] = simpleBool;
-    parserMap["PARTIALITY_SLICES"] = simpleInt;
-    parserMap["MAX_SLICES"] = simpleInt;
-    parserMap["CAREFUL_RESOLUTION"] = simpleFloat;
     parserMap["SMOOTH_FUNCTION"] = simpleBool;
     parserMap["NORMALISE_PARTIALITIES"] = simpleBool;
     parserMap["REPLACE_REFERENCE"] = simpleBool;
@@ -620,7 +877,6 @@ void FileParser::generateFunctionList()
 	parserMap["STEP_SIZE_MOSAICITY"] = simpleFloat;
 	parserMap["STEP_SIZE_EXPONENT"] = simpleFloat;
 	parserMap["STEP_SIZE_ORIENTATION"] = simpleFloat;
-    parserMap["STEP_SIZE_ORIENTATION_ABC"] = simpleFloat;
     parserMap["STEP_SIZE_RLP_SIZE"] = simpleFloat;
     parserMap["STEP_SIZE_UNIT_CELL_A"] = simpleFloat;
     parserMap["STEP_SIZE_UNIT_CELL_B"] = simpleFloat;
@@ -648,7 +904,7 @@ void FileParser::generateFunctionList()
     parserMap["OPTIMISING_UNIT_CELL_GAMMA"] = simpleBool;
 
     parserMap["HDF5_SOURCE_FILES"] = stringVector;
-    parserMap["HDF5_OUTPUT_FILE"] = simpleString;
+ //   parserMap["HDF5_OUTPUT_FILE"] = simpleString;
     parserMap["DUMP_IMAGES"] = simpleBool;
     
     parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
@@ -667,12 +923,12 @@ void FileParser::generateFunctionList()
 	parserMap["MINIMUM_REFLECTION_CUTOFF"] = simpleInt;
     parserMap["MINIMUM_MULTIPLICITY"] = simpleInt;
     parserMap["FAST_MERGE"] = simpleBool;
-    parserMap["CORRECTED_PARTIALITY_MODEL"] = simpleBool;
+//    parserMap["CORRECTED_PARTIALITY_MODEL"] = simpleBool;
     parserMap["REJECT_BELOW_SCALE"] = simpleFloat;
 
 	// Indexing parameters
 
-    parserMap["DETECTOR_GAIN"] = simpleFloat;
+ //   parserMap["DETECTOR_GAIN"] = simpleFloat;
     parserMap["BITS_PER_PIXEL"] = simpleInt;
 	parserMap["SPACE_GROUP"] = simpleInt;
 	parserMap["INTEGRATION_WAVELENGTH"] = simpleFloat;
@@ -684,13 +940,11 @@ void FileParser::generateFunctionList()
 	parserMap["OVER_PRED_RLP_SIZE"] = simpleFloat;
     parserMap["REFINE_ORIENTATIONS"] = simpleBool;
     parserMap["INDEXING_ORIENTATION_TOLERANCE"] = simpleFloat;
-    parserMap["LOW_INTENSITY_PENALTY"] = simpleBool;
-	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
+  	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["ABSOLUTE_INTENSITY"] = simpleBool;
 	parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;
     parserMap["METROLOGY_SEARCH_SIZE_BIG"] = simpleInt;
-    parserMap["FOCUS_ON_PEAK_SIZE"] = simpleInt;
-	parserMap["SHOEBOX_FOREGROUND_PADDING"] = simpleInt;
+    parserMap["SHOEBOX_FOREGROUND_PADDING"] = simpleInt;
 	parserMap["SHOEBOX_NEITHER_PADDING"] = simpleInt;
 	parserMap["SHOEBOX_BACKGROUND_PADDING"] = simpleInt;
     parserMap["SHOEBOX_MAKE_EVEN"] = simpleBool;
@@ -709,12 +963,9 @@ void FileParser::generateFunctionList()
     parserMap["IMAGE_MASKED_VALUE"] = simpleInt;
     parserMap["IMAGE_IGNORE_UNDER_VALUE"] = simpleInt;
     parserMap["SPHERE_THICKNESS"] = simpleFloat;
-    parserMap["SIGMA_RESOLUTION_CUTOFF"] = simpleFloat;
+//    parserMap["SIGMA_RESOLUTION_CUTOFF"] = simpleFloat;
     parserMap["PIXEL_COUNT_CUTOFF"] = simpleInt;
     parserMap["BAD_PIXELS"] = simpleString;
-    parserMap["EXPECTED_SPOTS"] = simpleInt;
-    parserMap["REFINE_AGAINST_PSEUDO"] = simpleBool;
-    parserMap["INDEXING_SLICE_ANGLE"] = simpleFloat;
     parserMap["STEP_SIZE_UNIT_CELL_A"] = simpleFloat;
     parserMap["STEP_SIZE_UNIT_CELL_B"] = simpleFloat;
     parserMap["STEP_SIZE_UNIT_CELL_C"] = simpleFloat;
@@ -726,19 +977,17 @@ void FileParser::generateFunctionList()
     parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;
     parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
     parserMap["ROUGH_CALCULATION"] = simpleBool;
-    parserMap["BINS"] = simpleInt;
-
+    
     parserMap["MINIMUM_SPOTS_EXPLAINED"] = simpleInt;
     parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
     parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;
     parserMap["REJECT_CLOSE_SPOTS"] = simpleBool;
-    parserMap["THOROUGH_SOLUTION_SEARCHING"] = simpleBool;
+  //  parserMap["THOROUGH_SOLUTION_SEARCHING"] = simpleBool;
     parserMap["MAX_SEARCH_NUMBER_MATCHES"] = simpleInt;
     parserMap["MAX_SEARCH_NUMBER_SOLUTIONS"] = simpleInt;
     parserMap["ACCEPT_ALL_SOLUTIONS"] = simpleBool;
     parserMap["INDEXING_MIN_RESOLUTION"] = simpleFloat;
     parserMap["SPOTS_PER_LATTICE"] = simpleInt;
-    parserMap["RECIPROCAL_TOLERANCE"] = simpleFloat;
     parserMap["GOOD_SOLUTION_ST_DEV"] = simpleFloat;
     parserMap["BAD_SOLUTION_ST_DEV"] = simpleFloat;
     parserMap["GOOD_SOLUTION_SUM_RATIO"] = simpleFloat;
@@ -751,7 +1000,6 @@ void FileParser::generateFunctionList()
     parserMap["ALWAYS_FILTER_SPOTS"] = simpleBool;
     parserMap["MINIMUM_NEIGHBOURS"] = simpleInt;
     parserMap["MINIMUM_SOLUTION_NETWORK_COUNT"] = simpleInt;
-    parserMap["SCRAMBLE_SPOT_VECTORS"] = simpleBool;
     parserMap["NETWORK_TRIAL_LIMIT"] = simpleInt;
     parserMap["INDEXING_TIME_LIMIT"] = simpleInt;
     parserMap["MAX_LATTICES_PER_IMAGE"] = simpleInt;
@@ -776,19 +1024,18 @@ void FileParser::generateFunctionList()
     parserMap["IMAGE_SPOT_PROBE_BG_PADDING"] = simpleInt;
     parserMap["PROBE_DISTANCES"] = doubleVector;
     parserMap["FORCE_SPOT_FINDING"] = simpleBool;
-    parserMap["FORCE_RECENTRE_SPOTS"] = simpleBool;
-    parserMap["FORCE_RESTART_POST_REFINEMENT"] = simpleBool;
+ //  parserMap["FORCE_RECENTRE_SPOTS"] = simpleBool;
+ //   parserMap["FORCE_RESTART_POST_REFINEMENT"] = simpleBool;
     parserMap["SPOT_FINDING_MIN_PIXELS"] = simpleInt;
     parserMap["SPOT_FINDING_SIGNAL_TO_NOISE"] = simpleFloat;
     parserMap["SPOT_FINDING_MAX_PIXELS"] = simpleInt;
     parserMap["SPOT_FINDING_ALGORITHM"] = simpleInt;
-    parserMap["SPOTS_ARE_RECIPROCAL_COORDINATES"] = simpleBool;
+ //   parserMap["SPOTS_ARE_RECIPROCAL_COORDINATES"] = simpleBool;
     
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     parserMap["FROM_TIFFS"] = simpleBool;
     
-    parserMap["PIXEL_TOLERANCE"] = simpleFloat;
-    parserMap["RANDOM_SEED"] = simpleInt;
+//    parserMap["RANDOM_SEED"] = simpleInt;
     
     parserMap["PNG_TOTAL"] = simpleInt;
     parserMap["PNG_THRESHOLD"] = simpleFloat;
@@ -798,10 +1045,7 @@ void FileParser::generateFunctionList()
     parserMap["PNG_HEIGHT"] = simpleInt;
     parserMap["DRAW_GEOMETRY_PNGS"] = simpleBool;
     parserMap["SWEEP_DETECTOR_DISTANCE"] = doubleVector;
-    parserMap["DISTANCE_VS_ANGLE_FRACTION"] = simpleFloat;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
-    parserMap["NUDGE_STEP"] = simpleFloat;
-    parserMap["NUDGE_ROTATION_STEP"] = simpleFloat;
     
     parserMap["TRUST_GLOBAL_GEOMETRY"] = simpleBool;
     parserMap["TRUST_QUADRANT_GEOMETRY"] = simpleBool;
@@ -874,6 +1118,7 @@ bool FileParser::checkSpaces(std::string line)
 
 FileParser::FileParser(void)
 {
+    generateCategories();
     generateFunctionList();
     generateHelpList();
     generateCodeList();

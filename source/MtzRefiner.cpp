@@ -235,7 +235,6 @@ void MtzRefiner::refineCycle(bool once)
     int i = 0;
     bool finished = false;
     
-    int minimumCycles = FileParser::getKey("MINIMUM_CYCLES", 6);
     int maximumCycles = FileParser::getKey("MAXIMUM_CYCLES", 50);
     
     bool stop = FileParser::getKey("STOP_REFINEMENT", true);
@@ -245,7 +244,6 @@ void MtzRefiner::refineCycle(bool once)
                                                             "INITIAL_CORRELATION_THRESHOLD", INITIAL_CORRELATION_THRESHOLD);
     int thresholdSwap = FileParser::getKey("THRESHOLD_SWAP",
                                            THRESHOLD_SWAP);
-    bool exclusion = FileParser::getKey("EXCLUDE_OWN_REFLECTIONS", false);
     bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
     
     double resolution = FileParser::getKey("MAX_REFINED_RESOLUTION",

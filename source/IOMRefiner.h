@@ -49,9 +49,7 @@ private:
 	double testSpotSize;
 	double initialStep;
     double getTotalStandardDeviation();
-	int expectedSpots;
 	int searchSize;
-    static bool lowIntensityPenalty;
 	double maxResolution;
 	MtzManager *reference;
 	void calculateNearbyMillers();
@@ -240,16 +238,6 @@ public:
 	const vector<Spot *>& getSpots() const
 	{
 		return spots;
-	}
-
-	int getExpectedSpots() const
-	{
-		return expectedSpots;
-	}
-
-	void setExpectedSpots(int expectedSpots)
-	{
-		this->expectedSpots = expectedSpots;
 	}
 
 	const vector<vector<double> >& getSolutions() const

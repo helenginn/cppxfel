@@ -1401,7 +1401,7 @@ double Detector::distanceFromSample()
 
 void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *nudgeStep, double *interNudge)
 {
-    double expectedPixels = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.5);
+    double expectedPixels = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.02);
 
     vec midpoint = midPointOffsetFromParent();
     double distance = length_of_vector(midpoint);

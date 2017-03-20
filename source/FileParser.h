@@ -15,11 +15,16 @@
 class MtzRefiner;
 typedef std::map<std::string, int> CodeMap;
 
+typedef std::map<std::string, std::vector<std::string> > CategoryMap;
+typedef std::map<std::string, CategoryMap > CategoryTree;
+
+
 class FileParser: public LoggableObject
 {
 protected:
     static ParserMap parserMap;
 	static ParametersMap parameters;
+    static CategoryTree categoryTree;
     static std::map<std::string, std::string> deprecatedList;
     static std::map<std::string, std::string> helpMap;
     static std::map<std::string, CodeMap> codeMaps;
@@ -46,6 +51,7 @@ protected:
 	std::string filename;
     void generateCodeList();
     void generateHelpList();
+    void generateCategories();
     void generateFunctionList();
     void generateDeprecatedList();
 	ParserFunction splitLine(std::string line, std::string &command, std::string &rest);

@@ -29,7 +29,6 @@
 #define ANGLE_TOLERANCE 0.0001
 #define SPOT_DISTANCE_TOLERANCE 5
 
-bool IOMRefiner::lowIntensityPenalty = false;
 
 IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
 {
@@ -92,8 +91,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     bestLRot = 0;
     lastTotal = 0;
     lastStdev = 0;
-    expectedSpots = FileParser::getKey("EXPECTED_SPOTS", 30);
-    lowIntensityPenalty = FileParser::getKey("LOW_INTENSITY_PENALTY", false);
     this->matrix = matrix;
     unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
@@ -196,10 +193,6 @@ void IOMRefiner::getWavelengthHistogram(vector<double> &wavelengths,
             if (strong)
             {
                 frequency += weight;
-            }
-            else if (lowIntensityPenalty)
-            {
-                frequency -= weight / 4;
             }
             
             if (frequency < 0)

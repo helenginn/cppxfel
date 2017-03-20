@@ -1568,14 +1568,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         filterSpotVectors();
     }
     
-    bool scramble = FileParser::getKey("SCRAMBLE_SPOT_VECTORS", true);
-    
-    if (scramble)
-    {
-        std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
-        
-       // std::random_shuffle(spotVectors.begin(), spotVectors.end());
-    }
+    std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
     
     
     logged << "(" << filename << ") " << spotCount() << " spots produced " << spotVectorCount() << " spot vectors." << std::endl;
@@ -1768,7 +1761,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     }
     else
     {
-        logged << "(" << getFilename() << ") Enough spots are explained (" << *spotsRemoved << " vs  " << minimumSpotsExplained << ")" << std::endl;
+        logged << "(" << getFilename() << ") Enough spots are explained (" << *spotsRemoved << " vs  " << minSpotsForImage << ")" << std::endl;
         sendLog();
         
     }

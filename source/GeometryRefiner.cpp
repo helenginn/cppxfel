@@ -655,7 +655,7 @@ void GeometryRefiner::nudgeZGridSearch(DetectorPtr detector)
 {
     int num = 150;
     
-    double step = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.5);
+    double step = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.02);
     
     double confidence = 2 * num + 1;
     
