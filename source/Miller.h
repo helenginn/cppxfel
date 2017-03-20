@@ -164,7 +164,7 @@ public:
     
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
-	void positionOnDetector(int *x = NULL, int *y = NULL, bool search = true);
+	void positionOnDetector(double *x = NULL, double *y = NULL, bool search = true);
     void recalculateBetterPartiality();
     
     void setHorizontalPolarisationFactor(double newFactor);

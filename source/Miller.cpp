@@ -1057,7 +1057,7 @@ double Miller::getPredictedWavelength()
     }
 }
 
-void Miller::positionOnDetector(int *x, int *y, bool shouldSearch)
+void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
 {
     
     bool even = false;
@@ -1089,8 +1089,8 @@ void Miller::positionOnDetector(int *x, int *y, bool shouldSearch)
     lastX = xSpotPred;
     lastY = ySpotPred;
     
-    int xInt = xSpotPred;
-    int yInt = ySpotPred;
+    double xVal = xSpotPred;
+    double yVal = ySpotPred;
     
     bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0));
     
@@ -1103,20 +1103,23 @@ void Miller::positionOnDetector(int *x, int *y, bool shouldSearch)
             search = getIOMRefiner()->getSearchSize();
         }
         
-        getImage()->focusOnAverageMax(&xInt, &yInt, search, peakSize, even);
+        if (search > 0)
+        {
+            getImage()->focusOnAverageMax(&xVal, &yVal, search, peakSize, even);
+        }
         
-        correctedX = xInt;
-        correctedY = yInt;
+        correctedX = xVal;
+        correctedY = yVal;
     }
     else
     {
-        xInt = correctedX;
-        yInt = correctedY;
+        xVal = correctedX;
+        yVal = correctedY;
     }
     
     vec cross = ray;
     
-    shift = std::make_pair(xInt + 0.5 - lastX, yInt + 0.5 - lastY);
+    shift = std::make_pair(xVal - lastX, yVal - lastY);
     detector->rearrangeCoord(&shift);
     
     scale_vector_to_distance(&cross, 1);
@@ -1149,7 +1152,7 @@ void Miller::positionOnDetector(int *x, int *y, bool shouldSearch)
 
 vec Miller::getShiftedRay()
 {
-    Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX + 0.5, correctedY + 0.5, &shiftedRay);
+    Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
     
     return shiftedRay;
 }
@@ -1185,8 +1188,8 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
         shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
     }
     
-    int x = 0;
-    int y = 0;
+    double x = 0;
+    double y = 0;
     
     positionOnDetector(&x, &y);
     
@@ -1194,6 +1197,12 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
     {
         rawIntensity = nan(" ");
         return;
+    }
+    
+    if (is(-60, 2, -16))
+    {
+        logged << "Predicted x, y = " << x << ", " << y << std::endl;
+        sendLog();
     }
     
     rawIntensity = getImage()->intensityAt(x, y, shoebox, &countingSigma, 0);
@@ -1424,8 +1433,8 @@ void Miller::setDetector(DetectorPtr newD)
 
 bool Miller::is(int _h, int _k, int _l)
 {
-    long test = Reflection::indexForReflection(_h, _k, _l, this->getParentReflection()->getSpaceGroup());
-    long me = Reflection::indexForReflection(h, k, l, this->getParentReflection()->getSpaceGroup());
+    long test = Reflection::indexForReflection(_h, _k, _l, Reflection::getSpaceGroup());
+    long me = Reflection::indexForReflection(h, k, l, Reflection::getSpaceGroup());
     
     return (test == me);
 }

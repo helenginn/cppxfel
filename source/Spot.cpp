@@ -82,8 +82,8 @@ bool Spot::isAcceptable(ImagePtr image)
 
 double Spot::focusOnNearbySpot(double maxShift, double trialX, double trialY, int round)
 {
-    int focusedX = trialX;
-    int focusedY = trialY;
+    double focusedX = trialX;
+    double focusedY = trialY;
     
     if (maxShift > 0)
     {

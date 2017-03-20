@@ -475,7 +475,7 @@ int Image::valueAt(int x, int y)
     return rawValue * panelGain;
 }
 
-void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bool even)
+void Image::focusOnAverageMax(double *x, double *y, int tolerance1, int tolerance2, bool even)
 {
     int maxValue = 0;
     int newX = *x;
@@ -501,8 +501,8 @@ void Image::focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2, bo
         }
     }
     
-    *x = newX;
-    *y = newY;
+    *x = (double)newX + 0.5;
+    *y = (double)newY + 0.5;
 }
 
 Mask Image::flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
@@ -822,7 +822,7 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, floa
     return signalOnly;
 }
 
-double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *error)
+double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, float *error)
 {
     int centreX = 0;
     int centreY = 0;
@@ -840,22 +840,41 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *
     int background = 0;
     int backNum = 0;
     
+    int rejects = 0;
+    
     for (int i = 0; i < slowSide; i++)
     {
-        int panelPixelX = (i - centreX) + x;
+        double shoeX = i;
+        double panelPixelX = (shoeX - centreX) + x;
+        
+        if (shoebox->isEven())
+        {
+            panelPixelX += 0.5;
+        }
         
         for (int j = 0; j < fastSide; j++)
         {
-            int panelPixelY = (j - centreY) + y;
+            double shoeY = j;
+            double panelPixelY = (shoeY - centreY) + y;
             
-            double value = valueAt(panelPixelX, panelPixelY);
+            if (shoebox->isEven())
+            {
+                panelPixelY += 0.5;
+            }
             
             Mask flag = flagAtShoeboxIndex(shoebox, i, j);
             
             if (!accepted(panelPixelX, panelPixelY))
             {
-                return std::nan(" ");
+                rejects++;
+                
+                if (flag == MaskForeground || rejects > 4)
+                {
+                    return std::nan(" ");
+                }
             }
+            
+            double value = valueAt(panelPixelX, panelPixelY);
             
             if (flag == MaskForeground)
             {
@@ -891,7 +910,7 @@ double Image::integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *
     return intensity;
 }
 
-double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, float *error)
+double Image::integrateWithShoebox(double x, double y, ShoeboxPtr shoebox, float *error)
 {
     if (!fitBackgroundAsPlane)
     {
@@ -905,10 +924,12 @@ double Image::integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, float *erro
     }
 }
 
-double Image::intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int tolerance)
+double Image::intensityAt(double x, double y, ShoeboxPtr shoebox, float *error, int tolerance)
 {
-    int x1 = x;
-    int y1 = y;
+    double x1 = x;
+    double y1 = y;
+    
+    if (error )
     
     if (tolerance > 0)
     {

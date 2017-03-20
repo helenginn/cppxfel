@@ -1078,8 +1078,8 @@ void IOMRefiner::fakeSpots()
         
         if (millers[i]->getPartiality() > partialCutoff)
         {
-            int x = 0;
-            int y = 0;
+            double x = 0;
+            double y = 0;
             millers[i]->positionOnDetector(&x, &y);
             vec intersection;
             double xSpot = 0;

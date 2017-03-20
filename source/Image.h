@@ -86,8 +86,8 @@ private:
 
 	Mask flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
     double integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, float *error);
-    double integrateSimpleSummation(int x, int y, ShoeboxPtr shoebox, float *error);
-	double integrateWithShoebox(int x, int y, ShoeboxPtr shoebox, float *error);
+    double integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, float *error);
+	double integrateWithShoebox(double x, double y, ShoeboxPtr shoebox, float *error);
 	double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
     IndexingSolutionStatus testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
     IndexingSolutionPtr biggestFailedSolution;
@@ -135,7 +135,7 @@ public:
 	Image(std::string filename = "", double wavelength = 0,
 			double distance = 0);
 	void focusOnSpot(int *x, int *y, int tolerance1, int tolerance2);
-	void focusOnAverageMax(int *x, int *y, int tolerance1, int tolerance2 = 1, bool even = false);
+	void focusOnAverageMax(double *x, double *y, int tolerance1, int tolerance2 = 1, bool even = false);
     void dropImage();
     void newImage();
 	virtual ~Image();
@@ -212,7 +212,7 @@ public:
     int rawValueAt(int x, int y);
     void addValueAt(int x, int y, int addedValue);
 	bool accepted(int x, int y);
-	double intensityAt(int x, int y, ShoeboxPtr shoebox, float *error, int tolerance = 0);
+	double intensityAt(double x, double y, ShoeboxPtr shoebox, float *error, int tolerance = 0);
 
 	void refineIndexing(MtzManager *reference);
 	void refineOrientations();
