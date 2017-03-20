@@ -105,10 +105,7 @@ public:
     int getK();
     int getL();
     
-    bool is(int _h, int _k, int _l)
-    {
-        return (h == _h && k == _k && l == _l);
-    }
+    bool is(int _h, int _k, int _l);
     
     static void setupStaticVariables();
     vec hklVector(bool shouldFlip = true);

@@ -339,6 +339,7 @@ void FileParser::generateDeprecatedList()
     deprecatedList["DO_NOT_REJECT_REFLECTIONS"] = "This option was badly worded. Please change this to REJECT_OVERLAPPING_REFLECTIONS (setting may need swapping over - default is now ON).";
     deprecatedList["PANEL_LIST"] = "This option has been deprecated as the panels definitions were too basic. This can now be specified under DETECTOR_LIST and using GEOMETRY_FORMAT panel_list. However it is highly recommended that you switch to CrystFEL or ideally cppxfel format.";
     deprecatedList["FREE_MILLER_LIST"] = "This option never worked properly and has been disabled for the time being.";
+    deprecatedList["RECALCULATE_SIGMA"] = "This option has been removed. The sigmas are recalculated automatically and stored in the CSIGI column of the MTZ file.";
 }
 
 void FileParser::generateCodeList()
@@ -661,7 +662,6 @@ void FileParser::generateFunctionList()
     parserMap["NEW_MATRIX_LIST"] = simpleString;
     
     parserMap["RECALCULATE_WAVELENGTHS"] = simpleBool;
-    parserMap["RECALCULATE_SIGMA"] = simpleBool;
     parserMap["MERGE_ANOMALOUS"] = simpleBool;
     parserMap["SCALING_STRATEGY"] = simpleInt;
 	parserMap["MINIMUM_REFLECTION_CUTOFF"] = simpleInt;

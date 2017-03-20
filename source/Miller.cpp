@@ -501,7 +501,7 @@ double Miller::scaleForScaleAndBFactor(double scaleFactor, double bFactor,
 
 double Miller::intensity(bool withCutoff)
 {
-    if ((this->accepted() && withCutoff) || !withCutoff)
+    if (this->accepted())
     {
         double modifier = scale;
         double bFacScale = getBFactorScale();
@@ -509,13 +509,13 @@ double Miller::intensity(bool withCutoff)
         modifier /= bFacScale;
         modifier /= correctingPolarisation ? getPolarisationCorrection() : 1;
         
-        if (model == PartialityModelScaled)
+        if (model != PartialityModelBinary)
         {
             modifier /= partiality;
         }
         else if (model == PartialityModelBinary)
         {
-            modifier = (partiality < partialCutoff) ? 0 : modifier;
+            modifier *= (partiality < partialCutoff) ? 0 : 1;
         }
         
         if (partiality == 0)
@@ -543,18 +543,11 @@ void Miller::makeScalesPermanent()
 }
 
 
-double Miller::getSigma(void)
+double Miller::getSigma()
 {
     // bigger sigma - larger error
     
-    double correction = scale;
-    /*
-     double bFactorScale = getBFactorScale();
-     correction /= bFactorScale;
-     
-     if (bFactorScale == 0) correction = 0;*/
-    
-    return sigma * correction;
+    return sigma;
 }
 
 double Miller::getPartiality()
@@ -642,31 +635,11 @@ double Miller::getWeight(bool cutoff, WeightType weighting)
         return 0;
     }
     
-    double weight = 1;
+    double weight = this->getSigma();
     double partiality = this->getPartiality();
+    double scale = this->getScale();
     
-    if (weighting == WeightTypePartiality
-        || weighting == WeightTypePartialityCorrelation
-        || weighting == WeightTypePartialitySigma)
-    {
-        weight = partiality;
-    }
-    
-    if (weighting == WeightTypePartialitySigma)
-    {
-        double sigma = this->getSigma();
-        
-        if (sigma > 0)
-            weight /= sigma;
-    }
-    
-    if (weighting == WeightTypeISigI)
-    {
-        double intensity = this->getRawIntensity();
-        double sigma = this->getSigma();
-        
-        weight = intensity / sigma;
-    }
+    weight = partiality / scale;
     
     weight *= getBFactorScale();
     
@@ -1447,4 +1420,12 @@ void Miller::setDetector(DetectorPtr newD)
     {
         lastDetector = newD;
     }
+}
+
+bool Miller::is(int _h, int _k, int _l)
+{
+    long test = Reflection::indexForReflection(_h, _k, _l, this->getParentReflection()->getSpaceGroup());
+    long me = Reflection::indexForReflection(h, k, l, this->getParentReflection()->getSpaceGroup());
+    
+    return (test == me);
 }

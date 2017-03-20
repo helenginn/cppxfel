@@ -1758,7 +1758,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     
     MtzPtr mtz = refiner->newMtz(lastRefiner, true);
     *spotsRemoved = mtz->removeStrongSpots(&spots, false);
-    int minSpotsForImage = std::min(minimumSpotsExplained, (int)(spotCount() * 0.8));
+    int minSpotsForImage = std::min(minimumSpotsExplained, (int)(spotCount() * 0.5));
     
     if (*spotsRemoved < minSpotsForImage)
     {

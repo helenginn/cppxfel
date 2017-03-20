@@ -33,8 +33,8 @@ void Shoebox::centre(int *centreX, int *centreY)
     int slowSide = 0; int fastSide = 0;
     sideLengths(&slowSide, &fastSide);
     
-    *centreY = (slowSide % 2 == 0) ? (slowSide / 2 - 1) : (slowSide - 1) / 2;
-    *centreX = (fastSide % 2 == 0) ? (fastSide / 2 - 1) : (fastSide - 1) / 2;
+    *centreY = (slowSide % 2 == 0) ? slowSide / 2 : (slowSide - 1) / 2;
+    *centreX = (fastSide % 2 == 0) ? fastSide / 2 : (fastSide - 1) / 2;
 }
 
 void Shoebox::sideLengths(int *slowSide, int *fastSide)

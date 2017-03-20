@@ -14,10 +14,9 @@
 #include "parameters.h"
 #include "Logger.h"
 
-class MtzGrouper
+class MtzGrouper : public LoggableObject
 {
 private:
-    std::ostringstream logged;
 	double correlationThreshold;
 	ScalingType scalingType;
 	bool excludeWorst;
@@ -55,8 +54,6 @@ public:
 	void writeAnomalousMtz(MtzPtr *positive, MtzPtr *negative,
 			std::string filename);
     
-    void sendLog(LogLevel priority = LogLevelNormal);
-
 	double getCorrelationThreshold() const
 	{
 		return correlationThreshold;

@@ -558,7 +558,6 @@ double Reflection::meanSigma(bool friedel)
 double Reflection::meanWeight(bool withCutoff)
 {
     int num = (int)millerCount();
-    int count = 0;
     
     double total_weight = 0;
     
@@ -566,14 +565,11 @@ double Reflection::meanWeight(bool withCutoff)
     {
         MillerPtr miller = millers[i];
         
-        if ((miller->accepted() && withCutoff) || !withCutoff)
+        if (miller->accepted())
         {
-            total_weight += miller->getWeight(withCutoff);
-            count++;
+            total_weight += miller->getWeight();
         }
     }
-    
-    total_weight /= count;
     
     return total_weight;
 }
@@ -836,9 +832,10 @@ void Reflection::medianMerge(double *intensity, double *sigma, int *rejected, si
 }
 
 
-void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, signed char friedel)
+void Reflection::liteMerge(double *intensity, double *countingSigma, double *sigma, int *rejected, signed char friedel)
 {
     std::vector<double> intensities, weights;
+    double totalWeight = 0;
     
     if (rejected != NULL)
     {
@@ -857,17 +854,29 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
         
         intensities.push_back(liteMillers[i].intensity);
         weights.push_back(liteMillers[i].weight);
+        totalWeight += liteMillers[i].weight;
+        
+        int isSpecial = miller(0)->is(2, 3, 5);
+        isSpecial = 0;
+    
+        if (isSpecial)
+        {
+            std::ostringstream logged;
+            logged << " MILLER " << liteMillers[i].intensity << " " << liteMillers[i].weight << std::endl;
+            Logger::log(logged);
+        }
     }
     
     double mean = weighted_mean(&intensities, &weights);
     double stdev = standard_deviation(&intensities, NULL, mean);
-    
+
     bool shouldRejectLocal = (rejected != NULL) * shouldReject;
     
     if (shouldRejectLocal && liteMillers.size() >= MIN_MILLER_COUNT)
     {
         intensities.clear();
         weights.clear();
+        totalWeight = 0;
         
         int minIntensity = mean - stdev * rejectSigma;
         int maxIntensity = mean + stdev * rejectSigma;
@@ -892,6 +901,7 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
             
             intensities.push_back(testIntensity);
             weights.push_back(liteMillers[i].weight);
+            totalWeight += liteMillers[i].weight;
         }
 
         mean = weighted_mean(&intensities, &weights);
@@ -906,7 +916,8 @@ void Reflection::liteMerge(double *intensity, double *sigma, int *rejected, sign
     }
     
     *intensity = mean;
-    *sigma = stdev;
+    *countingSigma = stdev;
+    *sigma = totalWeight;
 }
 
 void Reflection::clearLiteMillers()
@@ -920,24 +931,24 @@ void Reflection::merge(WeightType weighting, double *intensity, double *sigma,
 {
     std::ostringstream logged;
     
-    logged << "Rejection info:" << std::endl;
-    
-    int isSpecial = (getReflId() == reflectionIdForCoordinates(5, 10, 7));
+    int isSpecial = miller(0)->is(-3, -2, -5);
     isSpecial = 0;
+    
+    if (isSpecial)
+    {
+        for (int i = 0; i < millerCount(); i++)
+        {
+            logged << miller(i)->getH() << " " << miller(i)->getK() << " " << miller(i)->getL() << " " << miller(i)->getMtzParent()->getFilename() << " " << miller(i)->intensity() << " " << miller(i)->getRawestIntensity() << " " << miller(i)->getScale() << " " << miller(i)->getPartiality() << " " << miller(i)->getWeight() << std::endl;
+        }
+        
+        Logger::log(logged);
+    }
+    
     
     if (calculateRejections)
     {
         for (int i = 0; i < millerCount(); i++)
         {
-            if (isSpecial)
-            {
-                std::ostringstream aLog;
-                aLog << miller(i)->getH() << " " << miller(i)->getK() << " " << miller(i)->getL() << " " << miller(i)->getMtzParent()->getFilename() << " " << miller(i)->intensity() << " " << miller(i)->getRejectionFlags() << " " << miller(i)->getPartiality() << std::endl;
-                Logger::log(aLog);
-            }
-            
-     //       miller(i)->setRejected(false);
-            
             miller(i)->setRejected(RejectReasonMerge, false);
         }
     }
@@ -1112,16 +1123,16 @@ void Reflection::addLiteMiller(MillerPtr miller)
 {
     double intensity = miller->intensity();
     double weight = miller->getWeight();
-    /*
-    double reflId = reflectionIdForCoordinates(5, 10, 7);
+    int isSpecial = miller->is(3, 2, 5);
+    isSpecial = 0;
     
-    if (reflId == getReflId())
+    if (isSpecial)
     {
-   //     std::ostringstream logged;
-   //     logged << "5 22 7: " << intensity << ", " << weight << ", " << miller->getScale() << std::endl;
-   //     Logger::log(logged);
+        std::ostringstream logged;
+        logged << "Special: " << intensity << ", " << weight << ", " << miller->getRawestIntensity() << ", " << miller->getPartiality() << ", " << miller->getScale() << std::endl;
+        Logger::log(logged);
     }
-    */
+    
     LiteMiller liteMiller;
     liteMiller.intensity = intensity;
     miller->positiveFriedel(&(liteMiller.friedel));

@@ -32,6 +32,8 @@ void TextManager::text_malloc(png_byte **pointer, std::string text, int *width, 
         }
     }
     
+    totalWidth += squish;
+    
     *width = totalWidth;
     *height = maxHeight;
     

@@ -183,18 +183,6 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 
 	for (int i = 0; i < mtzManagers.size(); i++)
     {
-        /*int percentage = ((i * 100) / mtzManagers.size());
-        if (percentage % 5 == 0)
-        {
-            logged << percentage << "% ";
-            sendLog();
-        }
-        else
-        {
-            logged << ".";
-            sendLog();
-        }*/
-        
         MtzPtr mtz = mtzManagers[i];
 
 		double correl = mtz->getRefCorrelation();
@@ -282,9 +270,7 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 		{
             MtzManager *reference = MtzManager::getReferenceManager();
             
-			scale = mtzManagers[i]->gradientAgainstManager(
-					reference, false);
-       //     std::cout << mtzManagers[i]->getFilename() << " " << scale << std::endl;
+			scale = mtzManagers[i]->gradientAgainstManager(reference, true);
 		}
 		else if (scalingType == ScalingTypeBFactor)
 		{
@@ -403,6 +389,13 @@ void MtzGrouper::merge(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 {
 	*mergeMtz = MtzPtr(new MtzManager());
     
+    if (!mtzManagers.size())
+    {
+        logged << "No MTZs have been included in the merge. Giving up." << std::endl;
+        sendLogAndExit();
+    }
+    
+    
     std::string filename = std::string("merged_") + (all ? std::string("all_") : std::string("half_")) + (firstHalf ? std::string("0") : std::string("1"));
     
 	(*mergeMtz)->setFilename(filename);
@@ -518,18 +511,17 @@ int MtzGrouper::groupMillers(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
 
 		for (int j = 0; j < mtzManagers[i]->reflectionCount(); j++)
 		{
-            if (fastMerge && mtzManagers[i]->reflection(j)->acceptedCount() == 0 && mtzManagers[i]->reflection(j)->rejectCount() == 0)
+            ReflectionPtr origRefl = mtzManagers[i]->reflection(j);
+            
+            if (fastMerge && origRefl->acceptedCount() == 0 && origRefl->rejectCount() == 0)
                 continue;
             
-            if (mtzManagers[i]->reflection(j)->getResolution() > cutoffRes)
+            if (origRefl->getResolution() > cutoffRes)
 				continue;
             
-			long unsigned int refl_id = mtzManagers[i]->reflection(j)->getReflId();
-
-			ReflectionPtr reflection;
-			(*mergeMtz)->findReflectionWithId(refl_id, &reflection);
-
-			if (!reflection)
+            ReflectionPtr mergeRefl = (*mergeMtz)->findReflectionWithId(origRefl);
+            
+			if (!mergeRefl)
 			{
 				ReflectionPtr newReflection = mtzManagers[i]->reflection(j)->copy(false);
 				(*mergeMtz)->addReflection(newReflection);
@@ -545,24 +537,27 @@ int MtzGrouper::groupMillers(MtzPtr *mergeMtz, MtzPtr *unmergedMtz,
                     {
                         continue;
                     }
-					reflection->addMiller(newMiller);
+                    
+					mergeRefl->addMiller(newMiller);
                 }
 			}
 		}
 	}
 
-	std::cout << "N: MTZs used in merge: " << mtzCount << std::endl;
-	std::cout << "N: Flip ratios: ";
+	logged << "N: MTZs used in merge: " << mtzCount << std::endl;
+	logged << "N: Flip ratios: ";
     
     for (std::map<int, int>::iterator it = flipCounts.begin(); it != flipCounts.end(); it++)
     {
         std::cout << flipCounts[it->first] << " ";
     }
     
-    std::cout << std::endl;
+    logged << std::endl;
     
-	std::cout << "N: Reflections used: " << (*mergeMtz)->reflectionCount() << std::endl;
+	logged << "N: Reflections used: " << (*mergeMtz)->reflectionCount() << std::endl;
 
+    sendLog();
+    
 	return mtzCount;
 }
 
@@ -641,26 +636,32 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
 	double aveStdErr = 0;
 	int aveStdErrCount = 0;
     
-    bool recalculateSigma = FileParser::getKey("RECALCULATE_SIGMA", false);
     bool minimumMultiplicity = FileParser::getKey("MINIMUM_MULTIPLICITY", 0);
     
     for (int i = (int)(*mergeMtz)->reflectionCount() - 1; i >= 0; i--)
 	{
 		ReflectionPtr reflection = (*mergeMtz)->reflection(i);
         double addedRejects = reflection->rejectCount();
+        bool allRejected = true;
         
-        for (int j = 0; j < (*mergeMtz)->reflection(i)->millerCount(); j++)
+        for (int j = 0; j < reflection->millerCount(); j++)
         {
-            MillerPtr miller = (*mergeMtz)->reflection(i)->miller(j);
+            MillerPtr miller = reflection->miller(j);
             
             if (!miller->isRejected())
             {
-                continue;
+                allRejected = false;
             }
-            
-       //     logged << miller->getH() << ", " << miller->getK() << ", " << miller->getL() << ", from " << miller->getMtzParent()->getFilename() << std::endl;
-       //     sendLog();
-
+            else
+            {
+                rejectCount += addedRejects;
+            }
+        }
+        
+        if (allRejected)
+        {
+            (*mergeMtz)->removeReflection(i);
+            continue;
         }
         
         int accepted = reflection->acceptedCount();
@@ -668,12 +669,9 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
         if (accepted <= minimumMultiplicity || accepted == 0)
         {
             (*mergeMtz)->removeReflection(i);
-            rejectCount += addedRejects;
-            i--;
             continue;
         }
         
-        sendLog();
         double totalIntensity = 0;
 		double totalStdev = 0;
 
@@ -689,33 +687,30 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
 
 		}
 
+        double countingSigma = 0;
         double totalSigma = 0;
         
-        if (!recalculateSigma)
+        totalSigma = reflection->meanWeight();
+        
+        countingSigma = reflection->mergeSigma();
+        
+        if (countingSigma == 0)
         {
-            totalSigma = reflection->meanSigma() / reflection->meanPartiality();
+            countingSigma = sqrt(fabs(totalIntensity));
         }
-        else
+        else if (std::isnan(countingSigma))
         {
-            totalSigma = reflection->mergeSigma();
-            
-            if (totalSigma == 0)
-            {
-                totalSigma = sqrt(fabs(totalIntensity));
-            }
-            else if (std::isnan(totalSigma))
-            {
-                totalSigma = sqrt(fabs(totalIntensity)); // anything reasonable
-            }
-            
-            if (std::isnan(totalIntensity)) // give up
-            {
-                continue;
-            }
+            countingSigma = sqrt(fabs(totalIntensity)); // anything reasonable
         }
         
+        if (std::isnan(totalIntensity)) // give up
+        {
+            (*mergeMtz)->removeReflection(i);
+            continue;
+        }
+    
 		millerCount += reflection->acceptedCount();
-        
+    
         reflectionCount++;
 
 		int h, k, l = 0;
@@ -727,10 +722,12 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
 
         if (totalSigma != totalSigma || totalIntensity != totalIntensity)
         {
+            (*mergeMtz)->removeReflection(i);
             continue;
         }
         
 		newMiller->setData(totalIntensity, totalSigma, 1, 0);
+        newMiller->setCountingSigma(countingSigma);
 		newMiller->setParent((*mergeMtz)->reflection(i));
 		(*mergeMtz)->reflection(i)->calculateResolution(&**mergeMtz);
 
@@ -743,11 +740,12 @@ void MtzGrouper::mergeMillers(MtzPtr *mergeMtz, bool reject, int mtzCount)
 	double multiplicity = (double) millerCount / (double) reflectionCount;
     double aveRejection = (double) rejectCount;// / (double) mtzCount;
 
-	std::cout << "N: Total MTZs: " << mtzManagers.size() << std::endl;
-	std::cout << "N: Multiplicity before merge: " << multiplicity << std::endl;
-	std::cout << "N: Rejects per image: " << aveRejection << std::endl;
-	std::cout << "N: Average error per reflection: " << aveStdErr << std::endl;
-
+	logged << "N: Total MTZs: " << mtzManagers.size() << std::endl;
+	logged << "N: Multiplicity before merge: " << multiplicity << std::endl;
+	logged << "N: Rejects per image: " << aveRejection << std::endl;
+	logged << "N: Average error per reflection: " << aveStdErr << std::endl;
+    sendLog();
+    
 	(*mergeMtz)->insertionSortReflections();
 }
 
@@ -907,12 +905,5 @@ void MtzGrouper::unflipMtzs()
 	{
         mtzManagers[i]->resetFlip();
 	}
-}
-
-void MtzGrouper::sendLog(LogLevel priority)
-{
-    Logger::mainLogger->addStream(&logged, priority);
-    logged.str("");
-    logged.clear();
 }
 

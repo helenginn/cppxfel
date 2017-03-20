@@ -126,8 +126,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 	vector<ReflectionPtr> reflections1;
 	vector<ReflectionPtr> reflections2;
 	int num = 0;
-    CSV csv = CSV(0);
-
+    
 	shot1->findCommonReflections(shot2, reflections1, reflections2, &num, true);
 
     if (reflections1.size() <= 2)
@@ -151,7 +150,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
         if (!silent)
             logged << "h k l\tFirst intensity\tSecond intensity\tResolution" << std::endl;
         
-        CSVPtr csv = CSVPtr (new CSV(6, "h", "k", "l", "First intensity", "Second intensity", "Resolution"));
+        CSVPtr csv = CSVPtr(new CSV(6, "h", "k", "l", "First intensity", "Second intensity", "Resolution"));
         
 		for (int i = 0; i < num; i++)
 		{
@@ -163,8 +162,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
                 continue;
 
 			double int1 = reflections1[i]->meanIntensity();
-			std::string filename = shot1->getFilename();
-			double int2 = reflections2[i]->meanIntensityWithExclusion(&filename);
+			double int2 = reflections2[i]->meanIntensity();
 
 			if (int1 != int1 || int2 != int2)
 				continue;
@@ -174,7 +172,7 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
             
             double resolution = 1 / reflections1[i]->getResolution();
 
-            csv->addEntry(0, (double)h, (double)k, (double)l, int1, int2, resolution);
+            csv->addEntry(6, (double)h, (double)k, (double)l, int1, int2, resolution);
 			
             if (!silent)
                 logged << h << " " << k << " " << l << "\t" << int1 << "\t" << int2 << "\t" << resolution << std::endl;

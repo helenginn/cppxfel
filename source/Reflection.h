@@ -88,7 +88,7 @@ public:
 
 	void merge(WeightType weighting, double *intensity, double *sigma, bool calculateRejections);
     void medianMerge(double *intensity, double *sigma, int *rejected, signed char friedel);
-    void liteMerge(double *intensity, double *sigma, int *rejected, signed char friedel = -1);
+    void liteMerge(double *intensity, double *countingSigma, double *sigma, int *rejected, signed char friedel = -1);
     void clearLiteMillers();
 	double standardDeviation(WeightType weighting);
     

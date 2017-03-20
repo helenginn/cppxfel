@@ -1226,7 +1226,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
 }
 
 double MtzManager::gradientAgainstManager(MtzManager *otherManager,
-                                          bool withCutoff, double lowRes, double highRes)
+                                          bool info, double lowRes, double highRes)
 {
     vector<ReflectionPtr> reflections1;
     vector<ReflectionPtr> reflections2;
@@ -1259,7 +1259,7 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
             
             double int1 = miller->intensity();
             double int2 = reflections2[i]->meanIntensity();
-            double weight = miller->getPartiality();// * miller->getCountingSigma();
+            double weight = miller->getPartiality();
             
             if ((int1 != int1) || (int2 != int2) || (weight != weight))
                 continue;

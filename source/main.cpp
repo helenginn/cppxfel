@@ -295,7 +295,9 @@ void new_main(int argc, char *argv[])
 		delete mtz1;
 		delete mtz2;
 
-		exit(1);
+        std::ostringstream logged;
+        logged << "Done" << std::endl;
+        LoggableObject::staticLogAndExit(logged, "DONE");
 	}
 
 	if (strcmp(argv[1], "-inv") == 0)

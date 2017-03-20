@@ -424,7 +424,7 @@ void MtzMerger::scaleIndividual(MtzPtr mtz)
     {
         MtzManager *reference = MtzManager::getReferenceManager();
         
-        scale = mtz->gradientAgainstManager(reference);
+        scale = mtz->gradientAgainstManager(reference, true);
     }
     else if (scalingType == ScalingTypeBFactor)
     {
@@ -666,6 +666,7 @@ void MtzMerger::mergeMillersThread(int offset)
     {
         double intensity = 0;
         double sigma = 0;
+        double countingSigma = 0;
         int rejected = 0;
         
         ReflectionPtr refl = mergedMtz->reflection(i);
@@ -679,11 +680,11 @@ void MtzMerger::mergeMillersThread(int offset)
         
         if (!mergeMedian)
         {
-            refl->liteMerge(&intensity, &sigma, rejPtr, friedel);
+            refl->liteMerge(&intensity, &countingSigma, &sigma, rejPtr, friedel);
         }
         else
         {
-            refl->medianMerge(&intensity, &sigma, rejPtr, friedel);
+            refl->medianMerge(&intensity, &countingSigma, rejPtr, friedel);
         }
         
         float intFloat = (float)intensity;
@@ -703,8 +704,8 @@ void MtzMerger::mergeMillersThread(int offset)
         MillerPtr miller = refl->miller(0);
         
         miller->setRawIntensity(intensity);
-        miller->setCountingSigma(sigma);
-        miller->setSigma(1);
+        miller->setCountingSigma(countingSigma);
+        miller->setSigma(sigma);
         miller->setPartiality(1);
         
         refl->clearLiteMillers();
@@ -862,6 +863,9 @@ MtzMerger::MtzMerger()
 
 void MtzMerger::merge()
 {
+    double refScale = 1000 / MtzManager::getReferenceManager()->averageIntensity();
+    MtzManager::getReferenceManager()->applyScaleFactor(refScale);
+    
     mergedMtz = MtzPtr(new MtzManager());
     writeParameterCSV();
     
