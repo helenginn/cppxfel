@@ -35,6 +35,7 @@ std::vector<DetectorPtr> Image::perPixelDetectors;
 vector<signed char> Image::generalMask;
 ImagePtr Image::_imageMask;
 std::mutex Image::setupMutex;
+bool Image::interpolate = false;
 
 Image::Image(std::string filename, double wavelength,
              double distance)
@@ -46,6 +47,14 @@ Image::Image(std::string filename, double wavelength,
     
     beamX = INT_MAX;
     beamY = INT_MAX;
+    
+    int mss = FileParser::getKey("METROLOGY_SEARCH_SIZE", -1);
+    
+    if (mss == 0)
+    {
+        interpolate = true;
+    }
+    
     
     spotsFile = "";
     highScore = 0;
@@ -431,6 +440,63 @@ int Image::rawValueAt(int x, int y)
     }
     
     return (useShortData ? shortData[position] : data[position]);
+}
+
+double Image::interpolateAt(double x, double y)
+{
+    int leftX = x;
+    int leftY = y;
+    int rightX = leftX + 1;
+    int rightY = leftY + 1;
+
+    double leftPropX = (double)rightX - x;
+    double rightPropX = x - (double)leftX;
+    
+    double leftPropY = (double)rightY - y;
+    double rightPropY = y - (double)leftY;
+    
+    double topLeftSq = leftPropX * leftPropY;
+    double topRightSq = rightPropX * leftPropY;
+    double bottomLeftSq = leftPropX * rightPropY;
+    double bottomRightSq = rightPropX * rightPropY;
+    
+    double total = 1;
+    
+    if (!accepted(leftX, leftY))
+    {
+        total -= topLeftSq;
+        topLeftSq = 0;
+    }
+    
+    if (!accepted(leftX, rightY))
+    {
+        total -= bottomLeftSq;
+        bottomLeftSq = 0;
+    }
+
+    if (!accepted(rightX, leftY))
+    {
+        total -= topRightSq;
+        topRightSq = 0;
+    }
+    
+    if (!accepted(rightX, rightY))
+    {
+        total -= bottomRightSq;
+        bottomRightSq = 0;
+    }
+    
+    double topLeftValue = valueAt(leftX, leftY);
+    double topRightValue = valueAt(rightX, leftY);
+    double bottomLeftValue = valueAt(leftX, rightY);
+    double bottomRightValue = valueAt(rightX, rightY);
+    
+    double weighted = topLeftSq * topLeftValue;
+    weighted += topRightSq * topRightValue;
+    weighted += bottomRightSq * bottomRightValue;
+    weighted += bottomLeftSq * bottomLeftValue;
+    
+    return weighted / total;
 }
 
 int Image::valueAt(int x, int y)
@@ -874,7 +940,16 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
                 }
             }
             
-            double value = valueAt(panelPixelX, panelPixelY);
+            double value = 0;
+            
+            if (!interpolate)
+            {
+                value = valueAt(panelPixelX, panelPixelY);
+            }
+            else
+            {
+                value = interpolateAt(panelPixelX, panelPixelY);
+            }
             
             if (flag == MaskForeground)
             {

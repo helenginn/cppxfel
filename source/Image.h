@@ -43,6 +43,7 @@ private:
     int highScore;
     bool fake;
     static ImagePtr _imageMask;
+    static bool interpolate;
     
     virtual void loadImage();
     vector<IOMRefinerPtr> indexers;
@@ -209,6 +210,7 @@ public:
     }
 
 	int valueAt(int x, int y);
+    double interpolateAt(double x, double y);
     int rawValueAt(int x, int y);
     void addValueAt(int x, int y, int addedValue);
 	bool accepted(int x, int y);
