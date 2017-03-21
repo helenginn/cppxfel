@@ -1839,6 +1839,26 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         integrateMats << "wavelength " << image->getWavelength() << std::endl;
     }
     
+    if (!images.size())
+    {
+        for (int i = 0; i < mtzManagers.size(); i++)
+        {
+            std::string filename = mtzManagers[i]->getFilename();
+            filename.erase(filename.end() - 6, filename.end());
+            filename.erase(filename.begin(), filename.begin() + 4);
+            
+            integrateMats << "image " << filename << std::endl;
+            
+            MatrixPtr matrix = mtzManagers[i]->getMatrix()->copy();
+            
+            matrix->rotate(0, 0, -M_PI / 2);
+            std::string desc90 = matrix->description(true);
+            integrateMats << desc90 << std::endl;
+
+            integrateMats << "wavelength " << mtzManagers[i]->getWavelength() << std::endl;
+        }
+    }
+    
     Logger::mainLogger->addString("Written to filename set: " + filename);
     
     refineMats.close();
