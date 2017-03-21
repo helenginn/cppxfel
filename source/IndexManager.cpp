@@ -35,12 +35,6 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     interPanelDistance = 0.07;
     intraPanelDistance = 0.07;
     
-    if (spaceGroupNum == 0)
-    {
-        std::cout << "Please provide space group number in SPACE_GROUP" << std::endl;
-        exit(1);
-    }
-    
     unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
     
     if (unitCell.size() < 6)
