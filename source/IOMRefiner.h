@@ -72,6 +72,7 @@ private:
     static double hkScoreStdevWrapper(void *object);
     static double lScoreWrapper(void *object);
     double getReflectionWavelengthStdev();
+    void refineBeamParameters();
     
 public:
 	IOMRefiner(ImagePtr newImage = ImagePtr(), MatrixPtr matrix = MatrixPtr());

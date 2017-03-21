@@ -389,7 +389,7 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
             MillerPtr miller = imageRefl->miller(j);
             double wavelength = miller->getWavelength();
             
-            if (fabs(wavelength - meanWavelength) > meanWavelength * 0.025)
+            if (fabs(wavelength - meanWavelength) > meanWavelength * 0.015)
             {
                 continue;
             }
