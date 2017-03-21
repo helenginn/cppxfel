@@ -430,21 +430,6 @@ bool IndexingSolution::vectorSolutionsAreCompatible(SpotVectorPtr observedVector
             
             count++;
         }
-       /*
-        double theta, phi, psi;
-        
-        newSolution->eulerAngles(&theta, &phi, &psi);
-        
-        double thetaDiff = fabs(averageTheta - theta);
-        double phiDiff = fabs(averagePhi - phi);
-        double psiDiff = fabs(averagePsi - psi);
-        
-        bool similar = ((thetaDiff < solutionAngleSpread) && (phiDiff < solutionAngleSpread) && (psiDiff < solutionAngleSpread));
-  
-        if (!similar)
-            return false;
-        
-        count++;*/
     }
     
     return true;

@@ -991,7 +991,6 @@ void IndexManager::index()
     vector<vector<MtzPtr> > managerSubsets;
     managerSubsets.resize(maxThreads);
     nextImage = -1;
-    int maxLearnCycles = 50;
     
     for (int num = 0; num < 1; num++)
     {
@@ -1008,10 +1007,6 @@ void IndexManager::index()
     
         time_t endcputime;
         time(&endcputime);
-        
-        clock_t difference = endcputime - startcputime;
-        double seconds = difference;
-        lastTime = seconds;
         
         nextImage = -1;
     }
