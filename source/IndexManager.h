@@ -30,27 +30,18 @@ protected:
     std::vector<ImagePtr> images;
     std::vector<ImagePtr> mergeImages;
     std::vector<double> unitCell;
-    std::vector<MatrixPtr> symOperators;
     std::vector<SpotVectorPtr> goodVectors;
     MatrixPtr unitCellOnly;
     MatrixPtr unitCellMatrix;
-    MatrixPtr unitCellMatrixInverse;
-    Reflection *newReflection;
-    CSym::CCP4SPG *spaceGroup;
     DetectorWeakPtr _activeDetector;
     double interPanelDistance;
     double intraPanelDistance;
     int spaceGroupNum;
     std::vector<MtzPtr> mtzs;
-    double minimumTrustDistance;
-    double minimumTrustAngle;
-    double solutionAngleSpread;
-    double lastTime;
     double _maxFrequency;
     ImagePtr getNextImage();
     int nextImage;
     std::mutex indexMutex;
-    bool modifyParameters();
     PseudoScoreType scoreType;
     double proportionDistance;
     static double pseudoAngleScore(void *object);
@@ -63,8 +54,6 @@ protected:
     PseudoScoreWeightingAxis _axisWeighting;
     
     void updateAllSpots();
-    bool matrixSimilarToMatrix(MatrixPtr mat1, MatrixPtr mat2);
-    int indexOneImage(ImagePtr image, std::vector<MtzPtr> *mtzSubset);
     double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;
