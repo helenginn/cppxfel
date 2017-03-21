@@ -722,8 +722,6 @@ void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize
 }
 
 double Miller::calculatePartiality(double pB, double qB, double beamMean, double beamSigma, double beamExp)
-
-//double sigma, double angleFromOrigin, double beamMean, double exponent)
 {
     beamSigma *= beamMean;
     beamSigma /= 2;
@@ -772,22 +770,26 @@ double Miller::calculatePartiality(double pB, double qB, double beamMean, double
     }
     
     double integralAll = 0;
-    
- //   logged << "-----" << std::endl;
+    predictedWavelength = 0;
     
     for (int i = 0; i < sampling; i++)
     {
         double pValue = (bValue - offset) * squash;
         double evalP = std::max(0., 1 - 4 * pValue * pValue);
         double evalE = superGaussian(bValue, beamMean, beamSigma, beamExp);
-        integralAll += (evalE * evalP) * bIncrement;
-       /*
-        logged << bValue << ", " << beamMean << ", " << beamSigma << ", " << evalP << ", " << evalE << std::endl;
-        sendLog();
-        */
+        double slice = (evalE * evalP) * bIncrement;
+        integralAll += slice;
+       
+        if (individualWavelength)
+        {
+            predictedWavelength += bValue * slice;
+        }
+        
         bValue += bIncrement;
     }
-
+    
+    predictedWavelength /= integralAll;
+    
     integralAll /= integralBeam;
     
  //   logged <<  integralAll << std::endl;
