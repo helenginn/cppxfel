@@ -141,7 +141,6 @@ public:
     void newImage();
 	virtual ~Image();
 	void setUpIOMRefiner(MatrixPtr matrix);
-    std::string getBasename();
 	void addMask(int startX, int startY, int endX, int endY);
 	static void applyMaskToImages(vector<ImagePtr> images, int startX,
 			int startY, int endX, int endY);
