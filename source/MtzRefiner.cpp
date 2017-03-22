@@ -1500,7 +1500,7 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         MtzPtr manager = mtzManagers[i];
         
         // write out matrices etc.
-        std::string imgFilename = manager->filenameRoot();
+        std::string imgFilename = manager->getBasename();
         
         ImagePtr image = manager->getImagePtr();
         std::string parentName;
@@ -1536,11 +1536,11 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         {
             refineMats << "image " << prefix << imgFilename << std::endl;
             mergeMats << "image ref-" << prefix << imgFilename << std::endl;
-            refineMats << "parent " << imgFilename << std::endl;
             mergeMats << "parent " << imgFilename << std::endl;
             std::string description = matrix->description(true);
             refineMats << description << std::endl;
             mergeMats << description << std::endl;
+            refineMats << "wavelength " << image->getWavelength() << std::endl;
             
             if (hasRefined)
             {
@@ -1554,7 +1554,7 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         ImagePtr image = images[i];
         
         // write out matrices etc.
-        std::string imgFilename = image->filenameRoot();
+        std::string imgFilename = image->getBasename();
         
         integrateMats << "image " << imgFilename << std::endl;
         

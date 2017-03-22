@@ -23,9 +23,9 @@ private:
     void writeCrystalData(std::string address);
     void writeReflectionData(std::string address);
 public:
-    Hdf5Crystal(std::string filename) : MtzManager()
+    Hdf5Crystal(std::string _filename) : MtzManager()
     {
-        this->filename = filename;
+        setFilename(_filename);
         createMillerTable();
     };
     

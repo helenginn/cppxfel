@@ -199,7 +199,7 @@ double MtzManager::leastSquaresPartiality(double low, double high,
             partial.miller = imageReflection->miller(0);
             partial.partiality = imageReflection->miller(0)->getPartiality();
             partial.percentage = imageReflection->miller(0)->getRawIntensity()
-            / refReflection->meanIntensityWithExclusion(&filename);
+            / refReflection->meanIntensity();
             partial.resolution = imageReflection->getResolution();
             
             partials.push_back(partial);
@@ -523,7 +523,7 @@ void MtzManager::gridSearch(bool silent)
     
     this->sendLog(LogLevelDetailed);
     
-    logged << filename << "\t" << scoreDescription << "\t" << "\t"
+    logged << getFilename() << "\t" << scoreDescription << "\t" << "\t"
     << newerCorrel << "\t" << rSplitValue << "\t"
     << partCorrel << "\t" << bFactor << "\t" << hits << std::endl;
     
@@ -531,7 +531,7 @@ void MtzManager::gridSearch(bool silent)
     
     delete[] firstParams;
     
-    writeToFile(std::string("ref-") + filename);
+    writeToFile(std::string("ref-") + getFilename());
     writeToDat("ref-");
 }
 

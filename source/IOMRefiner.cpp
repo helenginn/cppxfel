@@ -982,7 +982,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     
     MtzPtr mtz;
     
-    std::string crystalFileName = getImage()->filenameRoot() + "_" + i_to_str(index) + ".mtz";
+    std::string crystalFileName = getImage()->getBasename() + "_" + i_to_str(index) + ".mtz";
     
     if (getImage()->getClass() == ImageClassHdf5)
     {

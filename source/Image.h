@@ -15,6 +15,7 @@
 #include "csymlib.h"
 #include "SpotVector.h"
 #include "LoggableObject.h"
+#include "hasFilename.h"
 
 typedef enum
 {
@@ -34,11 +35,10 @@ typedef enum
     IndexingSolutionBranchFailure,
 } IndexingSolutionStatus;
 
-class Image : protected LoggableObject, public boost::enable_shared_from_this<Image>
+class Image : protected LoggableObject, public hasFilename, public boost::enable_shared_from_this<Image>
 {
 private:
     int pixelCountCutoff;
-	std::string filename;
     std::vector<MtzPtr> mtzs;
     int highScore;
     bool fake;
@@ -141,7 +141,6 @@ public:
     void newImage();
 	virtual ~Image();
 	void setUpIOMRefiner(MatrixPtr matrix);
-    std::string filenameRoot();
 	void addMask(int startX, int startY, int endX, int endY);
 	static void applyMaskToImages(vector<ImagePtr> images, int startX,
 			int startY, int endX, int endY);
@@ -173,30 +172,9 @@ public:
         return _imageMask;
     }
     
-	const std::string& getFilename() const
-	{
-		return filename;
-    }
-    
     int getHighScore()
     {
         return highScore;
-    }
-
-	void setFilename(const std::string& filename)
-	{
-		this->filename = filename;
-	}
-    
-    std::string getBasename()
-    {
-        int fullStopIndex = (int)filename.rfind(".");
-        if (fullStopIndex == std::string::npos)
-            return filename;
-        
-        std::string basename = filename.substr(0, fullStopIndex);
-        
-        return basename;
     }
     
     std::string getSpotsFile()
