@@ -649,7 +649,7 @@ void MtzManager::excludeFromLogCorrelation()
         if (count >= 3)
             break;
         
-        if (it->first > 0.06)
+        if (it->first > 0.15)
         {
             imgReflections[correlationResults[it->first]]->miller(0)->setRejected(
                                                                                   RejectReasonCorrelation, true);
