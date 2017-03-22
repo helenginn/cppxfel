@@ -197,7 +197,7 @@ double MtzManager::leastSquaresPartiality(double low, double high,
             partial.miller = imageReflection->miller(0);
             partial.partiality = imageReflection->miller(0)->getPartiality();
             partial.percentage = imageReflection->miller(0)->getRawIntensity()
-            / refReflection->meanIntensityWithExclusion(&filename);
+            / refReflection->meanIntensity();
             partial.resolution = imageReflection->getResolution();
             
             partials.push_back(partial);
