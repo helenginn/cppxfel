@@ -521,7 +521,7 @@ void MtzManager::gridSearch(bool silent)
     
     this->sendLog(LogLevelDetailed);
     
-    logged << filename << "\t" << scoreDescription << "\t" << "\t"
+    logged << getFilename() << "\t" << scoreDescription << "\t" << "\t"
     << newerCorrel << "\t" << rSplitValue << "\t"
     << partCorrel << "\t" << bFactor << "\t" << hits << std::endl;
     
@@ -529,7 +529,7 @@ void MtzManager::gridSearch(bool silent)
     
     delete[] firstParams;
     
-    writeToFile(std::string("ref-") + filename);
+    writeToFile(std::string("ref-") + getFilename());
     writeToDat("ref-");
 }
 

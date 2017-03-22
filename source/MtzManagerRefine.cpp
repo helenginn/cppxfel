@@ -157,7 +157,7 @@ void MtzManager::refinePartialities()
     logged << getFilename() << "\t" << describeScoreType() << "\t\t" << refCorrelation << "\t" << rSplitValue << "\t" << refPartCorrel << "\t" << accepted() << std::endl;
     sendLog();
     
-    writeToFile(std::string("ref-") + filename);
+    writeToFile(std::string("ref-") + getFilename());
 }
 
 void MtzManager::refreshPartialities(double parameters[])
