@@ -68,8 +68,11 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
     }
     if (!cheetahManagers.size())
     {
-        logged << "You specified some hdf5 image source files but none could be found. Please check existence and location of files." << std::endl;
-        LoggableObject::staticLogAndExit(logged);
+        if (hdf5FileGlobs.size())
+        {
+            logged << "You specified some hdf5 image source files but none could be found. Please check existence and location of files." << std::endl;
+            LoggableObject::staticLogAndExit(logged);
+        }
     }
     
     Logger::mainLogger->addStream(&logged);
