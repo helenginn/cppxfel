@@ -50,12 +50,8 @@ std::string MtzManager::describeScoreType()
             return std::string("correl");
         case ScoreTypePartialityCorrelation:
             return std::string("partCC");
-        case ScoreTypePartialityLeastSquares:
-            return std::string("partLQ");
         case ScoreTypeMinimizeRSplit:
             return std::string("rfactor");
-        case ScoreTypeMinimizeRSplitLog:
-            return std::string("logR");
         case ScoreTypeCorrelationLog:
             return std::string("logCC");
         case ScoreTypeStandardDeviation:
@@ -123,57 +119,6 @@ std::string MtzManager::filenameRoot()
     return root.substr(0, root.size() - 1);
 }
 
-double MtzManager::extreme_index(MTZ *mtz, int max)
-{
-    double extreme = 0;
-    MTZCOL *col_h = MtzColLookup(mtz, "H");
-    MTZCOL *col_k = MtzColLookup(mtz, "K");
-    MTZCOL *col_l = MtzColLookup(mtz, "L");
-    
-    if (max == 0)
-    {
-        extreme = col_h->min;
-        extreme = (extreme > col_k->min) ? col_k->min : extreme;
-        extreme = (extreme > col_l->min) ? col_l->min : extreme;
-    }
-    else
-    {
-        extreme = col_h->max;
-        extreme = (extreme < col_k->max) ? col_k->max : extreme;
-        extreme = (extreme < col_l->max) ? col_l->max : extreme;
-    }
-    
-    return extreme;
-}
-
-void MtzManager::findMultiplier(MTZ *mtz, int *multiplier, int *offset)
-{
-    int hkl_min = extreme_index(mtz, 0);
-    int hkl_max = extreme_index(mtz, 1);
-    
-    *offset = (hkl_min < 0) ? -hkl_min : 0;
-    
-    *multiplier = hkl_max - ((hkl_min < 0) ? hkl_min : 0);
-    
-    *multiplier = MULTIPLIER;
-    *offset = OFFSET;
-}
-
-void MtzManager::hkls_for_reflection(MTZ *mtz, float *adata, int *h, int *k,
-                                     int *l, int *multiplier, int *offset)
-{
-    if (multiplier == 0)
-        findMultiplier(mtz, multiplier, offset);
-    
-    MTZCOL *col_h = MtzColLookup(mtz, "H");
-    MTZCOL *col_k = MtzColLookup(mtz, "K");
-    MTZCOL *col_l = MtzColLookup(mtz, "L");
-    
-    *h = adata[col_h->source - 1];
-    *k = adata[col_k->source - 1];
-    *l = adata[col_l->source - 1];
-}
-
 int MtzManager::index_for_reflection(int h, int k, int l, bool inverted)
 {
     int _h = h;
@@ -220,31 +165,6 @@ bool MtzManager::reflection_comparison(ReflectionPtr i, ReflectionPtr j)
 void MtzManager::insertionSortReflections(void)
 {
     std::sort(reflections.begin(), reflections.end(), reflection_comparison);
-}
-
-void MtzManager::sortLastReflection(void)
-{
-    int i, j;
-    ReflectionPtr tmp;
-    
-    i = (int)reflections.size() - 1;
-    j = i;
-    tmp = reflections[i];
-    while (j > 0 && tmp->getReflId() < reflections[j - 1]->getReflId())
-    {
-        reflections[j] = reflections[j - 1];
-        j--;
-    }
-    reflections[j] = tmp;
-    
-    if (!reflections[0])
-    {
-        std::cout << "!" << std::endl;
-    }
-    
-    return;
-    
-    
 }
 
 void MtzManager::loadParametersMap()
@@ -337,8 +257,6 @@ MtzManager::MtzManager(void)
     bFactor = 0;
     setInitialValues = false;
     refPartCorrel = 0;
-    penaltyWeight = 0.0;
-    penaltyResolution = 2.5;
     dropped = false;
     lastRSplit = 0;
     timeDelay = 0;
@@ -457,10 +375,7 @@ void MtzManager::addMiller(MillerPtr miller)
         newReflection->addMiller(miller);
         miller->setParent(newReflection);
         newReflection->calculateResolution(this);
-        
-        reflections.push_back(newReflection);
-        
-        this->sortLastReflection();
+        addReflection(newReflection);
     }
 }
 
@@ -476,20 +391,6 @@ int MtzManager::millerCount()
     return sum;
 }
 
-
-
-int MtzManager::symmetryRelatedReflectionCount()
-{
-    int count = 0;
-    
-    for (int i = 0; i < reflectionCount(); i++)
-    {
-        if (reflection(i)->millerCount() > 1)
-            count++;
-    }
-    
-    return count;
-}
 
 int MtzManager::refinedParameterCount()
 {
@@ -525,11 +426,6 @@ void MtzManager::setDefaultMatrix()
     
     MatrixPtr mat = Matrix::matrixFromUnitCell(unitCell);
     matrix = mat->copy();
-}
-
-MatrixPtr MtzManager::getLatestMatrix()
-{
-    return rotatedMatrix;
 }
 
 void MtzManager::getUnitCell(double *a, double *b, double *c, double *alpha,
@@ -743,6 +639,9 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     MTZCOL *col_shiftx = MtzColLookup(mtz, "SHIFTX");
     MTZCOL *col_shifty = MtzColLookup(mtz, "SHIFTY");
     MTZCOL *col_reject = MtzColLookup(mtz, "REJECT");
+    MTZCOL *col_h = MtzColLookup(mtz, "H");
+    MTZCOL *col_k = MtzColLookup(mtz, "K");
+    MTZCOL *col_l = MtzColLookup(mtz, "L");
     
     int multiplier = MULTIPLIER;
     
@@ -760,12 +659,9 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     {
         memcpy(adata, &refldata[i], mtz->ncol_read * sizeof(float));
         
-        int h;
-        int k;
-        int l;
-        int offset;
-        
-        hkls_for_reflection(mtz, adata, &h, &k, &l, &multiplier, &offset);
+        int h = adata[col_h->source - 1];
+        int k = adata[col_k->source - 1];
+        int l = adata[col_l->source - 1];
         
         int reflection_reflection_index = index_for_reflection(h, k, l, false);
         
@@ -875,8 +771,6 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
     
     free(refldata);
     free(adata);
-    
-    //	insertionSortReflections();
     
     std::ostringstream log;
     
@@ -1544,26 +1438,11 @@ void MtzManager::setSigmaToUnity()
         for (int j = 0; j < reflections[i]->millerCount(); j++)
         {
             reflections[i]->miller(j)->setSigma(1);
-            
-            // TAKE NEXT LINE OUT
         }
     }
 }
 
-void MtzManager::setPartialityToUnity()
-{
-    for (int i = 0; i < reflections.size(); i++)
-    {
-        for (int j = 0; j < reflections[i]->millerCount(); j++)
-        {
-            reflections[i]->miller(j)->setPartiality(1);
-            
-            // TAKE NEXT LINE OUT
-        }
-    }
-}
-
-int MtzManager::accepted(void)
+int MtzManager::accepted()
 {
     int acceptedCount = 0;
     

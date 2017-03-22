@@ -680,7 +680,6 @@ void FileParser::generateHelpList()
     helpMap["MINIMIZATION_METHOD"] = "Minimization method used for various minimization events throughout the software. Grid search NOT recommended for normal use but for debugging purposes.";
     helpMap["NELDER_MEAD_CYCLES"] = "If using Nelder Mead, specify how many cycles are carried out (convergence criteria not implemented).";
     helpMap["MEDIAN_WAVELENGTH"] = "Calculate starting X-ray beam wavelength for post-refinement of an image using the median excitation wavelength of all strong reflections. Otherwise a mean average is used. Default OFF.";
-    helpMap["WAVELENGTH_FROM_REF_COUNT"] = "Calculates the mean wavelength from the top X reflections as an alternative to using all above a certain value. I haven't tested this thoroughly and have no idea if it's any good.";
     helpMap["WAVELENGTH_RANGE"] = "x, y – start and end for range of wavelengths to consider when calculating the starting X-ray beam wavelength. Can ignore extreme outliers. Default 0 0 (not applied).";
     helpMap["REFINEMENT_INTENSITY_THRESHOLD"] = "Double x - Intensity threshold x in absolute terms to define ‘strong’ reflections in initial wavelength determination. Default 200.";
     helpMap["ALLOW_TRUST"] = "If an image correlates well with the reference data set, fix the indexing ambiguity chosen in the future to reduce computation time. Default ON";
@@ -829,7 +828,6 @@ void FileParser::generateFunctionList()
     parserMap["NELDER_MEAD_CYCLES"] = simpleInt;
     parserMap["MEDIAN_WAVELENGTH"] = simpleBool;
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
-    parserMap["WAVELENGTH_FROM_REF_COUNT"] = simpleInt;
     parserMap["ALLOW_TRUST"] = simpleBool;
     parserMap["PARTIALITY_CUTOFF"] = simpleFloat;
 	parserMap["DEFAULT_TARGET_FUNCTION"] = simpleInt;
