@@ -363,7 +363,7 @@ void CSV::plotPNG(std::map<std::string, std::string> properties)
             // draw X axis
             double aValue = minX;
             double aStep = (maxX - minX) / (double)xIntervals;
-            double xPrec = 2;
+            double xPrec = 3;
             if (maxX > 10) xPrec = 0;
             
             for (int i = 0; i < xIntervals + 1; i++)
