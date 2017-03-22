@@ -375,6 +375,15 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
         free = FreeMillerLibrary::isMillerFree(this);
     }
     
+    std::vector<int> special = FileParser::getKey("MILLER_INDEX", std::vector<int>());
+    
+    _isSpecial = false;
+    
+    if (special.size() >= 3 && is(special[0], special[1], special[2]))
+    {
+        _isSpecial = true;
+    }
+    
     shiftedRay = new_vector(0, 0, 0);
     mtzParent = parent;
     matrix = MatrixPtr();

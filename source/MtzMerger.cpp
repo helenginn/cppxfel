@@ -574,17 +574,16 @@ void MtzMerger::addMtzMillers(MtzPtr mtz)
                 
                 if (accept)
                 {
-                    /*if (partnerRefl->getReflId() == specialId)
+                    if (miller->isSpecial())
                     {
-                        logged << "Miller 1 2 62 from " << miller->getMtzParent()->getFilename() << std::endl;
-                        logged << "Intensity: " << miller->intensity() << std::endl;
-                        logged << "Sigma: " << miller->getSigma() << std::endl;
+                        logged << "Miller " << prettyDesc(miller->getHKL()) << " from " << miller->getMtzParent()->getFilename() << std::endl;
+                        logged << "Corrected intensity: " << miller->intensity() << std::endl;
                         logged << "Scale: " << miller->getScale() << std::endl;
-                        logged << "MTZ Scale: " << miller->getMtzParent()->getScale() << std::endl;
+                        logged << "Weight: " << miller->getWeight() << std::endl;
                         logged << "Partiality: " << miller->getPartiality() << std::endl;
 
                         sendLog();
-                    }*/
+                    }
                     partnerRefl->addLiteMiller(miller);
                 }
             }

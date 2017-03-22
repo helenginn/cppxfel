@@ -865,6 +865,12 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
             
             num++;
         }
+        
+        if (miller->isSpecial())
+        {
+            logged << "Adding chosen Miller from " << getFilename() << " with intensity " << intensity << std::endl;
+            sendLog();
+        }
     }
     
     free(refldata);

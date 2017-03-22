@@ -688,6 +688,13 @@ int Reflection::indexForReflection(int h, int k, int l, CSym::CCP4SPG *spgroup,
 {
     int _h, _k, _l;
     
+    if (!spgroup)
+    {
+        int num = FileParser::getKey("SPACE_GROUP", 1);
+        Reflection::setSpaceGroup(num);
+        spgroup = getSpaceGroup();
+    }
+    
     ccp4spg_put_in_asu(spgroup, h, k, l, &_h, &_k, &_l);
     
     int multiplier = MULTIPLIER;

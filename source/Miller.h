@@ -32,6 +32,7 @@ typedef enum
 class Miller : public LoggableObject, public boost::enable_shared_from_this<Miller>
 {
 private:
+    bool _isSpecial;
     static bool normalised;
     static bool correctingPolarisation;
     static bool correctedPartiality;
@@ -104,6 +105,11 @@ public:
     int getH();
     int getK();
     int getL();
+    
+    vec getHKL()
+    {
+        return new_vector(h, k, l);
+    }
     
     bool is(int _h, int _k, int _l);
     
@@ -182,6 +188,11 @@ public:
     vec getTransformedHKL(MatrixPtr matrix = MatrixPtr());
     vec getRay();
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);
+    
+    bool isSpecial()
+    {
+        return _isSpecial;
+    }
     
     void setHKL(int _h, int _k, int _l)
     {

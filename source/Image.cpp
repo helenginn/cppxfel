@@ -2528,6 +2528,12 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             
             bool strong = myMiller->reachesThreshold();
             
+            if (myMiller->isSpecial())
+            {
+                std::string text = prettyDesc(myMiller->getHKL());
+                file->drawText(text, pngCoord.first, pngCoord.second - 20);
+            }
+            
             if (strongOnly && !strong)
             {
                 continue;
