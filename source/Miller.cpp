@@ -299,7 +299,14 @@ double Miller::intensity(bool withCutoff)
         
         if (model != PartialityModelBinary)
         {
-            modifier /= partiality;
+            if (rawIntensity > 0)
+            {
+                 modifier /= partiality;
+            }
+            else
+            {
+                modifier *= partiality;
+            }
         }
         else if (model == PartialityModelBinary)
         {
