@@ -138,7 +138,7 @@ double MtzManager::rSplit(double low, double high)
             {
                 int1 = imageRef->miller(j)->getRawIntensity();
                 int2 = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
-                weight = 1;
+                weight = imageRef->meanPartiality();
             }
             
             if (int1 == 0 || weight == 0 || weight != weight)

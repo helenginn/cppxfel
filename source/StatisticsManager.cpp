@@ -179,7 +179,15 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 		}
 
         if (!silent)
+        {
+            std::map<std::string, std::string> plotMap;
+            plotMap["filename"] = "correlation";
+            plotMap["xHeader0"] = "First intensity";
+            plotMap["yHeader0"] = "Second intensity";
+            plotMap["style0"] = "scatter";
+            csv->plotPNG(plotMap);
             csv->writeToFile("correlation.csv");
+        }
         csv->plotColumns(3, 4);
         
         logged << "Data logged to correlation.csv" << std::endl;

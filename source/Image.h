@@ -210,7 +210,7 @@ public:
     }
 
 	int valueAt(int x, int y);
-    double interpolateAt(double x, double y);
+    double interpolateAt(double x, double y, double *total);
     int rawValueAt(int x, int y);
     void addValueAt(int x, int y, int addedValue);
 	bool accepted(int x, int y);

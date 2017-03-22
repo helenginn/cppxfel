@@ -442,7 +442,7 @@ int Image::rawValueAt(int x, int y)
     return (useShortData ? shortData[position] : data[position]);
 }
 
-double Image::interpolateAt(double x, double y)
+double Image::interpolateAt(double x, double y, double *total)
 {
     int leftX = x;
     int leftY = y;
@@ -460,29 +460,29 @@ double Image::interpolateAt(double x, double y)
     double bottomLeftSq = leftPropX * rightPropY;
     double bottomRightSq = rightPropX * rightPropY;
     
-    double total = 1;
+    *total = 1;
     
     if (!accepted(leftX, leftY))
     {
-        total -= topLeftSq;
+        *total -= topLeftSq;
         topLeftSq = 0;
     }
     
     if (!accepted(leftX, rightY))
     {
-        total -= bottomLeftSq;
+        *total -= bottomLeftSq;
         bottomLeftSq = 0;
     }
 
     if (!accepted(rightX, leftY))
     {
-        total -= topRightSq;
+        *total -= topRightSq;
         topRightSq = 0;
     }
     
     if (!accepted(rightX, rightY))
     {
-        total -= bottomRightSq;
+        *total -= bottomRightSq;
         bottomRightSq = 0;
     }
     
@@ -496,7 +496,7 @@ double Image::interpolateAt(double x, double y)
     weighted += bottomRightSq * bottomRightValue;
     weighted += bottomLeftSq * bottomLeftValue;
     
-    return weighted / total;
+    return weighted / *total;
 }
 
 int Image::valueAt(int x, int y)
@@ -941,6 +941,7 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
             }
             
             double value = 0;
+            double pixelSize = 1;
             
             if (!interpolate)
             {
@@ -948,20 +949,19 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
             }
             else
             {
-                if (!accepted(panelPixelX + 1, panelPixelY) ||
-                    !accepted(panelPixelX, panelPixelY + 1) ||
-                    !accepted(panelPixelX + 1, panelPixelY + 1))
+                value = interpolateAt(panelPixelX, panelPixelY, &pixelSize);
+                
+                if (pixelSize <= 0.1)
                 {
                     rejects++;
                     continue;
                 }
-                    
-                value = interpolateAt(panelPixelX, panelPixelY);
             }
             
             if (flag == MaskForeground)
             {
                 double weight = weightAtShoeboxIndex(shoebox, i, j);
+                weight *= pixelSize;
                 foreNum += weight;
                 foreground += value * weight;
                 
