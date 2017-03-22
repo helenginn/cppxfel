@@ -16,20 +16,12 @@
 using namespace CMtz;
 using namespace CSym;
 
-class Miller;
-class Reflection;
-class Matrix;
-
 typedef enum
 {
 	ScoreTypeMinimizeRSplit = 0,
 	ScoreTypeCorrelation = 1,
 	ScoreTypePartialityCorrelation = 2,
-	ScoreTypeMinimizeRSplitLog = 3,
 	ScoreTypeCorrelationLog = 4,
-	ScoreTypeAngle = 5,
-	ScoreTypePartialityLeastSquares = 6,
-	ScoreTypePartialityGradient = 7,
     ScoreTypeSymmetry = 8,
     ScoreTypeStandardDeviation = 9,
     ScoreTypeMinimizeRMeas = 10,
@@ -53,12 +45,8 @@ protected:
     static std::mutex spaceGroupMutex;
 	static bool reflection_comparison(ReflectionPtr i, ReflectionPtr j);
 
-	double extreme_index(MTZ *mtz, int max);
-	void hkls_for_reflection(MTZ *mtz, float *adata, int *h, int *k, int *l,
-			int *multiplier, int *offset);
 	int index_for_reflection(int h, int k, int l, bool inverted);
-	void findMultiplier(MTZ *mtz, int *multiplier, int *offset);
-    ImageWeakPtr image;
+	ImageWeakPtr image;
     bool dropped;
     void getWavelengthFromHDF5();
     
@@ -75,8 +63,6 @@ protected:
     int previousAmbiguity;
     bool allowTrust;
     bool setInitialValues;
-    double penaltyWeight;
-    double penaltyResolution;
     
 	double hRot;
 	double kRot;
@@ -160,7 +146,6 @@ public:
 	void addReflection(ReflectionPtr reflection);
 	void removeReflection(int i);
 	void excludeFromLogCorrelation();
-	void excludePartialityOutliers();  // delete
 
     MatrixPtr matrix;
     
@@ -168,14 +153,12 @@ public:
     std::string getFilename(void);  // classify
 	void description(void);
     void resetDefaultParameters();
-    void chooseAppropriateTarget();
     
     void setDefaultMatrix();
 	void setMatrix(double *components);
 	void setMatrix(MatrixPtr newMat);
-	void insertionSortReflections(void);
-	void sortLastReflection(void);
-    void applyUnrefinedPartiality();
+	void insertionSortReflections();
+	void applyUnrefinedPartiality();
     void incrementActiveAmbiguity();
     void cutToResolutionWithSigma(double acceptableSigma);
     double maxResolution();
@@ -198,11 +181,9 @@ public:
 	void applyScaleFactorsForBins(int binCount = 20);
 	void clearScaleFactor();
 	void makeScalesPermanent();
-	double averageIntensity(void);
+	double averageIntensity();
 	void setSigmaToUnity();
-	void setPartialityToUnity();
 	double partialityRatio(ReflectionPtr imgReflection, ReflectionPtr refReflection);
-	void reallowPartialityOutliers();
     void replaceBeamWithSpectrum();
 
 	void setUnitCell(double a, double b, double c, double alpha, double beta,
@@ -256,27 +237,20 @@ public:
 			vector<boost::tuple<double, double, double, int> > *correlations = NULL,
 			bool shouldLog = false);
 
-    
-    int symmetryRelatedReflectionCount();
-    
 // minimisation stuff
 
 	int refinedParameterCount();
     
     void recalculateWavelengths();
 	void getParams(double *parameters[], int paramCount = PARAM_NUM);
-    void getParamPointers(double ***parameters, int paramCount = PARAM_NUM);
-    void getSteps(double *parameters[], int paramCount = PARAM_NUM);
     void setParams(double parameters[], int paramCount = PARAM_NUM);
 
     double medianWavelength(double lowRes, double highRes);
-    double wavelengthFromTopReflections(double lowRes, double highRes, int refNum);
-	double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
+    double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
 	int accepted(void);
 	static double exclusionScoreWrapper(void *object, double lowRes = 0,
 			double highRes = 0);
-    static double scoreNelderMead(void *object);
-	double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
+    double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
     double leastSquaresPartiality(double low = 0, double high = 0, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
     double partialityFunction(double low = 0, double high = 0);
     double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
@@ -287,6 +261,7 @@ public:
     void refinePartialities();
 
     void refreshCurrentPartialities();
+    // delete
 	void refreshPartialities(double hRot, double kRot, double mosaicity,
                              double spotSize, double wavelength, double bandwidth, double exponent,
                              double a, double b, double c);
@@ -648,7 +623,6 @@ public:
 		this->scale = scale;
 	}
     
-    MatrixPtr getLatestMatrix();
     void addParameters(RefinementStepSearchPtr map);
     static double refineParameterScore(void *object);
     

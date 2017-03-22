@@ -18,13 +18,6 @@
 #define DEFAULT_RESOLUTION 3.4
 typedef boost::tuple<double, double, double, double, double> ResultTuple;
 
-double MtzManager::scoreNelderMead(void *object)
-{
-    static_cast<MtzManager *>(object)->refreshCurrentPartialities();
-    return static_cast<MtzManager *>(object)->exclusionScoreWrapper(object, 0, 0);
-}
-
-
 double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
                                          double highRes)
 {
@@ -47,16 +40,7 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
         
         return rSplit / logIntensity;
     }
-    else if (scoreType == ScoreTypeMinimizeRSplitLog)
-    {
-        return mtz->rSplit(lowRes, highRes);
-    }
-    else if (scoreType == ScoreTypeSymmetry)
-    {
-        return mtz->rFactorWithManager(RFactorTypeMeas);
-    }
-    else if (scoreType == ScoreTypePartialityCorrelation
-             || scoreType == ScoreTypePartialityLeastSquares)
+    else if (scoreType == ScoreTypePartialityCorrelation)
     {
         double value = mtz->partialityFunction();
         
@@ -71,11 +55,6 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     {
         return mtz->exclusionScore(lowRes, highRes, ScoreTypeCorrelation);
     }
-}
-
-bool partialGreaterThanPartial(Partial a, Partial b)
-{
-    return (a.wavelength > b.wavelength);
 }
 
 double MtzManager::rSplit(double low, double high)
@@ -378,7 +357,7 @@ double MtzManager::minimize()
     
     int verbosity = FileParser::getKey("VERBOSITY_LEVEL", 0);
     
-    refiner->setEvaluationFunction(scoreNelderMead, this);
+    refiner->setEvaluationFunction(refineParameterScore, this);
     refiner->setVerbose((verbosity > 0));
     
     matchReflections.clear();
@@ -443,13 +422,10 @@ double MtzManager::minimize()
 void MtzManager::gridSearch(bool silent)
 {
     scoreType = defaultScoreType;
-    chooseAppropriateTarget();
     std::string scoreDescription = this->describeScoreType();
     
     double scale = this->gradientAgainstManager(this->getReferenceManager());
     applyScaleFactor(scale);
-    
-    this->reallowPartialityOutliers();
     
     std::map<int, std::pair<vector<double>, double> > ambiguityResults;
     
@@ -517,16 +493,11 @@ void MtzManager::gridSearch(bool silent)
     scale = this->gradientAgainstManager(this->getReferenceManager());
     applyScaleFactor(scale);
     
-    double newCorrel = (scoreType == ScoreTypeSymmetry) ? 0 : correlation(true);
+    double newCorrel = correlation(true);
     this->setFinalised(true);
     
     if (newCorrel == 1 || newCorrel == -1)
         setFinalised(false);
-    
-    bool partialityRejection = FileParser::getKey("PARTIALITY_REJECTION", false);
-    
-    if (partialityRejection && scoreType != ScoreTypeSymmetry)
-        this->excludePartialityOutliers();
     
     this->excludeFromLogCorrelation();
     
@@ -671,90 +642,6 @@ double MtzManager::partialityRatio(ReflectionPtr imgReflection, ReflectionPtr re
         return 10;
     
     return ratio;
-}
-
-void MtzManager::reallowPartialityOutliers()
-{
-    for (int i = 0; i < reflectionCount(); i++)
-    {
-        reflection(i)->miller(0)->setRejected(RejectReasonPartiality, false);
-    }
-}
-
-void MtzManager::excludePartialityOutliers()
-{
-    vector<ReflectionPtr> refReflections, imgReflections;
-    
-    applyScaleFactor(this->gradientAgainstManager(referenceManager));
-    
-    this->findCommonReflections(referenceManager, imgReflections, refReflections,
-                                NULL);
-    
-    vector<double> ratios;
-    
-    for (int i = 0; i < refReflections.size(); i++)
-    {
-        ReflectionPtr imgReflection = imgReflections[i];
-        ReflectionPtr refReflection = refReflections[i];
-        
-        if (!imgReflection->anyAccepted())
-            continue;
-        
-        double ratio = partialityRatio(imgReflection, refReflection);
-        ratios.push_back(ratio);
-    }
-    
-    double stdev = standard_deviation(&ratios);
-    
-    double upperBound = 1 + stdev * 1.4;
-    double lowerBound = 1 - stdev * 0.7;
-    
-    if (lowerBound < 0.5)
-        lowerBound = 0.5;
-    if (upperBound > 1.7)
-        upperBound = 1.7;
-    
-    int rejectedCount = 0;
-    
-    for (int i = 0; i < refReflections.size(); i++)
-    {
-        ReflectionPtr imgReflection = imgReflections[i];
-        ReflectionPtr refReflection = refReflections[i];
-        
-        double ratio = partialityRatio(imgReflection, refReflection);
-        
-        if (ratio > upperBound || ratio < lowerBound)
-        {
-            if (!imgReflection->miller(0)->accepted())
-                continue;
-            
-            if (imgReflection->betweenResolutions(1.7, 0))
-                continue;
-            
-            imgReflection->miller(0)->setRejected(RejectReasonPartiality, true);
-            rejectedCount++;
-        }
-    }
-    
-    logged << "Rejected " << rejectedCount << " outside partiality range "
-    << lowerBound * 100 << "% to " << upperBound * 100 << "%." << std::endl;
-}
-
-bool compareResult(ResultTuple one, ResultTuple two)
-{
-    return boost::get<4>(two) > boost::get<4>(one);
-}
-
-void MtzManager::chooseAppropriateTarget()
-{
-    if (defaultScoreType != ScoreTypeMinimizeRMeas)
-        return;
-    
-    if (MtzRefiner::getCycleNum() == 0)
-    {
-        scoreType = ScoreTypeMinimizeRSplit;
-        return;
-    }
 }
 
 void MtzManager::resetDefaultParameters()
