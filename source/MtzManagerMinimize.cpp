@@ -141,8 +141,6 @@ double MtzManager::rSplit(double low, double high)
                 weight = 1;
             }
             
-            weight *= referenceRef->meanWeight();
-            
             if (int1 == 0 || weight == 0 || weight != weight)
             {
                 continue;
