@@ -79,16 +79,7 @@ private:
  
     double superGaussian(double bandwidth, double mean,
                         double sigma, double exponent);
-    double integrate_beam_slice(double pBandwidth, double qBandwidth, double mean,
-                               double sigma, double exponent);
-    double integrate_special_beam_slice(double pBandwidth, double qBandwidth);
-    double sliced_integral(double low_wavelength, double high_wavelength,
-                          double spot_size_radius, double maxP, double maxQ, double mean, double sigma,
-                          double exponent, bool binary = false, bool withBeamObject = false, bool fixPredicted = false);
     
-    double integrate_sphere_uniform(double p, double q);
-    double integrate_sphere_gaussian(double p, double q);
-    double integrate_sphere(double p, double q);
     void recalculatePredictedWavelength();
 
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
@@ -129,7 +120,6 @@ public:
 	MillerPtr copy(void);
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
     void limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh, vec *inwards = NULL, vec *outwards = NULL);
-    double slicedIntegralWithVectors(vec low_wl_pos, vec high_wl_pos, double rlpSize, double mean, double sigma, double exponent);
     
     bool isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDelete = true);
     void setPartialityModel(PartialityModel model);
@@ -171,7 +161,6 @@ public:
     void incrementOverlapMask(double hRot = 0, double kRot = 0);
     bool isOverlapped();
 	void positionOnDetector(double *x = NULL, double *y = NULL, bool search = true);
-    void recalculateBetterPartiality();
     
     void setHorizontalPolarisationFactor(double newFactor);
 	void applyScaleFactor(double scaleFactor);

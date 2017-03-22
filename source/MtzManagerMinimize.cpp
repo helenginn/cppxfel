@@ -319,7 +319,8 @@ double MtzManager::refineParameterScore(void *object)
         for (int j = 0; j < me->reflection(i)->millerCount(); j++)
         {
             MillerPtr miller = me->reflection(i)->miller(j);
-            miller->recalculateBetterPartiality();
+      //      miller->recalculatePartiality();
+            // fix me!
         }
     }
     
