@@ -389,7 +389,7 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
             MillerPtr miller = imageRefl->miller(j);
             double wavelength = miller->getWavelength();
             
-            if (fabs(wavelength - meanWavelength) > meanWavelength * 0.015)
+            if (fabs(wavelength - meanWavelength) > meanWavelength * 0.05)
             {
                 continue;
             }
@@ -412,6 +412,8 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
     plotMap["filename"] = extendedFilename;
     plotMap["xHeader0"] = "wavelength";
     plotMap["yHeader0"] = "percentage";
+    plotMap["xMax0"] = f_to_str(meanWavelength * 0.95);
+    plotMap["xMin0"] = f_to_str(meanWavelength * 1.05);
     plotMap["yMax0"] = "250";
     plotMap["yMin0"] = "0";
     plotMap["xTitle0"] = "Ewald sphere wavelength (Ang)";
@@ -419,6 +421,8 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
     
     plotMap["xHeader1"] = "wavelength";
     plotMap["yHeader1"] = "partiality";
+    plotMap["xMax1"] = f_to_str(meanWavelength * 0.95);
+    plotMap["xMin1"] = f_to_str(meanWavelength * 1.05);
     plotMap["yMax1"] = "2.5";
     plotMap["yMin1"] = "0";
     plotMap["style1"] = "line";
