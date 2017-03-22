@@ -948,6 +948,14 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
             }
             else
             {
+                if (!accepted(panelPixelX + 1, panelPixelY) ||
+                    !accepted(panelPixelX, panelPixelY + 1) ||
+                    !accepted(panelPixelX + 1, panelPixelY + 1))
+                {
+                    rejects++;
+                    continue;
+                }
+                    
                 value = interpolateAt(panelPixelX, panelPixelY);
             }
             
