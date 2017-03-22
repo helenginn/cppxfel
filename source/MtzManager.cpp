@@ -102,22 +102,6 @@ void MtzManager::makeSuperGaussianLookupTable(double exponent)
     tableMutex.unlock();
 }
 
-std::string MtzManager::filenameRoot()
-{
-    vector<std::string> components = FileReader::split(filename, '.');
-    
-    std::string root = "";
-    
-    if (components.size() == 0)
-        return "";
-    
-    for (int i = 0; i < components.size() - 1; i++)
-    {
-        root += components[i] + ".";
-    }
-    
-    return root.substr(0, root.size() - 1);
-}
 
 int MtzManager::index_for_reflection(int h, int k, int l, bool inverted)
 {
@@ -233,7 +217,6 @@ void MtzManager::loadParametersMap()
 MtzManager::MtzManager(void)
 {
     lastReference = NULL;
-    filename = "";
     reflections.resize(0);
     bandwidth = INITIAL_BANDWIDTH;
     hRot = 0;
@@ -271,7 +254,7 @@ MtzManager::MtzManager(void)
 MtzPtr MtzManager::copy()
 {
     MtzPtr newManager = MtzPtr(new MtzManager());
-    newManager->filename = filename;
+    newManager->setFilename(getFilename());
 //    double lowNum = low_group->spg_num;
 //    newManager->setSpaceGroup(lowNum);
     newManager->bandwidth = bandwidth;
@@ -486,8 +469,8 @@ void MtzManager::getWavelengthFromHDF5()
             return;
         }
         
-        unsigned long length = filename.length();
-        std::string noImg = filename.substr(4, length - 4); // [img-tag-XXXXX_0 to tag-XXXXX_0]
+        unsigned long length = getFilename().length();
+        std::string noImg = getFilename().substr(4, length - 4); // [img-tag-XXXXX_0 to tag-XXXXX_0]
         unsigned long underscoreIndex = noImg.rfind("_");
         std::string noCryst = noImg.substr(0, underscoreIndex);
         
@@ -520,7 +503,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         return;
     }
     
-    if (filename.length() == 0)
+    if (getFilename().length() == 0)
     {
         std::cerr
         << "Cannot load reflections as no filename has been specified."
@@ -528,16 +511,16 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         return;
     }
     
-    if (!FileReader::exists(filename))
+    if (!FileReader::exists(getFilename()))
     {
-        logged << "Cannot find MTZ file for " << filename << std::endl;
+        logged << "Cannot find MTZ file for " << getFilename() << std::endl;
         sendLog();
         return;
     }
     
     bool recalculateWavelengths = FileParser::getKey("RECALCULATE_WAVELENGTHS", false);
     
-    std::string fullFilename = (dropped ? "tmp-" : "") + filename;
+    std::string fullFilename = (dropped ? "tmp-" : "") + getFilename();
     
     if (dropped)
     {
@@ -797,16 +780,6 @@ void MtzManager::setReference(MtzManager *reference)
     if (reference != NULL)
         Logger::mainLogger->addString("Setting reference to " + reference->getFilename());
     MtzManager::referenceManager = reference;
-}
-
-void MtzManager::setFilename(std::string name)
-{
-    filename = name;
-}
-
-std::string MtzManager::getFilename(void)
-{
-    return filename;
 }
 
 void MtzManager::setSpaceGroup(int spgnum)
@@ -1423,7 +1396,7 @@ MtzManager::~MtzManager(void)
 
 void MtzManager::description(void)
 {
-    logged << "Filename: " << filename << std::endl;
+    logged << "Filename: " << getFilename() << std::endl;
     logged << "Number of reflections: " << reflectionCount() << std::endl;
     logged << "Number of accepted Millers: " << accepted() << std::endl;
     logged << "Average intensity: " << this->averageIntensity() << std::endl;
@@ -1670,7 +1643,7 @@ void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
         }
     }
     
-    logged << filename << ": I/sigI cutoff rejected reflections over " << cutoffResolution << " Å." << std::endl;
+    logged << getFilename() << ": I/sigI cutoff rejected reflections over " << cutoffResolution << " Å." << std::endl;
     sendLog();
 }
 

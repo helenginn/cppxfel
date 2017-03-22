@@ -178,11 +178,11 @@ void Hdf5Crystal::writeToFile(std::string newFilename, bool announce)
         Hdf5ImagePtr parent = boost::static_pointer_cast<Hdf5Image>(superParent);
         std::string address = parent->getAddress();
         
-        std::string imgFilename = filename;
+        std::string imgFilename = getFilename();
 
-        if (filename.substr(0, 3) != "img")
+        if (getFilename().substr(0, 3) != "img")
         {
-            imgFilename = "img-" + filename;
+            imgFilename = "img-" + getFilename();
         }
             
         std::string crystalAddress = Hdf5Manager::concatenatePaths(address, imgFilename);

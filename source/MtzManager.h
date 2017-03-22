@@ -12,6 +12,7 @@
 #include <tuple>
 #include "Logger.h"
 #include "Matrix.h"
+#include "hasFilename.h"
 
 using namespace CMtz;
 using namespace CSym;
@@ -35,11 +36,10 @@ typedef enum
 
 class Miller;
 
-class MtzManager : public boost::enable_shared_from_this<MtzManager>
+class MtzManager :  public hasFilename, public boost::enable_shared_from_this<MtzManager>
 {
 
 protected:
-    std::string filename;
     std::string parentImage;
 	static CCP4SPG *low_group;
     static std::mutex spaceGroupMutex;
@@ -149,9 +149,7 @@ public:
 
     MatrixPtr matrix;
     
-	void setFilename(std::string name);  // classify
-    std::string getFilename(void);  // classify
-	void description(void);
+    void description(void);
     void resetDefaultParameters();
     
     void setDefaultMatrix();
@@ -163,7 +161,6 @@ public:
     void cutToResolutionWithSigma(double acceptableSigma);
     double maxResolution();
 
-    std::string filenameRoot();
 	void setSpaceGroup(int spgnum);
 	virtual void loadReflections(PartialityModel model, bool special = false); // FIXME: remove unnecessary parameters
     void dropReflections();

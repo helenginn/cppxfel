@@ -123,7 +123,7 @@ Image::Image(std::string filename, double wavelength,
         for (int j = 0; j < 7; j++)
             shoebox[i][j] = tempShoebox[i][j];
     
-    this->filename = filename;
+    this->setFilename(filename);
     this->wavelength = wavelength;
     detectorDistance = distance;
     this->fitBackgroundAsPlane = FileParser::getKey("FIT_BACKGROUND_AS_PLANE", false);
@@ -131,20 +131,6 @@ Image::Image(std::string filename, double wavelength,
     loadedSpots = false;
     
     pixelCountCutoff = FileParser::getKey("PIXEL_COUNT_CUTOFF", 0);
-}
-
-std::string Image::filenameRoot()
-{
-    vector<std::string> components = FileReader::split(filename, '.');
-    
-    std::string root = "";
-    
-    for (int i = 0; i < components.size() - 1; i++)
-    {
-        root += components[i] + ".";
-    }
-    
-    return root.substr(0, root.size() - 1);
 }
 
 void Image::setUpIOMRefiner(MatrixPtr matrix)
@@ -320,7 +306,7 @@ void Image::loadImage()
     std::streampos size;
     vector<char> memblock;
     
-    std::ifstream file(filename.c_str(), std::ios::in | std::ios::binary);
+    std::ifstream file(getFilename().c_str(), std::ios::in | std::ios::binary);
     if (file.is_open())
     {
         size = file.tellg();
@@ -345,7 +331,7 @@ void Image::loadImage()
         overlapMask = vector<signed char>(memblock.size(), 0);
         
         logged << "Image size: " << memblock.size() << " for image: "
-        << filename << std::endl;
+        << getFilename() << std::endl;
         sendLog();
         
         if (asFloat)
@@ -687,7 +673,7 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults
         
         logged << "Written strongest " << count << " files (10+ peaks) to " << datname << std::endl;
         logged << "You can limit yourself to just these images by editing your input file:" << std::endl;
-        logged << std::endl << "ORIENTATION_MATRIX_LIST " << filename << std::endl;
+        logged << std::endl << "ORIENTATION_MATRIX_LIST " << datname << std::endl;
         sendLog();
     }
     
@@ -1084,10 +1070,10 @@ vector<MtzPtr> Image::currentMtzs()
     {
         MtzPtr newMtz = indexers[i]->newMtz(i);
         newMtz->removeStrongSpots(&spots, true);
-        logged << "After integrating crystal " << i << " on " << filenameRoot() << ", spot count now " << spots.size() << std::endl;
+        logged << "After integrating crystal " << i << " on " << getBasename() << ", spot count now " << spots.size() << std::endl;
         sendLog();
 
-        std::string imgFilename = "img-" + filenameRoot() + "_" + i_to_str(i) + ".mtz";
+        std::string imgFilename = "img-" + getBasename() + "_" + i_to_str(i) + ".mtz";
         newMtz->writeToFile(imgFilename, true);
         newMtz->writeToDat();
         
@@ -1464,7 +1450,7 @@ void Image::processSpotList()
         }
         catch(int e)
         {
-            logged << "Error reading spot file " << filename << std::endl;
+            logged << "Error reading spot file for " << getFilename() << std::endl;
             sendLog();
             
             return;
@@ -1675,7 +1661,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
     std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
     
     
-    logged << "(" << filename << ") " << spotCount() << " spots produced " << spotVectorCount() << " spot vectors." << std::endl;
+    logged << "(" << getFilename() << ") " << spotCount() << " spots produced " << spotVectorCount() << " spot vectors." << std::endl;
     sendLog();
 }
 
@@ -1792,7 +1778,7 @@ bool Image::checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeL
 
 IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, IOMRefinerPtr *aRefiner)
 {
-    logged << "(" << filename << ") Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
+    logged << "(" << getFilename() << ") Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
     sendLog(LogLevelNormal);
     
     if (modify)
@@ -2289,7 +2275,7 @@ void Image::findIndexingSolutions()
             
             if (reachedTime)
             {
-                logged << "N: Time limit reached on image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
+                logged << "N: Time limit reached on image " << getFilename() << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
                 sendLog();
                 return;
             }
@@ -2300,7 +2286,7 @@ void Image::findIndexingSolutions()
         }
     }
     
-    logged << "N: Finished image " << filename << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
+    logged << "N: Finished image " << getFilename() << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
     sendLog();
     
     dropImage();
@@ -2687,7 +2673,7 @@ void Image::plotVectorsOnPNG(std::vector<SpotVectorPtr> vectors, std::string aFi
     
     file->writeImageOutput();
     
-    logged << "Written file " << filename << std::endl;
+    logged << "Written file " << getFilename() << std::endl;
     sendLog();
 }
 
