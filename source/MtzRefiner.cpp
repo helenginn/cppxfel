@@ -1886,8 +1886,9 @@ int MtzRefiner::imageSkip(size_t totalCount)
     
     if (skip > totalCount)
     {
-        std::cout << "Image skip beyond image count" << std::endl;
-        exit(1);
+        std::ostringstream logged;
+        logged << "IMAGE_SKIP specified is beyond the image count of the available images." << std::endl;
+        LoggableObject::staticLogAndExit(logged);
     }
     
     return skip;
