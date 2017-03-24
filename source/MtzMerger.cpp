@@ -761,7 +761,8 @@ void MtzMerger::fixSigmas()
     
     for (int bin = 0; bin < bins.size() - 1; bin++)
     {
-        double iOverSigiSum = 0;
+		double iSum = 0;
+		double sigiSum = 0;
         int reflNum = 0;
         std::vector<MillerPtr> millersToCorrect;
         
@@ -776,7 +777,8 @@ void MtzMerger::fixSigmas()
             
             if (miller->getCountingSigma() > 0)
             {
-                iOverSigiSum += (miller->intensity() / miller->getCountingSigma());
+				iSum += miller->intensity();
+				sigiSum += miller->getCountingSigma();
                 reflNum++;
             }
             else
@@ -790,7 +792,7 @@ void MtzMerger::fixSigmas()
             return;
         }
         
-        double iOverSigi = iOverSigiSum / (double)reflNum;
+        double iOverSigi = iSum / (double)sigiSum;
         
         logged << "<Isigi> for " << bins[bin] << " to " << bins[bin + 1] << " Å is " << iOverSigi << std::endl;
         sendLog();
