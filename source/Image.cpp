@@ -2505,13 +2505,10 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             
             Coord pngCoord;
             
-            if (Detector::isActive())
-            {
-                vec intersection = myMiller->getShiftedRay();
-                
-                pngCoord = std::make_pair(intersection.h, intersection.k);
-            }
-            
+			vec intersection = myMiller->getShiftedRay();
+
+			pngCoord = std::make_pair(intersection.h, intersection.k);
+
             bool strong = myMiller->reachesThreshold();
             
             if (myMiller->isSpecial())
