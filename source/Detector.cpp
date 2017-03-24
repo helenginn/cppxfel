@@ -1299,8 +1299,13 @@ void Detector::fixMidpoints()
 
 void Detector::reportMillerScores(int refinementNum)
 {
-    millerScore(true, true, refinementNum);
-    millerScore(true, false, refinementNum);
+    if (isLUCA())
+    {
+        logged << "Writing pixel and reciprocal offset graph..." << std::endl;
+        sendLog();
+        millerScore(true, true, refinementNum);
+        millerScore(true, false, refinementNum);
+    }
     
     for (int i = 0; i < childrenCount(); i++)
     {
@@ -1315,9 +1320,20 @@ void Detector::getAllSubDetectors(std::vector<DetectorPtr> &array, bool children
         getChild(i)->getAllSubDetectors(array, childrenOnly);
     }
     
-    if (childrenOnly && hasChildren())
+    if (childrenOnly)
     {
-        return;
+		if (!childrenCount() && !isRefinable(GeometryScoreTypeBeamCentre))
+		{
+			return;
+		}
+
+		for (int i = 0; i < childrenCount(); i++)
+		{
+			if (getChild(i)->isRefinable(GeometryScoreTypeBeamCentre))
+			{
+				return;
+			}
+		}
     }
     
     array.push_back(shared_from_this());

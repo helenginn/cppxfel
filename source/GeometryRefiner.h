@@ -27,7 +27,11 @@ private:
                                       int offset, GeometryScoreType type, int strategyType);
     void refineGeometryCycle();
     bool geometryCycleForDetector(std::vector<DetectorPtr> detectors, bool interPanelOnly);
-    double lastInterScore;
+
+	void intraPanelCycle();
+	void interPanelCycle();
+	
+	double lastInterScore;
     double lastIntraScore;
     double lastIntraAngleScore;
     double lastInterAngleScore;
@@ -35,7 +39,7 @@ private:
     
     void refineBeamCentre();
 
-    void printHeader(std::vector<DetectorPtr> detectors, std::string detectorList);
+    void printHeader(std::vector<DetectorPtr> detectors);
     
     void interPanelGridSearch(DetectorPtr detector);
     void interPanelNormalSearch(DetectorPtr detector);

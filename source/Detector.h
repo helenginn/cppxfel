@@ -742,6 +742,20 @@ public:
 
     bool isRefinable(GeometryScoreType scoreType)
     {
+        if (scoreType == GeometryScoreTypeInterMiller ||
+            scoreType == GeometryScoreTypeIntraMiller)
+        {
+            for (int i = 0; i < childrenCount(); i++)
+            {
+                if (getChild(i)->isRefinable(GeometryScoreTypeBeamCentre))
+                {
+                    return false;
+                }
+            }
+
+			return true;
+        }
+        
         if (scoreType == GeometryScoreTypeIntrapanelParent ||
             scoreType == GeometryScoreTypeBeamCentre)
         {
