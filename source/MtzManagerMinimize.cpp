@@ -419,8 +419,10 @@ double MtzManager::minimize()
 }
 
 
-void MtzManager::gridSearch(bool silent)
+void MtzManager::gridSearch(bool silent, bool ambOnly)
 {
+	ambOnly = false;
+
     scoreType = defaultScoreType;
     std::string scoreDescription = this->describeScoreType();
     
@@ -445,9 +447,16 @@ void MtzManager::gridSearch(bool silent)
             
             int ambiguity = getActiveAmbiguity();
             double correl = 0;
-            
-            correl = minimize();
-            
+
+			if (ambOnly)
+			{
+				correl = correlationWithManager(getReferenceManager());
+			}
+			else
+			{
+				correl = minimize();
+			}
+
             double *params = &(*(bestParams.begin()));
             getParams(&params);
             
@@ -479,9 +488,13 @@ void MtzManager::gridSearch(bool silent)
         sendLog(LogLevelDetailed);
         
         setActiveAmbiguity(bestAmbiguity);
-        setParams(&(*(ambiguityResults[bestAmbiguity].first).begin()));
-        refreshPartialities(&(*(ambiguityResults[bestAmbiguity].first).begin()));
-        
+
+		if (!ambOnly)
+		{
+			setParams(&(*(ambiguityResults[bestAmbiguity].first).begin()));
+			refreshPartialities(&(*(ambiguityResults[bestAmbiguity].first).begin()));
+		}
+
         double threshold = 0.9;
         
         if (bestScore > threshold)

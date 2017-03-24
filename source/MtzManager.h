@@ -141,7 +141,7 @@ public:
 	void loadParametersMap();
 
     void addMiller(MillerPtr miller);
-    void addReflections(vector<ReflectionPtr>reflections);
+    void addReflections(vector<ReflectionPtr>reflections, bool assumeSorted = false);
 	void clearReflections();
 	void addReflection(ReflectionPtr reflection);
 	void removeReflection(int i);
@@ -269,7 +269,7 @@ public:
     void setParamLine(std::string line);
     std::string getParamLine();
     double minimize();
-    void gridSearch(bool silent);
+    void gridSearch(bool silent = false, bool ambOnly = false);
 	
     static void makeSuperGaussianLookupTable(double exponent);
     

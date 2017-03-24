@@ -24,7 +24,6 @@
 #include "FileReader.h"
 
 #include "Logger.h"
-#include "MtzGrouper.h"
 #include "MtzMerger.h"
 #include "Hdf5ManagerProcessing.h"
 #include "Detector.h"
@@ -33,8 +32,6 @@
 
 int MtzRefiner::imageLimit;
 int MtzRefiner::cycleNum;
-
-
 
 MtzRefiner::MtzRefiner()
 {
@@ -93,7 +90,7 @@ void MtzRefiner::cycleThread(int offset)
             else
             {
                 image->loadReflections(true);
-                image->gridSearch(silent);
+                image->gridSearch(silent, (cycleNum == 0));
                 
                 if (lowMemoryMode)
                 {
@@ -246,17 +243,14 @@ void MtzRefiner::refineCycle(bool once)
                                            THRESHOLD_SWAP);
     bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
     
-    double resolution = FileParser::getKey("MAX_REFINED_RESOLUTION",
-                                           MAX_OPTIMISATION_RESOLUTION);
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
                                         (int) SCALING_STRATEGY);
     ScalingType scaling = (ScalingType) scalingInt;
     
     bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
     bool outputIndividualCycles = FileParser::getKey("OUTPUT_INDIVIDUAL_CYCLES", false);
-    bool old = FileParser::getKey("OLD_MERGE", true);
-    
-    while (!finished)
+
+	while (!finished)
     {
         if (outputIndividualCycles)
         {
@@ -270,123 +264,34 @@ void MtzRefiner::refineCycle(bool once)
         // ***** NORMAL MERGE ******
         // *************************
         
-        MtzPtr mergedMtz;
-        std::string filename = "allMerge" + i_to_str(i) + ".mtz";
-        
-        if (!old)
-        {
-            MtzManager::setReference(&*reference);
-            
-            MtzMerger merger;
-            merger.setAllMtzs(mtzManagers);
-            merger.setCycle(cycleNum);
-            merger.setScalingType(scaling);
-            merger.mergeFull();
-            mergedMtz = merger.getMergedMtz();
-            
-            referencePtr = mergedMtz;
-            
-            if (anomalousMerge)
-            {
-                merger.mergeFull(true);
-            }
-            
-            merger.setFreeOnly(true);
-            merger.mergeFull();
-            
-            std::string filename = merger.getFilename();
-            
-            if (replaceReference)
-            {
-                reference = mergedMtz;
-                MtzManager::setReference(&*reference);
-            }
-        }
-        else
-        {
-            
-            std::cout << "Grouping final MTZs" << std::endl;
-            MtzGrouper *grouper = new MtzGrouper();
-            MtzManager::setReference(&*reference);
-            if (i >= 0)
-                grouper->setScalingType(scaling);
-            if (once)
-                grouper->setScalingType(ScalingTypeAverage);
-            grouper->setWeighting(WeightTypePartialitySigma);
-            grouper->setExpectedResolution(resolution);
-            grouper->setMtzManagers(mtzManagers);
-            grouper->setExcludeWorst(true);
-            if (i < thresholdSwap)
-                grouper->setCorrelationThreshold(initialCorrelationThreshold);
-            else
-                grouper->setCorrelationThreshold(correlationThreshold);
-            
-            MtzPtr mergedMtz, unmergedMtz;
-            grouper->merge(&mergedMtz, &unmergedMtz, i);
-            
-            std::cout << "Reflections: " << mergedMtz->reflectionCount() << std::endl;
-            if (!once)
-            {
-                double correl = mergedMtz->correlation(true);
-                std::cout << "N: Merged correlation = " << correl << std::endl;
-            }
-            mergedMtz->description();
-            
-            double scale = 1000 / mergedMtz->averageIntensity();
-            mergedMtz->applyScaleFactor(scale);
-            
-            mergedMtz->writeToFile(filename.c_str(), true);
-            
-            
-            // *************************
-            // ******* ANOMALOUS *******
-            // *************************
-            
-            if (anomalousMerge)
-            {
-                MtzPtr anomMergedMtz;
-                grouper->merge(&anomMergedMtz, NULL, i, true);
-                
-                MtzManager::setReference(&*reference);
-                
-                std::cout << "Reflections for anomalous: " << anomMergedMtz->reflectionCount() << std::endl;
-                
-                double scale = 1000 / mergedMtz->averageIntensity();
-                mergedMtz->applyScaleFactor(scale);
-            }
-            
-            
-            if (replaceReference)
-            {
-                reference = mergedMtz;
-                MtzManager::setReference(&*reference);
-            }
-        }
-        
-        /*
-        MtzManager *reloadMerged = new MtzManager();
-        std::string reloadFullPath = FileReader::addOutputDirectory(filename);
-        
-        reloadMerged->setFilename(reloadFullPath.c_str());
-        reloadMerged->loadReflections(1);
-        reloadMerged->description();
-        
-        double reloaded = reloadMerged->correlation(true);
-        std::cout << "Reloaded correlation = " << reloaded << std::endl;
-        
-        if (reloaded > 0.999 && i >= minimumCycles && stop)
-            finished = true;*/
-        
-        if (once)
-            finished = true;
-        
-        if (i == maximumCycles - 1 && stop)
-            finished = true;
-        
-        i++;
-        //     delete grouper;
-    }
-    
+		MtzPtr mergedMtz;
+		std::string filename = "allMerge" + i_to_str(i) + ".mtz";
+
+		MtzManager::setReference(&*reference);
+
+		MtzMerger merger;
+		merger.setAllMtzs(mtzManagers);
+		merger.setCycle(cycleNum);
+		merger.setScalingType(scaling);
+		merger.mergeFull();
+		mergedMtz = merger.getMergedMtz();
+
+		referencePtr = mergedMtz;
+
+		if (anomalousMerge)
+		{
+			merger.mergeFull(true);
+		}
+
+		merger.setFreeOnly(true);
+		merger.mergeFull();
+
+		if (replaceReference)
+		{
+			reference = mergedMtz;
+			MtzManager::setReference(&*reference);
+		}
+	}
 }
 
 
@@ -395,10 +300,10 @@ void MtzRefiner::refineCycle(bool once)
 bool MtzRefiner::loadInitialMtz(bool force)
 {
     bool hasInitialMtz = FileParser::hasKey("INITIAL_MTZ");
-    
+
     if (reference && !force)
         return true;
-    
+
     logged << "Initial MTZ has "
     << (hasInitialMtz ? "" : "not ") << "been provided." << std::endl;
     sendLog();
@@ -422,8 +327,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
         
         MtzManager::setReference(&*reference);
     }
-    
-    
+
     return hasInitialMtz;
 }
 
@@ -945,9 +849,22 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
         maskImage->setMask();
     }
 
-    
     logged << "Summary\nImages: " << images.size() << "\nCrystals: " << mtzManagers.size() << std::endl;
     sendLog();
+
+
+	bool shouldApplyUnrefinedPartiality = FileParser::getKey("APPLY_UNREFINED_PARTIALITY", false);
+
+	if (shouldApplyUnrefinedPartiality)
+	{
+		logged << "Applying unrefined partiality to images." << std::endl;
+		sendLog();
+
+		for (int i = 0; i < mtzManagers.size(); i++)
+		{
+			mtzManagers[i]->applyUnrefinedPartiality();
+		}
+	}
 }
 
 void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
@@ -1144,47 +1061,26 @@ void MtzRefiner::merge(bool mergeOnly)
     
     bool mergeAnomalous = FileParser::getKey("MERGE_ANOMALOUS", false);
     
-    int scalingInt = FileParser::getKey("SCALING_STRATEGY",
-                                        (int) SCALING_STRATEGY);
-    ScalingType scaling = (ScalingType) scalingInt;
-    bool old = FileParser::getKey("OLD_MERGE", true);
-    
-    if (!old)
-    {
-        MtzMerger merger;
-        merger.setAllMtzs(mtzManagers);
-        merger.setCycle(-1);
-        merger.setScalingType(scaling);
-        merger.setFilename("remerged.mtz");
-        merger.mergeFull();
-        
-        if (mergeAnomalous)
-        {
-            merger.mergeFull(true);
-        }
-        
-        merger.setFreeOnly(true);
-        merger.mergeFull();
-        
-        referencePtr = merger.getMergedMtz();
-    }
-    else
-    {
-        MtzGrouper *grouper = new MtzGrouper();
-        grouper->setScalingType(scaling);
-        grouper->setWeighting(WeightTypePartialitySigma);
-        grouper->setMtzManagers(mtzManagers);
-        
-        grouper->setCutResolution(false);
-        
-        grouper->setCorrelationThreshold(correlationThreshold);
-        
-        MtzPtr mergedMtz, unmergedMtz;
-        grouper->merge(&mergedMtz, &unmergedMtz, -1, mergeAnomalous);
-        mergedMtz->writeToFile("remerged.mtz");
-        
-        delete grouper;
-    }
+	int scalingInt = FileParser::getKey("SCALING_STRATEGY",
+										(int) SCALING_STRATEGY);
+	ScalingType scaling = (ScalingType) scalingInt;
+
+	MtzMerger merger;
+	merger.setAllMtzs(mtzManagers);
+	merger.setCycle(-1);
+	merger.setScalingType(scaling);
+	merger.setFilename("remerged.mtz");
+	merger.mergeFull();
+
+	if (mergeAnomalous)
+	{
+		merger.mergeFull(true);
+	}
+
+	merger.setFreeOnly(true);
+	merger.mergeFull();
+
+	referencePtr = merger.getMergedMtz();
 }
 
 // MARK: Integrating images

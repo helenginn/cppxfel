@@ -6,7 +6,6 @@
 //  Copyright (c) 2015 Division of Structural Biology Oxford. All rights reserved.
 //
 
-#include "MtzGrouper.h"
 #include "MtzMerger.h"
 #include "AmbiguityBreaker.h"
 #include "StatisticsManager.h"
@@ -180,24 +179,6 @@ void AmbiguityBreaker::setMtzs(vector<MtzPtr> newMtzs)
         sendLogAndExit();
     }
     
-    bool shouldApplyUnrefinedPartiality = FileParser::getKey("APPLY_UNREFINED_PARTIALITY", false);
-    
-    if (shouldApplyUnrefinedPartiality)
-    {
-        logged << "Applying unrefined partiality to images." << std::endl;
-        sendLog();
-        
-        for (int i = 0; i < mtzs.size(); i++)
-        {
-            mtzs[i]->applyUnrefinedPartiality();
-        }
-    }
-    else
-    {
-        logged << "Merging without applying any starting partiality model." << std::endl;
-        sendLog();
-    }
-    
     bool trustAnyway = FileParser::getKey("TRUST_INDEXING_SOLUTION", false);
     
     if (trustAnyway)
@@ -229,22 +210,14 @@ void AmbiguityBreaker::run()
 }
 
 void AmbiguityBreaker::merge()
-{   
-    MtzGrouper *grouper = new MtzGrouper();
-    grouper->setScalingType(ScalingTypeAverage);
-    grouper->setWeighting(WeightTypePartialitySigma);
-    grouper->setMtzManagers(mtzs);
-    
-    grouper->setCutResolution(false);
-    
-    grouper->setExcludeWorst(false);
-    
-    MtzPtr mergedMtz, unmergedMtz;
-    grouper->merge(&mergedMtz, &unmergedMtz, -1, false);
-    merged = mergedMtz;
-    mergedMtz->writeToFile("remerged.mtz");
-    
-    delete grouper;
+{
+	MtzMerger merger;
+	merger.setAllMtzs(mtzs);
+	merger.setCycle(-1);
+	merger.setScalingType(ScalingTypeAverage);
+	merger.mergeFull();
+	merger.setExcludeWorst(false);
+	merged = merger.getMergedMtz();
 }
 
 void AmbiguityBreaker::printResults()

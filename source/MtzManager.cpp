@@ -324,8 +324,13 @@ void MtzManager::addReflection(ReflectionPtr reflection)
     reflections.insert(reflections.begin() + lowestId, reflection);
 }
 
-void MtzManager::addReflections(vector<ReflectionPtr>reflections)
+void MtzManager::addReflections(vector<ReflectionPtr>reflections, bool assumeSorted)
 {
+	if (assumeSorted && !reflectionCount())
+	{
+		this->reflections = reflections;
+	}
+
     for (int i = 0; i < reflections.size(); i++)
     {
         addReflection(reflections[i]);

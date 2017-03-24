@@ -53,33 +53,30 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     minResolution = FileParser::getKey(
                                        "MIN_INTEGRATED_RESOLUTION", 0.0);
     
-    if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION") || !FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
-    {
-        if (Detector::isActive())
-        {
-            double min, max;
-            Detector::getMaster()->resolutionLimits(&min, &max, getImage()->getWavelength());
-            
-            if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION"))
-            {
-                minResolution = 1 / min;
-                if (min == 0) minResolution = 0;
-            }
-            
-            if (!FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
-            {
-                maxResolution = 1 / max;
-                if (max == 0) maxResolution = 0;
-            }
-            
-            logged << "Setting minimum resolution to " << minResolution << " Å and max resolution to " << maxResolution << " Å." << std::endl;
-            sendLog(LogLevelDetailed);
-        }
+	if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION") || !FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
+	{
+		double min, max;
+		Detector::getMaster()->resolutionLimits(&min, &max, getImage()->getWavelength());
+
+		if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION"))
+		{
+			minResolution = 1 / min;
+			if (min == 0) minResolution = 0;
+		}
+
+		if (!FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
+		{
+			maxResolution = 1 / max;
+			if (max == 0) maxResolution = 0;
+		}
+
+		logged << "Setting minimum resolution to " << minResolution << " Å and max resolution to " << maxResolution << " Å." << std::endl;
+		sendLog(LogLevelDetailed);
     }
-    
+
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                     METROLOGY_SEARCH_SIZE);
-    
+
     reference = NULL;
     lastMtz = MtzPtr();
     roughCalculation = FileParser::getKey("ROUGH_CALCULATION", true);

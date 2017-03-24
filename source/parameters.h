@@ -295,8 +295,8 @@ typedef enum
 
 typedef enum
 {
-    GeometryScoreTypeMiller,
-    GeometryScoreTypeMillerStdev,
+    GeometryScoreTypeInterMiller,
+    GeometryScoreTypeIntraMiller,
     GeometryScoreTypeIntrapanel,
     GeometryScoreTypeInterpanel,
     GeometryScoreTypeIntrapanelParent,
