@@ -735,15 +735,12 @@ void MtzMerger::mergeMillers()
 
 void MtzMerger::removeReflections()
 {
-    int count = 0;
-    
     for (int i = mergedMtz->reflectionCount() - 1; i >= 0 ; i--)
     {
         ReflectionPtr refl = mergedMtz->reflection(i);
-        if (!refl->acceptedCount())
+        if (!refl->anyAccepted())
         {
-            mergedMtz->removeReflection(i);
-            count++;
+			mergedMtz->removeReflection(i);
         }
     }
 }
