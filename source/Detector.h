@@ -259,6 +259,7 @@ public:
     }
     
     void setArrangedTopLeft(double newX, double newY, double newZ);
+    vec getArrangedTopLeft();
     
     void setArrangedMidPoint(vec midpoint)
     {
@@ -439,6 +440,7 @@ public:
     /* Write geometry file */
     
     std::string writeGeometryFile(int fileCount, int indentCount = 0, CSVPtr differenceCSV = CSVPtr());
+    std::string writeCrystFELFile();
     
     /* Refinement getter/setters */
     

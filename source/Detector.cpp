@@ -266,6 +266,15 @@ void Detector::updateUnarrangedMidPoint()
     unarrangedMidPointY = (double)(unarrangedBottomRightY + unarrangedTopLeftY) / 2;
 }
 
+vec Detector::getArrangedTopLeft()
+{
+    vec pixXY_mmZ;
+    spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedTopLeftY, &pixXY_mmZ);
+    pixXY_mmZ.l *= mmPerPixel;
+    
+    return pixXY_mmZ;
+}
+
 void Detector::setArrangedTopLeft(double newX, double newY, double newZ)
 {
     assert(directionSanityCheck());
@@ -1460,4 +1469,15 @@ void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *
     logged << "From " << expectedPixels << " pixel expected movement, setting tilt_nudge to (" << *nudgeTiltX
     << ", " << *nudgeTiltY << ") and nudgeStep to " << *nudgeStep << std::endl;
     sendLog();
+}
+
+std::string Detector::writeCrystFELFile()
+{
+    std::ostringstream geometry;
+    geometry << "; CrystFEL geometry file spit out of cppxfel." << std::endl;
+    
+    double pixSizeInMetres = 1000 / mmPerPixel;
+    
+    
+    return "";
 }
