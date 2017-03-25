@@ -82,12 +82,11 @@ double MtzMerger::maxResolution()
 
 void MtzMerger::createUnmergedMtz()
 {
-    double doubleCell[6];
     float cell[6], wavelength, fdata[9];
     int num = 0;
     
     /* variables for symmetry */
-    CCP4SPG *mtzspg = mergedMtz->getLowGroup();
+    CCP4SPG *mtzspg = mergedMtz->getSpaceGroup();
     float rsm[192][4][4];
     char ltypex[2];
     
@@ -99,12 +98,11 @@ void MtzMerger::createUnmergedMtz()
     
     /*  Removed: General CCP4 initializations e.g. HKLOUT on command line */
     
-    mergedMtz->getUnitCell(&doubleCell[0], &doubleCell[1], &doubleCell[2], &doubleCell[3], &doubleCell[4],
-                      &doubleCell[5]);
+	std::vector<double> aCell = mergedMtz->getUnitCell();
     
     for (int i = 0; i < 6; i++)
     {
-        cell[i] = (float)doubleCell[i];
+        cell[i] = (float)aCell[i];
     }
     
     wavelength = mergedMtz->getWavelength();
@@ -207,7 +205,7 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
     int num = 0;
 
     /* variables for symmetry */
-    CCP4SPG *mtzspg = mean->getLowGroup();
+    CCP4SPG *mtzspg = mean->getSpaceGroup();
     float rsm[192][4][4];
     char ltypex[2];
     
@@ -219,12 +217,11 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
     
     /*  Removed: General CCP4 initializations e.g. HKLOUT on command line */
     
-    mean->getUnitCell(&doubleCell[0], &doubleCell[1], &doubleCell[2], &doubleCell[3], &doubleCell[4],
-                             &doubleCell[5]);
-    
+	std::vector<double> aCell = mean->getUnitCell();
+
     for (int i = 0; i < 6; i++)
     {
-        cell[i] = (float)doubleCell[i];
+        cell[i] = (float)aCell[i];
     }
     
     wavelength = mean->getWavelength();
@@ -424,7 +421,7 @@ void MtzMerger::scaleIndividual(MtzPtr mtz)
     {
         MtzManager *reference = MtzManager::getReferenceManager();
         
-        scale = mtz->gradientAgainstManager(reference, true);
+        mtz->scaleToMtz(reference, true);
     }
     else if (scalingType == ScalingTypeBFactor)
     {
@@ -495,7 +492,7 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
     double maxRes = maxResolution();
     int maxMillers[3];
 
-    CCP4SPG *spg = allMtzs[0]->getLowGroup();
+    CCP4SPG *spg = allMtzs[0]->getSpaceGroup();
     MatrixPtr anyMat = allMtzs[0]->getMatrix();
     std::vector<double> unitCell = allMtzs[0]->getUnitCell();
     anyMat->maxMillers(maxMillers, maxRes);
@@ -520,7 +517,7 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
                     miller->setRawIntensity(std::nan(" "));
 
                     ReflectionPtr newReflection = ReflectionPtr(new Reflection());
-                    newReflection->setUnitCellDouble(&unitCell[0]);
+                    newReflection->setUnitCell(unitCell);
                     newReflection->setSpaceGroup(spg->spg_num);
                     newReflection->addMiller(miller);
                     miller->setParent(newReflection);
@@ -601,7 +598,7 @@ void MtzMerger::groupMillerThread(int offset)
         
         if (lowMemoryMode)
         {
-            mtz->loadReflections(true);
+            mtz->loadReflections();
         }
         
         if (mtzIsPruned(mtz))
@@ -735,15 +732,12 @@ void MtzMerger::mergeMillers()
 
 void MtzMerger::removeReflections()
 {
-    int count = 0;
-    
     for (int i = mergedMtz->reflectionCount() - 1; i >= 0 ; i--)
     {
         ReflectionPtr refl = mergedMtz->reflection(i);
-        if (!refl->acceptedCount())
+        if (!refl->anyAccepted())
         {
-            mergedMtz->removeReflection(i);
-            count++;
+			mergedMtz->removeReflection(i);
         }
     }
 }
@@ -761,7 +755,8 @@ void MtzMerger::fixSigmas()
     
     for (int bin = 0; bin < bins.size() - 1; bin++)
     {
-        double iOverSigiSum = 0;
+		double iSum = 0;
+		double sigiSum = 0;
         int reflNum = 0;
         std::vector<MillerPtr> millersToCorrect;
         
@@ -776,7 +771,8 @@ void MtzMerger::fixSigmas()
             
             if (miller->getCountingSigma() > 0)
             {
-                iOverSigiSum += (miller->intensity() / miller->getCountingSigma());
+				iSum += miller->intensity();
+				sigiSum += miller->getCountingSigma();
                 reflNum++;
             }
             else
@@ -790,7 +786,7 @@ void MtzMerger::fixSigmas()
             return;
         }
         
-        double iOverSigi = iOverSigiSum / (double)reflNum;
+        double iOverSigi = iSum / (double)sigiSum;
         
         logged << "<Isigi> for " << bins[bin] << " to " << bins[bin + 1] << " Å is " << iOverSigi << std::endl;
         sendLog();

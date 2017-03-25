@@ -42,7 +42,7 @@ private:
 public:
     GaussianBeam(double meanWavelength, double bandwidth, double exponent);
     double integralBetweenEwaldWavelengths(double lowWavelength, double highWavelength);
-    void addParameters(RefinementStepSearchPtr map);
+    void addParameters(RefinementStrategyPtr map);
     double getNominalWavelength();
     double valueAtWavelength(double aWavelength);
     bool nonZeroPartialityExpected(double lowWavelength, double highWavelength);

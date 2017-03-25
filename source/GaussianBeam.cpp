@@ -160,7 +160,7 @@ double GaussianBeam::getNominalWavelength()
     return sum;
 }
 
-void GaussianBeam::addParameters(RefinementStepSearchPtr map)
+void GaussianBeam::addParameters(RefinementStrategyPtr map)
 {
     if (optimisingWavelength)
     {

@@ -190,7 +190,7 @@ void new_main(int argc, char *argv[])
         
         MtzManager *mtz1 = new MtzManager();
         mtz1->setFilename(std::string(argv[3]));
-        mtz1->loadReflections(0);
+        mtz1->loadReflections();
         
         mtz1->applyBFactor(bFactor);
         
@@ -235,7 +235,7 @@ void new_main(int argc, char *argv[])
 
         MtzManager *mtz = new MtzManager();
 		mtz->setFilename(std::string(argv[2]));
-		mtz->loadReflections(1);
+		mtz->loadReflections();
 
 		mtz->rFactorWithManager(rFactor, false, false, lowRes, highRes, bins);
 	}
@@ -273,11 +273,11 @@ void new_main(int argc, char *argv[])
 
 		MtzManager *mtz1 = new MtzManager();
 		mtz1->setFilename(std::string(argv[2]));
-		mtz1->loadReflections(1);
+		mtz1->loadReflections();
 
 		MtzManager *mtz2 = new MtzManager();
 		mtz2->setFilename(std::string(argv[3]));
-		mtz2->loadReflections(PartialityModelScaled, true);
+		mtz2->loadReflections();
 
 		if (inverted)
             mtz1->setActiveAmbiguity(1);
@@ -310,7 +310,7 @@ void new_main(int argc, char *argv[])
         
         MtzManager *mtz = new MtzManager();
 		mtz->setFilename(std::string(argv[2]));
-		mtz->loadReflections(1);
+		mtz->loadReflections();
         mtz->setActiveAmbiguity(1);
 
 		mtz->writeToFile(std::string("inv-") + argv[2], true, true);
@@ -380,20 +380,14 @@ void new_main(int argc, char *argv[])
         {
             MtzPtr mtz = MtzPtr(new MtzManager());
             mtz->setFilename(argv[i]);
-            mtz->loadReflections(1);
+            mtz->loadReflections();
             
             mtzs.push_back(mtz);
         }
         
         GraphDrawer drawer = GraphDrawer(&*mtzs[0]);
         drawer.plotReflectionFromMtzs(mtzs, h, k, l);
-        
-        if (mtzs.size() == 2)
-        {
-            MtzPtr furtherMtz = MtzManager::trajectoryMtz(mtzs[0], mtzs[1], 0.4);
-            furtherMtz->writeToFile("further.mtz");
-        }
-    }
+	}
     
     if (strcmp(argv[1], "-partiality") == 0)
 	{
@@ -405,7 +399,7 @@ void new_main(int argc, char *argv[])
 
 		MtzManager *reference = new MtzManager();
 		reference->setFilename(argv[2]);
-		reference->loadReflections(1);
+		reference->loadReflections();
 		MtzManager::setReference(reference);
         
         double maxRes = 0;
@@ -419,7 +413,7 @@ void new_main(int argc, char *argv[])
         MtzPtr mtz = MtzPtr(new MtzManager());
         mtz->setFilename(argv[3]);
         std::cout << "Partiality plot for " << argv[3] << std::endl;
-        mtz->loadReflections(PartialityModelNone, true);
+        mtz->loadReflections();
         
         vector<Reflection *>refReflections, imageReflections;
         
@@ -440,12 +434,12 @@ void new_main(int argc, char *argv[])
         
         MtzManager *reference = new MtzManager();
         reference->setFilename(argv[2]);
-        reference->loadReflections(1);
+        reference->loadReflections();
         MtzManager::setReference(reference);
         
         MtzManager *mtz = new MtzManager();
         mtz->setFilename(argv[3]);
-        mtz->loadReflections(1);
+        mtz->loadReflections();
         
         mtz->applyScaleFactorsForBins(50);
         mtz->writeToFile("scaled-" + std::string(argv[3]));
@@ -455,7 +449,7 @@ void new_main(int argc, char *argv[])
     {
         MtzManager *reference = new MtzManager();
         reference->setFilename(argv[2]);
-        reference->loadReflections(1);
+        reference->loadReflections();
         
         double bFactor = atof(argv[3]);
         
@@ -477,7 +471,7 @@ void new_main(int argc, char *argv[])
 		MtzManager *reference = new MtzManager();
         
 		reference->setFilename(argv[2]);
-		reference->loadReflections(1);
+		reference->loadReflections();
 		MtzManager::setReference(reference);
   //      FileParser::setKey("REFINE_B_FACTOR", true);
         
@@ -485,7 +479,7 @@ void new_main(int argc, char *argv[])
 		{
 			MtzManager *mtz = new MtzManager();
 			mtz->setFilename(argv[i]);
-			mtz->loadReflections(1);
+			mtz->loadReflections();
             managers.push_back(mtz);
 		}
 

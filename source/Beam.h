@@ -22,7 +22,7 @@ public:
     virtual double integralBetweenEwaldWavelengths(double lowWavelength, double highWavelength) { return 0;};
     virtual double getNominalWavelength() { return 0;};
     
-    virtual void addParameters(RefinementStepSearchPtr map) {};
+    virtual void addParameters(RefinementStrategyPtr map) {};
     virtual bool nonZeroPartialityExpected(double lowWavelength, double highWavelength) { return false;};
 };
 

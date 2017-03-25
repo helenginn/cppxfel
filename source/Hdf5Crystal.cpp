@@ -70,8 +70,8 @@ void Hdf5Crystal::writeReflectionData(std::string address)
             oneMiller->phase = miller->getPhase();
             oneMiller->bFactor = miller->getBFactor();
             oneMiller->partialCutoff = miller->getPartialCutoff();
-            oneMiller->lastX = miller->getLastX();
-            oneMiller->lastY = miller->getLastY();
+            oneMiller->lastX = miller->getCorrectedX();
+            oneMiller->lastY = miller->getCorrectedY();
             oneMiller->shiftX = miller->getShift().first;
             oneMiller->shiftY = miller->getShift().second;
             oneMiller->rejectReason = miller->getRejectedReason();
@@ -99,7 +99,7 @@ void Hdf5Crystal::writeCrystalData(std::string address)
     // space group
     
     std::string spaceGroupAddress = Hdf5Manager::concatenatePaths(address, "spaceGroup");
-    manager->writeSingleValueDataset(spaceGroupAddress, low_group->spg_num, H5T_NATIVE_INT);
+    manager->writeSingleValueDataset(spaceGroupAddress, getSpaceGroupNum(), H5T_NATIVE_INT);
     
     // rotation matrix
     
@@ -111,15 +111,13 @@ void Hdf5Crystal::writeCrystalData(std::string address)
     
     // unit cell data
     
-    double unitCell[6];
-    memcpy(&unitCell[0], &cellDim[0], sizeof(double) * 3);
-    memcpy(&unitCell[3], &cellAngles[0], sizeof(double) * 3);
-    
+	std::vector<double> unitCell = getUnitCell();
+
     std::string unitCellParamsAddress = Hdf5Manager::concatenatePaths(address, "unitcell_params");
     
     hsize_t dim = 6;
     manager->createDataset(unitCellParamsAddress, 1, &dim, H5T_NATIVE_DOUBLE);
-    manager->writeDataset(unitCellParamsAddress, (void **)unitCell, H5T_NATIVE_DOUBLE);
+    manager->writeDataset(unitCellParamsAddress, (void **)&unitCell[0], H5T_NATIVE_DOUBLE);
     
     // general scaling/indexing ambiguity
     
@@ -333,9 +331,9 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
 
     int spgnum = 0;
     manager->readDatasetValue(spaceGroupAddress, &spgnum);
-    setSpaceGroup(spgnum);
+    setSpaceGroupNum(spgnum);
     
-    if (low_group == NULL)
+    if (getSpaceGroup() == NULL)
     {
         setRejected(true);
         return;
@@ -343,14 +341,14 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     
     Reflection::setSpaceGroup(spgnum);
     
-    double unitCell[6];
+	std::vector<double> unitCell;
+	unitCell.resize(6);
     std::string unitCellParamsAddress = Hdf5Manager::concatenatePaths(address, "unitcell_params");
     
-    bool success = manager->readDatasetValue(unitCellParamsAddress, &unitCell);
-    
-    memcpy(&cellDim[0], &unitCell[0], sizeof(double) * 3);
-    memcpy(&cellAngles[0], &unitCell[3], sizeof(double) * 3);
-    
+    bool success = manager->readDatasetValue(unitCellParamsAddress, &unitCell[0]);
+
+	setUnitCell(unitCell);
+
     double unitCellMatrix[16];
     double rotationMatrix[16];
     
@@ -430,8 +428,8 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         miller->setRawIntensity(data->rawIntensity);
         miller->setCountingSigma(data->countingSigma);
         miller->setPhase(data->phase);
-        miller->setLastX(data->lastX);
-        miller->setLastY(data->lastY);
+        miller->setCorrectedX(data->lastX);
+        miller->setCorrectedY(data->lastY);
         miller->setShift(std::make_pair(data->shiftX, data->shiftY));
         miller->setMatrix(this->matrix);
         miller->setSigma(1);

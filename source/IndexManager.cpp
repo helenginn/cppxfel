@@ -43,7 +43,7 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
         exit(1);
     }
     
-    unitCellOnly = Matrix::matrixFromUnitCell(&unitCell[0]);
+    unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
     
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
     

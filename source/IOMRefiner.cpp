@@ -53,33 +53,30 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     minResolution = FileParser::getKey(
                                        "MIN_INTEGRATED_RESOLUTION", 0.0);
     
-    if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION") || !FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
-    {
-        if (Detector::isActive())
-        {
-            double min, max;
-            Detector::getMaster()->resolutionLimits(&min, &max, getImage()->getWavelength());
-            
-            if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION"))
-            {
-                minResolution = 1 / min;
-                if (min == 0) minResolution = 0;
-            }
-            
-            if (!FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
-            {
-                maxResolution = 1 / max;
-                if (max == 0) maxResolution = 0;
-            }
-            
-            logged << "Setting minimum resolution to " << minResolution << " Å and max resolution to " << maxResolution << " Å." << std::endl;
-            sendLog(LogLevelDetailed);
-        }
+	if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION") || !FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
+	{
+		double min, max;
+		Detector::getMaster()->resolutionLimits(&min, &max, getImage()->getWavelength());
+
+		if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION"))
+		{
+			minResolution = 1 / min;
+			if (min == 0) minResolution = 0;
+		}
+
+		if (!FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
+		{
+			maxResolution = 1 / max;
+			if (max == 0) maxResolution = 0;
+		}
+
+		logged << "Setting minimum resolution to " << minResolution << " Å and max resolution to " << maxResolution << " Å." << std::endl;
+		sendLog(LogLevelDetailed);
     }
-    
+
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                     METROLOGY_SEARCH_SIZE);
-    
+
     reference = NULL;
     lastMtz = MtzPtr();
     roughCalculation = FileParser::getKey("ROUGH_CALCULATION", true);
@@ -91,8 +88,7 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     bestLRot = 0;
     lastTotal = 0;
     lastStdev = 0;
-    this->matrix = matrix;
-    unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+	this->matrix = matrix;
     orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE", INDEXING_ORIENTATION_TOLERANCE);
     needsReintegrating = true;
     recalculateMillerPositions = false;
@@ -112,25 +108,12 @@ double IOMRefiner::getWavelength()
 
 void IOMRefiner::setComplexMatrix()
 {
-    complexUnitCell = true;
     bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
-    
-    if (unitCell.size() == 0)
-    {
-        vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-        
-        if (unitCell.size() == 0)
-        {
-            fixUnitCell = false;
-        }
-    }
     
     if (fixUnitCell)
     {
-        getImage()->setUnitCell(unitCell);
-        setUnitCell(unitCell);
-        
-        matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+		std::vector<double> unitCell = getUnitCell();
+        matrix->changeOrientationMatrixDimensions(unitCell);
     }
 }
 
@@ -325,29 +308,15 @@ void IOMRefiner::calculateNearbyMillers()
     needsReintegrating = true;
 }
 
-/* merge with others... */
-void IOMRefiner::lockUnitCellDimensions()
-{
-    double spgNum = spaceGroup->spg_num;
-    if (spgNum >= 75 && spgNum <= 194)
-    {
-        unitCell[1] = unitCell[0];
-    }
-    if (spgNum >= 195)
-    {
-        unitCell[1] = unitCell[0];
-        unitCell[2] = unitCell[0];
-    }
-}
-
 void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox, bool perfectCalculation, bool isFake)
 {
     MatrixPtr matrix = getMatrix();
     
     if (complexUnitCell)
     {
+		std::vector<double> unitCell = getUnitCell();
         lockUnitCellDimensions();
-        matrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+        matrix->changeOrientationMatrixDimensions(unitCell);
     }
     
     millers.clear();
@@ -418,7 +387,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             continue;
         }
         
-        miller->getWavelength(lastRotatedMatrix);
+        miller->recalculateWavelength();
         
         if (complexShoebox)
         {
@@ -975,7 +944,8 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     
     needsReintegrating = true;
     bool complexShoebox = FileParser::getKey("COMPLEX_SHOEBOX", false);
-    
+	std::vector<double> unitCell = getUnitCell();
+
     checkAllMillers(maxResolution, testBandwidth, complexShoebox);
     
     MatrixPtr newMat = lastRotatedMatrix->copy();
@@ -997,7 +967,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     }
     mtz->setWavelength(0);
     mtz->setImage(image);
-    mtz->setSpaceGroup(spaceGroup->spg_num);
+    mtz->setSpaceGroup(spaceGroup);
     mtz->setUnitCell(unitCell);
     
     mtz->setMatrix(newMat);
@@ -1012,7 +982,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
         miller->setMtzParent(&*mtz);
         
         int index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
-                                                   mtz->getLowGroup(), false);
+                                                   mtz->getSpaceGroup(), false);
         
         ReflectionPtr found = ReflectionPtr();
         mtz->findReflectionWithId(index, &found);
@@ -1027,7 +997,7 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
             ReflectionPtr reflection = ReflectionPtr(new Reflection());
             reflection->setSpaceGroup(spaceGroup->spg_num);
             reflection->addMiller(miller);
-            reflection->setUnitCellDouble(&unitCell[0]);
+            reflection->setUnitCell(unitCell);
             reflection->calculateResolution(&*mtz);
             miller->setParent(reflection);
             mtz->addReflection(reflection);
@@ -1035,11 +1005,6 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     }
     
     this->sendLog(LogLevelDetailed);
-    
-    double cutoff = FileParser::getKey("SIGMA_RESOLUTION_CUTOFF", SIGMA_RESOLUTION_CUTOFF);
-    
-    if (cutoff != 0)
-        mtz->cutToResolutionWithSigma(cutoff);
     
     nearbyMillers.clear();
     lastMtz = mtz;
@@ -1135,19 +1100,12 @@ std::string IOMRefiner::refinementSummary()
     double wavelength = getWavelength();
     double distance = getDetectorDistance();
     MatrixPtr matrix = getMatrix();
-    double lengths[3];
-    
-    for (int i = 0; i < 3; i++)
-    {
-        lengths[i] = 0;
-    }
-    
-    matrix->unitCellLengths(lengths);
-    
+	std::vector<double> unitCell = getUnitCell();
+
     std::ostringstream summary;
     
     summary << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
-    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << lengths[0] << "\t" << lengths[1] << "\t" << lengths[2] << "\t" << unitCell[3] << "\t" << unitCell[4] << "\t" << unitCell[5];
+    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << unitCell[0] << "\t" << unitCell[1] << "\t" << unitCell[2] << "\t" << unitCell[3] << "\t" << unitCell[4] << "\t" << unitCell[5];
     
     return summary.str();
 }

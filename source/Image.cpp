@@ -786,8 +786,6 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, floa
     double xzSum = sum(xzs);
     double yzSum = sum(yzs);
     
-    double aveBackgroundPixel = zSum / zs.size();
-    
     MatrixPtr matrix = MatrixPtr(new Matrix());
     
     matrix->components[0] = xxSum;
@@ -2505,13 +2503,10 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             
             Coord pngCoord;
             
-            if (Detector::isActive())
-            {
-                vec intersection = myMiller->getShiftedRay();
-                
-                pngCoord = std::make_pair(intersection.h, intersection.k);
-            }
-            
+			vec intersection = myMiller->getShiftedRay();
+
+			pngCoord = std::make_pair(intersection.h, intersection.k);
+
             bool strong = myMiller->reachesThreshold();
             
             if (myMiller->isSpecial())

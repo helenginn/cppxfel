@@ -29,79 +29,84 @@ void MtzManager::applyUnrefinedPartiality()
     double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
     double exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
 
-    refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent, cellDim[0], cellDim[1], cellDim[2]);
+    refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent);
 }
 
-void MtzManager::setParams(double parameters[], int paramCount)
+void MtzManager::addParameters(RefinementStrategyPtr refiner)
 {
-    wavelength = parameters[PARAM_WAVELENGTH];
-	bandwidth = parameters[PARAM_BANDWIDTH];
-	mosaicity = parameters[PARAM_MOS];
-	spotSize = parameters[PARAM_SPOT_SIZE];
-	hRot = parameters[PARAM_HROT];
-	kRot = parameters[PARAM_KROT];
-    exponent = parameters[PARAM_EXPONENT];
-    bFactor = parameters[PARAM_B_FACTOR];
-    
-    applyBFactor(bFactor);
-    applyScaleFactor(parameters[PARAM_SCALE_FACTOR], 0, 0, true);
-    
-    cellDim[0] = parameters[PARAM_UNIT_CELL_A];
-    cellDim[1] = parameters[PARAM_UNIT_CELL_B];
-    cellDim[2] = parameters[PARAM_UNIT_CELL_C];
-}
+	double stepSizeUnitCellA = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
+	double stepSizeUnitCellB = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
+	double stepSizeUnitCellC = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
 
-void MtzManager::getParams(double *parameters[], int paramCount)
-{
-	(*parameters)[PARAM_WAVELENGTH] = wavelength;
-	(*parameters)[PARAM_BANDWIDTH] = bandwidth;
-	(*parameters)[PARAM_MOS] = mosaicity;
-	(*parameters)[PARAM_SPOT_SIZE] = spotSize;
-	(*parameters)[PARAM_HROT] = hRot;
-	(*parameters)[PARAM_KROT] = kRot;
-    (*parameters)[PARAM_EXPONENT] = exponent;
-    (*parameters)[PARAM_B_FACTOR] = bFactor;
-    (*parameters)[PARAM_SCALE_FACTOR] = scale;
-    (*parameters)[PARAM_UNIT_CELL_A] = cellDim[0];
-    (*parameters)[PARAM_UNIT_CELL_B] = cellDim[1];
-    (*parameters)[PARAM_UNIT_CELL_C] = cellDim[2];
-}
+	bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+	bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+	bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
 
-void MtzManager::addParameters(RefinementStepSearchPtr map)
-{
+
     if (optimisingOrientation)
     {
-        map->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, toleranceOrientation);
-        map->addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, toleranceOrientation);
+        refiner->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, toleranceOrientation, "hRot");
+        refiner->addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, toleranceOrientation, "kRot");
     }
     
     if (optimisingRlpSize)
-        map->addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, toleranceRlpSize);
-    
+	{
+        refiner->addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, toleranceRlpSize, "rlpSize");
+	}
+
     if (optimisingMosaicity)
-        map->addParameter(this, getMosaicityStatic, setMosaicityStatic, stepSizeMosaicity, toleranceMosaicity);
-    
+	{
+        refiner->addParameter(this, getMosaicityStatic, setMosaicityStatic, stepSizeMosaicity, toleranceMosaicity, "mosaicity");
+	}
+
+	if (optimisingUnitCellA)
+	{
+		refiner->addParameter(this, getUnitCellAStatic, setUnitCellAStatic, stepSizeUnitCellA, 0, "unitCellA");
+	}
+
+	if (optimisingUnitCellB)
+	{
+		refiner->addParameter(this, getUnitCellBStatic, setUnitCellBStatic, stepSizeUnitCellB, 0, "unitCellB");
+	}
+
+	if (optimisingUnitCellC)
+	{
+		refiner->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, stepSizeUnitCellC, 0, "unitCellC");
+	}
+
+
     // delete me later
- 
-    map->addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, toleranceWavelength);
-    
+
+	if (optimisingWavelength)
+	{
+		refiner->addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, toleranceWavelength, "wavelength");
+	}
+
+	if (optimisingBandwidth)
+	{
+		refiner->addParameter(this, getBandwidthStatic, setBandwidthStatic, stepSizeBandwidth, 0, "bandwidth");
+	}
+
+	if (optimisingExponent)
+	{
+		refiner->addParameter(this, getExponentStatic, setExponentStatic, stepSizeExponent, 0, "exponent");
+	}
 }
 
-double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
+double MtzManager::refinePartialitiesOrientation(int ambiguity, bool reset)
 {
-  //  logged << "New refinement, ambiguity " << ambiguity << std::endl;
- //  sendLog();
-    
     this->setActiveAmbiguity(ambiguity);
+	scoreType = defaultScoreType;
     
-    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
-    
-    wavelength = bestWavelength();
-    
-    if (!beam)
+	RefinementStrategyPtr refinementMap = RefinementStrategy::userChosenStrategy();
+
+	if (wavelength == 0)
+	{
+		wavelength = bestWavelength();
+	}
+
+    if (false && !beam)
     {
-    //    double wavelength = bestWavelength();
-        
         beam = GaussianBeamPtr(new GaussianBeam(wavelength, bandwidth, exponent));
         
         for (int i = 0; i < reflectionCount(); i++)
@@ -112,18 +117,23 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
             }
         }
     }
-    
-    
-    beam->addParameters(refinementMap);
+
+   // beam->addParameters(refinementMap);
     addParameters(refinementMap);
-    
-    
+
+	refinementMap->setJobName("Refining " + getFilename());
     refinementMap->setEvaluationFunction(refineParameterScore, this);
-    refinementMap->setCycles(cycles);
     
     refinementMap->refine();
     
-    return correlation();
+    double correl = correlation();
+
+	if (reset)
+	{
+		refinementMap->resetToInitialParameters();
+	}
+
+	return correl;
 }
 
 void MtzManager::refinePartialities()
@@ -134,7 +144,7 @@ void MtzManager::refinePartialities()
     
     for (int i = 0; i < ambiguityCount(); i++)
     {
-        correlations.push_back(refinePartialitiesOrientation(i, 10));
+        correlations.push_back(refinePartialitiesOrientation(i));
     }
     
     for (int i = 0; i < ambiguityCount(); i++)
@@ -146,15 +156,17 @@ void MtzManager::refinePartialities()
         }
     }
     
-    refinePartialitiesOrientation(bestAmbiguity);
-    double partCorrel = leastSquaresPartiality(ScoreTypePartialityCorrelation);
+    refinePartialitiesOrientation(bestAmbiguity, false);
+    double partCorrel = leastSquaresPartiality();
     setRefPartCorrel(partCorrel);
     
     setRefCorrelation(correlation());
     
     double rSplitValue = rSplit(0, 0);
     
-    logged << getFilename() << "\t" << describeScoreType() << "\t\t" << refCorrelation << "\t" << rSplitValue << "\t" << refPartCorrel << "\t" << accepted() << std::endl;
+    logged << getFilename() << "\t" << describeScoreType() << "\t\t"
+	<< refCorrelation << "\t" << rSplitValue << "\t" << refPartCorrel
+	<< "\t" << accepted() << std::endl;
     sendLog();
     
     writeToFile(std::string("ref-") + getFilename());
@@ -168,10 +180,7 @@ void MtzManager::refreshPartialities(double parameters[])
                         parameters[PARAM_SPOT_SIZE],
                         parameters[PARAM_WAVELENGTH],
                         parameters[PARAM_BANDWIDTH],
-                        parameters[PARAM_EXPONENT],
-                        parameters[PARAM_UNIT_CELL_A],
-                        parameters[PARAM_UNIT_CELL_B],
-                        parameters[PARAM_UNIT_CELL_C]);
+                        parameters[PARAM_EXPONENT]);
 }
 
 void MtzManager::refreshCurrentPartialities()
@@ -186,10 +195,7 @@ void MtzManager::refreshCurrentPartialities()
                         this->spotSize,
                         this->wavelength,
                         this->bandwidth,
-                        this->exponent,
-                        this->cellDim[0],
-                        this->cellDim[1],
-                        this->cellDim[2]);
+                        this->exponent);
 }
 
 void MtzManager::replaceBeamWithSpectrum()
@@ -213,8 +219,7 @@ void MtzManager::replaceBeamWithSpectrum()
 }
 
 void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
-		double spotSize, double wavelength, double bandwidth, double exponent,
-                                     double a, double b, double c)
+		double spotSize, double wavelength, double bandwidth, double exponent)
 {
     this->makeSuperGaussianLookupTable(exponent);
 
@@ -222,21 +227,10 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
         return;
     
     
-    double spgNum = getLowGroup()->spg_num;
-    if (spgNum >= 75 && spgNum <= 194)
-    {
-        b = a;
-    }
-    if (spgNum >= 195)
-    {
-        b = a;
-        c = a;
-    }
+	lockUnitCellDimensions();
 
- //   if (matrix->isComplex())
-    this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
-    
-    
+    this->matrix->changeOrientationMatrixDimensions(getUnitCell());
+
     MatrixPtr newMatrix = MatrixPtr();
     Miller::rotateMatrixHKL(hRot, kRot, 0, matrix, &newMatrix);
     
@@ -289,14 +283,9 @@ double MtzManager::medianWavelength(double lowRes, double highRes)
     }
     
     std::sort(wavelengths.begin(), wavelengths.end(), greaterThan);
-    
-    for (int i = 0; i < wavelengths.size(); i++)
-    {
- //       std::cout << wavelengths[i] << std::endl;
-    }
-    
+
     if (wavelengths.size() < 2)
-        return 1.29;
+        return 0;
     
     return wavelengths[int(wavelengths.size() / 2)];
 }
@@ -539,3 +528,331 @@ double MtzManager::statisticsWithManager(MtzManager *otherManager,
     
 	return statistic;
 }
+
+
+double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
+										 double highRes)
+{
+	ScoreType scoreType = static_cast<MtzManager *>(object)->scoreType;
+	MtzManager *mtz = static_cast<MtzManager *>(object);
+
+	if (scoreType == ScoreTypeCorrelation)
+	{
+		return 1 - mtz->correlation(true, lowRes, highRes);
+	}
+	else if (scoreType == ScoreTypeMinimizeRSplit)
+	{
+		return mtz->rSplit(lowRes, highRes);
+	}
+	else if (scoreType == ScoreTypeRSplitIntensity)
+	{
+		double rSplit = mtz->rSplit(lowRes, highRes);
+		double logIntensity = log(mtz->averageIntensity());
+
+		return rSplit / logIntensity;
+	}
+	else if (scoreType == ScoreTypeMinimizeRMeas)
+	{
+		double rSplit = mtz->rSplit(lowRes, highRes);
+		return rSplit;
+	}
+	else
+	{
+		return mtz->rSplit(lowRes, highRes);
+	}
+}
+
+double MtzManager::rSplit(double low, double high)
+{
+	bool reverse = FileParser::getKey("SMOOTH_FUNCTION", false);
+
+	if (referenceManager == NULL)
+	{
+		return 0;
+	}
+
+	this->scaleToMtz(referenceManager);
+
+	double sum_numerator = 0;
+	double sum_denominator = 0;
+	int count = 0;
+	double weights = 0;
+
+	vector<ReflectionPtr> referenceRefs;
+	vector<ReflectionPtr> imageRefs;
+
+	this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true, true);
+
+	for (int i = 0; i < referenceRefs.size(); i++)
+	{
+		ReflectionPtr referenceRef = referenceRefs[i];
+		ReflectionPtr imageRef = imageRefs[i];
+
+		if (!reverse && imageRef->acceptedCount() == 0)
+			continue;
+
+		if (referenceRef->millerCount() == 0)
+			continue;
+
+		if (imageRef->miller(0)->isFree())
+			continue;
+
+		if (!referenceRef->betweenResolutions(low, high))
+			continue;
+
+		for (int j = 0; j < imageRef->millerCount(); j++)
+		{
+			if (!imageRef->miller(j)->accepted())
+			{
+				continue;
+			}
+
+			double int1 = 0;
+			double int2 = 0;
+			double weight = 0;
+
+			if (!reverse)
+			{
+				int1 =  imageRef->miller(j)->intensity();
+				int2 = referenceRef->meanIntensity();
+				weight = imageRef->meanPartiality();
+			}
+			else
+			{
+				int1 = imageRef->miller(j)->getRawIntensity();
+				int2 = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
+				weight = imageRef->meanPartiality();
+			}
+
+			if (int1 == 0 || weight == 0 || weight != weight)
+			{
+				continue;
+
+			}
+
+			if (int1 != int1 || int2 != int2)
+				continue;
+
+			if (int1 + int2 < 0)
+				continue;
+
+			count++;
+			weights += weight;
+
+			sum_numerator += fabs(int1 - int2) * weight;
+			sum_denominator += (int1 + int2) * weight / 2;
+		}
+
+
+	}
+
+	double r_split = sum_numerator / (sum_denominator * sqrt(2));
+	lastRSplit = r_split;
+
+	return r_split;
+
+}
+
+double MtzManager::leastSquaresPartiality(double low, double high)
+{
+	vector<Partial> partials;
+	vector<double> partialities;
+	vector<double> percentages;
+	vector<double> intensities;
+
+	for (int i = 0; i < reflections.size(); i++)
+	{
+		ReflectionPtr imageReflection = reflections[i];
+		ReflectionPtr refReflection;
+		int reflid = (int)imageReflection->getReflId();
+
+		referenceManager->findReflectionWithId(reflid, &refReflection);
+
+		if (refReflection)
+		{
+			if (refReflection->meanIntensity() < REFERENCE_WEAK_REFLECTION)
+				continue;
+
+			if (!refReflection->betweenResolutions(low, high))
+				continue;
+
+			Partial partial;
+			partial.miller = imageReflection->miller(0);
+			partial.partiality = imageReflection->miller(0)->getPartiality();
+			partial.percentage = imageReflection->miller(0)->getRawIntensity()
+			/ refReflection->meanIntensity();
+			partial.resolution = imageReflection->getResolution();
+
+			partials.push_back(partial);
+		}
+	}
+
+	double maxPercentage = 2.5;
+	double minPartiality = FileParser::getKey("PARTIALITY_CUTOFF", PARTIAL_CUTOFF);
+
+	for (int i = 0; i < partials.size(); i++)
+	{
+		if (partials[i].percentage > maxPercentage || partials[i].percentage < 0)
+			continue;
+
+		if (partials[i].partiality != partials[i].partiality
+			|| partials[i].partiality > 1 || partials[i].partiality < minPartiality)
+			continue;
+
+		if (partials[i].percentage != partials[i].percentage)
+			continue;
+
+		partialities.push_back(partials[i].partiality);
+		percentages.push_back(partials[i].percentage);
+		intensities.push_back(partials[i].miller->getRawestIntensity());
+	}
+
+	double correl = 0;
+
+	correl = correlation_through_origin(&partialities, &percentages, &intensities);
+
+	return correl;
+}
+
+double MtzManager::refineParameterScore(void *object)
+{
+	MtzManager *me = static_cast<MtzManager *>(object);
+
+	me->refreshCurrentPartialities();
+	return exclusionScoreWrapper(me);
+
+
+	me->updateLatestMatrix();
+
+	for (int i = 0; i < me->reflectionCount(); i++)
+	{
+		for (int j = 0; j < me->reflection(i)->millerCount(); j++)
+		{
+			MillerPtr miller = me->reflection(i)->miller(j);
+			//      miller->recalculatePartiality();
+			// fix me!
+		}
+	}
+
+	me->setScoreType(me->defaultScoreType);
+
+	return exclusionScoreWrapper(me);
+}
+
+void MtzManager::excludeFromLogCorrelation()
+{
+	bool correlationRejection = FileParser::getKey("CORRELATION_REJECTION", true);
+
+	if (!correlationRejection)
+	{
+		return;
+	}
+
+	MtzManager &image1 = *this;
+	MtzManager &image2 = *(MtzManager::referenceManager);
+
+	double lowCut = 0;
+	double highCut = 1 / maxResolutionAll;
+
+	vector<double> refIntensities;
+	vector<double> imageIntensities;
+	vector<double> weights;
+	vector<ReflectionPtr> imgReflections;
+
+	for (int i = 0; i < image1.reflectionCount(); i++)
+	{
+		ReflectionPtr reflection = image1.reflection(i);
+		ReflectionPtr reflection2;
+
+		if (reflection->getResolution() < lowCut
+			|| reflection->getResolution() > highCut)
+			continue;
+
+		int refl = (int)reflection->getReflId();
+
+		image2.findReflectionWithId(refl, &reflection2);
+
+		if (!reflection2)
+			continue;
+
+		double int1 = (reflection->meanIntensity());
+
+		double int2 = (reflection2->meanIntensity());
+
+		double weight = reflection->meanWeight();
+
+		if (int1 != int1 || int2 != int2 || weight != weight)
+			continue;
+
+		if (!std::isfinite(int1) || !std::isfinite(int2))
+			continue;
+
+		imgReflections.push_back(reflection);
+		imageIntensities.push_back(int1);
+		refIntensities.push_back(int2);
+		weights.push_back(weight);
+	}
+
+	if (imageIntensities.size() < 100)
+		return;
+
+	std::map<double, int> correlationResults;
+
+	double baseCorrelation = correlation_between_vectors(&refIntensities,
+														 &imageIntensities, &weights);
+
+	if (baseCorrelation > 0.99)
+		return;
+
+	double correlationToGain = 1 - baseCorrelation;
+
+	for (int i = 0; i < refIntensities.size(); i++)
+	{
+		double newCorrelation = correlation_between_vectors(&refIntensities,
+															&imageIntensities, &weights, i);
+		double newCorrelationToGain = 1 - newCorrelation;
+
+		double ratio = (correlationToGain - newCorrelationToGain)
+		/ correlationToGain;
+
+		correlationResults[ratio] = i;
+	}
+
+	int count = 0;
+
+	for (std::map<double, int>::iterator it = correlationResults.end();
+		 it != correlationResults.begin(); --it)
+	{
+		if (count >= 3)
+			break;
+
+		if (it->first > 0.15)
+		{
+			imgReflections[correlationResults[it->first]]->miller(0)->setRejected(
+																				  RejectReasonCorrelation, true);
+			count++;
+		}
+	}
+}
+
+void MtzManager::resetDefaultParameters()
+{
+	if (!setInitialValues)
+	{
+		wavelength = FileParser::getKey("INITIAL_WAVELENGTH", wavelength);
+		bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
+		mosaicity = FileParser::getKey("INITIAL_MOSAICITY", INITIAL_MOSAICITY);
+		spotSize = FileParser::getKey("INITIAL_RLP_SIZE", INITIAL_SPOT_SIZE);
+		exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
+	}
+
+	usingFixedWavelength = (wavelength != 0);
+	hRot = 0;
+	kRot = 0;
+	allowTrust = FileParser::getKey("ALLOW_TRUST", true);
+	bool alwaysTrust = FileParser::getKey("TRUST_INDEXING_SOLUTION", false);
+
+	if (alwaysTrust)
+		trust = TrustLevelGood;
+}
+

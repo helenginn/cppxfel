@@ -37,12 +37,6 @@ bool sortByWavelength(Partial x, Partial y)
 	return (x.wavelength < y.wavelength);
 }
 
-bool sortByPercentage(Partial x, Partial y)
-{
-	return (x.percentage < y.percentage);
-}
-
-
 
 std::string GraphDrawer::generateFilename(std::string stem)
 {
@@ -148,8 +142,6 @@ void GraphDrawer::correlationPlot(std::string filename, double xMax, double yMax
 
 	MtzManager *shot1 = this->mtz;
 	MtzManager *shot2 = mtz->getReferenceManager();
-//	double scale = mtz->gradientAgainstManager(*shot2);
-//	mtz->applyScaleFactor(scale);
 
 	vector<ReflectionPtr> reflections1;
 	vector<ReflectionPtr> reflections2;
@@ -202,9 +194,8 @@ void GraphDrawer::resolutionStatsCSV(std::vector<MtzManager *>& managers)
                 myMtz->setActiveAmbiguity(0);
         }
 
-        double scale = myMtz->gradientAgainstManager(this->mtz);
-        myMtz->applyScaleFactor(scale);
- 
+        myMtz->scaleToMtz(this->mtz);
+
       /*
         double scale, bFactor;
         myMtz->bFactorAndScale(&scale, &bFactor);
@@ -451,8 +442,7 @@ void GraphDrawer::partialityPNG(MtzPtr mtz, double maxRes)
     if (correl > invCorrel)
         mtz->setActiveAmbiguity(0);
     
-    double gradient = mtz->gradientAgainstManager(MtzManager::getReferenceManager());
-    mtz->applyScaleFactor(gradient);
+    mtz->scaleToMtz(MtzManager::getReferenceManager());
     
     const int binCount = 4;
     vector<double> resolutions;
@@ -515,7 +505,7 @@ void GraphDrawer::plotPartialityStats(int h, int k, int l)
 
 void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 {
-    CCP4SPG *spaceGroup = mtzs[0]->getLowGroup();
+    CCP4SPG *spaceGroup = mtzs[0]->getSpaceGroup();
     UnitCellLatticePtr lattice = UnitCellLattice::getMainLattice();
     
     std::ofstream pdbLog;
@@ -622,7 +612,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
         {
             for (int k = -lMax; k < lMax; k++)
             {
-                bool asu = ccp4spg_is_in_asu(mtzs[0]->getLowGroup(), i, j, k);
+                bool asu = ccp4spg_is_in_asu(mtzs[0]->getSpaceGroup(), i, j, k);
                 
                 if (asu)
                 {

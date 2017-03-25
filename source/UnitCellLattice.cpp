@@ -193,8 +193,8 @@ void UnitCellLattice::weightUnitCell()
 
 void UnitCellLattice::updateUnitCellData()
 {
-
-    lockUnitCellDimensions(&_aDim, &_bDim, &_cDim, &_alpha, &_beta, &_gamma);
+    lockUnitCellDimensions();
+	std::vector<double> unitCell = getUnitCell();
     unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
     
     for (int i = 0; i < standardVectorCount(); i++)
@@ -218,7 +218,7 @@ void UnitCellLattice::updateUnitCellData()
     weightUnitCell();
 }
 
-void UnitCellLattice::setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution)
+void UnitCellLattice::setup()
 {
     setupLock.lock();
     
@@ -229,28 +229,15 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     }
     
     powderStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
-    spaceGroup = CSym::ccp4spg_load_by_ccp4_num(spaceGroupNum);
-    
-    _aDim = a;
-    _bDim = b;
-    _cDim = c;
-    _alpha = alpha;
-    _beta = beta;
-    _gamma = gamma;
-    
-    unitCell[0] = _aDim;
-    unitCell[1] = _bDim;
-    unitCell[2] = _cDim;
-    unitCell[3] = _alpha;
-    unitCell[4] = _beta;
-    unitCell[5] = _gamma;
-    
-    if (!symOperators.size())
+
+	std::vector<double> unitCell = getUnitCell();
+
+	if (!symOperators.size())
     {
-        Matrix::symmetryOperatorsForSpaceGroup(&symOperators, spaceGroup, a, b, c, alpha, beta, gamma);
+        Matrix::symmetryOperatorsForSpaceGroup(&symOperators, getSpaceGroup(), unitCell);
     }
-    
-    unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
+
+	unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
     
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
     
@@ -262,12 +249,8 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
     maxDistance = 0;
     
     int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
-    
-    if (resolution == 0)
-    {
-        resolution = 1 / (FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER);
-    }
-    
+	double resolution = 1 / (FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER);
+
     getMaxMillerIndicesForResolution(resolution, &maxMillerIndexTrialH, &maxMillerIndexTrialK, &maxMillerIndexTrialL);
     
     int count = 0;
@@ -280,7 +263,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
         {
             for (int k = -maxMillerIndexTrialL; k <= maxMillerIndexTrialL; k++)
             {
-                if (ccp4spg_is_sysabs(spaceGroup, i, j, k))
+                if (ccp4spg_is_sysabs(getSpaceGroup(), i, j, k))
                 {
                     continue;
                 }
@@ -300,7 +283,7 @@ void UnitCellLattice::setup(double a, double b, double c, double alpha, double b
                 
                 SpotVectorPtr newStandardVector = SpotVectorPtr(new SpotVector(hkl_transformed, hkl));
                 
-                int asym = CSym::ccp4spg_is_in_asu(spaceGroup, i, j, k);
+                int asym = CSym::ccp4spg_is_in_asu(getSpaceGroup(), i, j, k);
                 
                 spotVectors.push_back(newStandardVector);
                 orderedDistances.push_back(newStandardVector->distance());
@@ -355,34 +338,11 @@ double UnitCellLattice::weightForCosine(double cosine)
     return weightedAngles->valueForHistogramEntry("Perfect frequency", cosine, "Cosine") * distanceToAngleRatio;
 }
 
-
-void UnitCellLattice::lockUnitCellDimensions(double *a, double *b, double *c, double *alpha, double *beta, double *gamma)
-{
-    double spgNum = spaceGroup->spg_num;
-    if (spgNum >= 75 && spgNum <= 194)
-    {
-        *b = *a;
-    }
-    if (spgNum >= 195)
-    {
-        *b = *a;
-        *c = *a;
-        *alpha = 90;
-        *beta = 90;
-        *gamma = 90;
-    }
-}
-
 UnitCellLatticePtr UnitCellLattice::getMainLattice()
 {
     if (!mainLattice)
     {
-        double spaceGroupNum = FileParser::getKey("SPACE_GROUP", 0);
-        
-        std::vector<double> unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
-        
-        mainLattice = UnitCellLatticePtr(new UnitCellLattice(unitCell[0], unitCell[1], unitCell[2],
-                                                             unitCell[3], unitCell[4], unitCell[5], spaceGroupNum));
+        mainLattice = UnitCellLatticePtr(new UnitCellLattice());
     }
     
     return mainLattice;
