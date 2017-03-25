@@ -100,8 +100,8 @@ void new_main(int argc, char *argv[])
         
         std::cout << "Partiality CSV files:" << std::endl << std::endl;
         std::cout << "\tcppxfel.run -partiality reference.mtz ref-img-shot-number.mtz [highRes]" << std::endl << std::endl;
-        std::cout << "highRes: 0, 1, 2 or 3 - highest resolution reflection to report results on. Default 1.4" << std::endl;
-        std::cout << "This outputs partiality_[m].csv where m is bin number, which can be imported into other graphing softwares such as R." << std::endl << std::endl;;
+        std::cout << "highRes: - highest resolution reflection to report results on. Defaults to the edge of the image." << std::endl;
+		std::cout << "This outputs ref-img-shot-number.mtz_partiality_[r].png where r denotes the resolution range, and also the relevant CSV with the .csv file extension." << std::endl << std::endl;;
 
         
         std::cout << "Merging statistics:" << std::endl << std::endl;
