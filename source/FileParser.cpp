@@ -390,7 +390,13 @@ void FileParser::generateDeprecatedList()
     deprecatedList["MAX_SLICES"] = "The slicing of reciprocal lattice points is now determined automatically on a resolution-independent basis and so this option has been removed.";
     deprecatedList["CAREFUL_RESOLUTION"] = "The slicing of reciprocal lattice points is now determined automatically on a resolution-independent basis and so this option has been removed.";
     deprecatedList["RLP_MODEL"] = "This parameter made little to no difference and so has been removed.";
-    
+    deprecatedList["OLD_MERGE"] = "The old merging system has been removed as the new merging system is now identical in nature.";
+	deprecatedList["THOROUGH_SOLUTION_SEARCHING"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+	deprecatedList["MAX_SEARCH_NUMBER_MATCHES"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+	deprecatedList["MAX_SEARCH_NUMBER_SOLUTIONS"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+	deprecatedList["NEW_INDEXING_METHOD"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+	deprecatedList["MINIMUM_NEIGHBOURS"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+
 }
 
 void FileParser::generateCodeList()
@@ -493,18 +499,25 @@ void FileParser::generateCategories()
 
     std::vector<std::string> hardIndexingParameters;
     hardIndexingParameters.push_back("SOLUTION_ANGLE_SPREAD");
-    hardIndexingParameters.push_back("ALWAYS_FILTER_SPOTS");
     hardIndexingParameters.push_back("MINIMUM_TRUST_ANGLE");
     hardIndexingParameters.push_back("MINIMUM_SOLUTION_NETWORK_COUNT");
     hardIndexingParameters.push_back("ACCEPT_ALL_SOLUTIONS");
+	hardIndexingParameters.push_back("MAX_LATTICES_PER_IMAGE");
     hardIndexingParameters.push_back("CHECKING_COMMON_SPOTS");
-    hardIndexingParameters.push_back("POWDER_PATTERN_STEP");
     hardIndexingParameters.push_back("NETWORK_TRIAL_LIMIT");
-    
+
+	std::vector<std::string> powderPatternSpecific;
+	powderPatternSpecific.push_back("ALWAYS_FILTER_SPOTS");
+	powderPatternSpecific.push_back("SPOTS_PER_LATTICE");
+	powderPatternSpecific.push_back("POWDER_PATTERN_STEP");
+	powderPatternSpecific.push_back("REJECT_OVER_SPOT_COUNT");
+	powderPatternSpecific.push_back("REJECT_UNDER_SPOT_COUNT");
+
     indexing["Indexing solution checks"] = indexingSolutionChecks;
     indexing["Basic indexing parameters"] = easyIndexingParameters;
     indexing["Expert indexing parameters"] = hardIndexingParameters;
-    
+	indexing["Powder pattern specific"] = powderPatternSpecific;
+
     categoryTree["Indexing"] = indexing;
     
     CategoryMap hdf5Imports;
@@ -522,6 +535,7 @@ void FileParser::generateCategories()
     hardHdf5Imports.push_back("BITS_PER_PIXEL");
     hardHdf5Imports.push_back("MATRIX_LIST_VERSION");
     hardHdf5Imports.push_back("FREE_ELECTRON_LASER");
+	hardHdf5Imports.push_back("USE_HDF5_WAVELENGTH");
 
     hdf5Imports["Basic image import parameters"] = easyHdf5Imports;
     hdf5Imports["Expert image import parameters"] = hardHdf5Imports;
@@ -817,7 +831,6 @@ void FileParser::generateFunctionList()
     parserMap["MINIMUM_CYCLES"] = simpleInt;
     parserMap["MAXIMUM_CYCLES"] = simpleInt;
     parserMap["STOP_REFINEMENT"] = simpleBool;
-    parserMap["OLD_MERGE"] = simpleBool;
     //parserMap["MERGE_MEDIAN"] = simpleBool;
     parserMap["READ_REFINED_MTZS"] = simpleBool;
     
@@ -906,7 +919,6 @@ void FileParser::generateFunctionList()
     parserMap["DUMP_IMAGES"] = simpleBool;
     
     parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
-    parserMap["SECOND_MATRIX_LIST"] = simpleString;
     parserMap["OUTPUT_DIRECTORY"] = simpleString;
     parserMap["OUTPUT_INDIVIDUAL_CYCLES"] = simpleBool;
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;
@@ -920,8 +932,6 @@ void FileParser::generateFunctionList()
     parserMap["SCALING_STRATEGY"] = simpleInt;
 	parserMap["MINIMUM_REFLECTION_CUTOFF"] = simpleInt;
     parserMap["MINIMUM_MULTIPLICITY"] = simpleInt;
-    parserMap["FAST_MERGE"] = simpleBool;
-//    parserMap["CORRECTED_PARTIALITY_MODEL"] = simpleBool;
     parserMap["REJECT_BELOW_SCALE"] = simpleFloat;
 
 	// Indexing parameters
@@ -950,7 +960,6 @@ void FileParser::generateFunctionList()
     parserMap["MAX_INTEGRATED_RESOLUTION"] = simpleFloat;
 	parserMap["UNIT_CELL"] = doubleVector;
     parserMap["FIX_UNIT_CELL"] = simpleBool;
-    parserMap["ADD_MASK"] = intVector;
     parserMap["INITIAL_ORIENTATION_STEP"] = simpleFloat;
     parserMap["COMPLEX_SHOEBOX"] = simpleBool;
     parserMap["SHOEBOX_BANDWIDTH_MULTIPLIER"] = simpleFloat;
@@ -980,23 +989,18 @@ void FileParser::generateFunctionList()
     parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
     parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;
     parserMap["REJECT_CLOSE_SPOTS"] = simpleBool;
-  //  parserMap["THOROUGH_SOLUTION_SEARCHING"] = simpleBool;
-    parserMap["MAX_SEARCH_NUMBER_MATCHES"] = simpleInt;
-    parserMap["MAX_SEARCH_NUMBER_SOLUTIONS"] = simpleInt;
     parserMap["ACCEPT_ALL_SOLUTIONS"] = simpleBool;
     parserMap["INDEXING_MIN_RESOLUTION"] = simpleFloat;
     parserMap["SPOTS_PER_LATTICE"] = simpleInt;
     parserMap["GOOD_SOLUTION_ST_DEV"] = simpleFloat;
-    parserMap["BAD_SOLUTION_ST_DEV"] = simpleFloat;
     parserMap["GOOD_SOLUTION_SUM_RATIO"] = simpleFloat;
     parserMap["GOOD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
-    parserMap["SOLUTION_ATTEMPTS"] = simpleInt;
-    parserMap["ONE_INDEXING_CYCLE_ONLY"] = simpleBool;
-    parserMap["NEW_INDEXING_METHOD"] = simpleBool;
+	parserMap["BAD_SOLUTION_ST_DEV"] = simpleFloat;
+	parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
+	parserMap["SOLUTION_ATTEMPTS"] = simpleInt;
     parserMap["MAX_RECIPROCAL_DISTANCE"] = simpleFloat;
     parserMap["MAXIMUM_ANGLE_DISTANCE"] = simpleFloat;
     parserMap["ALWAYS_FILTER_SPOTS"] = simpleBool;
-    parserMap["MINIMUM_NEIGHBOURS"] = simpleInt;
     parserMap["MINIMUM_SOLUTION_NETWORK_COUNT"] = simpleInt;
     parserMap["NETWORK_TRIAL_LIMIT"] = simpleInt;
     parserMap["INDEXING_TIME_LIMIT"] = simpleInt;
@@ -1007,7 +1011,6 @@ void FileParser::generateFunctionList()
     parserMap["REJECT_OVER_SPOT_COUNT"] = simpleInt;
     parserMap["POWDER_PATTERN_STEP"] = simpleFloat;
     parserMap["POWDER_PATTERN_STEP_ANGLE"] = simpleFloat;
-    parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
     parserMap["LOW_MEMORY_MODE"] = simpleBool;
     parserMap["GEOMETRY_FORMAT"] = simpleInt;
     
