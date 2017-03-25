@@ -424,7 +424,7 @@ void MtzMerger::scaleIndividual(MtzPtr mtz)
     {
         MtzManager *reference = MtzManager::getReferenceManager();
         
-        scale = mtz->gradientAgainstManager(reference, true);
+        mtz->scaleToMtz(reference, true);
     }
     else if (scalingType == ScalingTypeBFactor)
     {

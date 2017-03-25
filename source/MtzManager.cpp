@@ -1103,8 +1103,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
     applyBFactor(b);
 }
 
-double MtzManager::gradientAgainstManager(MtzManager *otherManager,
-                                          bool info, double lowRes, double highRes)
+void MtzManager::scaleToMtz(MtzManager *otherManager, bool info, double lowRes, double highRes)
 {
     vector<ReflectionPtr> reflections1;
     vector<ReflectionPtr> reflections2;
@@ -1115,7 +1114,7 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
     this->findCommonReflections(otherManager, reflections1, reflections2, &num, true, true);
     
     if (num <= 1)
-        return 1;
+        return;
     
     double x_squared = 0;
     double x_y = 0;
@@ -1154,7 +1153,7 @@ double MtzManager::gradientAgainstManager(MtzManager *otherManager,
     if (grad < 0)
         grad = -1;
     
-    return grad;
+	applyScaleFactor(grad);
 }
 
 void MtzManager::clearScaleFactor()

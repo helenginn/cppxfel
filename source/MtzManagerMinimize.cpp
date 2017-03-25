@@ -66,9 +66,8 @@ double MtzManager::rSplit(double low, double high)
         return 0;
     }
     
-    double scale = this->gradientAgainstManager(referenceManager);
-    applyScaleFactor(scale);
-    
+    this->scaleToMtz(referenceManager);
+
     double sum_numerator = 0;
     double sum_denominator = 0;
     int count = 0;
@@ -426,9 +425,8 @@ void MtzManager::gridSearch(bool silent, bool ambOnly)
     scoreType = defaultScoreType;
     std::string scoreDescription = this->describeScoreType();
     
-    double scale = this->gradientAgainstManager(this->getReferenceManager());
-    applyScaleFactor(scale);
-    
+    scaleToMtz(this->getReferenceManager());
+
     std::map<int, std::pair<vector<double>, double> > ambiguityResults;
     
     double *firstParams = new double[PARAM_NUM];
@@ -503,9 +501,8 @@ void MtzManager::gridSearch(bool silent, bool ambOnly)
         }
     }
     
-    scale = this->gradientAgainstManager(this->getReferenceManager());
-    applyScaleFactor(scale);
-    
+    scaleToMtz(this->getReferenceManager());
+
     double newCorrel = correlation(true);
     this->setFinalised(true);
     

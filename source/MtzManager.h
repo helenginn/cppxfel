@@ -171,7 +171,7 @@ public:
 	void findCommonReflections(MtzManager *other,
 			vector<ReflectionPtr> &reflectionVector1, vector<ReflectionPtr> &reflectionVector2,
 			int *num = NULL, bool acceptableOnly = false, bool preserve = false);
-	double gradientAgainstManager(MtzManager *otherManager, bool withCutoff = false, double lowRes = 0, double highRes = 0);
+	void scaleToMtz(MtzManager *otherManager, bool withCutoff = false, double lowRes = 0, double highRes = 0);
 	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1);
 	void applyBFactor(double bFactor);
 	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0, bool absolute = false);
