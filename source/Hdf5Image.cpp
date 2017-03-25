@@ -83,7 +83,7 @@ void Hdf5Image::loadCrystals()
             crystal->setAddress(addresses[i]);
             
             MtzPtr mtz = boost::static_pointer_cast<MtzManager>(crystal);
-            mtz->loadReflections(PartialityModelScaled, false);
+            mtz->loadReflections();
             addMtz(mtz);
 
             IOMRefinerPtr refiner = IOMRefinerPtr(new IOMRefiner(shared_from_this(), mtz->getMatrix()));

@@ -1033,11 +1033,6 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     
     this->sendLog(LogLevelDetailed);
     
-    double cutoff = FileParser::getKey("SIGMA_RESOLUTION_CUTOFF", SIGMA_RESOLUTION_CUTOFF);
-    
-    if (cutoff != 0)
-        mtz->cutToResolutionWithSigma(cutoff);
-    
     nearbyMillers.clear();
     lastMtz = mtz;
     

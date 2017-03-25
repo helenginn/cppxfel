@@ -30,7 +30,7 @@ void StatisticsManager::loadFiles(char **filenames, int filenum, int partiality)
 		mtzs.push_back(mtz);
 
 		mtzs[i]->setFilename(filename_string);
-		mtzs[i]->loadReflections(partiality);
+		mtzs[i]->loadReflections();
 	}
 
 	mtz_num = filenum;

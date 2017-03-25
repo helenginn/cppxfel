@@ -62,7 +62,7 @@ public:
 	int millerCount();
 	ReflectionPtr copy(bool copyMillers = false);
     
-	static int indexForReflection(int h, int k, int l, CSym::CCP4SPG *lowspgroup, bool inverted = false);
+	static int indexForReflection(int h, int k, int l, CSym::CCP4SPG *lowspgroup = NULL, bool inverted = false);
     static int reflectionIdForCoordinates(int h, int k, int l);
     
     int checkOverlaps();

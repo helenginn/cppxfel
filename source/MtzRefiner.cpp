@@ -299,7 +299,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
         reference = MtzPtr(new MtzManager());
         
         reference->setFilename(referenceFile.c_str());
-        reference->loadReflections(1);
+        reference->loadReflections();
         reference->setSigmaToUnity();
         
         if (reference->reflectionCount() == 0)
@@ -597,7 +597,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                         newManager->setParamLine(paramsLine);
                         newManager->setTimeDelay(delay);
                         newManager->setImage(newImage);
-                        newManager->loadReflections(PartialityModelScaled);
+                        newManager->loadReflections();
                         
                         if (newManager->reflectionCount() > 0)
                         {
@@ -655,7 +655,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             
             if (!lowMemoryMode)
             {
-                newManager->loadReflections(PartialityModelScaled, true);
+                newManager->loadReflections();
             }
             
             if (setSigmaToUnity)

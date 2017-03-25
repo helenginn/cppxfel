@@ -33,7 +33,7 @@ typedef enum
 
 class Miller;
 
-class MtzManager :  public hasFilename, public boost::enable_shared_from_this<MtzManager>
+class MtzManager : public LoggableObject, public hasFilename, public boost::enable_shared_from_this<MtzManager>
 {
 
 protected:
@@ -42,7 +42,6 @@ protected:
     static std::mutex spaceGroupMutex;
 	static bool reflection_comparison(ReflectionPtr i, ReflectionPtr j);
 
-	int index_for_reflection(int h, int k, int l, bool inverted);
 	ImageWeakPtr image;
     bool dropped;
     void getWavelengthFromHDF5();
@@ -130,11 +129,9 @@ public:
     double externalScale;
     int removeStrongSpots(std::vector<SpotPtr> *spots, bool actuallyDelete = true);
     int rejectOverlaps();
-    ImagePtr loadParentImage();
-
+    
 	MtzManager(void);
 	virtual ~MtzManager(void);
-	MtzPtr copy();
 	void loadParametersMap();
 
     void addMiller(MillerPtr miller);
@@ -150,18 +147,15 @@ public:
     void resetDefaultParameters();
     
     void setDefaultMatrix();
-	void setMatrix(double *components);
 	void setMatrix(MatrixPtr newMat);
-	void insertionSortReflections();
+	void sortReflections();
 	void applyUnrefinedPartiality();
     void incrementActiveAmbiguity();
-    void cutToResolutionWithSigma(double acceptableSigma);
     double maxResolution();
 
 	void setSpaceGroup(int spgnum);
-	virtual void loadReflections(PartialityModel model, bool special = false); // FIXME: remove unnecessary parameters
+	virtual void loadReflections();
     void dropReflections();
-	void loadReflections(int partiality);
 	static void setReference(MtzManager *reference);
     ReflectionPtr findReflectionWithId(ReflectionPtr exampleRefl, size_t *lowestId = NULL);
 	int findReflectionWithId(long unsigned int refl_id, ReflectionPtr *reflection, bool insertionPoint = false);
@@ -202,8 +196,7 @@ public:
 	virtual void writeToFile(std::string newFilename, bool announce = false, bool plusAmbiguity = false);
     void writeToHdf5();
     void writeToDat(std::string prefix = "");
-    void sendLog(LogLevel priority = LogLevelNormal);
-
+    
 	double correlationWithManager(MtzManager *otherManager, bool printHits = false,
 			bool silent = true, double lowRes = 0, double highRes = 0, int bins = 20,
 			vector<boost::tuple<double, double, double, int> > *correlations = NULL, bool shouldLog = false, bool freeOnly = false);
@@ -264,7 +257,6 @@ public:
     
     static std::string parameterHeaders();
     std::string writeParameterSummary();
-    static MtzPtr trajectoryMtz(MtzPtr one, MtzPtr two, double fractionExcited);
     
     void millersToDetector();
     

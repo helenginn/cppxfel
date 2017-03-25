@@ -601,7 +601,7 @@ void MtzMerger::groupMillerThread(int offset)
         
         if (lowMemoryMode)
         {
-            mtz->loadReflections(true);
+            mtz->loadReflections();
         }
         
         if (mtzIsPruned(mtz))

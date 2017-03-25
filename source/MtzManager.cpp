@@ -96,51 +96,12 @@ void MtzManager::makeSuperGaussianLookupTable(double exponent)
     tableMutex.unlock();
 }
 
-
-int MtzManager::index_for_reflection(int h, int k, int l, bool inverted)
-{
-    int _h = h;
-    int _k = k;
-    int _l = l;
-    
-    if (inverted)
-    {
-        if (low_group->spg_num == 197)
-        {
-            _h = k;
-            _k = h;
-            _l = -l;
-        }
-        
-        if (low_group->spg_num == 146)
-        {
-            _h = k;
-            _k = h;
-            _l = -l;
-        }
-        
-        if (low_group->spg_num == 4 || low_group->spg_num == 21)
-        {
-            _h = l;
-            _k = k;
-            _l = h;
-        }
-    }
-    
-    ccp4spg_put_in_asu(low_group, _h, _k, _l, &h, &k, &l);
-    
-    int index = (h + OFFSET) * pow((double) MULTIPLIER, (int) 2)
-    + (k + OFFSET) * MULTIPLIER + (l + OFFSET);
-    
-    return index;
-}
-
 bool MtzManager::reflection_comparison(ReflectionPtr i, ReflectionPtr j)
 {
     return (i->getReflId() < j->getReflId());
 }
 
-void MtzManager::insertionSortReflections(void)
+void MtzManager::sortReflections()
 {
     std::sort(reflections.begin(), reflections.end(), reflection_comparison);
 }
@@ -208,7 +169,7 @@ void MtzManager::loadParametersMap()
                                           MAX_OPTIMISATION_RESOLUTION);
 }
 
-MtzManager::MtzManager(void)
+MtzManager::MtzManager()
 {
     lastReference = NULL;
     reflections.resize(0);
@@ -245,39 +206,6 @@ MtzManager::MtzManager(void)
     matrix = MatrixPtr();
 }
 
-MtzPtr MtzManager::copy()
-{
-    MtzPtr newManager = MtzPtr(new MtzManager());
-    newManager->setFilename(getFilename());
-//    double lowNum = low_group->spg_num;
-//    newManager->setSpaceGroup(lowNum);
-    newManager->bandwidth = bandwidth;
-    newManager->hRot = hRot;
-    newManager->kRot = kRot;
-    newManager->mosaicity = mosaicity;
-    newManager->spotSize = spotSize;
-    newManager->wavelength = wavelength;
-    newManager->refCorrelation = refCorrelation;
-    newManager->exponent = exponent;
-    newManager->matrix = matrix;
-    
-    for (int i = 0; i < 3; i++)
-    {
-        newManager->cellDim[i] = cellDim[i];
-        newManager->cellAngles[i] = cellAngles[i];
-        
-    }
-    
-    for (int i = 0; i < reflections.size(); i++)
-    {
-        ReflectionPtr newReflection = reflections[i]->copy();
-        newManager->reflections.push_back(newReflection);
-    }
-    
-    return newManager;
-}
-
-
 void MtzManager::setUnitCell(double a, double b, double c, double alpha, double beta,
                              double gamma)
 {
@@ -291,12 +219,8 @@ void MtzManager::setUnitCell(double a, double b, double c, double alpha, double 
 
 void MtzManager::setUnitCell(vector<double> unitCell)
 {
-    cellDim[0] = unitCell[0];
-    cellDim[1] = unitCell[1];
-    cellDim[2] = unitCell[2];
-    cellAngles[0] = unitCell[3];
-    cellAngles[1] = unitCell[4];
-    cellAngles[2] = unitCell[5];
+	memcpy(cellDim, &unitCell[0], sizeof(double) * 3);
+	memcpy(cellAngles, &unitCell[3], sizeof(double) * 3);
 }
 
 void MtzManager::clearReflections()
@@ -333,9 +257,9 @@ void MtzManager::addReflections(vector<ReflectionPtr>reflections, bool assumeSor
 
 void MtzManager::addMiller(MillerPtr miller)
 {
-    int reflection_reflection_index = index_for_reflection(miller->getH(), miller->getK(), miller->getL(), false);
+	int reflection_index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL());
     ReflectionPtr prevReflection;
-    this->findReflectionWithId(reflection_reflection_index, &prevReflection);
+    this->findReflectionWithId(reflection_index, &prevReflection);
     
     double unitCell[6] = {cellDim[0], cellDim[1], cellDim[2], cellAngles[0], cellAngles[1], cellAngles[2]};
     
@@ -388,12 +312,6 @@ int MtzManager::refinedParameterCount()
     return count;
 }
 
-void MtzManager::setMatrix(double *components)
-{
-    matrix = MatrixPtr(new Matrix(components));
-    rotatedMatrix = matrix->copy();
-}
-
 void MtzManager::setMatrix(MatrixPtr newMat)
 {
     matrix = newMat;
@@ -423,23 +341,12 @@ void MtzManager::getUnitCell(double *a, double *b, double *c, double *alpha,
 
 void MtzManager::copySymmetryInformationFromManager(MtzPtr toCopy)
 {
-    double a, b, c, alpha, beta, gamma;
-    toCopy->getUnitCell(&a, &b, &c, &alpha, &beta, &gamma);
-    this->setUnitCell(a, b, c, alpha, beta, gamma);
-    
-  //  std::cout << "Setting unit cell to " << a << ", " << b << ", " << c << ", " << alpha << ", " << beta << ", " << gamma <<std::endl;
+	std::vector<double> otherUnitCell =  toCopy->getUnitCell();
+    this->setUnitCell(otherUnitCell);
     
     int spgnum = toCopy->getLowGroup()->spg_ccp4_num;
     CCP4SPG *spg = ccp4spg_load_by_ccp4_num(spgnum);
     this->setLowGroup(spg);
-}
-
-void MtzManager::loadReflections(int partials)
-{
-    PartialityModel model =
-    partials ? PartialityModelScaled : PartialityModelSimple;
-    
-    loadReflections(model);
 }
 
 void MtzManager::dropReflections()
@@ -496,7 +403,7 @@ void MtzManager::getWavelengthFromHDF5()
     }
 }
 
-void MtzManager::loadReflections(PartialityModel model, bool special)
+void MtzManager::loadReflections()
 {
     if (reflectionCount())
     {
@@ -646,8 +553,8 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         int k = adata[col_k->source - 1];
         int l = adata[col_l->source - 1];
         
-        int reflection_reflection_index = index_for_reflection(h, k, l, false);
-        
+		int reflection_index = Reflection::indexForReflection(h, k, l);
+
         float intensity = adata[col_f->source - 1];
         
         float countingSigma = 1;
@@ -716,7 +623,7 @@ void MtzManager::loadReflections(PartialityModel model, bool special)
         
         ReflectionPtr prevReflection;
         
-        this->findReflectionWithId(reflection_reflection_index, &prevReflection);
+        this->findReflectionWithId(reflection_index, &prevReflection);
         miller->setImageAndIOMRefiner(getImagePtr(), IOMRefinerPtr());
 
         if (prevReflection)
@@ -1156,9 +1063,6 @@ void MtzManager::clearScaleFactor()
 
 void MtzManager::applyBFactor(double bFactor)
 {
- //   if (bFactor < 0)
- //       bFactor = 0 - bFactor;
-    
     if (bFactor == 0)
     {
         return;
@@ -1465,13 +1369,6 @@ void MtzManager::writeToDat(std::string prefix)
     logged << "Wrote " << datName << " file" << std::endl;
 }
 
-void MtzManager::sendLog(LogLevel priority)
-{
-    Logger::mainLogger->addStream(&logged, priority);
-    logged.str("");
-    logged.clear();
-}
-
 int MtzManager::rejectOverlaps()
 {
     int count = 0;
@@ -1525,7 +1422,7 @@ void MtzManager::flipToActiveAmbiguity()
         reflection(i)->setFlip(activeAmbiguity);
     }
     
-    this->insertionSortReflections();
+    this->sortReflections();
 }
 
 
@@ -1536,7 +1433,7 @@ void MtzManager::resetFlip()
         reflection(i)->resetFlip();
     }
     
-    this->insertionSortReflections();
+    this->sortReflections();
 }
 
 void MtzManager::setActiveAmbiguity(int newAmbiguity)
@@ -1565,71 +1462,6 @@ double MtzManager::maxResolution()
     }
     
     return maxResolution;
-}
-
-void MtzManager::cutToResolutionWithSigma(double acceptableSigma)
-{
-    double maxRes = maxResolution();
-    vector<double> resolutions;
-    StatisticsManager::generateResolutionBins(0, 1 / maxRes, 10, &resolutions);
-
-    logged << resolutions.size() << " bins to " << 1 / maxRes << " Å." << std::endl;
-    logged << "(" << getFilename() << ") I/SigI by shell:" << std::endl;
-    
-    double cutoffResolution = 1 / maxResolution();
-    bool alreadyCut = false;
-    
-    for (int i = (int)resolutions.size() - 1; i > 0; i--)
-    {
-        double isigiSum = 0;
-        double weights = 0;
-        double highRes = resolutions[i];
-        double lowRes = resolutions[i - 1];
-        
-        for (int j = 0; j < reflectionCount(); j++)
-        {
-            if (!reflection(j)->betweenResolutions(lowRes, highRes))
-                continue;
-
-            for (int k = 0; k < reflection(j)->millerCount(); k++)
-            {
-                MillerPtr miller = reflection(j)->miller(k);
-                
-                double isigi = miller->getRawIntensity() / miller->getCountingSigma();
-                double weight = 1;
-                
-                isigiSum += isigi * weight;
-                weights += weight;
-            }
-        }
-        
-        double isigi = isigiSum / weights;
-        
-        logged << lowRes << " to " << highRes << " Å: " << isigi << " from " << weights;
-        
-        if (isigi > acceptableSigma && !alreadyCut)
-        {
-            cutoffResolution = highRes;
-            logged << " *** CUT HERE ***";
-            alreadyCut = true;
-        }
-        
-        logged << std::endl;
-    }
-    
-    sendLog();
-    
-    for (int i = 0; i < reflectionCount(); i++)
-    {
-        if (reflection(i)->getResolution() > cutoffResolution)
-        {
-            this->removeReflection(i);
-            i--;
-        }
-    }
-    
-    logged << getFilename() << ": I/sigI cutoff rejected reflections over " << cutoffResolution << " Å." << std::endl;
-    sendLog();
 }
 
 std::string MtzManager::getParamLine()
@@ -1708,89 +1540,6 @@ std::string MtzManager::writeParameterSummary()
     
     
     return summary.str();
-}
-
-void addPolarVectors(double f1, double phi1, double f2, double phi2, double *newF, double *newPhi)
-{
-    double rad1 = phi1 * M_PI / 180;
-    double rad2 = phi2 * M_PI / 180;
-    
-    double sinAngleDiff = sin(rad2 - rad1);
-    double cosAngleDiff = cos(rad2 - rad1);
-    double leftTerm = f1 * f1 + f2 * f2;
-    double rightTerm = 2 * f1 * f2 * cosAngleDiff;
-    
-    *newF = sqrt(leftTerm + rightTerm);
-    *newPhi = rad1 + atan2(f2 * sinAngleDiff, f1 + f2 * cosAngleDiff);
-    
-    *newPhi *= 180 / M_PI;
-}
-
-void subtractPolarVectors(double f1, double phi1, double f2, double phi2, double *newF, double *newPhi)
-{
-    // f2 - f1
-    addPolarVectors(f1, phi1 + 180, f2, phi2, newF, newPhi);
-}
-
-MtzPtr MtzManager::trajectoryMtz(MtzPtr one, MtzPtr two, double fractionExcited)
-{
-    MtzPtr newMtz = one->copy();
-    double newLength = 1 / fractionExcited;
-    
-    for (int i = 0; i < newMtz->reflectionCount(); i++)
-    {
-        ReflectionPtr myRefl = newMtz->reflection(i);
-        ReflectionPtr partnerRefl;
-        two->findReflectionWithId(myRefl->getReflId(), &partnerRefl);
-        
-        if (!partnerRefl)
-        {
-            newMtz->removeReflection(i);
-            i--;
-            continue;
-        }
-        
-        double oneIntensity = myRefl->meanIntensity();
-        double onePhase = myRefl->miller(0)->getPhase();
-        
-        double twoIntensity = partnerRefl->meanIntensity();
-        double twoPhase = partnerRefl->miller(0)->getPhase();
-        
-        double diffIntensity = 0;
-        double diffPhase = 0;
-        
-        subtractPolarVectors(oneIntensity, onePhase, twoIntensity, twoPhase, &diffIntensity, &diffPhase);
-        
-        diffIntensity *= newLength;
-        
-        double newIntensity = 0;
-        double newPhase = 0;
-        
-        addPolarVectors(oneIntensity, onePhase, diffIntensity, diffPhase, &newIntensity, &newPhase);
-        
-        myRefl->miller(0)->setRawIntensity(newIntensity);
-        myRefl->miller(0)->setPhase(newPhase);
-        
-        std::ostringstream logged;
-        logged << oneIntensity << ", " << onePhase << ", " << twoIntensity << ", " << twoPhase << ", " << newIntensity << ", " << newPhase << std::endl;
-        Logger::log(logged);
-    }
-    
-    
-    return newMtz;
-}
-
-ImagePtr MtzManager::loadParentImage()
-{
-    ImagePtr currentImage = getImagePtr();
-    
-    if (currentImage == ImagePtr())
-    {
-        currentImage = ImagePtr(new Image(getParentImageName()));
-        image = currentImage;
-    }
-    
-    return currentImage;
 }
 
 void MtzManager::millersToDetector()
