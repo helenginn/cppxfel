@@ -11,15 +11,14 @@
 
 #include <stdio.h>
 #include "FreeLattice.h"
-#include "csymlib.h"
+#include "hasSymmetry.h"
 #include "Matrix.h"
 #include "parameters.h"
 
-class UnitCellLattice : public FreeLattice, public LoggableObject
+class UnitCellLattice : public FreeLattice, public hasSymmetry, public LoggableObject
 {
 private:
     static UnitCellLatticePtr mainLattice;
-    CSym::CCP4SPG *spaceGroup;
     MatrixPtr unitCellMatrix;
     MatrixPtr unitCellOnly;
     MatrixPtr unitCellMatrixInverse;
@@ -27,13 +26,11 @@ private:
     double maxDistance;
     double minDistance;
     double powderStep;
-    double unitCell[6];
     PowderHistogram histogram;
     std::vector<SpotVectorPtr> uniqueSymVectors;
     CSVPtr weightedUnitCell;
     CSVPtr weightedAngles;
     void updateUnitCellData();
-    void lockUnitCellDimensions(double *a, double *b, double *c, double *alpha, double *beta, double *gamma);
     double distanceToAngleRatio;
     std::mutex setupLock;
     static bool setupLattice;
@@ -45,13 +42,13 @@ private:
     double _beta;
     double _gamma;
     
-    UnitCellLattice(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0) : FreeLattice()
+	UnitCellLattice() : FreeLattice()
     {
-        setup(a, b, c, alpha, beta, gamma, spaceGroupNum, resolution);
+        setup();
     }
 
 public:
-    void setup(double a, double b, double c, double alpha, double beta, double gamma, int spaceGroupNum, double resolution = 0);
+    void setup();
     void refineUnitCell(PowderHistogram histogram);
     void getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax);
     void weightUnitCell();

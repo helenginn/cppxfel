@@ -48,8 +48,8 @@ private:
     vector<unsigned int> reflectionIds;
     MutexPtr millerMutex;
 public:
-    Reflection(float *unitCell = NULL, CSym::CCP4SPG *group = NULL);
-    void setUnitCell(float *unitCell);
+    Reflection();
+	void setUnitCell(std::vector<double> theUnitCell);
 	virtual ~Reflection();
 
     MillerPtr acceptedMiller(int num);
@@ -109,8 +109,7 @@ public:
     static MatrixPtr matrixForAmbiguity(int i);
 
     static void setSpaceGroup(int spaceGroupNum);
-    void setUnitCellDouble(double *theUnitCell);
-
+    
     void resetFlip();
     void setFlip(int i);
     void setFlipAsActiveAmbiguity();

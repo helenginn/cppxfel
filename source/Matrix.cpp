@@ -184,14 +184,18 @@ MatrixPtr Matrix::matFromCCP4(CSym::ccp4_symop *symop)
     return mat;
 }
 
-void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma, bool orthogonal)
+void Matrix::symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, std::vector<double> cell)
 {
-    
-    double unitParams[6] = {a, b, c, alpha, beta, gamma};
-    
-    MatrixPtr unitCell = Matrix::matrixFromUnitCell(unitParams);
+    MatrixPtr unitCell = Matrix::matrixFromUnitCell(cell);
     MatrixPtr reverse = unitCell->inverse3DMatrix();
-  
+
+	if (!spaceGroup)
+	{
+		std::ostringstream logged;
+		logged << "Need SPACE_GROUP to load symmetry operators." << std::endl;
+		LoggableObject::staticLogAndExit(logged);
+	}
+
     for (int j = 0; j < spaceGroup->nsymop; j++)
     {
         MatrixPtr newMat = matFromCCP4(&spaceGroup->symop[j]);
@@ -208,12 +212,12 @@ void Matrix::printDescription(bool detailed)
     Logger::mainLogger->addString(description(detailed));
 }
 
-MatrixPtr Matrix::matrixFromUnitCell(double *unitCell)
+MatrixPtr Matrix::matrixFromUnitCell(std::vector<double> &unitCell)
 {
     MatrixPtr aMatrix = MatrixPtr(new Matrix());
     aMatrix->rotation = MatrixPtr(new Matrix());
     aMatrix->unitCell = MatrixPtr(new Matrix());
-    aMatrix->changeOrientationMatrixDimensions(unitCell[0], unitCell[1], unitCell[2], unitCell[3], unitCell[4], unitCell[5]);
+    aMatrix->changeOrientationMatrixDimensions(unitCell);
     
     return aMatrix->unitCell;
 }
@@ -270,39 +274,18 @@ void Matrix::setComplexMatrix(MatrixPtr newUnitCell, MatrixPtr newRotation)
     recalculateOrientationMatrix();
 }
 
-void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma)
+void Matrix::changeOrientationMatrixDimensions(std::vector<double> cell)
 {
-    std::ostringstream logged;
-    
-    double lengths[3];
-    unitCellLengths(lengths);
-    
     if (!unitCell || !rotation)
     {
-        double aScale = lengths[0] / newA;
-        double bScale = lengths[1] / newB;
-        double cScale = lengths[2] / newC;
-        
-        components[0] *= aScale;
-        components[1] *= aScale;
-        components[2] *= aScale;
-
-        components[4] *= bScale;
-        components[5] *= bScale;
-        components[6] *= bScale;
-
-        components[8] *= cScale;
-        components[9] *= cScale;
-        components[10] *= cScale;
-        
         return;
     }
     
-    double cosAlpha = cos(alpha * M_PI / 180);
-    double cosBeta = cos(beta * M_PI / 180);
-    double cosGamma = cos(gamma * M_PI / 180);
-    double sinBeta = sin(beta * M_PI / 180);
-    double sinGamma = sin(gamma * M_PI / 180);
+    double cosAlpha = cos(cell[3] * M_PI / 180);
+    double cosBeta = cos(cell[4] * M_PI / 180);
+    double cosGamma = cos(cell[5] * M_PI / 180);
+    double sinBeta = sin(cell[4] * M_PI / 180);
+    double sinGamma = sin(cell[5] * M_PI / 180);
     
     double denom = sinBeta * sinGamma;
     double rCosAlpha = cosBeta * cosGamma - cosAlpha;
@@ -311,15 +294,15 @@ void Matrix::changeOrientationMatrixDimensions(double newA, double newB, double 
     double s1rca2 = sqrt(1. - rCosAlpha * rCosAlpha);
     
     MatrixPtr ortho = MatrixPtr(new Matrix());
-    ortho->components[0] = newA;
-    ortho->components[4] = cosGamma * newB;
-    ortho->components[8] = cosBeta * newC;
+    ortho->components[0] = cell[0];
+    ortho->components[4] = cosGamma * cell[1];
+    ortho->components[8] = cosBeta * cell[2];
     ortho->components[1] = 0.;
-    ortho->components[5] = sinGamma * newB;
-    ortho->components[9] = -sinBeta * rCosAlpha * newC;
+    ortho->components[5] = sinGamma * cell[1];
+    ortho->components[9] = -sinBeta * rCosAlpha * cell[2];
     ortho->components[2] = 0.;
     ortho->components[6] = 0.;
-    ortho->components[10] = sinBeta * newC * s1rca2;
+    ortho->components[10] = sinBeta * cell[2] * s1rca2;
     
     this->unitCell = ortho->inverse3DMatrix();
     

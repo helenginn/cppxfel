@@ -99,7 +99,7 @@ void Hdf5Crystal::writeCrystalData(std::string address)
     // space group
     
     std::string spaceGroupAddress = Hdf5Manager::concatenatePaths(address, "spaceGroup");
-    manager->writeSingleValueDataset(spaceGroupAddress, low_group->spg_num, H5T_NATIVE_INT);
+    manager->writeSingleValueDataset(spaceGroupAddress, getSpaceGroupNum(), H5T_NATIVE_INT);
     
     // rotation matrix
     
@@ -111,15 +111,13 @@ void Hdf5Crystal::writeCrystalData(std::string address)
     
     // unit cell data
     
-    double unitCell[6];
-    memcpy(&unitCell[0], &cellDim[0], sizeof(double) * 3);
-    memcpy(&unitCell[3], &cellAngles[0], sizeof(double) * 3);
-    
+	std::vector<double> unitCell = getUnitCell();
+
     std::string unitCellParamsAddress = Hdf5Manager::concatenatePaths(address, "unitcell_params");
     
     hsize_t dim = 6;
     manager->createDataset(unitCellParamsAddress, 1, &dim, H5T_NATIVE_DOUBLE);
-    manager->writeDataset(unitCellParamsAddress, (void **)unitCell, H5T_NATIVE_DOUBLE);
+    manager->writeDataset(unitCellParamsAddress, (void **)&unitCell[0], H5T_NATIVE_DOUBLE);
     
     // general scaling/indexing ambiguity
     
@@ -333,9 +331,9 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
 
     int spgnum = 0;
     manager->readDatasetValue(spaceGroupAddress, &spgnum);
-    setSpaceGroup(spgnum);
+    setSpaceGroupNum(spgnum);
     
-    if (low_group == NULL)
+    if (getSpaceGroup() == NULL)
     {
         setRejected(true);
         return;
@@ -343,14 +341,14 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     
     Reflection::setSpaceGroup(spgnum);
     
-    double unitCell[6];
+	std::vector<double> unitCell;
+	unitCell.resize(6);
     std::string unitCellParamsAddress = Hdf5Manager::concatenatePaths(address, "unitcell_params");
     
-    bool success = manager->readDatasetValue(unitCellParamsAddress, &unitCell);
-    
-    memcpy(&cellDim[0], &unitCell[0], sizeof(double) * 3);
-    memcpy(&cellAngles[0], &unitCell[3], sizeof(double) * 3);
-    
+    bool success = manager->readDatasetValue(unitCellParamsAddress, &unitCell[0]);
+
+	setUnitCell(unitCell);
+
     double unitCellMatrix[16];
     double rotationMatrix[16];
     

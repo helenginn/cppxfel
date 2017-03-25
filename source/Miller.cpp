@@ -27,12 +27,8 @@
 bool Miller::normalised = true;
 bool Miller::correctingPolarisation = false;
 double Miller::polarisationFactor = false;
-int Miller::maxSlices = 100;
-short int Miller::slices = 8;
-float Miller::trickyRes = 8.0;
 bool Miller::setupStatic = false;
 PartialityModel Miller::model = PartialityModelScaled;
-int Miller::peakSize = 0;
 bool Miller::correctedPartiality = false;
 bool Miller::absoluteIntensity = false;
 double Miller::intensityThreshold = 0;
@@ -55,10 +51,6 @@ void Miller::setupStaticVariables()
     normalised = FileParser::getKey("NORMALISE_PARTIALITIES", true);
     correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
     polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
-    slices = FileParser::getKey("PARTIALITY_SLICES", 8);
-    trickyRes = FileParser::getKey("CAREFUL_RESOLUTION", 8.0);
-    maxSlices = FileParser::getKey("MAX_SLICES", 100);
-    peakSize = FileParser::getKey("FOCUS_ON_PEAK_SIZE", 0);
     correctedPartiality = FileParser::getKey("CORRECTED_PARTIALITY_MODEL", false);
     absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
     intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", INTENSITY_THRESHOLD);
@@ -131,6 +123,7 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     scale = 1;
     bFactor = 0;
     bFactorScale = 0;
+	satisfiesBragg = true;
     resol = 0;
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
@@ -842,7 +835,7 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
         
         if (search > 0)
         {
-            getImage()->focusOnAverageMax(&xVal, &yVal, search, peakSize, even);
+            getImage()->focusOnAverageMax(&xVal, &yVal, search, 0, even);
         }
         
         correctedX = xVal;

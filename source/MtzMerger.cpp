@@ -82,12 +82,11 @@ double MtzMerger::maxResolution()
 
 void MtzMerger::createUnmergedMtz()
 {
-    double doubleCell[6];
     float cell[6], wavelength, fdata[9];
     int num = 0;
     
     /* variables for symmetry */
-    CCP4SPG *mtzspg = mergedMtz->getLowGroup();
+    CCP4SPG *mtzspg = mergedMtz->getSpaceGroup();
     float rsm[192][4][4];
     char ltypex[2];
     
@@ -99,12 +98,11 @@ void MtzMerger::createUnmergedMtz()
     
     /*  Removed: General CCP4 initializations e.g. HKLOUT on command line */
     
-    mergedMtz->getUnitCell(&doubleCell[0], &doubleCell[1], &doubleCell[2], &doubleCell[3], &doubleCell[4],
-                      &doubleCell[5]);
+	std::vector<double> aCell = mergedMtz->getUnitCell();
     
     for (int i = 0; i < 6; i++)
     {
-        cell[i] = (float)doubleCell[i];
+        cell[i] = (float)aCell[i];
     }
     
     wavelength = mergedMtz->getWavelength();
@@ -207,7 +205,7 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
     int num = 0;
 
     /* variables for symmetry */
-    CCP4SPG *mtzspg = mean->getLowGroup();
+    CCP4SPG *mtzspg = mean->getSpaceGroup();
     float rsm[192][4][4];
     char ltypex[2];
     
@@ -219,12 +217,11 @@ void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean,
     
     /*  Removed: General CCP4 initializations e.g. HKLOUT on command line */
     
-    mean->getUnitCell(&doubleCell[0], &doubleCell[1], &doubleCell[2], &doubleCell[3], &doubleCell[4],
-                             &doubleCell[5]);
-    
+	std::vector<double> aCell = mean->getUnitCell();
+
     for (int i = 0; i < 6; i++)
     {
-        cell[i] = (float)doubleCell[i];
+        cell[i] = (float)aCell[i];
     }
     
     wavelength = mean->getWavelength();
@@ -495,7 +492,7 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
     double maxRes = maxResolution();
     int maxMillers[3];
 
-    CCP4SPG *spg = allMtzs[0]->getLowGroup();
+    CCP4SPG *spg = allMtzs[0]->getSpaceGroup();
     MatrixPtr anyMat = allMtzs[0]->getMatrix();
     std::vector<double> unitCell = allMtzs[0]->getUnitCell();
     anyMat->maxMillers(maxMillers, maxRes);
@@ -520,7 +517,7 @@ void MtzMerger::makeEmptyReflectionShells(MtzPtr whichMtz)
                     miller->setRawIntensity(std::nan(" "));
 
                     ReflectionPtr newReflection = ReflectionPtr(new Reflection());
-                    newReflection->setUnitCellDouble(&unitCell[0]);
+                    newReflection->setUnitCell(unitCell);
                     newReflection->setSpaceGroup(spg->spg_num);
                     newReflection->addMiller(miller);
                     miller->setParent(newReflection);

@@ -29,7 +29,7 @@ void MtzManager::applyUnrefinedPartiality()
     double bandwidth = FileParser::getKey("INITIAL_BANDWIDTH", INITIAL_BANDWIDTH);
     double exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
 
-    refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent, cellDim[0], cellDim[1], cellDim[2]);
+    refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent);
 }
 
 void MtzManager::addParameters(RefinementStrategyPtr refiner)
@@ -180,10 +180,7 @@ void MtzManager::refreshPartialities(double parameters[])
                         parameters[PARAM_SPOT_SIZE],
                         parameters[PARAM_WAVELENGTH],
                         parameters[PARAM_BANDWIDTH],
-                        parameters[PARAM_EXPONENT],
-                        parameters[PARAM_UNIT_CELL_A],
-                        parameters[PARAM_UNIT_CELL_B],
-                        parameters[PARAM_UNIT_CELL_C]);
+                        parameters[PARAM_EXPONENT]);
 }
 
 void MtzManager::refreshCurrentPartialities()
@@ -198,10 +195,7 @@ void MtzManager::refreshCurrentPartialities()
                         this->spotSize,
                         this->wavelength,
                         this->bandwidth,
-                        this->exponent,
-                        this->cellDim[0],
-                        this->cellDim[1],
-                        this->cellDim[2]);
+                        this->exponent);
 }
 
 void MtzManager::replaceBeamWithSpectrum()
@@ -225,8 +219,7 @@ void MtzManager::replaceBeamWithSpectrum()
 }
 
 void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
-		double spotSize, double wavelength, double bandwidth, double exponent,
-                                     double a, double b, double c)
+		double spotSize, double wavelength, double bandwidth, double exponent)
 {
     this->makeSuperGaussianLookupTable(exponent);
 
@@ -234,18 +227,9 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
         return;
     
     
-    double spgNum = getLowGroup()->spg_num;
-    if (spgNum >= 75 && spgNum <= 194)
-    {
-        b = a;
-    }
-    if (spgNum >= 195)
-    {
-        b = a;
-        c = a;
-    }
+	lockUnitCellDimensions();
 
-    this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
+    this->matrix->changeOrientationMatrixDimensions(getUnitCell());
 
     MatrixPtr newMatrix = MatrixPtr();
     Miller::rotateMatrixHKL(hRot, kRot, 0, matrix, &newMatrix);

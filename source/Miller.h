@@ -37,18 +37,15 @@ private:
     static bool correctingPolarisation;
     static bool correctedPartiality;
     static double polarisationFactor;
-    static int maxSlices;
-    static short int slices;
-    static float trickyRes;
     static bool setupStatic;
     static std::mutex millerMutex;
-    static int peakSize;
     static bool individualWavelength;
     
     short int h;
     short int k;
     short int l;
     bool free;
+	bool satisfiesBragg;
     float phase;
 	RlpModel rlpModel;
     double polarisationCorrection;
@@ -57,7 +54,8 @@ private:
 	float partialCutoff; // could/should be a float
 	float bFactor;
 	float scale; // should be extracted from Mtz. Maybe?
-    float correctedX;
+
+	float correctedX;
     float correctedY;
 
 	// in reciprocal angstroms

@@ -32,8 +32,6 @@
 using namespace CMtz;
 
 using namespace CSym;
-CCP4SPG *MtzManager::low_group = NULL;
-std::mutex MtzManager::spaceGroupMutex;
 
 vector<double> MtzManager::superGaussianTable;
 bool MtzManager::setupSuperGaussian = false;
@@ -206,23 +204,6 @@ MtzManager::MtzManager()
     matrix = MatrixPtr();
 }
 
-void MtzManager::setUnitCell(double a, double b, double c, double alpha, double beta,
-                             double gamma)
-{
-    cellDim[0] = a;
-    cellDim[1] = b;
-    cellDim[2] = c;
-    cellAngles[0] = alpha;
-    cellAngles[1] = beta;
-    cellAngles[2] = gamma;
-}
-
-void MtzManager::setUnitCell(vector<double> unitCell)
-{
-	memcpy(cellDim, &unitCell[0], sizeof(double) * 3);
-	memcpy(cellAngles, &unitCell[3], sizeof(double) * 3);
-}
-
 void MtzManager::clearReflections()
 {
     reflections.clear();
@@ -257,12 +238,10 @@ void MtzManager::addReflections(vector<ReflectionPtr>reflections, bool assumeSor
 
 void MtzManager::addMiller(MillerPtr miller)
 {
-	int reflection_index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(), low_group);
+	int reflection_index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(), getSpaceGroup());
     ReflectionPtr prevReflection;
 
     this->findReflectionWithId(reflection_index, &prevReflection);
-    
-    double unitCell[6] = {cellDim[0], cellDim[1], cellDim[2], cellAngles[0], cellAngles[1], cellAngles[2]};
     
     if (getImagePtr())
     {
@@ -277,8 +256,8 @@ void MtzManager::addMiller(MillerPtr miller)
     else
     {
         ReflectionPtr newReflection = ReflectionPtr(new Reflection());
-        newReflection->setUnitCellDouble(unitCell);
-        newReflection->setSpaceGroup(low_group->spg_num);
+        newReflection->setUnitCell(getUnitCell());
+        newReflection->setSpaceGroup(getSpaceGroupNum());
         newReflection->addMiller(miller);
         miller->setParent(newReflection);
         newReflection->calculateResolution(this);
@@ -321,23 +300,9 @@ void MtzManager::setMatrix(MatrixPtr newMat)
 
 void MtzManager::setDefaultMatrix()
 {
-    double unitCell[6];
-    memcpy(unitCell, cellDim, sizeof(double) * 3);
-    memcpy(&unitCell[3], cellAngles, sizeof(double) * 3);
-    
+	std::vector<double> unitCell = getUnitCell();
     MatrixPtr mat = Matrix::matrixFromUnitCell(unitCell);
     matrix = mat->copy();
-}
-
-void MtzManager::getUnitCell(double *a, double *b, double *c, double *alpha,
-                             double *beta, double *gamma)
-{
-    *a = cellDim[0];
-    *b = cellDim[1];
-    *c = cellDim[2];
-    *alpha = cellAngles[0];
-    *beta = cellAngles[1];
-    *gamma = cellAngles[2];
 }
 
 void MtzManager::copySymmetryInformationFromManager(MtzPtr toCopy)
@@ -345,9 +310,7 @@ void MtzManager::copySymmetryInformationFromManager(MtzPtr toCopy)
 	std::vector<double> otherUnitCell =  toCopy->getUnitCell();
     this->setUnitCell(otherUnitCell);
     
-    int spgnum = toCopy->getLowGroup()->spg_ccp4_num;
-    CCP4SPG *spg = ccp4spg_load_by_ccp4_num(spgnum);
-    this->setLowGroup(spg);
+    this->setSpaceGroup(toCopy->getSpaceGroup());
 }
 
 void MtzManager::dropReflections()
@@ -441,9 +404,9 @@ void MtzManager::loadReflections()
     
     int spgnum = FileParser::getKey("SPACE_GROUP", fromMtzNum);
     
-    setSpaceGroup(spgnum);
+    setSpaceGroupNum(spgnum);
     
-    if (low_group == NULL)
+    if (getSpaceGroup() == NULL)
     {
         setRejected(true);
         return;
@@ -537,13 +500,19 @@ void MtzManager::loadReflections()
     int multiplier = MULTIPLIER;
     
     MTZXTAL **xtals = MtzXtals(mtz);
-    float cell[6];
-    double coefhkl[6];
-    ccp4_lrcell(xtals[0], cell);
-    MtzHklcoeffs(cell, coefhkl);
-    
-    setUnitCell(cell[0], cell[1], cell[2], cell[3], cell[4], cell[5]);
-    
+	std::vector<float> cell;
+	cell.resize(6);
+    ccp4_lrcell(xtals[0], &cell[0]);
+
+	bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
+
+	if (fixUnitCell)
+	{
+		setUnitCell(cell);
+	}
+
+	std::vector<double> unitCell = getUnitCell();
+
     int num = 0;
     
     for (int i = 0; i < mtz->nref_filein * mtz->ncol_read; i += mtz->ncol_read)
@@ -554,7 +523,7 @@ void MtzManager::loadReflections()
         int k = adata[col_k->source - 1];
         int l = adata[col_l->source - 1];
         
-		int reflection_index = Reflection::indexForReflection(h, k, l, low_group);
+		int reflection_index = Reflection::indexForReflection(h, k, l, getSpaceGroup());
 
         float intensity = adata[col_f->source - 1];
         
@@ -641,8 +610,8 @@ void MtzManager::loadReflections()
         else
         {
             ReflectionPtr newReflection = ReflectionPtr(new Reflection());
-            newReflection->setUnitCell(cell);
-            newReflection->setSpaceGroup(low_group->spg_num);
+            newReflection->setUnitCell(unitCell);
+            newReflection->setSpaceGroup(getSpaceGroupNum());
             
             newReflection->addMiller(miller);
             miller->setParent(newReflection);
@@ -690,36 +659,6 @@ void MtzManager::setReference(MtzManager *reference)
     MtzManager::referenceManager = reference;
 }
 
-void MtzManager::setSpaceGroup(int spgnum)
-{
-    if (low_group != NULL)
-        return;
-    
-    spaceGroupMutex.lock();
-
-    if (low_group != NULL)
-    {
-        spaceGroupMutex.unlock();
-        return;
-    }
-    
-    if (FileParser::hasKey("SPACE_GROUP"))
-    {
-        logged << "N: Taking overridden space group from input file instead." << std::endl;
-        spgnum = FileParser::getKey("SPACE_GROUP", 1);
-    }
-    else
-    {
-        logged << "N: Input file does not specify an override space group." << std::endl;
-    }
-    
-    low_group = ccp4spg_load_by_ccp4_num(spgnum);
-    
-    logged << "Loaded space group " << spgnum << " for all MTZs" << std::endl;
-    sendLog();
-    
-    spaceGroupMutex.unlock();
-}
 
 ReflectionPtr MtzManager::findReflectionWithId(ReflectionPtr exampleRefl, size_t *lowestId)
 {
@@ -1149,9 +1088,10 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
     
     float cell[6], wavelength;
     float *fdata = new float[columns];
-    
+	std::vector<double> unitCell = getUnitCell();
+
     /* variables for symmetry */
-    CCP4SPG *mtzspg = low_group;
+    CCP4SPG *mtzspg = getSpaceGroup();
     float rsm[192][4][4];
     char ltypex[2];
     
@@ -1163,12 +1103,12 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
     
     /*  Removed: General CCP4 initializations e.g. HKLOUT on command line */
     
-    cell[0] = cellDim[0];
-    cell[1] = cellDim[1];
-    cell[2] = cellDim[2];
-    cell[3] = cellAngles[0];
-    cell[4] = cellAngles[1];
-    cell[5] = cellAngles[2];
+    cell[0] = unitCell[0];
+    cell[1] = unitCell[1];
+    cell[2] = unitCell[2];
+    cell[3] = unitCell[3];
+    cell[4] = unitCell[4];
+    cell[5] = unitCell[5];
     wavelength = this->getWavelength();
     
     std::string outputFile = FileReader::addOutputDirectory(newFilename);
@@ -1467,12 +1407,13 @@ double MtzManager::maxResolution()
 
 std::string MtzManager::getParamLine()
 {
+	std::vector<double> unitCell = getUnitCell();
     std::ostringstream line;
     line << "params ";
     
     line << mosaicity << " " << spotSize << " " << wavelength << " ";
     line << bFactor << " " << scale << " ";
-    line << cellDim[0] << " " << cellDim[1] << " " << cellDim[2];
+    line << unitCell[0] << " " << unitCell[1] << " " << unitCell[2];
     
     return line.str();
 }
@@ -1485,15 +1426,17 @@ void MtzManager::setParamLine(std::string line)
     {
         return;
     }
-    
+
+	std::vector<double> unitCell = getUnitCell();
+
     mosaicity = atof(components[1].c_str());
     spotSize = atof(components[2].c_str());
     wavelength = atof(components[3].c_str());
     bFactor = atof(components[4].c_str());
     scale = atof(components[5].c_str());
-    cellDim[0] = atof(components[6].c_str());
-    cellDim[1] = atof(components[7].c_str());
-    cellDim[2] = atof(components[8].c_str());
+    unitCell[0] = atof(components[6].c_str());
+    unitCell[1] = atof(components[7].c_str());
+    unitCell[2] = atof(components[8].c_str());
     
     finalised = true;
     setInitialValues = true;
@@ -1525,8 +1468,7 @@ std::string MtzManager::parameterHeaders()
 
 std::string MtzManager::writeParameterSummary()
 {
-    double cellDims[3];
-    getMatrix()->unitCellLengths(cellDims);
+	std::vector<double> unitCell = getUnitCell();
 
     std::ostringstream summary;
     summary << getFilename() << "," << getRefCorrelation() << "," << rSplit(0, maxResolutionAll) << "," << getRefPartCorrel() << ","
@@ -1537,7 +1479,7 @@ std::string MtzManager::writeParameterSummary()
     summary << hRot << "," << kRot << ",";
     
     summary << getSpotSize() << ","
-    << getExponent() << "," << cellDims[0] << "," << cellDims[1] << "," << cellDims[2] << "," << getScale();
+    << getExponent() << "," << unitCell[0] << "," << unitCell[1] << "," << unitCell[2] << "," << getScale();
     
     
     return summary.str();

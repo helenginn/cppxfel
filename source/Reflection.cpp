@@ -274,15 +274,7 @@ void Reflection::generateReflectionIds()
     }
 }
 
-void Reflection::setUnitCellDouble(double *theUnitCell)
-{
-    unitCellMatrix = Matrix::matrixFromUnitCell(theUnitCell);
-    
-    setupUnitCell = true;
-}
-
-
-void Reflection::setUnitCell(float *theUnitCell)
+void Reflection::setUnitCell(std::vector<double> theUnitCell)
 {
     if (setupUnitCell)
     {
@@ -297,30 +289,14 @@ void Reflection::setUnitCell(float *theUnitCell)
         return;
     }
     
-    double params[6];
-    params[0] = theUnitCell[0];
-    params[1] = theUnitCell[1];
-    params[2] = theUnitCell[2];
-    params[3] = theUnitCell[3];
-    params[4] = theUnitCell[4];
-    params[5] = theUnitCell[5];
-    
-    unitCellMatrix = Matrix::matrixFromUnitCell(params);
+    unitCellMatrix = Matrix::matrixFromUnitCell(theUnitCell);
     
     setupMutex.unlock();
     setupUnitCell = true;
 }
 
-Reflection::Reflection(float *unitCell, CSym::CCP4SPG *spg)
+Reflection::Reflection()
 {
-    if (spg != NULL)
-        setSpaceGroup(spg->spg_num);
-
-    if (unitCell != NULL)
-    {
-        setUnitCell(unitCell);
-    }
-    
     // TODO Auto-generated constructor stub
     
     resolution = 0;

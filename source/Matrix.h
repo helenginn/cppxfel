@@ -62,8 +62,8 @@ public:
     MatrixPtr inverse3DMatrix();
     static MatrixPtr matFromCCP4(CSym::ccp4_symop *symop);
     MatrixPtr transpose();
-    static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, double a, double b, double c, double alpha, double beta, double gamma, bool orthogonal = true);
-    
+	static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, std::vector<double> cell);
+
     void rotate(double alpha, double beta, double gamma);
     void rotateRoundUnitVector(vec unitVector, double radians);
     void multiply(Matrix &b);
@@ -72,9 +72,9 @@ public:
     void scale(double scale);
     void scale(double a, double b, double c);
     void identity(void);
-    static MatrixPtr matrixFromUnitCell(double *unitCell);
+	static MatrixPtr matrixFromUnitCell(std::vector<double> &unitCell);
     void orientationMatrixUnitCell(double *a, double *b, double *c);
-    void changeOrientationMatrixDimensions(double newA, double newB, double newC, double alpha, double beta, double gamma);
+    void changeOrientationMatrixDimensions(std::vector<double> cell);
     void setComplexMatrix(MatrixPtr unitCell, MatrixPtr rotation);
     void maxMillers(int (&millers)[3], double maxResolution);
     static MatrixPtr randomOrientation();

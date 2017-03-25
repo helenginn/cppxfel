@@ -88,7 +88,7 @@ void Hdf5Image::loadCrystals()
 
             IOMRefinerPtr refiner = IOMRefinerPtr(new IOMRefiner(shared_from_this(), mtz->getMatrix()));
             std::vector<double> cell = mtz->getUnitCell();
-            refiner->setSpaceGroup(mtz->getLowGroup());
+            refiner->setSpaceGroup(mtz->getSpaceGroup());
             refiner->setUnitCell(cell);
             refiner->setComplexMatrix();
             

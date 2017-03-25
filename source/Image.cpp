@@ -786,8 +786,6 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, floa
     double xzSum = sum(xzs);
     double yzSum = sum(yzs);
     
-    double aveBackgroundPixel = zSum / zs.size();
-    
     MatrixPtr matrix = MatrixPtr(new Matrix());
     
     matrix->components[0] = xxSum;

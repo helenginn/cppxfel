@@ -13,6 +13,7 @@
 #include "Logger.h"
 #include "Matrix.h"
 #include "hasFilename.h"
+#include "hasSymmetry.h"
 
 using namespace CMtz;
 using namespace CSym;
@@ -33,13 +34,11 @@ typedef enum
 
 class Miller;
 
-class MtzManager : public LoggableObject, public hasFilename, public boost::enable_shared_from_this<MtzManager>
+class MtzManager : public LoggableObject, public hasFilename, public hasSymmetry, public boost::enable_shared_from_this<MtzManager>
 {
 
 protected:
     std::string parentImage;
-	static CCP4SPG *low_group;
-    static std::mutex spaceGroupMutex;
 	static bool reflection_comparison(ReflectionPtr i, ReflectionPtr j);
 
 	ImageWeakPtr image;
@@ -70,9 +69,7 @@ protected:
 	double refCorrelation;
     double refPartCorrel;
 	double scale;
-	double cellDim[3];
-	double cellAngles[3];
-    
+	
     double timeDelay;
     
     uint32 activeAmbiguity;
@@ -152,7 +149,6 @@ public:
     void incrementActiveAmbiguity();
     double maxResolution();
 
-	void setSpaceGroup(int spgnum);
 	virtual void loadReflections();
     void dropReflections();
 	static void setReference(MtzManager *reference);
@@ -171,24 +167,6 @@ public:
 	void setSigmaToUnity();
 	void replaceBeamWithSpectrum();
 
-	void setUnitCell(double a, double b, double c, double alpha, double beta,
-			double gamma);
-	void setUnitCell(vector<double> unitCell);
-	void getUnitCell(double *a, double *b, double *c, double *alpha, double *beta,
-			double *gamma);
-    std::vector<double> getUnitCell()
-    {
-        std::vector<double> cell;
-        cell.push_back(cellDim[0]);
-        cell.push_back(cellDim[1]);
-        cell.push_back(cellDim[2]);
-        cell.push_back(cellAngles[0]);
-        cell.push_back(cellAngles[1]);
-        cell.push_back(cellAngles[2]);
-
-        return cell;
-    }
-    
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 
@@ -243,8 +221,8 @@ public:
     void refreshCurrentPartialities();
     // delete
 	void refreshPartialities(double hRot, double kRot, double mosaicity,
-                             double spotSize, double wavelength, double bandwidth, double exponent,
-                             double a, double b, double c);
+                             double spotSize, double wavelength,
+							 double bandwidth, double exponent);
 	void refreshPartialities(double parameters[]);
 	
 // more grid search
@@ -408,16 +386,6 @@ public:
 	void setScoreType(ScoreType newScoreType)
 	{
 		scoreType = newScoreType;
-	}
-
-	CCP4SPG*& getLowGroup()
-	{
-		return low_group;
-	}
-
-	void setLowGroup(CCP4SPG*& lowGroup)
-	{
-		low_group = lowGroup;
 	}
 
 	TrustLevel getTrust() const
@@ -628,7 +596,7 @@ public:
     void updateLatestMatrix()
     {
         if (matrix->isComplex())
-            this->matrix->changeOrientationMatrixDimensions(cellDim[0], cellDim[1], cellDim[2], cellAngles[0], cellAngles[1], cellAngles[2]);
+            this->matrix->changeOrientationMatrixDimensions(getUnitCell());
     
         rotatedMatrix = matrix->copy();
         rotatedMatrix->rotate(hRot * M_PI / 180, kRot * M_PI / 180, 0);
@@ -683,37 +651,6 @@ public:
     {
         static_cast<MtzManager *>(object)->setExponent(newExponent);
     }
-    
-    static double getUnitCellAStatic(void *object)
-    {
-        return static_cast<MtzManager *>(object)->getUnitCell()[0];
-    }
-    
-    static void setUnitCellAStatic(void *object, double newDim)
-    {
-        static_cast<MtzManager *>(object)->getUnitCell()[0] = newDim;
-    }
-    
-    static double getUnitCellBStatic(void *object)
-    {
-        return static_cast<MtzManager *>(object)->getUnitCell()[1];
-    }
-    
-    static void setUnitCellBStatic(void *object, double newDim)
-    {
-        static_cast<MtzManager *>(object)->getUnitCell()[1] = newDim;
-    }
-
-    static double getUnitCellCStatic(void *object)
-    {
-        return static_cast<MtzManager *>(object)->getUnitCell()[2];
-    }
-    
-    static void setUnitCellCStatic(void *object, double newDim)
-    {
-        static_cast<MtzManager *>(object)->getUnitCell()[2] = newDim;
-    }
-
 
     ImagePtr getImagePtr()
     {

@@ -505,7 +505,7 @@ void GraphDrawer::plotPartialityStats(int h, int k, int l)
 
 void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 {
-    CCP4SPG *spaceGroup = mtzs[0]->getLowGroup();
+    CCP4SPG *spaceGroup = mtzs[0]->getSpaceGroup();
     UnitCellLatticePtr lattice = UnitCellLattice::getMainLattice();
     
     std::ofstream pdbLog;
@@ -612,7 +612,7 @@ void GraphDrawer::plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h, int k,
         {
             for (int k = -lMax; k < lMax; k++)
             {
-                bool asu = ccp4spg_is_in_asu(mtzs[0]->getLowGroup(), i, j, k);
+                bool asu = ccp4spg_is_in_asu(mtzs[0]->getSpaceGroup(), i, j, k);
                 
                 if (asu)
                 {

@@ -21,7 +21,7 @@ class Miller;
 
 using namespace CSym;
 
-class IOMRefiner : public boost::enable_shared_from_this<IOMRefiner>
+class IOMRefiner : public hasSymmetry, public boost::enable_shared_from_this<IOMRefiner>
 {
 private:
 	ImageWeakPtr image;
@@ -38,7 +38,6 @@ private:
     bool needsReintegrating;
     CCP4SPG *spaceGroup;
     bool complexUnitCell;
-	vector<double> unitCell;
 	double hRot;
 	double kRot;
     double lRot;
@@ -79,7 +78,6 @@ public:
     void setComplexMatrix();
     virtual ~IOMRefiner();
 
-    void lockUnitCellDimensions();
     void calculateOnce();
 	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true, bool fake = false);
 	MtzPtr newMtz(int i, bool silent = false);
@@ -249,16 +247,6 @@ public:
 	void setSolutions(const vector<vector<double> >& solutions)
 	{
 		this->solutions = solutions;
-	}
-
-	vector<double>& getUnitCell()
-	{
-		return unitCell;
-	}
-
-	void setUnitCell(vector<double>& unitCell)
-	{
-		this->unitCell = unitCell;
 	}
     
     void setOrientationTolerance(double newTolerance)

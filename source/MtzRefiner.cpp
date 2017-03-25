@@ -188,7 +188,7 @@ void MtzRefiner::refine()
         {
             vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
             
-            mtzManagers[i]->getMatrix()->changeOrientationMatrixDimensions(givenUnitCell[0], givenUnitCell[1], givenUnitCell[2], givenUnitCell[3], givenUnitCell[4], givenUnitCell[5]);
+            mtzManagers[i]->getMatrix()->changeOrientationMatrixDimensions(givenUnitCell);
             mtzManagers[i]->setUnitCell(givenUnitCell);
         }
     }
@@ -215,15 +215,6 @@ void MtzRefiner::refineCycle(bool once)
     int i = 0;
     bool finished = false;
     
-    int maximumCycles = FileParser::getKey("MAXIMUM_CYCLES", 50);
-    
-    bool stop = FileParser::getKey("STOP_REFINEMENT", true);
-    double correlationThreshold = FileParser::getKey("CORRELATION_THRESHOLD",
-                                                     CORRELATION_THRESHOLD);
-    double initialCorrelationThreshold = FileParser::getKey(
-                                                            "INITIAL_CORRELATION_THRESHOLD", INITIAL_CORRELATION_THRESHOLD);
-    int thresholdSwap = FileParser::getKey("THRESHOLD_SWAP",
-                                           THRESHOLD_SWAP);
     bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
     
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
@@ -576,7 +567,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                     
                     if (fixUnitCell)
                     {
-                        newMatrix->changeOrientationMatrixDimensions(cellDims[0], cellDims[1], cellDims[2], cellDims[3], cellDims[4], cellDims[5]);
+                        newMatrix->changeOrientationMatrixDimensions(cellDims);
                     }
                     
                     if (newImages)
@@ -936,11 +927,6 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
 
 void MtzRefiner::readMatricesAndMtzs()
 {
-    std::string filename = FileParser::getKey("ORIENTATION_MATRIX_LIST",
-                                              std::string(""));
-    
-    double version = FileParser::getKey("MATRIX_LIST_VERSION", 2.0);
-    
     readMatricesAndImages(NULL, false);
 }
 
@@ -1019,16 +1005,7 @@ void MtzRefiner::merge(bool mergeOnly)
     MtzManager::setReference(&*reference);
     readRefinedMtzs = true;
     readMatricesAndMtzs();
-    
-    bool partialityRejection = FileParser::getKey("PARTIALITY_REJECTION", false);
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        /*    mtzManagers[i]->excludeFromLogCorrelation();
-         if (partialityRejection)
-         mtzManagers[i]->excludePartialityOutliers(); */
-    }
-    
+
     correlationAndInverse(true);
     
     double correlationThreshold = FileParser::getKey("CORRELATION_THRESHOLD",

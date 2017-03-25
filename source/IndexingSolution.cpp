@@ -78,7 +78,7 @@ void IndexingSolution::setupStandardVectors()
     lattice = UnitCellLattice::getMainLattice();
     
     newReflection = new Reflection();
-    newReflection->setUnitCellDouble(&unitCell[0]);
+    newReflection->setUnitCell(unitCell);
     newReflection->setSpaceGroup(spaceGroupNum);
     
     finishedSetup = true;
