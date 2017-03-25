@@ -21,10 +21,7 @@ typedef enum
 {
 	ScoreTypeMinimizeRSplit = 0,
 	ScoreTypeCorrelation = 1,
-	ScoreTypePartialityCorrelation = 2,
-	ScoreTypeCorrelationLog = 4,
     ScoreTypeSymmetry = 8,
-    ScoreTypeStandardDeviation = 9,
     ScoreTypeMinimizeRMeas = 10,
     ScoreTypeRSplitIntensity = 11,
 } ScoreType;
@@ -177,7 +174,6 @@ public:
 	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0, bool absolute = false);
 	void applyScaleFactorsForBins(int binCount = 20);
 	void clearScaleFactor();
-	void makeScalesPermanent();
 	double averageIntensity();
 	void setSigmaToUnity();
 	double partialityRatio(ReflectionPtr imgReflection, ReflectionPtr refReflection);
@@ -247,9 +243,7 @@ public:
 	int accepted(void);
 	static double exclusionScoreWrapper(void *object, double lowRes = 0,
 			double highRes = 0);
-    double exclusionScore(double lowRes, double highRes, ScoreType scoreType);
-    double leastSquaresPartiality(double low = 0, double high = 0, ScoreType typeOfScore = ScoreTypePartialityCorrelation);
-    double partialityFunction(double low = 0, double high = 0);
+    double leastSquaresPartiality(double low = 0, double high = 0);
     double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high);
 	std::string describeScoreType();
@@ -620,7 +614,7 @@ public:
 		this->scale = scale;
 	}
     
-    void addParameters(RefinementStepSearchPtr map);
+    void addParameters(RefinementStrategyPtr map);
     static double refineParameterScore(void *object);
     
     static double getSpotSizeStatic(void *object)

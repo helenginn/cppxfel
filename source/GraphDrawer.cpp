@@ -37,12 +37,6 @@ bool sortByWavelength(Partial x, Partial y)
 	return (x.wavelength < y.wavelength);
 }
 
-bool sortByPercentage(Partial x, Partial y)
-{
-	return (x.percentage < y.percentage);
-}
-
-
 
 std::string GraphDrawer::generateFilename(std::string stem)
 {

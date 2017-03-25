@@ -415,7 +415,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
             continue;
         }
         
-        miller->getWavelength(lastRotatedMatrix);
+        miller->recalculateWavelength();
         
         if (complexShoebox)
         {

@@ -29,7 +29,7 @@ public:
         return wavelength;
     }
     
-    void addParameters(RefinementStepSearchPtr map) {};
+    void addParameters(RefinementStrategyPtr map) {};
 };
 
 #endif /* defined(__cppxfel__SpectrumBeam__) */

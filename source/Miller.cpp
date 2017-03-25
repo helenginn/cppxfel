@@ -121,8 +121,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     h = _h;
     k = _k;
     l = _l;
-    lastX = 0;
-    lastY = 0;
     rawIntensity = 0;
     sigma = 1;
     wavelength = 0;
@@ -318,19 +316,6 @@ double Miller::intensity(bool withCutoff)
     }
 }
 
-void Miller::makeScalesPermanent()
-{
-    double scale = scaleForScaleAndBFactor(this->scale, this->bFactor,
-                                           1 / this->resol);
-    
-    this->rawIntensity *= scale;
-    this->sigma *= scale;
-    
-    this->scale = 1;
-    bFactor = 0;
-}
-
-
 double Miller::getSigma()
 {
     // bigger sigma - larger error
@@ -374,46 +359,13 @@ vec Miller::getTransformedHKL(MatrixPtr myMatrix)
     return hkl;
 }
 
-vec Miller::getTransformedHKL(double hRot, double kRot)
-{
-    MatrixPtr newMatrix = MatrixPtr();
-    rotateMatrixHKL(hRot, kRot, 0, matrix, &newMatrix);
-    
-    vec hkl = getTransformedHKL(newMatrix);
-    return hkl;
-}
-
 double Miller::recalculateWavelength()
 {
-    double hRot = 0;
-    double kRot = 0;
-    
-    if (getMtzParent() != NULL)
-    {
-        hRot = getMtzParent()->getHRot();
-        kRot = getMtzParent()->getKRot();
-    }
-    
-    getWavelength(hRot, kRot);
-    
-    return getWavelength();
-}
+	vec hkl = getTransformedHKL();
 
-double Miller::getWavelength(double hRot, double kRot)
-{
-    vec hkl = getTransformedHKL(hRot, kRot);
-    
-    wavelength = getEwaldSphereNoMatrix(hkl);
-    
-    return wavelength;
-}
+	wavelength = getEwaldSphereNoMatrix(hkl);
 
-double Miller::getWavelength(MatrixPtr transformedMatrix)
-{
-    vec hkl = getTransformedHKL(transformedMatrix);
-    wavelength = getEwaldSphereNoMatrix(hkl);
-    
-    return wavelength;
+	return wavelength;
 }
 
 double Miller::getWeight(bool cutoff, WeightType weighting)
@@ -603,7 +555,7 @@ double Miller::resolution()
 {
     if (resol == 0)
     {
-        vec newVec = getTransformedHKL(0, 0);
+        vec newVec = getTransformedHKL();
         
         resol = length_of_vector(newVec);
     }
@@ -780,8 +732,6 @@ MillerPtr Miller::copy(void)
     newMiller->mtzParent = mtzParent;
     newMiller->countingSigma = countingSigma;
     newMiller->rejectedReasons = rejectedReasons;
-    newMiller->lastX = lastX;
-    newMiller->lastY = lastY;
     newMiller->shift = shift;
     
     return newMiller;
@@ -875,10 +825,7 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
     {
         return;
     }
-    
-    lastX = xSpotPred;
-    lastY = ySpotPred;
-    
+
     double xVal = xSpotPred;
     double yVal = ySpotPred;
     
@@ -909,7 +856,7 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
     
     vec cross = ray;
     
-    shift = std::make_pair(xVal - lastX, yVal - lastY);
+    shift = std::make_pair(xVal - xSpotPred, yVal - ySpotPred);
     detector->rearrangeCoord(&shift);
     
     scale_vector_to_distance(&cross, 1);
@@ -1000,8 +947,8 @@ void Miller::integrateIntensity(MatrixPtr transformedMatrix)
 
 void Miller::incrementOverlapMask(double hRot, double kRot)
 {
-    int x = lastX;
-    int y = lastY;
+    int x = correctedX;
+    int y = correctedY;
     
     if (!shoebox)
         return;
@@ -1041,8 +988,8 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDel
 
 bool Miller::isOverlapped()
 {
-    int x = lastX;
-    int y = lastY;
+    int x = correctedX;
+    int y = correctedY;
     
     unsigned char max = getImage()->maximumOverlapMask(x, y, shoebox);
     

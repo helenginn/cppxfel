@@ -67,7 +67,7 @@ void MtzManager::getParams(double *parameters[], int paramCount)
     (*parameters)[PARAM_UNIT_CELL_C] = cellDim[2];
 }
 
-void MtzManager::addParameters(RefinementStepSearchPtr map)
+void MtzManager::addParameters(RefinementStrategyPtr map)
 {
     if (optimisingOrientation)
     {
@@ -94,14 +94,12 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
     
     this->setActiveAmbiguity(ambiguity);
     
-    RefinementStepSearchPtr refinementMap = RefinementStepSearchPtr(new RefinementStepSearch());
-    
+	RefinementStrategyPtr refinementMap = RefinementStrategy::userChosenStrategy();
+
     wavelength = bestWavelength();
     
     if (!beam)
     {
-    //    double wavelength = bestWavelength();
-        
         beam = GaussianBeamPtr(new GaussianBeam(wavelength, bandwidth, exponent));
         
         for (int i = 0; i < reflectionCount(); i++)
@@ -116,8 +114,7 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
     
     beam->addParameters(refinementMap);
     addParameters(refinementMap);
-    
-    
+
     refinementMap->setEvaluationFunction(refineParameterScore, this);
     refinementMap->setCycles(cycles);
     
@@ -147,7 +144,7 @@ void MtzManager::refinePartialities()
     }
     
     refinePartialitiesOrientation(bestAmbiguity);
-    double partCorrel = leastSquaresPartiality(ScoreTypePartialityCorrelation);
+    double partCorrel = leastSquaresPartiality();
     setRefPartCorrel(partCorrel);
     
     setRefCorrelation(correlation());
@@ -233,10 +230,8 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
         c = a;
     }
 
- //   if (matrix->isComplex())
     this->matrix->changeOrientationMatrixDimensions(a, b, c, cellAngles[0], cellAngles[1], cellAngles[2]);
-    
-    
+
     MatrixPtr newMatrix = MatrixPtr();
     Miller::rotateMatrixHKL(hRot, kRot, 0, matrix, &newMatrix);
     
@@ -289,14 +284,9 @@ double MtzManager::medianWavelength(double lowRes, double highRes)
     }
     
     std::sort(wavelengths.begin(), wavelengths.end(), greaterThan);
-    
-    for (int i = 0; i < wavelengths.size(); i++)
-    {
- //       std::cout << wavelengths[i] << std::endl;
-    }
-    
+
     if (wavelengths.size() < 2)
-        return 1.29;
+        return 0;
     
     return wavelengths[int(wavelengths.size() / 2)];
 }

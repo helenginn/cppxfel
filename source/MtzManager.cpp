@@ -48,14 +48,8 @@ std::string MtzManager::describeScoreType()
     {
         case ScoreTypeCorrelation:
             return std::string("correl");
-        case ScoreTypePartialityCorrelation:
-            return std::string("partCC");
         case ScoreTypeMinimizeRSplit:
             return std::string("rfactor");
-        case ScoreTypeCorrelationLog:
-            return std::string("logCC");
-        case ScoreTypeStandardDeviation:
-            return std::string("stdev");
         case ScoreTypeMinimizeRMeas:
             return std::string("rmeas");
         case ScoreTypeRSplitIntensity:
@@ -1071,10 +1065,7 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
         
         if (logIntensityRatio != logIntensityRatio)
             continue;
-        
-//        double weight = 1;
-//        weight /= res_squared;
-        
+
         boost::tuple<double, double, double> point = boost::make_tuple(right_exp,
                                                               logIntensityRatio, imgWeight);
         
@@ -1160,17 +1151,6 @@ void MtzManager::clearScaleFactor()
 {
     applyScaleFactor(1, 0, 0, true);
     applyBFactor(0);
-}
-
-void MtzManager::makeScalesPermanent()
-{
-    for (int i = 0; i < reflections.size(); i++)
-    {
-        for (int j = 0; j < reflection(i)->millerCount(); j++)
-        {
-            reflection(i)->miller(j)->makeScalesPermanent();
-        }
-    }
 }
 
 void MtzManager::applyBFactor(double bFactor)
@@ -1691,7 +1671,7 @@ void MtzManager::recalculateWavelengths()
     {
         for (int j = 0; j < reflection(i)->millerCount(); j++)
         {
-            reflection(i)->miller(j)->getWavelength(0, 0);
+            reflection(i)->miller(j)->getWavelength();
         }
     }
 }

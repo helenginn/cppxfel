@@ -70,8 +70,8 @@ void Hdf5Crystal::writeReflectionData(std::string address)
             oneMiller->phase = miller->getPhase();
             oneMiller->bFactor = miller->getBFactor();
             oneMiller->partialCutoff = miller->getPartialCutoff();
-            oneMiller->lastX = miller->getLastX();
-            oneMiller->lastY = miller->getLastY();
+            oneMiller->lastX = miller->getCorrectedX();
+            oneMiller->lastY = miller->getCorrectedY();
             oneMiller->shiftX = miller->getShift().first;
             oneMiller->shiftY = miller->getShift().second;
             oneMiller->rejectReason = miller->getRejectedReason();
@@ -430,8 +430,8 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         miller->setRawIntensity(data->rawIntensity);
         miller->setCountingSigma(data->countingSigma);
         miller->setPhase(data->phase);
-        miller->setLastX(data->lastX);
-        miller->setLastY(data->lastY);
+        miller->setCorrectedX(data->lastX);
+        miller->setCorrectedY(data->lastY);
         miller->setShift(std::make_pair(data->shiftX, data->shiftY));
         miller->setMatrix(this->matrix);
         miller->setSigma(1);

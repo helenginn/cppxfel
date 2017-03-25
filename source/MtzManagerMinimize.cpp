@@ -24,10 +24,9 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     ScoreType scoreType = static_cast<MtzManager *>(object)->scoreType;
     MtzManager *mtz = static_cast<MtzManager *>(object);
     
-    if (scoreType == ScoreTypeCorrelation
-        || scoreType == ScoreTypeCorrelationLog)
+    if (scoreType == ScoreTypeCorrelation)
     {
-        return mtz->exclusionScore(lowRes, highRes,  scoreType);
+		return mtz->correlation(true, lowRes, highRes);
     }
     else if (scoreType == ScoreTypeMinimizeRSplit)
     {
@@ -40,12 +39,6 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
         
         return rSplit / logIntensity;
     }
-    else if (scoreType == ScoreTypePartialityCorrelation)
-    {
-        double value = mtz->partialityFunction();
-        
-        return  value;
-    }
     else if (scoreType == ScoreTypeMinimizeRMeas)
     {
         double rSplit = mtz->rSplit(lowRes, highRes);
@@ -53,7 +46,7 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     }
     else
     {
-        return mtz->exclusionScore(lowRes, highRes, ScoreTypeCorrelation);
+        return mtz->rSplit(lowRes, highRes);
     }
 }
 
@@ -148,28 +141,7 @@ double MtzManager::rSplit(double low, double high)
     
 }
 
-double MtzManager::exclusionScore(double lowRes, double highRes,
-                                  ScoreType scoreType)
-{
-    double score = 0;
-    
-    bool shouldLog = (scoreType == ScoreTypeCorrelationLog);
-    
-    double correlation = this->correlationWithManager(referenceManager, false,
-                                                      true, lowRes, highRes, 1, NULL, shouldLog);
-    
-    score += 1 - correlation;
-    
-    return score;
-}
-
-bool percentage(Partial x, Partial y)
-{
-    return (x.percentage < y.percentage);
-}
-
-double MtzManager::leastSquaresPartiality(double low, double high,
-                                          ScoreType typeOfScore)
+double MtzManager::leastSquaresPartiality(double low, double high)
 {
     vector<Partial> partials;
     vector<double> partialities;
@@ -203,9 +175,6 @@ double MtzManager::leastSquaresPartiality(double low, double high,
         }
     }
     
-    std::sort(partials.begin(), partials.end(), percentage);
-    int position = (int)partials.size() - 5;
-    if (position <= 0) return 0;
     double maxPercentage = 2.5;
     double minPartiality = FileParser::getKey("PARTIALITY_CUTOFF", PARTIAL_CUTOFF);
     
@@ -224,8 +193,6 @@ double MtzManager::leastSquaresPartiality(double low, double high,
         partialities.push_back(partials[i].partiality);
         percentages.push_back(partials[i].percentage);
         intensities.push_back(partials[i].miller->getRawestIntensity());
-        
-     //   std::cout << partials[i].partiality << "\t" << partials[i].percentage << std::endl;
     }
     
     double correl = 0;
@@ -233,51 +200,6 @@ double MtzManager::leastSquaresPartiality(double low, double high,
     correl = correlation_through_origin(&partialities, &percentages, &intensities);
     
     return correl;
-}
-
-double MtzManager::partialityFunction(double low, double high)
-{
-    std::vector<double> calcPartials, obsPartials, rawIntensities;
-    double calcPartialSum = 0;
-    
-    for (int i = 0; i < reflectionCount(); i++)
-    {
-        ReflectionPtr reflection = reflections[i];
-        if (!reflection->betweenResolutions(low, high))
-            continue;
-        
-        for (int j = 0; j < reflection->millerCount(); j++)
-        {
-            MillerPtr miller = reflection->miller(j);
-            
-            double calcPartial = miller->getPartiality();
-            double obsPartial = miller->observedPartiality(MtzManager::getReferenceManager());
-            double rawIntensity = miller->getRawIntensity();
-            
-            if (rawIntensity != rawIntensity || obsPartial != obsPartial || calcPartial != calcPartial)
-                continue;
-            
-            calcPartialSum += calcPartial;
-            
-            calcPartials.push_back(calcPartial);
-            obsPartials.push_back(obsPartial);
-            rawIntensities.push_back(rawIntensity);
-        }
-    }
-    
-    double score = 0;
-
-    for (int i = 0; i < calcPartials.size(); i++)
-    {
-        if (obsPartials[i] < 0 || calcPartials[i] <= 0)
-            continue;
-        
-        double addition = obsPartials[i] * calcPartials[i] * rawIntensities[i];
-        addition /= calcPartialSum;
-        score -= addition;
-    }
-    
-    return score;
 }
 
 double MtzManager::refineParameterScore(void *object)
@@ -514,7 +436,7 @@ void MtzManager::gridSearch(bool silent, bool ambOnly)
     double hits = accepted();
     
     double newerCorrel = (scoreType == ScoreTypeSymmetry) ? rFactorWithManager(RFactorTypeMeas) : correlation(true);
-    double partCorrel =  (scoreType == ScoreTypeSymmetry) ? 0 : leastSquaresPartiality(ScoreTypePartialityCorrelation);
+    double partCorrel =  leastSquaresPartiality();
     double rSplitValue = (scoreType == ScoreTypeSymmetry) ? 0 : rSplit(0, maxResolutionAll);
     
     this->setRefPartCorrel(partCorrel);

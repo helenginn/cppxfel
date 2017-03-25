@@ -57,39 +57,39 @@ private:
 	float partialCutoff; // could/should be a float
 	float bFactor;
 	float scale; // should be extracted from Mtz. Maybe?
-	float lastX;
-	float lastY;
-    float lastPeakX;
-    float lastPeakY;
     float correctedX;
     float correctedY;
+
+	// in reciprocal angstroms
+	float recipShiftX;
+	float recipShiftY;
+	float resol;
+
     double predictedWavelength;
     vec shiftedRay;
     
-    float bFactorScale; // should be extracted from Mtz.
-    
-    
+    double bFactorScale;
+
     // in pixels
 	std::pair<float, float> shift;
     
-    // in reciprocal angstroms
-    float recipShiftX;
-    float recipShiftY;
-    float resol;
- 
+
     double superGaussian(double bandwidth, double mean,
                         double sigma, double exponent);
     
     void recalculatePredictedWavelength();
 
     double expectedRadius(double spotSize, double mosaicity, vec *hkl);
-    
+
+
     BeamPtr beam;
     ImageWeakPtr image;
     DetectorWeakPtr lastDetector;
     IOMRefinerWeakPtr refiner;
     ShoeboxPtr shoebox;
-    unsigned char flipMatrix;
+	MtzManager *mtzParent;
+
+	unsigned char flipMatrix;
     static bool absoluteIntensity;
     static double intensityThreshold;
 public:
@@ -112,12 +112,13 @@ public:
     
 	MatrixPtr matrix;
 	ReflectionWeakPtr parentReflection;
-    MtzManager *mtzParent;
-    bool crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
+
+	bool crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
                             double spotSize, double wavelength, double bandwidth);
 
 	Miller(MtzManager *parent, int _h = 0, int _k = 0, int _l = 0, bool calcFree = true);
 	MillerPtr copy(void);
+
 	static double scaleForScaleAndBFactor(double scaleFactor, double bFactor, double resol, double exponent_exponent = 1);
     void limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize, double wavelength, double *limitLow, double *limitHigh, vec *inwards = NULL, vec *outwards = NULL);
     
@@ -129,9 +130,7 @@ public:
 	bool positiveFriedel(bool *positive, int *isym = NULL);
 	void setRejected(RejectReason reason, bool rejection);
 	bool isRejected(RejectReason reason);
-	void makeScalesPermanent();
-    void integrateIntensity(MatrixPtr transformedMatrix);
-    vec getTransformedHKL(double hRot, double kRot);
+	void integrateIntensity(MatrixPtr transformedMatrix);
     
 	bool accepted(void);
 	bool isFree()
@@ -150,8 +149,6 @@ public:
 	double getSigma();
 	double getPartiality();
 	double getWavelength();
-	double getWavelength(double hRot, double kRot);
-    double getWavelength(MatrixPtr transformedMatrix);
     double recalculateWavelength();
 	double getWeight(bool cutoff = true, WeightType weighting = WeightTypePartialitySigma);
 	double resolution();
@@ -298,23 +295,7 @@ public:
 	{
         rejectedReasons = rejected;
 	}
-    
-    Coord getLastXY()
-    {
-        Coord lastXY = std::make_pair(lastX, lastY);
-        return lastXY;
-    }
 
-	double getLastX() const
-	{
-		return lastX;
-	}
-
-	double getLastY() const
-	{
-		return lastY;
-	}
-    
     double getCorrectedX() const
     {
         return correctedX;
@@ -323,11 +304,6 @@ public:
     double getCorrectedY() const
     {
         return correctedY;
-    }
-
-    std::pair<double, double> position()
-    {
-        return std::make_pair(lastX, lastY);
     }
 
     void setCorrectedX(double lastX)
@@ -339,16 +315,6 @@ public:
     {
         this->correctedY = lastY;
     }
-    
-	void setLastX(double lastX)
-	{
-		this->lastX = lastX;
-	}
-
-	void setLastY(double lastY)
-	{
-		this->lastY = lastY;
-	}
 
 	double getPartialCutoff() const
 	{
