@@ -120,7 +120,6 @@ protected:
 	static MtzManager *referenceManager;
 	MtzManager *lastReference;
 
-    std::ostringstream logged;
 public:
     static vector<double> superGaussianTable;
     static bool setupSuperGaussian;

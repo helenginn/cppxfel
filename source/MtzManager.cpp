@@ -257,8 +257,9 @@ void MtzManager::addReflections(vector<ReflectionPtr>reflections, bool assumeSor
 
 void MtzManager::addMiller(MillerPtr miller)
 {
-	int reflection_index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL());
+	int reflection_index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(), low_group);
     ReflectionPtr prevReflection;
+
     this->findReflectionWithId(reflection_index, &prevReflection);
     
     double unitCell[6] = {cellDim[0], cellDim[1], cellDim[2], cellAngles[0], cellAngles[1], cellAngles[2]};
@@ -553,7 +554,7 @@ void MtzManager::loadReflections()
         int k = adata[col_k->source - 1];
         int l = adata[col_l->source - 1];
         
-		int reflection_index = Reflection::indexForReflection(h, k, l);
+		int reflection_index = Reflection::indexForReflection(h, k, l, low_group);
 
         float intensity = adata[col_f->source - 1];
         
