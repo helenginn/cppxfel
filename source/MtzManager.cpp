@@ -460,6 +460,7 @@ void MtzManager::getWavelengthFromHDF5()
         
         if (!useHdf5Wavelength)
         {
+			wavelength = 0;
             return;
         }
         

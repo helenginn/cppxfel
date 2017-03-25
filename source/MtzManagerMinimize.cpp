@@ -15,7 +15,6 @@
 #include "NelderMead.h"
 #include "RefinementStepSearch.h"
 
-#define DEFAULT_RESOLUTION 3.4
 typedef boost::tuple<double, double, double, double, double> ResultTuple;
 
 double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
@@ -26,7 +25,7 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
     
     if (scoreType == ScoreTypeCorrelation)
     {
-		return mtz->correlation(true, lowRes, highRes);
+		return 1 - mtz->correlation(true, lowRes, highRes);
     }
     else if (scoreType == ScoreTypeMinimizeRSplit)
     {
@@ -227,244 +226,6 @@ double MtzManager::refineParameterScore(void *object)
     return exclusionScoreWrapper(me);
 }
 
-double MtzManager::minimize()
-{
-    double wavelength = 0;
-    
-    bool reinitialiseWavelength = FileParser::getKey("REINITIALISE_WAVELENGTH", false);
-    double minResolution = FileParser::getKey("MIN_REFINED_RESOLUTION", 0.0);
-    
-    if (isUsingFixedWavelength())
-    {
-        wavelength = this->getWavelength();
-        
-        if (wavelength == 0)
-        {
-            std::cout << "Warning: using fixed wavelength but wavelength is 0"
-            << std::endl;
-        }
-    }
-    else if (isUsingFixedWavelength() && reinitialiseWavelength)
-    {
-        wavelength = FileParser::getKey("INITIAL_WAVELENGTH", 1.75);
-    }
-    else
-    {
-        wavelength = bestWavelength(0, 0, false);
-        
-        if (this->isRejected())
-            return 0;
-        
-        if (finalised)
-            wavelength = this->getWavelength();
-    }
-    
-    bandwidth = this->getBandwidth();
-    
-    RefinementStrategyPtr refiner = RefinementStrategy::userChosenStrategy();
-    
-    refiner->setJobName("Refining " + getFilename());
-    
-    if (this->wavelength == 0)
-        this->wavelength = wavelength;
-    
-    double stepSizeUnitCellA = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
-    double stepSizeUnitCellB = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
-    double stepSizeUnitCellC = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
-    
-    bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
-    bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
-    bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
-    
-    int verbosity = FileParser::getKey("VERBOSITY_LEVEL", 0);
-    
-    refiner->setEvaluationFunction(refineParameterScore, this);
-    refiner->setVerbose((verbosity > 0));
-    
-    matchReflections.clear();
-    
-    if (optimisingWavelength)
-    {
-        refiner->addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, 0, "wavelength");
-    }
-    
-    if (optimisingOrientation)
-    {
-        refiner->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, 0, "hRot");
-        refiner->addCoupledParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, 0, "kRot");
-    }
-    
-    if (optimisingMosaicity)
-    {
-        refiner->addParameter(this, getMosaicityStatic, setMosaicityStatic, stepSizeMosaicity, 0, "mosaicity");
-    }
-    
-    if (optimisingRlpSize)
-    {
-        refiner->addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, 0, "rlpSize");
-    }
-    
-    if (optimisingBandwidth)
-    {
-        refiner->addParameter(this, getBandwidthStatic, setBandwidthStatic, stepSizeBandwidth, 0, "bandwidth");
-    }
-    
-    if (optimisingExponent)
-    {
-        refiner->addParameter(this, getExponentStatic, setExponentStatic, stepSizeExponent, 0, "exponent");
-    }
-    
-    if (optimisingUnitCellA)
-    {
-        refiner->addParameter(this, getUnitCellAStatic, setUnitCellAStatic, stepSizeUnitCellA, 0, "unitCellA");
-    }
-    
-    if (optimisingUnitCellB)
-    {
-        refiner->addParameter(this, getUnitCellBStatic, setUnitCellBStatic, stepSizeUnitCellB, 0, "unitCellB");
-    }
-    
-    if (optimisingUnitCellC)
-    {
-        refiner->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, stepSizeUnitCellC, 0, "unitCellC");
-    }
-    
-    refiner->refine();
-    
-    double correl = correlation(true, minResolution, maxResolutionAll);
-    this->refCorrelation = correl;
-    
-    logged << "Returning correl: " << correl << std::endl;
-    
-    return correl;
-}
-
-
-void MtzManager::gridSearch(bool silent, bool ambOnly)
-{
-	ambOnly = false;
-
-    scoreType = defaultScoreType;
-    std::string scoreDescription = this->describeScoreType();
-    
-    scaleToMtz(this->getReferenceManager());
-
-    std::map<int, std::pair<vector<double>, double> > ambiguityResults;
-    
-    double *firstParams = new double[PARAM_NUM];
-    getParams(&firstParams);
-    
-    if (trust == TrustLevelGood)
-        minimize();
-    
-    if (trust != TrustLevelGood)
-    {
-        for (int i = 0; i < ambiguityCount(); i++)
-        {
-            vector<double> bestParams;
-            bestParams.resize(PARAM_NUM);
-            setParams(firstParams);
-            
-            int ambiguity = getActiveAmbiguity();
-            double correl = 0;
-
-			if (ambOnly)
-			{
-				correl = correlationWithManager(getReferenceManager());
-			}
-			else
-			{
-				correl = minimize();
-			}
-
-            double *params = &(*(bestParams.begin()));
-            getParams(&params);
-            
-            std::pair<vector<double>, double> result = std::make_pair(bestParams, correl);
-            
-            ambiguityResults[ambiguity] = result;
-            incrementActiveAmbiguity();
-        }
-        
-        double bestScore = -1;
-        int bestAmbiguity = 0;
-        
-        logged << "Ambiguity results: ";
-        
-        for (int i = 0; i < ambiguityCount(); i++)
-        {
-            std::pair<vector<double>, double> result = ambiguityResults[i];
-            
-            logged << result.second << " ";
-            
-            if (result.second > bestScore)
-            {
-                bestScore = result.second;
-                bestAmbiguity = i;
-            }
-        }
-        
-        logged << std::endl;
-        sendLog(LogLevelDetailed);
-        
-        setActiveAmbiguity(bestAmbiguity);
-
-		if (!ambOnly)
-		{
-			setParams(&(*(ambiguityResults[bestAmbiguity].first).begin()));
-			refreshPartialities(&(*(ambiguityResults[bestAmbiguity].first).begin()));
-		}
-
-        double threshold = 0.9;
-        
-        if (bestScore > threshold)
-        {
-            trust = TrustLevelGood;
-        }
-    }
-    
-    scaleToMtz(this->getReferenceManager());
-
-    double newCorrel = correlation(true);
-    this->setFinalised(true);
-    
-    if (newCorrel == 1 || newCorrel == -1)
-        setFinalised(false);
-    
-    this->excludeFromLogCorrelation();
-    
-    double hits = accepted();
-    
-    double newerCorrel = (scoreType == ScoreTypeSymmetry) ? rFactorWithManager(RFactorTypeMeas) : correlation(true);
-    double partCorrel =  leastSquaresPartiality();
-    double rSplitValue = (scoreType == ScoreTypeSymmetry) ? 0 : rSplit(0, maxResolutionAll);
-    
-    this->setRefPartCorrel(partCorrel);
-    
-    this->setRefCorrelation(newerCorrel);
-    
-    if (scoreType == ScoreTypeSymmetry)
-    {
-        this->setRefCorrelation(1 - newerCorrel);
-        
-        if (newerCorrel != newerCorrel)
-            this->setRefCorrelation(0);
-    }
-    
-    this->sendLog(LogLevelDetailed);
-    
-    logged << getFilename() << "\t" << scoreDescription << "\t" << "\t"
-    << newerCorrel << "\t" << rSplitValue << "\t"
-    << partCorrel << "\t" << bFactor << "\t" << hits << std::endl;
-    
-    this->sendLog(silent ? LogLevelDetailed : LogLevelNormal);
-    
-    delete[] firstParams;
-    
-    writeToFile(std::string("ref-") + getFilename());
-    writeToDat("ref-");
-}
-
 void MtzManager::excludeFromLogCorrelation()
 {
     bool correlationRejection = FileParser::getKey("CORRELATION_REJECTION", true);
@@ -559,21 +320,6 @@ void MtzManager::excludeFromLogCorrelation()
             count++;
         }
     }
-}
-
-double MtzManager::partialityRatio(ReflectionPtr imgReflection, ReflectionPtr refReflection)
-{
-    double rawIntensity = imgReflection->miller(0)->getRawIntensity();
-    double percentage = rawIntensity /= refReflection->meanIntensity();
-    
-    double partiality = imgReflection->meanPartiality();
-    
-    double ratio = percentage / partiality;
-    
-    if (ratio != ratio || !std::isfinite(ratio))
-        return 10;
-    
-    return ratio;
 }
 
 void MtzManager::resetDefaultParameters()

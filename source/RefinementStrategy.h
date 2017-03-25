@@ -48,6 +48,7 @@ public:
     static RefinementStrategyPtr userChosenStrategy();
     
     virtual void refine();
+	void resetToInitialParameters();
     
     void addParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag = "");
     void addCoupledParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag = "");

@@ -32,73 +32,80 @@ void MtzManager::applyUnrefinedPartiality()
     refreshPartialities(0, 0, mosaicity, rlpSize, wavelength, bandwidth, exponent, cellDim[0], cellDim[1], cellDim[2]);
 }
 
-void MtzManager::setParams(double parameters[], int paramCount)
+void MtzManager::addParameters(RefinementStrategyPtr refiner)
 {
-    wavelength = parameters[PARAM_WAVELENGTH];
-	bandwidth = parameters[PARAM_BANDWIDTH];
-	mosaicity = parameters[PARAM_MOS];
-	spotSize = parameters[PARAM_SPOT_SIZE];
-	hRot = parameters[PARAM_HROT];
-	kRot = parameters[PARAM_KROT];
-    exponent = parameters[PARAM_EXPONENT];
-    bFactor = parameters[PARAM_B_FACTOR];
-    
-    applyBFactor(bFactor);
-    applyScaleFactor(parameters[PARAM_SCALE_FACTOR], 0, 0, true);
-    
-    cellDim[0] = parameters[PARAM_UNIT_CELL_A];
-    cellDim[1] = parameters[PARAM_UNIT_CELL_B];
-    cellDim[2] = parameters[PARAM_UNIT_CELL_C];
-}
+	double stepSizeUnitCellA = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.5);
+	double stepSizeUnitCellB = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.5);
+	double stepSizeUnitCellC = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.5);
 
-void MtzManager::getParams(double *parameters[], int paramCount)
-{
-	(*parameters)[PARAM_WAVELENGTH] = wavelength;
-	(*parameters)[PARAM_BANDWIDTH] = bandwidth;
-	(*parameters)[PARAM_MOS] = mosaicity;
-	(*parameters)[PARAM_SPOT_SIZE] = spotSize;
-	(*parameters)[PARAM_HROT] = hRot;
-	(*parameters)[PARAM_KROT] = kRot;
-    (*parameters)[PARAM_EXPONENT] = exponent;
-    (*parameters)[PARAM_B_FACTOR] = bFactor;
-    (*parameters)[PARAM_SCALE_FACTOR] = scale;
-    (*parameters)[PARAM_UNIT_CELL_A] = cellDim[0];
-    (*parameters)[PARAM_UNIT_CELL_B] = cellDim[1];
-    (*parameters)[PARAM_UNIT_CELL_C] = cellDim[2];
-}
+	bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+	bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+	bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
 
-void MtzManager::addParameters(RefinementStrategyPtr map)
-{
+
     if (optimisingOrientation)
     {
-        map->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, toleranceOrientation);
-        map->addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, toleranceOrientation);
+        refiner->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, toleranceOrientation, "hRot");
+        refiner->addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, toleranceOrientation, "kRot");
     }
     
     if (optimisingRlpSize)
-        map->addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, toleranceRlpSize);
-    
+	{
+        refiner->addParameter(this, getSpotSizeStatic, setSpotSizeStatic, stepSizeRlpSize, toleranceRlpSize, "rlpSize");
+	}
+
     if (optimisingMosaicity)
-        map->addParameter(this, getMosaicityStatic, setMosaicityStatic, stepSizeMosaicity, toleranceMosaicity);
-    
+	{
+        refiner->addParameter(this, getMosaicityStatic, setMosaicityStatic, stepSizeMosaicity, toleranceMosaicity, "mosaicity");
+	}
+
+	if (optimisingUnitCellA)
+	{
+		refiner->addParameter(this, getUnitCellAStatic, setUnitCellAStatic, stepSizeUnitCellA, 0, "unitCellA");
+	}
+
+	if (optimisingUnitCellB)
+	{
+		refiner->addParameter(this, getUnitCellBStatic, setUnitCellBStatic, stepSizeUnitCellB, 0, "unitCellB");
+	}
+
+	if (optimisingUnitCellC)
+	{
+		refiner->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, stepSizeUnitCellC, 0, "unitCellC");
+	}
+
+
     // delete me later
- 
-    map->addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, toleranceWavelength);
-    
+
+	if (optimisingWavelength)
+	{
+		refiner->addParameter(this, getWavelengthStatic, setWavelengthStatic, stepSizeWavelength, toleranceWavelength, "wavelength");
+	}
+
+	if (optimisingBandwidth)
+	{
+		refiner->addParameter(this, getBandwidthStatic, setBandwidthStatic, stepSizeBandwidth, 0, "bandwidth");
+	}
+
+	if (optimisingExponent)
+	{
+		refiner->addParameter(this, getExponentStatic, setExponentStatic, stepSizeExponent, 0, "exponent");
+	}
 }
 
-double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
+double MtzManager::refinePartialitiesOrientation(int ambiguity, bool reset)
 {
-  //  logged << "New refinement, ambiguity " << ambiguity << std::endl;
- //  sendLog();
-    
     this->setActiveAmbiguity(ambiguity);
+	scoreType = defaultScoreType;
     
 	RefinementStrategyPtr refinementMap = RefinementStrategy::userChosenStrategy();
 
-    wavelength = bestWavelength();
-    
-    if (!beam)
+	if (wavelength == 0)
+	{
+		wavelength = bestWavelength();
+	}
+
+    if (false && !beam)
     {
         beam = GaussianBeamPtr(new GaussianBeam(wavelength, bandwidth, exponent));
         
@@ -110,17 +117,23 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, int cycles)
             }
         }
     }
-    
-    
-    beam->addParameters(refinementMap);
+
+   // beam->addParameters(refinementMap);
     addParameters(refinementMap);
 
+	refinementMap->setJobName("Refining " + getFilename());
     refinementMap->setEvaluationFunction(refineParameterScore, this);
-    refinementMap->setCycles(cycles);
     
     refinementMap->refine();
     
-    return correlation();
+    double correl = correlation();
+
+	if (reset)
+	{
+		refinementMap->resetToInitialParameters();
+	}
+
+	return correl;
 }
 
 void MtzManager::refinePartialities()
@@ -131,7 +144,7 @@ void MtzManager::refinePartialities()
     
     for (int i = 0; i < ambiguityCount(); i++)
     {
-        correlations.push_back(refinePartialitiesOrientation(i, 10));
+        correlations.push_back(refinePartialitiesOrientation(i));
     }
     
     for (int i = 0; i < ambiguityCount(); i++)
@@ -143,7 +156,7 @@ void MtzManager::refinePartialities()
         }
     }
     
-    refinePartialitiesOrientation(bestAmbiguity);
+    refinePartialitiesOrientation(bestAmbiguity, false);
     double partCorrel = leastSquaresPartiality();
     setRefPartCorrel(partCorrel);
     
@@ -151,7 +164,9 @@ void MtzManager::refinePartialities()
     
     double rSplitValue = rSplit(0, 0);
     
-    logged << getFilename() << "\t" << describeScoreType() << "\t\t" << refCorrelation << "\t" << rSplitValue << "\t" << refPartCorrel << "\t" << accepted() << std::endl;
+    logged << getFilename() << "\t" << describeScoreType() << "\t\t"
+	<< refCorrelation << "\t" << rSplitValue << "\t" << refPartCorrel
+	<< "\t" << accepted() << std::endl;
     sendLog();
     
     writeToFile(std::string("ref-") + getFilename());

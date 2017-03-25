@@ -662,7 +662,6 @@ void FileParser::generateCategories()
     nonOperational.push_back("INITIAL_MOSAICITY");
     nonOperational.push_back("TOLERANCE_MOSAICITY");
     nonOperational.push_back("OPTIMISING_MOSAICITY");
-    nonOperational.push_back("REFINE_ENERGY_SPECTRUM");
     nonOperational.push_back("NORMALISE_PARTIALITIES");
     nonOperational.push_back("MILLER_INDEX");
     nonOperational.push_back("FREE_MILLER_LIST");
@@ -867,7 +866,6 @@ void FileParser::generateFunctionList()
     parserMap["SMOOTH_FUNCTION"] = simpleBool;
     parserMap["NORMALISE_PARTIALITIES"] = simpleBool;
     parserMap["REPLACE_REFERENCE"] = simpleBool;
-    parserMap["REFINE_ENERGY_SPECTRUM"] = simpleBool;
     parserMap["FREE_MILLER_LIST"] = simpleString;
     parserMap["FREE_MILLER_PROPORTION"] = simpleFloat;
     parserMap["USE_HDF5_WAVELENGTH"] = simpleBool;

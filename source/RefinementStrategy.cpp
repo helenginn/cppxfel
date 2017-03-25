@@ -128,11 +128,7 @@ void RefinementStrategy::finish()
         logged << "No change for " << jobName << " (" << startingScore << ")" << std::endl;
         sendLog();
         
-        for (int i = 0; i < objects.size(); i++)
-        {
-            double objectValue = startingValues[i];
-            (*setters[i])(objects[i], objectValue);
-        }
+		resetToInitialParameters();
     }
     else
     {
@@ -153,9 +149,19 @@ void RefinementStrategy::finish()
             double objectValue = (*getters[i])(objects[i]);
             logged << tags[i] << "=" << objectValue << ", ";
         }
-        logged << std::endl;
+
+		logged << "(" << startingScore << " to " << endScore << ")" << std::endl;
         sendLog();
     }
     
     cycleNum = 0;
+}
+
+void RefinementStrategy::resetToInitialParameters()
+{
+	for (int i = 0; i < objects.size(); i++)
+	{
+		double objectValue = startingValues[i];
+		(*setters[i])(objects[i], objectValue);
+	}
 }

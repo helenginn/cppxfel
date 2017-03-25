@@ -176,8 +176,7 @@ public:
 	void clearScaleFactor();
 	double averageIntensity();
 	void setSigmaToUnity();
-	double partialityRatio(ReflectionPtr imgReflection, ReflectionPtr refReflection);
-    void replaceBeamWithSpectrum();
+	void replaceBeamWithSpectrum();
 
 	void setUnitCell(double a, double b, double c, double alpha, double beta,
 			double gamma);
@@ -235,8 +234,6 @@ public:
 	int refinedParameterCount();
     
     void recalculateWavelengths();
-	void getParams(double *parameters[], int paramCount = PARAM_NUM);
-    void setParams(double parameters[], int paramCount = PARAM_NUM);
 
     double medianWavelength(double lowRes, double highRes);
     double bestWavelength(double lowRes = 0.0, double highRes = 0, bool usingReference = false);
@@ -247,7 +244,7 @@ public:
     double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high);
 	std::string describeScoreType();
-    double refinePartialitiesOrientation(int ambiguity, int cycles = 30);
+    double refinePartialitiesOrientation(int ambiguity, bool reset = true);
     
     void refinePartialities();
 
@@ -262,9 +259,7 @@ public:
 
     void setParamLine(std::string line);
     std::string getParamLine();
-    double minimize();
-    void gridSearch(bool silent = false, bool ambOnly = false);
-	
+    
     static void makeSuperGaussianLookupTable(double exponent);
     
     static std::string parameterHeaders();

@@ -60,8 +60,6 @@ void MtzRefiner::cycleThread(int offset)
     int img_num = (int)mtzManagers.size();
     int j = 0;
     
-    bool partialitySpectrumRefinement = FileParser::getKey("REFINE_ENERGY_SPECTRUM", false);
-    
     std::vector<int> targets = FileParser::getKey("TARGET_FUNCTIONS", std::vector<int>());
     bool lowMemoryMode = FileParser::getKey("LOW_MEMORY_MODE", false);
     
@@ -82,22 +80,13 @@ void MtzRefiner::cycleThread(int offset)
             
             bool silent = (targets.size() > 0);
             
-            if (partialitySpectrumRefinement)
-            {
-                image->refinePartialities();
-                //        image->replaceBeamWithSpectrum();
-            }
-            else
-            {
-                image->loadReflections(true);
-                image->gridSearch(silent, (cycleNum == 0));
-                
-                if (lowMemoryMode)
-                {
-                    image->dropReflections();
-                }
-            }
-            
+            image->refinePartialities();
+
+			if (lowMemoryMode)
+			{
+				image->dropReflections();
+			}
+
             if (targets.size() > 0)
             {
                 ScoreType firstScore = image->getScoreType();
@@ -106,15 +95,9 @@ void MtzRefiner::cycleThread(int offset)
                     silent = (i < targets.size() - 1);
                     image->setDefaultScoreType((ScoreType)targets[i]);
                     
-                    if (partialitySpectrumRefinement)
-                    {
-                        image->refinePartialities();
-                    }
-                    else
-                    {
-                        image->gridSearch(silent);
-                    }
-                }
+                    image->refinePartialities();
+				}
+
                 image->setDefaultScoreType(firstScore);
             }
             
