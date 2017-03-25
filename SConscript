@@ -73,7 +73,6 @@ source = [
 'source/LoggableObject.cpp',
 'source/Matrix.cpp',
 'source/Miller.cpp',
-'source/MtzGrouper.cpp',
 'source/MtzMerger.cpp',
 'source/MtzManager.cpp',
 'source/MtzManagerRefine.cpp',
