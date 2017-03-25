@@ -265,6 +265,8 @@ void MtzRefiner::refineCycle(bool once)
 			reference = mergedMtz;
 			MtzManager::setReference(&*reference);
 		}
+
+		i++;
 	}
 }
 
