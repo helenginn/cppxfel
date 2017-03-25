@@ -113,6 +113,10 @@ void IOMRefiner::setComplexMatrix()
     if (fixUnitCell)
     {
 		std::vector<double> unitCell = getUnitCell();
+
+		if (!unitCell.size())
+			return;
+
         matrix->changeOrientationMatrixDimensions(unitCell);
     }
 }
