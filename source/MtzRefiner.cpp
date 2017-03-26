@@ -294,9 +294,9 @@ bool MtzRefiner::loadInitialMtz(bool force)
         reference = MtzPtr(new MtzManager());
         
         reference->setFilename(referenceFile.c_str());
+		reference->loadReflections();
 		reference->setDefaultMatrix();
-        reference->loadReflections();
-        reference->setSigmaToUnity();
+		reference->setSigmaToUnity();
         
         if (reference->reflectionCount() == 0)
         {

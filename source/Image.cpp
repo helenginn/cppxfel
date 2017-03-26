@@ -1065,7 +1065,7 @@ vector<MtzPtr> Image::currentMtzs()
             count += mtz(i)->rejectOverlaps();
     }
 
-	logged << "After integrating crystals for " << getBasename() << ", spot count now " << spots.size() << std::endl;
+	logged << "After integrating for " << getBasename() << ", spot count now " << spots.size() << std::endl;
 	sendLog();
 
     logged << "Generated " << mtzs.size() << " mtzs with " << count << " rejected reflections." << std::endl;

@@ -1061,9 +1061,9 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
     
     for (int i = 0; i < reflectionCount(); i++)
     {
-        for (int j = 0; j < reflections[i]->millerCount(); j++)
+        for (int j = 0; j < reflection(i)->millerCount(); j++)
         {
-            MillerPtr miller = reflections[i]->miller(j);
+            MillerPtr miller = reflection(i)->miller(j);
             
             double intensity = reflections[i]->miller(j)->getRawestIntensity();
             double sigma = reflections[i]->miller(j)->getRawSigma();
@@ -1071,10 +1071,7 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
             double bFactor = reflections[i]->miller(j)->getBFactorScale();
             double countingSigma = reflections[i]->miller(j)->getRawCountingSigma();
             double rejectFlags = reflections[i]->miller(j)->getRejectionFlags();
-            
-            if (!reflection(i)->miller(j))
-                std::cout << "!miller(j) in mtz manager" << std::endl;
-            
+
             if (intensity != intensity)
             {
                 continue;
@@ -1085,11 +1082,8 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
             int h = reflections[i]->miller(j)->getH();
             int k = reflections[i]->miller(j)->getK();
             int l = reflections[i]->miller(j)->getL();
-//            int _h, _k, _l;
-//            ccp4spg_put_in_asu(low_group, h, k, l, &_h, &_k, &_l);
-            
-            // set fdata
-            fdata[0] = h;
+
+			fdata[0] = h;
             fdata[1] = k;
             fdata[2] = l;
             fdata[3] = intensity / bFactor;
@@ -1117,7 +1111,7 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
     LogLevel shouldAnnounce = announce ? LogLevelNormal : LogLevelDebug;
     
     std::ostringstream logged;
-    logged << "Written to file " << newFilename << std::endl;
+    logged << "Written " << num << " refls to file " << newFilename << std::endl;
     Logger::mainLogger->addStream(&logged, shouldAnnounce);
     
     delete [] fdata;
@@ -1524,7 +1518,7 @@ void MtzManager::checkNearbyMillers()
 			continue;
 		}
 
-		miller->crossesBeamRoughly(rotatedMatrix, 0.0, testSpotSize, wavelength, bandwidth);
+		miller->crossesBeamRoughly(rotatedMatrix, 0.0, testSpotSize, wavelength, testBandwidth);
 
 		if (i == 0)
 		{
