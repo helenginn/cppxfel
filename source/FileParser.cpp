@@ -158,7 +158,7 @@ void FileParser::printAllCommands()
         std::vector<std::string>::iterator done_it;
         done_it = std::find(categorised.begin(), categorised.end(), it->first);
         
-        if (*done_it == it->first)
+        if (done_it != categorised.end())
         {
             continue;
         }
