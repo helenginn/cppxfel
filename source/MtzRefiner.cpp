@@ -100,8 +100,6 @@ void MtzRefiner::cycleThread(int offset)
 
                 image->setDefaultScoreType(firstScore);
             }
-            
-            //    image->writeToDat();
         }
     }
 }
@@ -1198,11 +1196,6 @@ void MtzRefiner::integrate()
     }
     
     writeNewOrientations(false, true);
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        mtzManagers[i]->writeToDat();
-    }
     
     integrationSummary();
 }

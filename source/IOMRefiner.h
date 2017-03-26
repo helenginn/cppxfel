@@ -91,13 +91,6 @@ public:
     std::string refinementSummary();
     static std::string refinementSummaryHeader();
     
-    void getBestRots(double *rot1, double *rot2, double *rot3)
-    {
-        *rot1 = bestHRot;
-        *rot2 = bestKRot;
-        *rot3 = bestLRot;
-    }
-    
     MatrixPtr getMatrix()
     {
         return matrix;
@@ -106,11 +99,6 @@ public:
     void setMatrix(MatrixPtr matrix)
     {
         this->matrix = matrix;
-    }
-    
-    void setMatrixCopy(MatrixPtr matrix)
-    {
-        this->matrix = matrix->copy();
     }
     
     double getLastScore()
@@ -157,23 +145,13 @@ public:
     {
         static_cast<IOMRefiner *>(object)->lRot = rot;
     }
-
-	CCP4SPG*& getSpaceGroup()
-	{
-		return spaceGroup;
-	}
-
-	void setSpaceGroup(CCP4SPG*& spaceGroup)
-	{
-		this->spaceGroup = spaceGroup;
-	}
     
     double getBestLRot()
     {
         return bestLRot;
     }
 
-double getSearchSize()
+	double getSearchSize()
 	{
 		return searchSize;
 	}

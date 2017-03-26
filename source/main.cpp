@@ -423,27 +423,6 @@ void new_main(int argc, char *argv[])
 		delete reference;
 	}
     
-    if (strcmp(argv[1], "-scale") == 0)
-    {
-        if (argc <= 3)
-        {
-            std::cout << "arguments: -scale <ref> <file1>." << std::endl;
-            exit(1);
-        }
-        
-        MtzManager *reference = new MtzManager();
-        reference->setFilename(argv[2]);
-        reference->loadReflections();
-        MtzManager::setReference(reference);
-        
-        MtzManager *mtz = new MtzManager();
-        mtz->setFilename(argv[3]);
-        mtz->loadReflections();
-        
-        mtz->applyScaleFactorsForBins(50);
-        mtz->writeToFile("scaled-" + std::string(argv[3]));
-    }
-    
     if (strcmp(argv[1], "-bfac") == 0)
     {
         MtzManager *reference = new MtzManager();

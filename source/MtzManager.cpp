@@ -220,19 +220,6 @@ void MtzManager::addReflection(ReflectionPtr reflection)
     reflections.insert(reflections.begin() + lowestId, reflection);
 }
 
-void MtzManager::addReflections(vector<ReflectionPtr>reflections, bool assumeSorted)
-{
-	if (assumeSorted && !reflectionCount())
-	{
-		this->reflections = reflections;
-	}
-
-    for (int i = 0; i < reflections.size(); i++)
-    {
-        addReflection(reflections[i]);
-    }
-}
-
 void MtzManager::addMiller(MillerPtr miller)
 {
 	miller->setMtzParent(this);
@@ -762,68 +749,12 @@ void MtzManager::findCommonReflections(MtzManager *other,
     }
 }
 
-void MtzManager::applyScaleFactorsForBins(int binCount)
-{
-    double highRes = FileParser::getKey("HIGH_RESOLUTION", 0.0);
-    double lowRes = FileParser::getKey("LOW_RESOLUTION", 0.0);
-    
-    if (highRes == 0)
-    {
-        highRes = 1 / this->maxResolution();
-    }
-    
-    vector<double> bins;
-    StatisticsManager::generateResolutionBins(lowRes, highRes, binCount, &bins);
-    
-    for (int shell = 0; shell < bins.size() - 1; shell++)
-    {
-        double low = bins[shell];
-        double high = bins[shell + 1];
-        
-        vector<ReflectionPtr> refReflections, imgReflections;
-        
-        this->findCommonReflections(referenceManager, imgReflections, refReflections,
-                                    NULL);
-        
-        double weights = 0;
-        double refMean = 0;
-        double imgMean = 0;
-        int count = 0;
-        
-        for (int i = 0; i < imgReflections.size(); i++)
-        {
-            if (imgReflections[i]->betweenResolutions(low, high))
-            {
-                double refIntensity = refReflections[i]->meanIntensity();
-                double imgIntensity = imgReflections[i]->meanIntensity();
-                
-                if (refIntensity != refIntensity || imgIntensity != imgIntensity)
-                    continue;
-                
-                weights++;
-                
-                refMean += refIntensity;
-                imgMean += imgIntensity;
-                count++;
-                
-            }
-        }
-        
-        refMean /= weights;
-        imgMean /= weights;
-        
-        std::cout << refMean << ", " << imgMean << ", " << weights << ", " << low << ", " << high << std::endl;
-        
-        double ratio = refMean / imgMean;
-        
-        applyScaleFactor(ratio, low, high);
-    }
-}
-
 void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent)
 {
-    clearScaleFactor();
-    MtzManager *reference = MtzManager::getReferenceManager();
+	applyScaleFactor(1, 0, 0, true);
+	applyBFactor(0);
+
+	MtzManager *reference = MtzManager::getReferenceManager();
     
     vector<ReflectionPtr> refReflections, imageReflections;
     this->findCommonReflections(reference, imageReflections, refReflections, NULL);
@@ -942,11 +873,6 @@ void MtzManager::scaleToMtz(MtzManager *otherManager, bool info, double lowRes, 
 	applyScaleFactor(grad);
 }
 
-void MtzManager::clearScaleFactor()
-{
-    applyScaleFactor(1, 0, 0, true);
-    applyBFactor(0);
-}
 
 void MtzManager::applyBFactor(double bFactor)
 {
@@ -1206,55 +1132,6 @@ int MtzManager::accepted()
     }
     
     return acceptedCount;
-}
-
-
-void MtzManager::writeToDat(std::string prefix)
-{
-    bool enableCSVs = FileParser::getKey("ENABLE_IMAGE_CSVS", false);
-    
-    if (!enableCSVs)
-    {
-        return;
-    }
-    
-    std::string name = getFilename();
-    int lastindex = (int)name.find_last_of(".");
-        std::string rootName;
-    
-    if (lastindex == std::string::npos)
-    {
-        rootName = name;
-    }
-    else
-    {
-        rootName = name.substr(0, lastindex);
-    }
-    
-    std::string datName = prefix + rootName + ".csv";
-    
-    CSV csv = CSV(11, "h", "k", "l", "wavelength", "intensity", "countingSigma", "xCoord", "yCoord", "partiality", "resolution", "rejectFlags");
-    
-    for (int i = 0; i < reflectionCount(); i++)
-    {
-        ReflectionPtr aReflection = reflection(i);
-        for (int j = 0; j < aReflection->millerCount(); j++)
-        {
-            MillerPtr miller = aReflection->miller(j);
-            
-            double combinedX, combinedY;
-            DetectorPtr det = Detector::getMaster()->spotCoordForMiller(miller, &combinedX, &combinedY);
-            
-            double rejectionFlags = miller->getRejectionFlags();
-            
-            csv.addEntry(0, (double)miller->getH(), (double)miller->getK(), (double)miller->getL(), miller->getWavelength(), miller->getRawIntensity(),
-                         miller->getRawCountingSigma(), combinedX, combinedY, miller->getPartiality(), miller->getResolution(), rejectionFlags);
-        }
-    }
-    
-    csv.writeToFile(datName);
-    
-    logged << "Wrote " << datName << " file" << std::endl;
 }
 
 int MtzManager::rejectOverlaps()

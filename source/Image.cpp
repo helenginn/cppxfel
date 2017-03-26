@@ -1059,8 +1059,7 @@ vector<MtzPtr> Image::currentMtzs()
 
         std::string imgFilename = "img-" + getBasename() + "_" + i_to_str(i) + ".mtz";
         newMtz->writeToFile(imgFilename, true);
-        newMtz->writeToDat();
-        
+
         if (rejecting)
             count += newMtz->rejectOverlaps();
         mtzs.push_back(newMtz);
@@ -1874,7 +1873,6 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     addMtz(mtz);
     std::string imgFilename = "img-" + mtz->getFilename();
     mtz->writeToFile(imgFilename, true);
-    mtz->writeToDat("img-");
     
     return IndexingSolutionTrialSuccess;
 }

@@ -128,8 +128,7 @@ public:
 	void loadParametersMap();
 
     void addMiller(MillerPtr miller);
-    void addReflections(vector<ReflectionPtr>reflections, bool assumeSorted = false);
-	void clearReflections();
+    void clearReflections();
 	void addReflection(ReflectionPtr reflection);
 	void removeReflection(int i);
 	void excludeFromLogCorrelation();
@@ -158,8 +157,6 @@ public:
 	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1);
 	void applyBFactor(double bFactor);
 	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0, bool absolute = false);
-	void applyScaleFactorsForBins(int binCount = 20);
-	void clearScaleFactor();
 	double averageIntensity();
 	void setSigmaToUnity();
 	void replaceBeamWithSpectrum();
@@ -169,7 +166,6 @@ public:
 
 	virtual void writeToFile(std::string newFilename, bool announce = false, bool plusAmbiguity = false);
     void writeToHdf5();
-    void writeToDat(std::string prefix = "");
     
 	double correlationWithManager(MtzManager *otherManager, bool printHits = false,
 			bool silent = true, double lowRes = 0, double highRes = 0, int bins = 20,
