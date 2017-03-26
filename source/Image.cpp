@@ -1094,59 +1094,12 @@ void Image::setSpaceGroup(CCP4SPG *spg)
     }
 }
 
-void Image::setMaxResolution(double res)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setMaxResolution(res);
-    }
-}
-
-void Image::setSearchSize(int searchSize)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setSearchSize(searchSize);
-    }
-}
 
 void Image::setUnitCell(vector<double> dims)
 {
     for (int i = 0; i < indexers.size(); i++)
     {
         indexers[i]->setUnitCell(dims);
-    }
-}
-
-void Image::setInitialStep(double step)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setInitialStep(step);
-    }
-}
-
-void Image::setTestSpotSize(double spotSize)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setTestSpotSize(spotSize);
-    }
-}
-
-void Image::setOrientationTolerance(double newTolerance)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setOrientationTolerance(newTolerance);
-    }
-}
-
-void Image::setTestBandwidth(double bandwidth)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setTestBandwidth(bandwidth);
     }
 }
 

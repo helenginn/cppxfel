@@ -70,7 +70,6 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
                                     METROLOGY_SEARCH_SIZE);
 
-    reference = NULL;
     lastMtz = MtzPtr();
     roughCalculation = FileParser::getKey("ROUGH_CALCULATION", true);
     hRot = 0;

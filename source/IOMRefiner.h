@@ -51,13 +51,11 @@ private:
     double getTotalStandardDeviation();
 	int searchSize;
 	double maxResolution;
-	MtzManager *reference;
 	void calculateNearbyMillers();
 	double lastTotal;
 	double lastStdev;
 	double testBandwidth;
     double lastScore;
-	vector<vector<double> > solutions;
     bool recalculateMillerPositions;
     IndexingSolutionPtr indexingSolution;
     
@@ -68,8 +66,7 @@ private:
     static double hkScoreStdevWrapper(void *object);
     static double lScoreWrapper(void *object);
     double getReflectionWavelengthStdev();
-    void refineBeamParameters();
-    
+
 public:
 	IOMRefiner(ImagePtr newImage = ImagePtr(), MatrixPtr matrix = MatrixPtr());
     virtual ~IOMRefiner();
@@ -161,56 +158,6 @@ public:
         static_cast<IOMRefiner *>(object)->lRot = rot;
     }
 
-	double getTestBandwidth() const
-	{
-		return testBandwidth;
-	}
-
-	void setTestBandwidth(double testBandwidth)
-	{
-		this->testBandwidth = testBandwidth;
-	}
-
-	double getTestSpotSize() const
-	{
-		return testSpotSize;
-	}
-
-	void setTestSpotSize(double testSpotSize)
-	{
-		this->testSpotSize = testSpotSize;
-	}
-
-	double getMaxResolution() const
-	{
-		return maxResolution;
-	}
-
-	void setMaxResolution(double maxResolution)
-	{
-		this->maxResolution = maxResolution;
-	}
-
-	int getSearchSize() const
-	{
-		return searchSize;
-	}
-
-	void setSearchSize(int searchSize)
-	{
-		this->searchSize = searchSize;
-	}
-
-	double getInitialStep() const
-	{
-		return initialStep;
-	}
-
-	void setInitialStep(double initialStep = 1)
-	{
-		this->initialStep = initialStep;
-	}
-
 	CCP4SPG*& getSpaceGroup()
 	{
 		return spaceGroup;
@@ -218,52 +165,19 @@ public:
 
 	void setSpaceGroup(CCP4SPG*& spaceGroup)
 	{
-     //   if (this->spaceGroup != NULL)
-     //       ccp4spg_free(&this->spaceGroup);
-        
 		this->spaceGroup = spaceGroup;
 	}
-
-	const vector<Spot *>& getSpots() const
-	{
-		return spots;
-	}
-
-	const vector<vector<double> >& getSolutions() const
-	{
-		return solutions;
-	}
-
-	void setSolutions(const vector<vector<double> >& solutions)
-	{
-		this->solutions = solutions;
-	}
-    
-    void setOrientationTolerance(double newTolerance)
-    {
-        orientationTolerance = newTolerance;
-    }
     
     double getBestLRot()
     {
         return bestLRot;
     }
-    
-    bool isCalculatingRough()
-    {
-        return roughCalculation;
-    }
-    
-    void setCalculatingRough(bool rough)
-    {
-        roughCalculation = rough;
-    }
-    
-    MtzPtr getLastMtz()
-    {
-        return lastMtz;
-    }
-    
+
+double getSearchSize()
+	{
+		return searchSize;
+	}
+
     IndexingSolutionPtr getIndexingSolution()
     {
         return indexingSolution;

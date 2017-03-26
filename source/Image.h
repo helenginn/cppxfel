@@ -196,13 +196,7 @@ public:
 	bool isLoaded();
     
     void setSpaceGroup(CSym::CCP4SPG *spg);
-    void setMaxResolution(double res);
-    void setSearchSize(int searchSize);
     void setUnitCell(vector<double> dims);
-    void setInitialStep(double step);
-    void setTestSpotSize(double spotSize);
-    void setTestBandwidth(double bandwidth);
-    void setOrientationTolerance(double newTolerance);
     void weedOutCloseSpots();
     
     virtual void findIndexingSolutions();
