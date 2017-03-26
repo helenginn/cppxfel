@@ -148,6 +148,8 @@ void FileParser::printAllCommands()
             logged << std::endl;
         }
     }
+
+	Logger::log(logged);
     
     logged << std::endl << "Uncategorised commands below:" << std::endl << std::endl;
     
