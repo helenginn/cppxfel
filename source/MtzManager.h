@@ -250,16 +250,6 @@ public:
     {
         return setupSuperGaussian;
     }
-
-    double getDetectorDistance()
-    {
-        return detectorDistance;
-    }
-    
-    void setDetectorDistance(double distance)
-    {
-        detectorDistance = distance;
-    }
     
     int getActiveAmbiguity()
     {

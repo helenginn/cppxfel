@@ -46,15 +46,7 @@ Spot::Spot(ImagePtr image)
     length = probePadding * 2 + 1;
     backgroundPadding = FileParser::getKey("IMAGE_SPOT_PROBE_BG_PADDING", probePadding) * 2 + 1;
     storedRadius = 1 / image->getWavelength();
-    
-    if (minCorrelation == -3)
-    {
-        checkRes = FileParser::hasKey("MAX_INTEGRATED_RESOLUTION");
-        maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 2.0);
-        minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 100.);
-        minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
-    }
-    
+
 	makeProbe(height, background, length, backgroundPadding);
 }
 
@@ -155,10 +147,16 @@ void Spot::makeProbe(int height, int background, int length, int backPadding)
         probeMutex.unlock();
         return;
     }
-    
-    logged << "Making droplet probe" << std::endl;
-    sendLog();
-    
+
+	logged << "Setting global spot parameters..." << std::endl;
+	sendLog();
+
+	checkRes = FileParser::hasKey("MAX_INTEGRATED_RESOLUTION");
+	maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 2.0);
+	minIntensity = FileParser::getKey("IMAGE_MIN_SPOT_INTENSITY", 100.);
+	minCorrelation = FileParser::getKey("IMAGE_MIN_CORRELATION", 0.7);
+
+
     if (backPadding < length)
         backPadding = length;
     
@@ -216,23 +214,6 @@ void Spot::setXY(double x, double y)
 {
 	this->x = x;
 	this->y = y;
-}
-
-double Spot::scatteringAngle(ImagePtr image)
-{
-    if (image == NULL)
-        image = this->getParentImage();
-    
-	double beamX = image->getBeamX();
-	double beamY = image->getBeamY();
-
-	double distance_from_centre = sqrt(pow(getX() - beamX, 2) + pow(getY() - beamY, 2));
-	double distance_pixels = distance_from_centre * image->getMmPerPixel();
-	double detector_distance = image->getDetectorDistance();
-
-	double sinTwoTheta = sin(distance_pixels / detector_distance);
-
-	return sinTwoTheta;
 }
 
 double Spot::resolution()

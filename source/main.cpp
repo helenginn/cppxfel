@@ -84,8 +84,7 @@ void new_main(int argc, char *argv[])
         std::cout << "Welcome to cppxfel version 2.0!" << std::endl;
         std::cout << "Please refer to & cite paper (Ginn et al., J. Appl. Cryst. (2016). 49, 1065-1072)" << std::endl << std::endl;
 
-        
-        std::cout << "Specify input file, e.g.:" << std::endl;
+		std::cout << "Specify input file, e.g.:" << std::endl;
         std::cout << "\tcppxfel.run -i index.txt" << std::endl;
         std::cout << "\tcppxfel.run -i integrate.txt" << std::endl;
         std::cout << "\tcppxfel.run -i refine.txt" << std::endl;

@@ -93,32 +93,24 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     needsReintegrating = true;
     recalculateMillerPositions = false;
     
-    complexUnitCell = false;
-}
+	complexUnitCell = matrix->isComplex();
 
-double IOMRefiner::getDetectorDistance()
-{
-    return getImage()->getDetectorDistance();
-}
+	bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
 
-double IOMRefiner::getWavelength()
-{
-    return getImage()->getWavelength();
-}
-
-void IOMRefiner::setComplexMatrix()
-{
-    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
-    
-    if (fixUnitCell)
-    {
+	if (fixUnitCell)
+	{
 		std::vector<double> unitCell = getUnitCell();
 
 		if (!unitCell.size())
 			return;
 
-        matrix->changeOrientationMatrixDimensions(unitCell);
-    }
+		matrix->changeOrientationMatrixDimensions(unitCell);
+	}
+}
+
+double IOMRefiner::getWavelength()
+{
+    return getImage()->getWavelength();
 }
 
 void IOMRefiner::dropMillers()
@@ -439,7 +431,7 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
         }
     }
     
-    logged << "Using wavelength " << wavelength << " Å and distance " << getImage()->getDetectorDistance() << " mm" << std::endl;
+    logged << "Using wavelength " << wavelength << " Å." << std::endl;
     logged << "Beyond resolution cutoff: " << cutResolution << std::endl;
     logged << "Partiality equal to 0: " << partialityTooLow << std::endl;
     logged << "Image pixels were masked/flagged: " << unacceptableIntensity << std::endl;
@@ -975,37 +967,13 @@ MtzPtr IOMRefiner::newMtz(int index, bool silent)
     mtz->setUnitCell(unitCell);
     
     mtz->setMatrix(newMat);
-    double distance = getImage()->getDetectorDistance();
-    mtz->setDetectorDistance(distance);
 
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i];
         
         miller->incrementOverlapMask();
-        miller->setMtzParent(&*mtz);
-        
-        int index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(),
-                                                   mtz->getSpaceGroup(), false);
-        
-        ReflectionPtr found = ReflectionPtr();
-        mtz->findReflectionWithId(index, &found);
-        
-        if (found != ReflectionPtr())
-        {
-            found->addMiller(miller);
-            miller->setParent(found);
-        }
-        else
-        {
-            ReflectionPtr reflection = ReflectionPtr(new Reflection());
-            reflection->setSpaceGroup(spaceGroup->spg_num);
-            reflection->addMiller(miller);
-            reflection->setUnitCell(unitCell);
-            reflection->calculateResolution(&*mtz);
-            miller->setParent(reflection);
-            mtz->addReflection(reflection);
-        }
+		mtz->addMiller(miller);
     }
     
     this->sendLog(LogLevelDetailed);
@@ -1102,14 +1070,13 @@ std::string IOMRefiner::refinementSummary()
     int totalReflections = getTotalReflections();
     double lastScore = getLastScore();
     double wavelength = getWavelength();
-    double distance = getDetectorDistance();
     MatrixPtr matrix = getMatrix();
 	std::vector<double> unitCell = getUnitCell();
 
     std::ostringstream summary;
     
     summary << filename << "\t" << totalReflections << "\t" << lastScore << "\t"
-    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << distance << "\t" << unitCell[0] << "\t" << unitCell[1] << "\t" << unitCell[2] << "\t" << unitCell[3] << "\t" << unitCell[4] << "\t" << unitCell[5];
+    << bestHRot << "\t" << bestKRot << "\t" << bestLRot << "\t" << lastStdev << "\t" << wavelength << "\t" << unitCell[0] << "\t" << unitCell[1] << "\t" << unitCell[2] << "\t" << unitCell[3] << "\t" << unitCell[4] << "\t" << unitCell[5];
     
     return summary.str();
 }

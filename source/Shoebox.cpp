@@ -21,7 +21,6 @@ Shoebox::Shoebox(MillerPtr parent)
     {
         ImagePtr image = parent->getImage();
         mmPerPixel = image->getMmPerPixel();
-        detectorDistance = image->getDetectorDistance();
     }
     
     pixelLeak = FileParser::getKey("PIXEL_LEAK", PIXEL_LEAK);

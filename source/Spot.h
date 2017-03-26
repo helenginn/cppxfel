@@ -51,8 +51,7 @@ public:
     void makeProbe(int height, int background, int size, int backPadding = 0);
     void addToMask(int *mask, int width, int height);
 	void setXY(double x, double y);
-    double scatteringAngle(ImagePtr image = ImagePtr());
-	bool isAcceptable(ImagePtr image);
+    bool isAcceptable(ImagePtr image);
 	double angleFromSpotToCentre(double centreX, double centreY);
     double angleInPlaneOfDetector(double centreX = 0, double centreY = 0, vec upBeam = new_vector(0, 1, 0));
     double resolution();

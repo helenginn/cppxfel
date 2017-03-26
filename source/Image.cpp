@@ -28,9 +28,7 @@
 #include "SpotFinderCorrelation.h"
 #include "Detector.h"
 
-double Image::globalDetectorDistance = 0;
-double Image::globalBeamX = INT_MAX;
-double Image::globalBeamY = INT_MAX;
+
 std::vector<DetectorPtr> Image::perPixelDetectors;
 vector<signed char> Image::generalMask;
 ImagePtr Image::_imageMask;
@@ -45,8 +43,8 @@ Image::Image(std::string filename, double wavelength,
     xDim = 1765;
     yDim = 1765;
     
-    beamX = INT_MAX;
-    beamY = INT_MAX;
+    beamX = 0;
+    beamY = 0;
     
     int mss = FileParser::getKey("METROLOGY_SEARCH_SIZE", -1);
     
@@ -92,22 +90,16 @@ Image::Image(std::string filename, double wavelength,
     
     detectorGain = FileParser::getKey("DETECTOR_GAIN", 1.0);
     
-    if (globalBeamX == INT_MAX || globalBeamY == INT_MAX)
-    {
-        vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
-        
-        if (beam.size() == 0)
-        {
-            beam.push_back(0);
-            beam.push_back(0);
-        }
-        
-        globalBeamX = beam[0];
-        globalBeamY = beam[1];
-    }
-    
+	vector<double> beam = FileParser::getKey("BEAM_CENTRE", vector<double>());
+
+	if (beam.size() == 2)
+	{
+		beamX = beam[0];
+		beamY = beam[1];
+	}
+
     _hasSeeded = false;
-    
+
     pinPoint = true;
     int tempShoebox[7][7] =
     {
@@ -136,9 +128,6 @@ Image::Image(std::string filename, double wavelength,
 void Image::setUpIOMRefiner(MatrixPtr matrix)
 {
     IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(shared_from_this(), matrix));
-    
-    if (matrix->isComplex())
-        indexer->setComplexMatrix();
     
     indexers.push_back(indexer);
 }
@@ -192,9 +181,6 @@ void Image::setImageData(vector<int> newData)
     data.resize(newData.size());
     
     memcpy(&data[0], &newData[0], newData.size() * sizeof(int));
-    
-    logged << "Image with wavelength " << this->wavelength << ", distance " << getDetectorDistance() << std::endl;
-    sendLog();
 }
 
 void Image::newImage()

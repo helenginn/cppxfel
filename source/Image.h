@@ -67,10 +67,6 @@ private:
     double detectorGain;
     double averageZ;
 
-    static double globalDetectorDistance;
-    static double globalBeamX;
-    static double globalBeamY;
-    
 	double detectorDistance; // mm
 	double wavelength;
 	bool pinPoint;
@@ -223,37 +219,7 @@ public:
     {
         return spotVectorWeight;
     }
-    
-    static void setGlobalDetectorDistance(void *object, double distance)
-    {
-        globalDetectorDistance = distance;
-    }
-    
-    static double getGlobalDetectorDistance(void *object)
-    {
-        return globalDetectorDistance;
-    }
-    
-    static double getGlobalBeamX(void *object)
-    {
-        return globalBeamX;
-    }
-    
-    static void setGlobalBeamX(void *object, double newX)
-    {
-        globalBeamX = newX;
-    }
-    
-    static double getGlobalBeamY(void *object)
-    {
-        return globalBeamY;
-    }
-    
-    static void setGlobalBeamY(void *object, double newY)
-    {
-        globalBeamY = newY;
-    }
-    
+
     void removeRefiner(int j)
     {
         indexers.erase(indexers.begin() + j);
@@ -340,21 +306,6 @@ public:
 		yDim = dim;
 	}
 
-	double getDetectorDistance()
-	{
-        if (detectorDistance == 0)
-        {
-            return globalDetectorDistance;
-        }
-        
-		return detectorDistance;
-	}
-
-	void setDetectorDistance(double detectorDistance)
-	{
-		this->detectorDistance = detectorDistance;
-	}
-
 	double getWavelength() const
 	{
 		return wavelength;
@@ -367,11 +318,6 @@ public:
 
 	double getBeamX() const
 	{
-        if (beamX == INT_MAX)
-        {
-            return globalBeamX;
-        }
-        
 		return beamX;
 	}
 
@@ -382,11 +328,6 @@ public:
 
 	double getBeamY() const
 	{
-        if (beamY == INT_MAX)
-        {
-            return globalBeamY;
-        }
-        
 		return beamY;
 	}
 

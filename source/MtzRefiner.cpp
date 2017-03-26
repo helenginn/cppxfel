@@ -330,8 +330,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     double wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.0);
     double detectorDistance = FileParser::getKey("DETECTOR_DISTANCE", 0.0);
     
-    Image::setGlobalDetectorDistance(NULL, detectorDistance);
-    
     vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
     
     std::vector<std::string> hdf5Sources = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
@@ -499,18 +497,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                 logged << "Setting wavelength for " << imgName << " to " << newWavelength << " Angstroms." << std::endl;
                 Logger::log(logged);
             }
-            
-            if (components[0] == "distance")
-            {
-                double newDistance = detectorDistance;
-                
-                if (components.size() >= 2)
-                    newDistance = atof(components[1].c_str());
-                
-                newImage->setDetectorDistance(newDistance);
-            }
-            
-            
+
             if (components[0] == "centre" && !hasBeamCentre)
             {
                 if (components.size() < 3)

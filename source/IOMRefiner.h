@@ -75,7 +75,6 @@ private:
     
 public:
 	IOMRefiner(ImagePtr newImage = ImagePtr(), MatrixPtr matrix = MatrixPtr());
-    void setComplexMatrix();
     virtual ~IOMRefiner();
 
     void calculateOnce();
@@ -99,7 +98,6 @@ public:
 
     bool isGoodSolution();
 
-    double getDetectorDistance();
     double getWavelength();
     std::string refinementSummary();
     static std::string refinementSummaryHeader();

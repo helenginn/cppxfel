@@ -238,6 +238,8 @@ void MtzManager::addReflections(vector<ReflectionPtr>reflections, bool assumeSor
 
 void MtzManager::addMiller(MillerPtr miller)
 {
+	miller->setMtzParent(this);
+
 	int reflection_index = Reflection::indexForReflection(miller->getH(), miller->getK(), miller->getL(), getSpaceGroup());
     ReflectionPtr prevReflection;
 
@@ -496,9 +498,7 @@ void MtzManager::loadReflections()
     MTZCOL *col_h = MtzColLookup(mtz, "H");
     MTZCOL *col_k = MtzColLookup(mtz, "K");
     MTZCOL *col_l = MtzColLookup(mtz, "L");
-    
-    int multiplier = MULTIPLIER;
-    
+
     MTZXTAL **xtals = MtzXtals(mtz);
 	std::vector<float> cell;
 	cell.resize(6);
@@ -513,8 +513,6 @@ void MtzManager::loadReflections()
 
 	std::vector<double> unitCell = getUnitCell();
 
-    int num = 0;
-    
     for (int i = 0; i < mtz->nref_filein * mtz->ncol_read; i += mtz->ncol_read)
     {
         memcpy(adata, &refldata[i], mtz->ncol_read * sizeof(float));
@@ -523,8 +521,6 @@ void MtzManager::loadReflections()
         int k = adata[col_k->source - 1];
         int l = adata[col_l->source - 1];
         
-		int reflection_index = Reflection::indexForReflection(h, k, l, getSpaceGroup());
-
         float intensity = adata[col_f->source - 1];
         
         float countingSigma = 1;
@@ -590,38 +586,8 @@ void MtzManager::loadReflections()
         miller->setRejected(rejectFlags);
         miller->matrix = this->matrix;
         miller->setScale(scale);
-        
-        ReflectionPtr prevReflection;
-        
-        this->findReflectionWithId(reflection_index, &prevReflection);
-        miller->setImageAndIOMRefiner(getImagePtr(), IOMRefinerPtr());
+		addMiller(miller);
 
-        if (prevReflection)
-        {
-            /** Exclude unobserved reflections by checking for nan */
-            if (adata[col_f->source - 1] == adata[col_f->source - 1])
-            {
-                prevReflection->addMiller(miller); // TODO
-                miller->setParent(prevReflection);
-            }
-            
-            // reflection is a repeat so set flag.
-        }
-        else
-        {
-            ReflectionPtr newReflection = ReflectionPtr(new Reflection());
-            newReflection->setUnitCell(unitCell);
-            newReflection->setSpaceGroup(getSpaceGroupNum());
-            
-            newReflection->addMiller(miller);
-            miller->setParent(newReflection);
-            newReflection->calculateResolution(this);
-            
-            addReflection(newReflection);
-            
-            num++;
-        }
-        
         if (miller->isSpecial())
         {
             logged << "Adding chosen Miller from " << getFilename() << " with intensity " << intensity << std::endl;

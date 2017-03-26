@@ -90,7 +90,6 @@ void Hdf5Image::loadCrystals()
             std::vector<double> cell = mtz->getUnitCell();
             refiner->setSpaceGroup(mtz->getSpaceGroup());
             refiner->setUnitCell(cell);
-            refiner->setComplexMatrix();
             
             addIOMRefiner(refiner);
         }
