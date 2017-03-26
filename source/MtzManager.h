@@ -73,8 +73,6 @@ protected:
     double timeDelay;
     
     uint32 activeAmbiguity;
-    
-	bool usingFixedWavelength;
 
 	bool optimisingWavelength;
 	bool optimisingBandwidth;
@@ -106,7 +104,6 @@ protected:
     double *params;
     double detectorDistance;
     
-	bool finalised;
 	bool rejected;
 
 	TrustLevel trust;
@@ -201,8 +198,6 @@ public:
 
 // minimisation stuff
 
-	int refinedParameterCount();
-    
     void recalculateWavelengths();
 
     double medianWavelength(double lowRes, double highRes);
@@ -223,7 +218,6 @@ public:
 	void refreshPartialities(double hRot, double kRot, double mosaicity,
                              double spotSize, double wavelength,
 							 double bandwidth, double exponent);
-	void refreshPartialities(double parameters[]);
 	
 // more grid search
 
@@ -271,11 +265,6 @@ public:
     void setDefaultScoreType(ScoreType scoreType)
     {
         defaultScoreType = scoreType;
-    }
-    
-    double getSuperGaussianScale() const
-    {
-        return superGaussianScale;
     }
     
 	double getBandwidth() const
@@ -388,16 +377,6 @@ public:
 		this->trust = trust;
 	}
 
-	bool isFinalised() const
-	{
-		return finalised;
-	}
-
-	void setFinalised(bool finalised)
-	{
-		this->finalised = finalised;
-	}
-
 	MatrixPtr getMatrix()
 	{
 		return matrix;
@@ -406,136 +385,6 @@ public:
 	static MtzManager*& getReferenceManager()
 	{
         return referenceManager;
-	}
-
-	bool isUsingFixedWavelength() const
-	{
-		return usingFixedWavelength;
-	}
-
-	void setUsingFixedWavelength(bool usingFixedWavelength)
-	{
-		this->usingFixedWavelength = usingFixedWavelength;
-	}
-
-	bool isOptimisingBandwidth() const
-	{
-		return optimisingBandwidth;
-	}
-
-	void setOptimisingBandwidth(bool optimisingBandwidth)
-	{
-		this->optimisingBandwidth = optimisingBandwidth;
-	}
-
-	bool isOptimisingExponent() const
-	{
-		return optimisingExponent;
-	}
-
-	void setOptimisingExponent(bool optimisingExponent)
-	{
-		this->optimisingExponent = optimisingExponent;
-	}
-
-	bool isOptimisingMosaicity() const
-	{
-		return optimisingMosaicity;
-	}
-
-	void setOptimisingMosaicity(bool optimisingMosaicity)
-	{
-		this->optimisingMosaicity = optimisingMosaicity;
-	}
-
-	bool isOptimisingOrientation() const
-	{
-		return optimisingOrientation;
-	}
-
-	void setOptimisingOrientation(bool optimisingOrientation)
-	{
-		this->optimisingOrientation = optimisingOrientation;
-	}
-
-	bool isOptimisingRlpSize() const
-	{
-		return optimisingRlpSize;
-	}
-
-	void setOptimisingRlpSize(bool optimisingRlpSize)
-	{
-		this->optimisingRlpSize = optimisingRlpSize;
-	}
-
-	bool isOptimisingWavelength() const
-	{
-		return optimisingWavelength;
-	}
-
-	void setOptimisingWavelength(bool optimisingWavelength)
-	{
-		this->optimisingWavelength = optimisingWavelength;
-	}
-
-	double getStepSizeBandwidth() const
-	{
-		return stepSizeBandwidth;
-	}
-
-	void setStepSizeBandwidth(double stepSizeBandwidth)
-	{
-		this->stepSizeBandwidth = stepSizeBandwidth;
-	}
-
-	double getStepSizeExponent() const
-	{
-		return stepSizeExponent;
-	}
-
-	void setStepSizeExponent(double stepSizeExponent)
-	{
-		this->stepSizeExponent = stepSizeExponent;
-	}
-
-	double getStepSizeMosaicity() const
-	{
-		return stepSizeMosaicity;
-	}
-
-	void setStepSizeMosaicity(double stepSizeMosaicity)
-	{
-		this->stepSizeMosaicity = stepSizeMosaicity;
-	}
-
-	double getStepSizeOrientation() const
-	{
-		return stepSizeOrientation;
-	}
-
-	void setStepSizeOrientation(double stepSizeOrientation)
-	{
-		this->stepSizeOrientation = stepSizeOrientation;
-	}
-
-	double getStepSizeRlpSize() const
-	{
-		return stepSizeRlpSize;
-	}
-
-	void setStepSizeRlpSize(double stepSizeRlpSize)
-	{
-		this->stepSizeRlpSize = stepSizeRlpSize;
-	}
-
-	double getStepSizeWavelength() const
-	{
-		return stepSizeWavelength;
-	}
-
-	void setStepSizeWavelength(double stepSizeWavelength)
-	{
-		this->stepSizeWavelength = stepSizeWavelength;
 	}
 
 	bool isRejected() const
@@ -660,11 +509,6 @@ public:
     double getTimeDelay()
     {
         return timeDelay;
-    }
-    
-    std::string getParentImageName()
-    {
-        return parentImage;
     }
     
     void setParentImageName(std::string pImage)

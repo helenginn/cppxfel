@@ -179,7 +179,6 @@ MtzManager::MtzManager()
     wavelength = 0;
     refCorrelation = 0;
     exponent = INITIAL_EXPONENT;
-    finalised = false;
     scoreType = ScoreTypeCorrelation;
     trust = TrustLevelBad;
     maxResolutionAll = MAX_OPTIMISATION_RESOLUTION;
@@ -198,8 +197,6 @@ MtzManager::MtzManager()
     timeDelay = 0;
     
     loadParametersMap();
-    
-    usingFixedWavelength = USE_FIXED_WAVELENGTH;
     
     matrix = MatrixPtr();
 }
@@ -279,21 +276,6 @@ int MtzManager::millerCount()
     return sum;
 }
 
-
-int MtzManager::refinedParameterCount()
-{
-    int count = 0;
-    
-    count += optimisingBandwidth;
-    count += optimisingExponent;
-    count += optimisingMosaicity;
-    count += optimisingOrientation * 2;
-    count += optimisingRlpSize;
-    count += optimisingWavelength;
-    
-    return count;
-}
-
 void MtzManager::setMatrix(MatrixPtr newMat)
 {
     matrix = newMat;
@@ -360,7 +342,6 @@ void MtzManager::getWavelengthFromHDF5()
         
         if (aWavelength > 0)
         {
-            finalised = true;
             this->wavelength = aWavelength;
         }
         
@@ -1404,7 +1385,6 @@ void MtzManager::setParamLine(std::string line)
     unitCell[1] = atof(components[7].c_str());
     unitCell[2] = atof(components[8].c_str());
     
-    finalised = true;
     setInitialValues = true;
 }
 

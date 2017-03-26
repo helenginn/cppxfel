@@ -148,9 +148,6 @@ void Hdf5Crystal::writeCrystalData(std::string address)
     manager->writeSingleValueDataset(wavelengthAddress, wavelength, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(bandwidthAddress, bandwidth, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(exponentAddress, exponent, H5T_NATIVE_DOUBLE);
-    
-    std::string refinedAddress = Hdf5Manager::concatenatePaths(address, "refined");
-    manager->writeSingleValueDataset(refinedAddress, finalised, H5T_NATIVE_CHAR);
 }
 
 // This has a lot of extra commands for back-compatibility to storing MTZs

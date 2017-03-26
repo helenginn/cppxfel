@@ -172,17 +172,6 @@ void MtzManager::refinePartialities()
     writeToFile(std::string("ref-") + getFilename());
 }
 
-void MtzManager::refreshPartialities(double parameters[])
-{
-    refreshPartialities(parameters[PARAM_HROT],
-                        parameters[PARAM_KROT],
-                        parameters[PARAM_MOS],
-                        parameters[PARAM_SPOT_SIZE],
-                        parameters[PARAM_WAVELENGTH],
-                        parameters[PARAM_BANDWIDTH],
-                        parameters[PARAM_EXPONENT]);
-}
-
 void MtzManager::refreshCurrentPartialities()
 {
     if (externalScale != -1)
@@ -846,7 +835,6 @@ void MtzManager::resetDefaultParameters()
 		exponent = FileParser::getKey("INITIAL_EXPONENT", INITIAL_EXPONENT);
 	}
 
-	usingFixedWavelength = (wavelength != 0);
 	hRot = 0;
 	kRot = 0;
 	allowTrust = FileParser::getKey("ALLOW_TRUST", true);
