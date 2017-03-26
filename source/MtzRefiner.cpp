@@ -337,8 +337,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", false);
     vector<double> cellDims = FileParser::getKey("UNIT_CELL", vector<double>());
     
-    bool checkingUnitCell = false;
-    
     bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
     bool setSigmaToUnity = FileParser::getKey("SET_SIGMA_TO_UNITY", true);

@@ -21,7 +21,8 @@ class Miller;
 
 using namespace CSym;
 
-class IOMRefiner : public hasSymmetry, public boost::enable_shared_from_this<IOMRefiner>
+class IOMRefiner : public hasSymmetry, public LoggableObject,
+public boost::enable_shared_from_this<IOMRefiner>
 {
 private:
 	ImageWeakPtr image;
@@ -61,12 +62,8 @@ private:
     IndexingSolutionPtr indexingSolution;
     
     double orientationTolerance;
-    std::ostringstream logged;
-    void sendLog(LogLevel priority = LogLevelNormal);
     double hkScore(bool stdev, bool finalise = false);
     double lScore(bool silent);
-    void recalculateMillers(bool thorough = false);
-    static double hkScoreWrapper(void *object);
     static double hkScoreFinalise(void *object);
     static double hkScoreStdevWrapper(void *object);
     static double lScoreWrapper(void *object);
@@ -77,24 +74,19 @@ public:
 	IOMRefiner(ImagePtr newImage = ImagePtr(), MatrixPtr matrix = MatrixPtr());
     virtual ~IOMRefiner();
 
-    void calculateOnce();
-	void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true, bool fake = false);
+    void checkAllMillers(double maxResolution, double bandwidth, bool complexShoebox = false, bool perfectCalculation = true, bool fake = false);
+	void recalculateMillers(bool thorough = false);
 	MtzPtr newMtz(int i, bool silent = false);
 	void getWavelengthHistogram(vector<double> &wavelengths,
 			vector<int> &frequencies, LogLevel level = LogLevelDetailed, int whichAxis = 0);
 
-	static void duplicateSpots(vector<ImagePtr>images);
-	
 	void refineOrientationMatrix();
     void fakeSpots();
 	
-    void showHistogram(bool silent);
     bool millerWithinBandwidth(MillerPtr miller);
 	int getTotalReflections();
-    int getTotalReflectionsWithinBandwidth();
     
-    double getRot(int rotNum);
-	void dropMillers();
+    void dropMillers();
 
     bool isGoodSolution();
 

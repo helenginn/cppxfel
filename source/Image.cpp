@@ -1818,7 +1818,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     }
     else
     {
-        refiner->calculateOnce();
+		refiner->recalculateMillers(true);
     }
     
     bool successfulImage = refiner->isGoodSolution();
@@ -1907,7 +1907,6 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     Logger::log(logged); logged.str("");
     goodSolutions.push_back(solutionPtr);
     int spotCountBefore = (int)spots.size();
-  //  myRefiner->showHistogram(false);
     
     mtz->removeStrongSpots(&spots);
     compileDistancesFromSpots();

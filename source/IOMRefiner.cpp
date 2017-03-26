@@ -22,13 +22,6 @@
 #include "RefinementStepSearch.h"
 #include "Detector.h"
 
-#define BIG_BANDWIDTH 0.015
-#define DISTANCE_TOLERANCE 0.01
-#define WAVELENGTH_TOLERANCE 0.0001
-
-#define ANGLE_TOLERANCE 0.0001
-#define SPOT_DISTANCE_TOLERANCE 5
-
 
 IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
 {
@@ -501,100 +494,24 @@ bool IOMRefiner::millerWithinBandwidth(MillerPtr miller)
     return (wavelength > minBandwidth && wavelength < maxBandwidth);
 }
 
-int IOMRefiner::getTotalReflectionsWithinBandwidth()
-{
-    int count = 0;
-    
-    for (int i = 0; i < millers.size(); i++)
-    {
-        if (!millerWithinBandwidth(millers[i]))
-            continue;
-        
-        if (millers[i]->reachesThreshold())
-            count++;
-    }
-    
-    return count;
-}
-
-void IOMRefiner::duplicateSpots(vector<ImagePtr> images)
-{
-    std::map<vector<int>, int> frequencies =
-    std::map<vector<int>, int>();
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
-        {
-            IOMRefinerPtr IOMRefiner = images[i]->getIOMRefiner(j);
-            
-            vector<Spot *> spots = IOMRefiner->getSpots();
-            
-            std::cout << "Image: " << i << " Spot count: " << spots.size()
-            << std::endl;
-            
-            for (int j = 0; j < spots.size(); j++)
-            {
-                vector<int> coord = vector<int>();
-                coord.push_back(spots[j]->getX());
-                coord.push_back(spots[j]->getY());
-                
-                if (frequencies.count(coord) == 0)
-                {
-                    frequencies[coord] = 1;
-                }
-                else
-                {
-                    frequencies[coord]++;
-                }
-            }
-        }
-    }
-    
-    int threshold = 0.2 * images.size();
-    int spotsRemoved = 0;
-    
-    if (images.size() < 4)
-        return;
-    
-    for (std::map<vector<int>, int>::iterator it = frequencies.begin();
-         it != frequencies.end(); ++it)
-    {
-        std::cout << it->first[0] << "\t" << it->first[1] << "\t"
-        << frequencies[it->first] << std::endl;
-        
-        if (frequencies[it->first] >= threshold)
-        {
-            int startX = it->first[0] - 2;
-            int endX = it->first[0] + 2;
-            int startY = it->first[1] - 2;
-            int endY = it->first[1] + 2;
-            
-            Image::applyMaskToImages(images, startX, startY, endX, endY);
-            spotsRemoved++;
-        }
-    }
-    
-    std::cout << "Spots removed: " << spotsRemoved << std::endl;
-}
-
 void IOMRefiner::recalculateMillers(bool thorough)
 {
+	if (thorough)
+	{
+		needsReintegrating = true;
+		calculateNearbyMillers();
+	}
+
     this->checkAllMillers(maxResolution, testBandwidth, false, true);
 }
+
+// MARK: Scoring, refining (IOMRefiner)
 
 double IOMRefiner::hkScoreFinalise(void *object)
 {
     IOMRefiner *refiner = static_cast<IOMRefiner *>(object);
     refiner->recalculateMillers();
     return refiner->hkScore(false, true);
-}
-
-double IOMRefiner::hkScoreWrapper(void *object)
-{
-    IOMRefiner *refiner = static_cast<IOMRefiner *>(object);
-    refiner->recalculateMillers();
-    return refiner->hkScore(false);
 }
 
 double IOMRefiner::hkScoreStdevWrapper(void *object)
@@ -678,22 +595,6 @@ double IOMRefiner::lScore(bool silent)
     return averageShift;
 }
 
-double IOMRefiner::getRot(int rotNum)
-{
-    switch (rotNum)
-    {
-        case 0:
-            return hRot;
-        case 1:
-            return kRot;
-        case 2:
-            return lRot;
-        default:
-            return 0;
-            break;
-    }
-}
-
 void IOMRefiner::refineOrientationMatrix()
 {
     this->calculateNearbyMillers();
@@ -727,41 +628,22 @@ void IOMRefiner::refineOrientationMatrix()
     searchSize = oldSearchSize;
     recalculateMillerPositions = false;
 
-    if (initialStep >= 1.5)
-    {
-        hkScoreFinalise(this);
-        
-        RefinementStepSearchPtr hkStrategy = RefinementStepSearchPtr(new RefinementStepSearch());
-        hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
-        hkStrategy->setEvaluationFunction(hkScoreWrapper, this);
-        hkStrategy->setAfterCycleFunction(hkScoreFinalise, this);
-        hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
-        hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
-        hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
-        hkStrategy->refine();
-    }
-    
-    this->calculateNearbyMillers();
+	this->calculateNearbyMillers();
 
- //   if (false)
-    {
-        hkScoreFinalise(this);
-        RefinementStepSearchPtr hkStrategy = RefinementStepSearchPtr(new RefinementStepSearch());
-        hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
-        hkStrategy->setEvaluationFunction(hkScoreStdevWrapper, this);
-        hkStrategy->setAfterCycleFunction(hkScoreFinalise, this);
-        hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
-        hkStrategy->addParameter(this, getHRot, setHRot, std::max(0.5, initialStep), orientationTolerance, "hRot");
-        hkStrategy->addCoupledParameter(this, getKRot, setKRot, std::max(0.5, initialStep), orientationTolerance, "kRot");
-        hkStrategy->refine();
-    }
-    
+	hkScoreFinalise(this);
+	RefinementStepSearchPtr hkStrategy = RefinementStepSearchPtr(new RefinementStepSearch());
+	hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
+	hkStrategy->setEvaluationFunction(hkScoreStdevWrapper, this);
+	hkStrategy->setAfterCycleFunction(hkScoreFinalise, this);
+	hkStrategy->setJobName("Refining angles for " + getImage()->getFilename());
+	hkStrategy->addParameter(this, getHRot, setHRot, std::max(0.5, initialStep), orientationTolerance, "hRot");
+	hkStrategy->addCoupledParameter(this, getKRot, setKRot, std::max(0.5, initialStep), orientationTolerance, "kRot");
+	hkStrategy->refine();
+
     bestHRot = hRot;
     bestKRot = kRot;
     bestLRot = lRot;
-    
-    //needsReintegrating = true;
-    //this->calculateNearbyMillers();
+
     checkAllMillers(maxResolution, testBandwidth);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     
@@ -771,6 +653,8 @@ void IOMRefiner::refineOrientationMatrix()
     kRot = 0;
     lRot = 0;
 }
+
+// MARK: Checking and turning into MTZ
 
 bool IOMRefiner::isGoodSolution()
 {
@@ -797,7 +681,7 @@ bool IOMRefiner::isGoodSolution()
     vector<double> wavelengths;
     vector<int> frequencies;
     
-    calculateOnce();
+	recalculateMillers(true);
     getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed);
     
     double totalMean = 0;
@@ -867,13 +751,7 @@ bool IOMRefiner::isGoodSolution()
         good = true;
         details << "(" << getImage()->getFilename() << ") Sum ratio is sufficiently high (" << highSum << " vs " << stdevLow << ")" << std::endl;
     }
-    
-    /*  if (highSum <= 5)
-     {
-     details << "(" << getImage()->getFilename() << ") However, high sum not high enough (" << highSum << ")" << std::endl;
-     good = false;
-     }
-     */
+
     if (frequencies[0] > goodSolutionHighestPeak)
     {
         details << "(" << getImage()->getFilename() << ") Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;
@@ -904,26 +782,6 @@ bool IOMRefiner::isGoodSolution()
     Logger::mainLogger->addStream(&details, LogLevelNormal);
     
     return good;
-}
-
-void IOMRefiner::calculateOnce()
-{
-    needsReintegrating = true;
-    calculateNearbyMillers();
-    checkAllMillers(maxResolution, testBandwidth);
-    
-    vector<double> wavelengths;
-    vector<int> frequencies;
-    
-    getWavelengthHistogram(wavelengths, frequencies, LogLevelDetailed, 0);
-}
-
-void IOMRefiner::showHistogram(bool silent)
-{
-    vector<double> wavelengths;
-    vector<int> frequencies;
-    
-    getWavelengthHistogram(wavelengths, frequencies, silent ? LogLevelDebug : LogLevelNormal, 0);
 }
 
 MtzPtr IOMRefiner::newMtz(int index, bool silent)
@@ -1050,13 +908,6 @@ void IOMRefiner::fakeSpots()
             getImage()->addSpotIfNotMasked(spot);
         }
     }
-}
-
-void IOMRefiner::sendLog(LogLevel priority)
-{
-    Logger::mainLogger->addStream(&logged, priority);
-    logged.str("");
-    logged.clear();
 }
 
 std::string IOMRefiner::refinementSummaryHeader()
