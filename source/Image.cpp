@@ -1378,8 +1378,6 @@ void Image::processSpotList()
     }
     else
     {
-        bool spotsAreReciprocalCoordinates = FileParser::getKey("SPOTS_ARE_RECIPROCAL_COORDINATES", false);
-        
         try
         {
             spotContents = FileReader::get_file_contents(spotsFile.c_str());
@@ -2375,7 +2373,6 @@ void Image::drawSpotsOnPNG(std::string filename, bool drawPanels)
         if (!spot(i)->isFake())
         {
             spot(i)->integrate();
-            int intensity = spot(i)->getIntensity();
             
             if (!spot(i)->isBeamCentre())
             {

@@ -168,7 +168,6 @@ void GraphDrawer::correlationPlot(std::string filename, double xMax, double yMax
 
 void GraphDrawer::resolutionStatsCSV(std::vector<MtzManager *>& managers)
 {
-    double maxRes = this->mtz->maxResolution();
     std::vector<std::vector<double> > intensitiesPerBinList;
     vector<double> bins;
     StatisticsManager::generateResolutionBins(50, 1.7, 6, &bins);
@@ -505,7 +504,6 @@ void GraphDrawer::plotPartialityStats(int h, int k, int l)
 
 void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
 {
-    CCP4SPG *spaceGroup = mtzs[0]->getSpaceGroup();
     UnitCellLatticePtr lattice = UnitCellLattice::getMainLattice();
     
     std::ofstream pdbLog;

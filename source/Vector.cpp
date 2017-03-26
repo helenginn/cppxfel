@@ -419,7 +419,6 @@ double correlation_between_vectors(vector<double> *vec1,
 	double sum_x = 0;
 	double sum_y = 0;
 	double num = 0;
-	bool needWeights = (weights != NULL);
 
 	for (int i = 0; i < vec1->size(); i++)
 	{

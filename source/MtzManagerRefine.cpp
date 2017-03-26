@@ -105,7 +105,7 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, bool reset)
 		wavelength = bestWavelength();
 	}
 
-    if (false && !beam)
+	/*
     {
         beam = GaussianBeamPtr(new GaussianBeam(wavelength, bandwidth, exponent));
         
@@ -118,8 +118,10 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, bool reset)
         }
     }
 
-   // beam->addParameters(refinementMap);
-    addParameters(refinementMap);
+    beam->addParameters(refinementMap);
+*/
+
+	addParameters(refinementMap);
 
 	refinementMap->setJobName("Refining " + getFilename());
     refinementMap->setEvaluationFunction(refineParameterScore, this);
@@ -708,23 +710,6 @@ double MtzManager::refineParameterScore(void *object)
 	MtzManager *me = static_cast<MtzManager *>(object);
 
 	me->refreshCurrentPartialities();
-	return exclusionScoreWrapper(me);
-
-
-	me->updateLatestMatrix();
-
-	for (int i = 0; i < me->reflectionCount(); i++)
-	{
-		for (int j = 0; j < me->reflection(i)->millerCount(); j++)
-		{
-			MillerPtr miller = me->reflection(i)->miller(j);
-			//      miller->recalculatePartiality();
-			// fix me!
-		}
-	}
-
-	me->setScoreType(me->defaultScoreType);
-
 	return exclusionScoreWrapper(me);
 }
 

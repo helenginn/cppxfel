@@ -221,7 +221,6 @@ bool IndexManager::processVector(SpotVectorPtr vec, double *score, double *count
     
     vec->setUpdate();
     double realDistance = vec->distance();
-    double origDistance = vec->getOriginalDistance();
     
     double value = lattice->weightForDistance(realDistance);
     double weight = 1;

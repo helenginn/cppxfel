@@ -22,7 +22,6 @@ void TextManager::text_malloc(png_byte **pointer, std::string text, int *width, 
     
     for (int i = 0; i < text.length(); i++)
     {
-        int check = text[i];
         int charHeight = asciiDimensions[text[i]][0];
         int charWidth = asciiDimensions[text[i]][1];
         totalWidth += charWidth - squish;

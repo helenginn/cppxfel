@@ -200,7 +200,6 @@ void MtzMerger::createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive)
 
 void MtzMerger::writeAnomalousMtz(MtzPtr negative, MtzPtr positive, MtzPtr mean, std::string filename)
 {
-    double doubleCell[6];
     float cell[6], wavelength, fdata[9];
     int num = 0;
 

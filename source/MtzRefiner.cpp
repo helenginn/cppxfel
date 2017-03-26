@@ -992,10 +992,7 @@ void MtzRefiner::merge(bool mergeOnly)
     readMatricesAndMtzs();
 
     correlationAndInverse(true);
-    
-    double correlationThreshold = FileParser::getKey("CORRELATION_THRESHOLD",
-                                                     CORRELATION_THRESHOLD);
-    
+
     vector<MtzPtr> idxOnly;
     
     for (int i = 0; i < mtzManagers.size(); i++)
@@ -1205,7 +1202,7 @@ void MtzRefiner::integrationSummary()
 {
     std::ostringstream refineSummary;
     
-    int imageCount = images.size();
+    int imageCount = (int)images.size();
     int iomRefinerCount = 0;
     
     refineSummary << IOMRefiner::refinementSummaryHeader() << std::endl;

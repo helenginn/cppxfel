@@ -899,8 +899,6 @@ std::string Detector::writeGeometryFile(int fileCount, int indentCount, CSVPtr d
         differenceCSV = CSVPtr(new CSV(3, "xDiff", "yDiff", "zDiff"));
     }
     
-    vec nowMidpoint = midPointOffsetFromParent();
-    
     for (int i = 0; i < 4; i++)
     {
         int xPix = (i < 2) ? unarrangedTopLeftX : unarrangedBottomRightX;
@@ -1492,7 +1490,7 @@ std::string Detector::writeCrystFELFile()
     std::ostringstream geometry;
     geometry << "; CrystFEL geometry file spit out of cppxfel." << std::endl;
     
-    double pixSizeInMetres = 1000 / mmPerPixel;
+ //   double pixSizeInMetres = 1000 / mmPerPixel;
     
     
     return "";

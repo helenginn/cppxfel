@@ -46,16 +46,10 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
     minResolution = FileParser::getKey(
                                        "MIN_INTEGRATED_RESOLUTION", 0.0);
     
-	if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION") || !FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
+	if (!FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
 	{
 		double min, max;
 		Detector::getMaster()->resolutionLimits(&min, &max, getImage()->getWavelength());
-
-		if (!FileParser::hasKey("MIN_INTEGRATED_RESOLUTION"))
-		{
-			minResolution = 1 / min;
-			if (min == 0) minResolution = 0;
-		}
 
 		if (!FileParser::hasKey("MAX_INTEGRATED_RESOLUTION"))
 		{
@@ -63,7 +57,7 @@ IOMRefiner::IOMRefiner(ImagePtr newImage, MatrixPtr matrix)
 			if (max == 0) maxResolution = 0;
 		}
 
-		logged << "Setting minimum resolution to " << minResolution << " Å and max resolution to " << maxResolution << " Å." << std::endl;
+		logged << "Setting max resolution to " << maxResolution << " Å." << std::endl;
 		sendLog(LogLevelDetailed);
     }
 
@@ -225,7 +219,8 @@ void IOMRefiner::calculateNearbyMillers()
     
     lastRotatedMatrix->maxMillers(maxMillers, maxResolution);
     
-    logged << "Integrating to maximum Miller indices: (" << maxMillers[0] << ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
+    logged << "Integrating to maximum Miller indices: (" << maxMillers[0]
+	<< ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
     
     int overRes = 0;
     int underRes = 0;
@@ -252,7 +247,8 @@ void IOMRefiner::calculateNearbyMillers()
                 
                 double sphereRadiusSquared = length_of_vector_squared(beamToMiller);
                 
-                if (sphereRadiusSquared < minSphereSquared || sphereRadiusSquared > maxSphereSquared)
+                if (sphereRadiusSquared < minSphereSquared ||
+					sphereRadiusSquared > maxSphereSquared)
                 {
                     double ewaldSphere = getEwaldSphereNoMatrix(hkl);
                     
@@ -287,10 +283,12 @@ void IOMRefiner::calculateNearbyMillers()
         }
     }
     
-    logged << "Rejected " << overRes << " due to being over resolution edge of " << maxResolution << " Å." << std::endl;
+    logged << "Rejected " << overRes << " due to being over resolution edge of "
+	<< maxResolution << " Å." << std::endl;
     
     if (minResolution > 0)
-        logged << "Rejected " << underRes << " due to being under resolution edge of " << minResolution << " Å." << std::endl;
+        logged << "Rejected " << underRes <<
+		" due to being under resolution edge of " << minResolution << " Å." << std::endl;
     
     sendLog(LogLevelDetailed);
     needsReintegrating = true;
@@ -350,11 +348,9 @@ void IOMRefiner::checkAllMillers(double maxResolution, double bandwidth, bool co
     {
         MillerPtr miller = (*chosenMillerArray)[i];
         miller->setMatrix(lastRotatedMatrix);
-        
-        vec hkl = new_vector(miller->getH(), miller->getK(), miller->getL());
-        matrix->multiplyVector(&hkl);
-        
-        double d = length_of_vector(hkl);
+
+		double d = miller->resolution();
+
         if (d > maxD)
         {
             cutResolution++;
