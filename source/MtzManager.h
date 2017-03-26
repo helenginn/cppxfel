@@ -38,6 +38,34 @@ class MtzManager : public LoggableObject, public hasFilename, public hasSymmetry
 {
 
 protected:
+/* From IOMRefiner */
+	IndexingSolutionPtr indexingSolution;
+	double testBandwidth;
+	double testSpotSize;
+	double lastTotal;
+	double lastStdev;
+	double initialStep;
+	double searchSize;
+	double orientationTolerance;
+	bool refineOrientations;
+
+	vector<MillerPtr> nearbyMillers;
+
+	void calculateNearbyMillers();
+	void checkNearbyMillers();
+
+	double getReflectionWavelengthStdev();
+	bool millerWithinBandwidth(MillerPtr miller);
+	int getTotalReflections();
+
+	double lScore(bool silent);
+	double hkScore(bool finalise);
+	static double hkScoreFinalise(void *object);
+	static double hkScoreStdevWrapper(void *object);
+	static double lScoreWrapper(void *object);
+
+/* End */
+
     std::string parentImage;
 	static bool reflection_comparison(ReflectionPtr i, ReflectionPtr j);
 
@@ -61,6 +89,7 @@ protected:
     
 	double hRot;
 	double kRot;
+	double lRot;
 	double mosaicity;
 	double spotSize;
 	double wavelength;
@@ -97,6 +126,7 @@ protected:
 	double toleranceExponent;
 
 	ScoreType defaultScoreType;
+	double minResolutionAll;
 	double maxResolutionAll;
     float lastRSplit;
 
@@ -115,6 +145,17 @@ protected:
 	MtzManager *lastReference;
 
 public:
+/* From IOMRefiner */
+	void dropMillers();
+	bool isGoodSolution();
+	void refineOrientationMatrix(bool force = false);
+	void fakeSpots();
+	void getWavelengthHistogram(vector<double> *wavelengths,
+								vector<int> *frequencies, bool silent);
+	void integrateChosenMillers(bool quick = false);
+
+/* END */
+
     static vector<double> superGaussianTable;
     static bool setupSuperGaussian;
     static std::mutex tableMutex;
@@ -293,34 +334,18 @@ public:
 		this->spotSize = spotSize;
 	}
 
-	double getWavelength() const
+	double getWavelength()
 	{
+		if (wavelength == 0)
+		{
+			getWavelengthFromHDF5();
+		}
 		return wavelength;
 	}
 
 	void setWavelength(double wavelength)
 	{
 		this->wavelength = wavelength;
-	}
-
-	double getHRot() const
-	{
-		return hRot;
-	}
-
-	void setHRot(double hRot)
-	{
-		this->hRot = hRot;
-	}
-
-	double getKRot() const
-	{
-		return kRot;
-	}
-
-	void setKRot(double kRot)
-	{
-		this->kRot = kRot;
 	}
 
 	double getRefCorrelation() const
@@ -383,8 +408,13 @@ public:
         return referenceManager;
 	}
 
-	bool isRejected() const
+	bool isRejected()
 	{
+		if (!reflectionCount())
+		{
+			return true;
+		}
+
 		return rejected;
 	}
 
@@ -437,25 +467,35 @@ public:
         rotatedMatrix->rotate(hRot * M_PI / 180, kRot * M_PI / 180, 0);
     }
     
-    static double getHRotStatic(void *object)
+    static double getHRot(void *object)
     {
-        return static_cast<MtzManager *>(object)->getHRot();
+        return static_cast<MtzManager *>(object)->hRot;
     }
     
-    static void setHRotStatic(void *object, double newHRot)
+    static void setHRot(void *object, double newHRot)
     {
-        static_cast<MtzManager *>(object)->setHRot(newHRot);
+        static_cast<MtzManager *>(object)->hRot = newHRot;
     }
     
-    static double getKRotStatic(void *object)
+    static double getKRot(void *object)
     {
-        return static_cast<MtzManager *>(object)->getKRot();
+        return static_cast<MtzManager *>(object)->kRot;
     }
     
-    static void setKRotStatic(void *object, double newKRot)
+    static void setKRot(void *object, double newKRot)
     {
-        static_cast<MtzManager *>(object)->setKRot(newKRot);
+        static_cast<MtzManager *>(object)->kRot = newKRot;
     }
+
+	static double getLRot(void *object)
+	{
+		return static_cast<MtzManager *>(object)->lRot;
+	}
+
+	static void setLRot(void *object, double newLRot)
+	{
+		static_cast<MtzManager *>(object)->lRot = newLRot;
+	}
 
     static double getWavelengthStatic(void *object)
     {
@@ -510,7 +550,22 @@ public:
     void setParentImageName(std::string pImage)
     {
         parentImage = pImage;
-    }
+	}
+
+	IndexingSolutionPtr getIndexingSolution()
+	{
+		return indexingSolution;
+	}
+
+	void setIndexingSolution(IndexingSolutionPtr solution)
+	{
+		indexingSolution = solution;
+	}
+
+	double getSearchSize()
+	{
+		return searchSize;
+	}
 };
 
 #endif

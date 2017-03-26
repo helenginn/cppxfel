@@ -8,6 +8,7 @@
 
 #include "SpotFinderCorrelation.h"
 #include "Image.h"
+#include <float.h>
 
 void SpotFinderCorrelation::findSpecificSpots(std::vector<SpotPtr> *spots)
 {

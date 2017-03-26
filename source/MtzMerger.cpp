@@ -105,8 +105,8 @@ void MtzMerger::createUnmergedMtz()
         cell[i] = (float)aCell[i];
     }
     
-    wavelength = mergedMtz->getWavelength();
-    
+	wavelength = 0;
+
     std::string fullPath = FileReader::addOutputDirectory("u_" + filename);
     
     mtzout = MtzMalloc(0, 0);
@@ -860,17 +860,16 @@ void MtzMerger::merge()
     double refScale = 1000 / MtzManager::getReferenceManager()->averageIntensity();
     MtzManager::getReferenceManager()->applyScaleFactor(refScale);
     
-    mergedMtz = MtzPtr(new MtzManager());
     writeParameterCSV();
     
-    if (allMtzs.size() == 0)
+    if (allMtzs.size() <= 1)
     {
-        logged << "N: Error: No MTZs, cannot merge." << std::endl;
-        sendLog();
+        logged << "N: Not enough MTZs, cannot merge." << std::endl;
         return;
     }
     
-    groupMillers();
+	mergedMtz = MtzPtr(new MtzManager());
+	groupMillers();
     summary();
     size_t imageNum = allMtzs.size();
     
@@ -960,9 +959,14 @@ void MtzMerger::mergeFull(bool anomalous)
     }
 
     setNeedToScale(false);
-    
+
     anomalous ? mergeAnomalous() : merge();
-    
+
+	if (!mergedMtz)
+	{
+		return;
+	}
+
     double maxRes = 1 / maxResolution();
     
     logged << "N: === R split" << (freeOnly ? " (free)" : "") << " ===" << std::endl;

@@ -85,13 +85,6 @@ void Hdf5Image::loadCrystals()
             MtzPtr mtz = boost::static_pointer_cast<MtzManager>(crystal);
             mtz->loadReflections();
             addMtz(mtz);
-
-            IOMRefinerPtr refiner = IOMRefinerPtr(new IOMRefiner(shared_from_this(), mtz->getMatrix()));
-            std::vector<double> cell = mtz->getUnitCell();
-            refiner->setSpaceGroup(mtz->getSpaceGroup());
-            refiner->setUnitCell(cell);
-            
-            addIOMRefiner(refiner);
         }
     }
 }

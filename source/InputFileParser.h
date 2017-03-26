@@ -23,7 +23,6 @@ private:
     
 public:
     void refine(int maxCycles);
-    vector<MtzPtr> mtzs();
     
     virtual void parseFromPython();
 	virtual void parse(bool fromPython = false);

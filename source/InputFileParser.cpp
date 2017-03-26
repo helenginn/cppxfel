@@ -29,11 +29,6 @@ void InputFileParser::refine(int maxCycles)
     refiner->refine();
 }
 
-vector<MtzPtr> InputFileParser::mtzs()
-{
-    return refiner->getMtzManagers();
-}
-
 void InputFileParser::parseFromPython()
 {
     parse(true);

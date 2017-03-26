@@ -2,16 +2,16 @@
 
 #include <string>
 #include <iostream>
-#include "headers/cmtzlib.h"
+#include "cmtzlib.h"
 #include "csymlib.h"
 #include "ccp4_spg.h"
 #include "ccp4_general.h"
-#include "ccp4_parser.h"
 #include "Vector.h"
 #include "FileReader.h"
 #include <cerrno>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <boost/variant.hpp>
 #include "StatisticsManager.h"
 #include "Reflection.h"
@@ -20,6 +20,7 @@
 #include "Image.h"
 #include "Hdf5Image.h"
 #include "Hdf5ManagerProcessing.h"
+#include "RefinementStepSearch.h"
 
 #include <cstdlib>
 #include <cmath>
@@ -165,15 +166,35 @@ void MtzManager::loadParametersMap()
     
     maxResolutionAll = FileParser::getKey("MAX_REFINED_RESOLUTION",
                                           MAX_OPTIMISATION_RESOLUTION);
+	minResolutionAll = FileParser::getKey("MIN_REFINED_RESOLUTION", 0.);
 }
 
 MtzManager::MtzManager()
 {
+	refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
+
+	testBandwidth = FileParser::getKey("OVER_PRED_BANDWIDTH",
+									   OVER_PRED_BANDWIDTH) / 2;
+	testSpotSize = FileParser::getKey("OVER_PRED_RLP_SIZE",
+									  OVER_PRED_SPOT_SIZE);
+
+	lastTotal = 0;
+	lastStdev = 0;
+
+	initialStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
+
+	searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE",
+									METROLOGY_SEARCH_SIZE);
+	orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE",
+											  INDEXING_ORIENTATION_TOLERANCE);
+
+
     lastReference = NULL;
     reflections.resize(0);
     bandwidth = INITIAL_BANDWIDTH;
     hRot = 0;
     kRot = 0;
+	lRot = 0;
     mosaicity = INITIAL_MOSAICITY;
     spotSize = INITIAL_SPOT_SIZE;
     wavelength = 0;
@@ -229,11 +250,8 @@ void MtzManager::addMiller(MillerPtr miller)
 
     this->findReflectionWithId(reflection_index, &prevReflection);
     
-    if (getImagePtr())
-    {
-        miller->setImageAndIOMRefiner(getImagePtr(), IOMRefinerPtr());
-    }
-    
+    miller->setImage(getImagePtr());
+
     if (prevReflection != NULL)
     {
         prevReflection->addMiller(miller); // TODO
@@ -474,9 +492,24 @@ void MtzManager::loadReflections()
 
 	bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
 
-	if (fixUnitCell)
+	if (!fixUnitCell)
 	{
 		setUnitCell(cell);
+	}
+	else
+	{
+		vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+
+		if (givenUnitCell.size() == 6)
+		{
+			setUnitCell(givenUnitCell);
+			lockUnitCellDimensions();
+			getMatrix()->changeOrientationMatrixDimensions(givenUnitCell);
+		}
+		else
+		{
+			setUnitCell(cell);
+		}
 	}
 
 	std::vector<double> unitCell = getUnitCell();
@@ -722,16 +755,17 @@ void MtzManager::findCommonReflections(MtzManager *other,
     
     for (int i = 0; i < reflectionCount(); i++)
     {
-        if (!reflection(i)->acceptedCount() && acceptableOnly)
+		ReflectionPtr myRef = reflection(i);
+        if (!myRef->acceptedCount() && acceptableOnly)
         {
             continue;
         }
         
-        ReflectionPtr otherReflection = other->findReflectionWithId(reflection(i));
+        ReflectionPtr otherReflection = other->findReflectionWithId(myRef);
         
         if (otherReflection && otherReflection->millerCount() > 0)
         {
-            matchReflections.push_back(reflection(i));
+            matchReflections.push_back(myRef);
             refReflections.push_back(otherReflection);
         }
     }
@@ -983,7 +1017,12 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
     cell[4] = unitCell[4];
     cell[5] = unitCell[5];
     wavelength = this->getWavelength();
-    
+
+	if (newFilename == "")
+	{
+		newFilename = getFilename();
+	}
+
     std::string outputFile = FileReader::addOutputDirectory(newFilename);
     
     mtzout = MtzMalloc(0, 0);
@@ -1087,13 +1126,9 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
 
 MtzManager::~MtzManager(void)
 {
-/*
-    if (filename.length())
-    {
-        logged << "Deallocating MtzManager " << getFilename() << "." << std::endl;
-        sendLog();
-    }
-   */
+	nearbyMillers.clear();
+	vector<MillerPtr>().swap(nearbyMillers);
+
     clearReflections();
 }
 
@@ -1280,9 +1315,10 @@ std::string MtzManager::parameterHeaders()
 {
     std::ostringstream summary;
     
-    summary << "Filename,Correl,Rsplit,Partcorrel,Refcount,Mosaicity,Wavelength,Bandwidth,";
+    summary << "Filename,Correl,Rsplit,Partcorrel,";
+	summary << "Refcount,Strong,Mosaicity,Wavelength,Bandwidth,";
     
-    summary << "hRot,kRot,";
+    summary << "hRot,kRot,lRot,";
     
     summary << "rlpSize,exp,cellA,cellB,cellC,scale";
 
@@ -1294,16 +1330,22 @@ std::string MtzManager::writeParameterSummary()
 	std::vector<double> unitCell = getUnitCell();
 
     std::ostringstream summary;
-    summary << getFilename() << "," << getRefCorrelation() << "," << rSplit(0, maxResolutionAll) << "," << getRefPartCorrel() << ","
-				<< accepted() << ","
-				<< getMosaicity() << ","
-				<< getWavelength() << ","
-				<< getBandwidth() << ",";
-    summary << hRot << "," << kRot << ",";
-    
-    summary << getSpotSize() << ","
-    << getExponent() << "," << unitCell[0] << "," << unitCell[1] << "," << unitCell[2] << "," << getScale();
-    
+	summary << getFilename() << ","
+	<< getRefCorrelation() << ","
+	<< getLastRSplit() << ","
+	<< getRefPartCorrel() << ","
+	<< accepted() << ","
+	<< getTotalReflections() << ","
+	<< getMosaicity() << ","
+	<< getWavelength() << ","
+	<< getBandwidth() << ","
+	<< hRot << "," << kRot << "," << lRot << ","
+	<< getSpotSize() << ","
+	<< getExponent() << ","
+	<< unitCell[0] << ","
+	<< unitCell[1] << ","
+	<< unitCell[2] << ","
+	<< getScale();
     
     return summary.str();
 }
@@ -1337,4 +1379,646 @@ void MtzManager::millersToDetector()
             det->addMillerCarefully(miller);
         }
     }
+}
+
+// MARK: IOMRefiner
+
+void MtzManager::calculateNearbyMillers()
+{
+	double wavelength = getWavelength();
+
+	double minBandwidth = wavelength * (1 - testBandwidth * 2);
+	double maxBandwidth = wavelength * (1 + testBandwidth * 2);
+
+	double sphereThickness = FileParser::getKey("SPHERE_THICKNESS", 0.01);
+
+	double minSphere = 1 / wavelength * (1 - sphereThickness);
+	double maxSphere = 1 / wavelength * (1 + sphereThickness);
+
+	double minSphereSquared = pow(minSphere, 2);
+	double maxSphereSquared = pow(maxSphere, 2);
+
+	nearbyMillers.clear();
+
+	int maxMillers[3];
+
+	Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &rotatedMatrix);
+
+	rotatedMatrix->maxMillers(maxMillers, maxResolutionAll);
+
+	logged << "Integrating to maximum Miller indices: (" << maxMillers[0]
+	<< ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
+
+	int overRes = 0;
+	int underRes = 0;
+	double maxDistSquared = pow(1 / maxResolutionAll, 2);
+	double minResolutionSquared = pow(1 / minResolutionAll, 2);
+
+	for (int h = -maxMillers[0]; h < maxMillers[0]; h++)
+	{
+		for (int k = -maxMillers[1]; k < maxMillers[1]; k++)
+		{
+			for (int l = -maxMillers[2]; l < maxMillers[2]; l++)
+			{
+				if (ccp4spg_is_sysabs(getSpaceGroup(), h, k, l))
+					continue;
+
+				vec hkl = new_vector(h, k, l);
+				rotatedMatrix->multiplyVector(&hkl);
+
+				if (hkl.l > 0.01)
+					continue;
+
+				vec beam = new_vector(0, 0, -1 / wavelength);
+				vec beamToMiller = vector_between_vectors(beam, hkl);
+
+				double sphereRadiusSquared = length_of_vector_squared(beamToMiller);
+
+				if (sphereRadiusSquared < minSphereSquared ||
+					sphereRadiusSquared > maxSphereSquared)
+				{
+					double ewaldSphere = getEwaldSphereNoMatrix(hkl);
+
+					if (ewaldSphere < minBandwidth || ewaldSphere > maxBandwidth)
+					{
+						continue;
+					}
+				}
+
+				double res = length_of_vector_squared(hkl);
+
+				if (res > maxDistSquared)
+				{
+					overRes++;
+					continue;
+				}
+
+				if (minResolutionAll > 0 && res < minResolutionSquared)
+				{
+					underRes++;
+					continue;
+				}
+
+				if (h == 0 && k == 0 && l == 0)
+					continue;
+
+				MillerPtr newMiller = MillerPtr(new Miller(NULL, h, k, l));
+				newMiller->setMatrix(rotatedMatrix);
+				nearbyMillers.push_back(newMiller);
+			}
+		}
+	}
+
+	logged << "Rejected " << overRes << " due to being over resolution edge of "
+	<< maxResolutionAll << " Å." << std::endl;
+
+	if (minResolutionAll > 0)
+		logged << "Rejected " << underRes <<
+		" due to being under resolution edge of " << minResolutionAll << " Å." << std::endl;
+
+	sendLog(LogLevelDetailed);
+}
+
+void MtzManager::checkNearbyMillers()
+{
+	MatrixPtr matrix = getMatrix();
+
+	std::vector<double> unitCell = getUnitCell();
+	lockUnitCellDimensions();
+	matrix->changeOrientationMatrixDimensions(unitCell);
+
+	clearReflections();
+
+	double wavelength = getWavelength();
+
+	double maxD = 1 / maxResolutionAll;
+	if (maxResolutionAll == 0)
+		maxD = FLT_MAX;
+
+	logged << "Testing " << nearbyMillers.size()
+	<< " reflections close to the Ewald sphere with wavelength "
+	<< wavelength << std::endl;
+
+	int cutResolution = 0;
+	int partialityTooLow = 0;
+	int unacceptableIntensity = 0;
+
+	logged << "Rotating by " << hRot << ", " << kRot << ", " << lRot << std::endl;
+	sendLog(LogLevelDetailed);
+
+	Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &rotatedMatrix);
+
+	logged << "Checking " << nearbyMillers.size() << " reflections." << std::endl;
+	sendLog(LogLevelDetailed);
+
+	for (int i = 0; i < nearbyMillers.size(); i++)
+	{
+		MillerPtr miller = nearbyMillers[i];
+		miller->setMatrix(rotatedMatrix);
+
+		double d = miller->resolution();
+
+		if (d > maxD)
+		{
+			cutResolution++;
+			continue;
+		}
+
+		miller->crossesBeamRoughly(rotatedMatrix, 0.0, testSpotSize, wavelength, bandwidth);
+
+		if (i == 0)
+		{
+			logged << "Calculated partiality with parameters: hRot " << hRot << ", kRot " << kRot << ", spot size " << testSpotSize << ", wavelength " << wavelength << ", bandwidth " << bandwidth << std::endl;
+			sendLog(LogLevelDebug);
+		}
+
+		if (miller->getPartiality() <= 0.05)
+		{
+			partialityTooLow++;
+			continue;
+		}
+
+		miller->recalculateWavelength();
+		miller->setImage(getImagePtr());
+		miller->setMtzParent(this);
+
+		miller->positionOnDetector(NULL, NULL, false);
+
+		if (!miller->hasDetector())
+		{
+			continue;
+		}
+
+		addMiller(miller);
+	}
+
+	logged << "Using wavelength " << wavelength << " Å." << std::endl;
+	logged << "Beyond resolution cutoff: " << cutResolution << std::endl;
+	logged << "Partiality equal to 0: " << partialityTooLow << std::endl;
+	logged << "Image pixels were masked/flagged: " << unacceptableIntensity << std::endl;
+
+	sendLog(LogLevelDetailed);
+}
+
+void MtzManager::integrateChosenMillers(bool quick)
+{
+	Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &rotatedMatrix);
+
+	for (int i = 0; i < reflectionCount(); i++)
+	{
+		for (int j = 0; j < reflection(i)->millerCount(); j++)
+		{
+			MillerPtr miller = reflection(i)->miller(j);
+			miller->setMatrix(rotatedMatrix);
+			miller->integrateIntensity(quick);
+			miller->recalculateWavelength();
+			miller->setMatrix(matrix);
+		}
+	}
+}
+
+bool MtzManager::millerWithinBandwidth(MillerPtr miller)
+{
+	double minBandwidth = getWavelength() * (1 - testBandwidth * 2);
+	double maxBandwidth = getWavelength() * (1 + testBandwidth * 2);
+
+	if (FileParser::hasKey("WAVELENGTH_RANGE"))
+	{
+		std::vector<double> range = FileParser::getKey("WAVELENGTH_RANGE", std::vector<double>());
+
+		if (range.size() >= 2)
+		{
+			minBandwidth = range[0];
+			maxBandwidth = range[1];
+		}
+	}
+
+	double wavelength = miller->getWavelength();
+
+	return (wavelength > minBandwidth && wavelength < maxBandwidth);
+}
+
+double MtzManager::getReflectionWavelengthStdev()
+{
+	std::vector<double> values;
+
+	bool unbalanced = FileParser::getKey("UNBALANCED_REFLECTIONS", false);
+	double mean = getWavelength();
+
+	for (int i = 0; i < reflectionCount(); i++)
+	{
+		for (int j = 0; j < reflection(i)->millerCount(); j++)
+		{
+			MillerPtr miller = reflection(i)->miller(j);
+			if (miller->reachesThreshold() && millerWithinBandwidth(miller))
+			{
+				double wavelength = miller->getWavelength();
+
+				if (wavelength != wavelength)
+				{
+					continue;
+				}
+
+				values.push_back(miller->getWavelength());
+			}
+		}
+	}
+
+	if (!unbalanced)
+	{
+		mean = weighted_mean(&values);
+	}
+
+	double stdev = standard_deviation(&values, NULL, mean);
+
+	return stdev;
+}
+
+int MtzManager::getTotalReflections()
+{
+	int count = 0;
+
+	for (int i = 0; i < reflectionCount(); i++)
+	{
+		for (int j = 0; j < reflection(i)->millerCount(); j++)
+		{
+			MillerPtr miller = reflection(i)->miller(j);
+
+			if (miller->reachesThreshold())
+			{
+				count++;
+			}
+		}
+	}
+
+	return count;
+}
+
+
+double MtzManager::hkScoreFinalise(void *object)
+{
+	MtzManager *mtz = static_cast<MtzManager *>(object);
+	mtz->integrateChosenMillers(true);
+	return mtz->hkScore(true);
+}
+
+double MtzManager::hkScoreStdevWrapper(void *object)
+{
+	MtzManager *mtz = static_cast<MtzManager *>(object);
+	mtz->integrateChosenMillers(true);
+	return mtz->hkScore(false);
+}
+
+double MtzManager::lScoreWrapper(void *object)
+{
+	MtzManager *mtz = static_cast<MtzManager *>(object);
+	mtz->integrateChosenMillers();
+	return mtz->lScore(true);
+}
+
+double MtzManager::hkScore(bool finalise)
+{
+	double stdev = getReflectionWavelengthStdev();
+	double refTotal = getTotalReflections();
+
+	if (finalise)
+	{
+		lastTotal = refTotal;
+		lastStdev = stdev;
+	}
+
+	double totalWeight = 20;
+	double stdevWeight = 15;
+
+	double totalChange = refTotal / lastTotal - 1;
+	double totalStdev = stdev / lastStdev - 1;
+
+	if (lastTotal == 0 || lastStdev == 0)
+	{
+		return 1;
+	}
+
+	double score = (totalStdev * stdevWeight - totalChange * totalWeight);
+
+	if (!finalise)
+	{
+		logged << "Score is " << score << " from " << refTotal << " reflections" << std::endl;
+		sendLog(LogLevelDetailed);
+	}
+
+	return score;
+}
+
+double MtzManager::lScore(bool silent)
+{
+	double averageShift = 0;
+	int count = 0;
+
+	for (int i = 0; i < reflectionCount(); i++)
+	{
+		for (int j = 0; j < reflection(i)->millerCount(); j++)
+		{
+			MillerPtr miller = reflection(i)->miller(j);
+
+			if (miller->reachesThreshold())
+			{
+				std::pair<double, double> shift = miller->getShift();
+				double shiftDistance = sqrt(pow(shift.first, 2) + pow(shift.second, 2));
+
+				averageShift += shiftDistance;
+				count++;
+			}
+		}
+	}
+
+	averageShift /= count;
+
+	logged << "Average shift: " << averageShift << std::endl;
+	sendLog(LogLevelDetailed);
+
+	return averageShift;
+}
+
+void MtzManager::dropMillers()
+{
+	nearbyMillers.clear();
+	vector<MillerPtr>().swap(nearbyMillers);
+}
+
+
+void MtzManager::getWavelengthHistogram(vector<double> *wavelengths,
+										vector<int> *frequencies, bool silent)
+{
+	bool populateVectors = (wavelengths != NULL && frequencies != NULL);
+
+	if (populateVectors)
+	{
+		wavelengths->clear();
+		frequencies->clear();
+	}
+
+	if (!silent)
+	{
+		logged << "Wavelength histogram for " << this->getFilename() << std::endl;
+		sendLog();
+	}
+
+	double wavelength = getWavelength();
+	vector<double> wavelengthRange = FileParser::getKey("WAVELENGTH_RANGE", vector<double>(2, 0));
+
+	double spread = testBandwidth * 2;
+	double interval = (wavelength * spread * 2) / 20;
+	double total = 0;
+
+	double minLength = wavelength * (1 - spread);
+	double maxLength = wavelength * (1 + spread);
+
+	if (wavelengthRange[0] != 0 || wavelengthRange[1] != 0)
+	{
+		minLength = wavelengthRange[0];
+		maxLength = wavelengthRange[1];
+		interval = (maxLength - minLength) / 20;
+	}
+
+	for (double i = minLength; i < maxLength; i += interval)
+	{
+		if (populateVectors)
+		{
+			wavelengths->push_back(i);
+		}
+
+		double frequency = 0;
+		double totalInInterval = 0;
+
+		for (int j = 0; j < reflectionCount(); j++)
+		{
+			for (int k = 0; k < reflection(j)->millerCount(); k++)
+			{
+				MillerPtr miller = reflection(j)->miller(k);
+
+				double ewald = miller->getWavelength();
+
+				if (ewald < i || ewald > i + interval)
+					continue;
+
+				bool strong = miller->reachesThreshold();
+
+				double weight = 1;
+
+				totalInInterval += weight;
+
+				if (strong)
+				{
+					frequency += weight;
+				}
+
+				if (frequency < 0)
+				{
+					frequency = 0;
+				}
+			}
+		}
+
+		if (!silent)
+		{
+			logged << std::setprecision(4) << i << "\t";
+
+			for (int i=0; i < frequency; i++)
+			{
+				logged << ".";
+			}
+
+			logged << std::endl;
+		}
+
+		if (populateVectors)
+		{
+			frequencies->push_back(frequency);
+		}
+		total += frequency;
+	}
+
+	if (!silent)
+	{
+		logged << std::endl;
+		logged << "Total strong reflections: " << total << std::endl;
+		sendLog();
+	}
+}
+
+
+void MtzManager::refineOrientationMatrix(bool force)
+{
+	this->calculateNearbyMillers();
+	checkNearbyMillers();
+
+	lastStdev = getReflectionWavelengthStdev();
+	lastTotal = getTotalReflections();
+
+	int oldSearchSize = searchSize;
+	int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
+
+	// FIXME: read support for unit cell dimensions
+
+	searchSize = bigSize;
+
+	if (refineOrientations || force)
+	{
+		RefinementStrategyPtr lStrategy = RefinementStepSearchPtr(new RefinementStepSearch());
+		lStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
+		lStrategy->setEvaluationFunction(lScoreWrapper, this);
+		lStrategy->setJobName("Refining in-detector-plane angle for " + getFilename());
+		lStrategy->addParameter(this, getLRot, setLRot, initialStep, orientationTolerance, "lRot");
+		lStrategy->refine();
+
+		searchSize = oldSearchSize;
+
+		calculateNearbyMillers();
+		checkNearbyMillers();
+
+		hkScoreFinalise(this);
+		RefinementStepSearchPtr hkStrategy = RefinementStepSearchPtr(new RefinementStepSearch());
+		hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
+		hkStrategy->setEvaluationFunction(hkScoreStdevWrapper, this);
+		hkStrategy->setAfterCycleFunction(hkScoreFinalise, this);
+		hkStrategy->setJobName("Refining angles for " + getFilename());
+		hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
+		hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
+		hkStrategy->refine();
+	}
+
+	calculateNearbyMillers();
+	checkNearbyMillers();
+	integrateChosenMillers();
+}
+
+
+bool MtzManager::isGoodSolution()
+{
+	bool good = false;
+	double goodSolutionSumRatio = FileParser::getKey("GOOD_SOLUTION_SUM_RATIO", 6.5);
+	int goodSolutionHighestPeak = FileParser::getKey("GOOD_SOLUTION_HIGHEST_PEAK", 17);
+	int badSolutionHighestPeak = FileParser::getKey("BAD_SOLUTION_HIGHEST_PEAK", 10);
+	int minimumReflections = FileParser::getKey("MINIMUM_REFLECTION_CUTOFF", 30);
+	std::ostringstream details;
+
+	logged << "(" << getFilename() << ") Standard deviation: " << lastStdev << std::endl;
+	sendLog(LogLevelNormal);
+
+	vector<double> wavelengths;
+	vector<int> frequencies;
+
+	getWavelengthHistogram(&wavelengths, &frequencies, true);
+
+	double totalMean = 0;
+	double totalStdev = 0;
+	int maxFrequency = 0;
+
+	histogram_gaussian(&wavelengths, &frequencies, totalMean, totalStdev);
+
+	for (int i = 0; i < frequencies.size(); i++)
+	{
+		if (frequencies[i] > maxFrequency)
+		{
+			maxFrequency = frequencies[i];
+		}
+	}
+
+	std::sort(frequencies.begin(), frequencies.end(), std::greater<int>());
+
+	double highSum = 0;
+	std::vector<double> lowOnly;
+	int cutoff = 3;
+
+	for (int i = 0; i < frequencies.size(); i++)
+	{
+		if (i < cutoff)
+		{
+			highSum += frequencies[i];
+			continue;
+		}
+
+		lowOnly.push_back(frequencies[i]);
+	}
+
+	highSum /= cutoff;
+
+	double stdevLow = standard_deviation(&lowOnly, NULL, 0);
+
+	if (highSum > stdevLow * goodSolutionSumRatio)
+	{
+		good = true;
+		details << "(" << getFilename() << ") Sum ratio is sufficiently high (" << highSum << " vs " << stdevLow << ")" << std::endl;
+	}
+
+	if (frequencies[0] > goodSolutionHighestPeak)
+	{
+		details << "(" << getFilename() << ") Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;
+		good = true;
+	}
+
+	if (frequencies[0] < badSolutionHighestPeak)
+	{
+		details << "(" << getFilename() << ") Highest peak is too low (" << frequencies[0] << " vs " << badSolutionHighestPeak << ")" << std::endl;
+		good = false;
+	}
+
+	if (getTotalReflections() < minimumReflections)
+	{
+		details << "(" << getFilename() << ") However, not enough reflections (" << getTotalReflections() << " vs " << minimumReflections << ")" << std::endl;
+		good = false;
+	}
+
+	Logger::mainLogger->addStream(&details, LogLevelNormal);
+
+	return good;
+}
+
+
+void MtzManager::fakeSpots()
+{
+	this->calculateNearbyMillers();
+	this->checkNearbyMillers();
+	double partialCutoff = FileParser::getKey("PARTIAL_CUTOFF", 0.2);
+
+	for (int i = 0; i < reflectionCount(); i++)
+	{
+		for (int j = 0; j < reflection(i)->millerCount(); j++)
+		{
+			MillerPtr miller = reflection(i)->miller(j);
+			miller->recalculatePartiality(rotatedMatrix, mosaicity, spotSize,
+										  getWavelength(), bandwidth, exponent);
+
+			if (miller->getPartiality() > partialCutoff)
+			{
+				double x = 0;
+				double y = 0;
+				miller->positionOnDetector(&x, &y);
+				vec intersection;
+				double xSpot = 0;
+				double ySpot = 0;
+
+				DetectorPtr myDet;
+				myDet = Detector::getMaster()->intersectionForMiller(miller, &intersection);
+
+				if (!myDet)
+				{
+					continue;
+				}
+
+				myDet->intersectionToSpotCoord(intersection, &xSpot, &ySpot);
+
+				if (x == 0 && y == 0)
+				{
+					continue;
+				}
+
+				SpotPtr spot = SpotPtr(new Spot(getImagePtr()));
+				spot->setXY(xSpot, ySpot);
+				spot->setFake();
+
+				getImagePtr()->addSpotIfNotMasked(spot);
+			}
+		}
+	}
 }

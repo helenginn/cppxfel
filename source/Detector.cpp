@@ -27,6 +27,8 @@ int Detector::specialImageCounter = 0;
 std::mutex Detector::setupMutex;
 double Detector::cacheStep = 0;
 
+#define GOOD_GEOMETRY_RLP_SIZE 0.0015
+
 // MARK: initialisation and constructors
 
 void Detector::setupCache()
@@ -56,10 +58,23 @@ void Detector::setupCache()
 double Detector::lookupCache(double distSq)
 {
     double category = distSq / cacheStep;
-    
+
     if (category > millerTargetTable.size())
     {
-        return exp(-fabs(sqrt(distSq)));
+		std::lock_guard<std::mutex> lg(setupMutex);
+
+		if (millerTargetTable.size() <= category)
+		{
+			double maxDistSq = cacheStep * millerTargetTable.size();
+
+			for (int i = (int)millerTargetTable.size(); i <= category; i++)
+			{
+				double dist = sqrt(maxDistSq);
+				double target = exp(-fabs(dist));
+				millerTargetTable.push_back(target);
+				distSq += cacheStep;
+			}
+		}
     }
     
     return millerTargetTable[category];
@@ -1129,10 +1144,10 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
     double totalScore = 0;
     int count = 0;
     double maxSqr = 16;
-    
+
     if (!stdev)
     {
-        maxSqr = 5 * FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+        maxSqr = 5 * GOOD_GEOMETRY_RLP_SIZE;
         maxSqr *= maxSqr;
     }
     
@@ -1167,7 +1182,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
             
             double distSq = xDiff * xDiff + yDiff * yDiff;
             distSq /= maxSqr;
-            
+
             if ((ascii || number >= 0) && i == 0)
             {
                 csv->addEntry(0, x1, y1);
@@ -1181,7 +1196,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
             totalScore -= contribution;
         }
         
-        if (!stdev)
+        if (!stdev || (stdev && number >= 0))
         {
             break;
         }
@@ -1198,7 +1213,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
         
         if (!stdev)
         {
-            edge = 10 * FileParser::getKey("INITIAL_RLP_SIZE", 0.0001);
+            edge = 10 * GOOD_GEOMETRY_RLP_SIZE;
         }
         
         if (number < 0)
@@ -1479,10 +1494,6 @@ void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *
     this->nudgeTiltX = *nudgeTiltX;
     this->nudgeTiltY = *nudgeTiltY;
     this->nudgeStep = *nudgeStep;
-
-    logged << "From " << expectedPixels << " pixel expected movement, setting tilt_nudge to (" << *nudgeTiltX
-    << ", " << *nudgeTiltY << ") and nudgeStep to " << *nudgeStep << std::endl;
-    sendLog();
 }
 
 std::string Detector::writeCrystFELFile()

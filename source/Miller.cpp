@@ -17,7 +17,6 @@
 #include <memory>
 #include "FileParser.h"
 #include "Beam.h"
-#include "IOMRefiner.h"
 #include "Image.h"
 #include "Spot.h"
 #include "FreeMillerLibrary.h"
@@ -338,10 +337,6 @@ vec Miller::getRay()
     vec hkl = getTransformedHKL();
     
     double imageWavelength = getPredictedWavelength();
-    
-    double tmp = hkl.k;
-    hkl.k = -hkl.h;
-    hkl.h = -tmp;
     hkl.l += 1 / imageWavelength;
     
     return hkl;
@@ -835,11 +830,8 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
     {
         int search = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3);
         
-        if (getIOMRefiner())
-        {
-            search = getIOMRefiner()->getSearchSize();
-        }
-        
+		search = getMtzParent()->getSearchSize();
+
         if (search > 0)
         {
             getImage()->focusOnAverageMax(&xVal, &yVal, search, 0, even);
@@ -901,47 +893,36 @@ void Miller::makeComplexShoebox(double wavelength, double bandwidth, double mosa
     shoebox->complexShoebox(wavelength, bandwidth, radius);
 }
 
-void Miller::integrateIntensity(MatrixPtr transformedMatrix)
+void Miller::makeShoebox()
+{
+	if (!shoebox)
+	{
+		shoebox = ShoeboxPtr(new Shoebox(shared_from_this()));
+
+		int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
+												  SHOEBOX_FOREGROUND_PADDING);
+		int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_PADDING",
+											   SHOEBOX_NEITHER_PADDING);
+		int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
+												  SHOEBOX_BACKGROUND_PADDING);
+		bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
+
+		shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
+	}
+}
+
+void Miller::integrateIntensity(bool quick)
 {
     if (!getImage())
         throw 1;
-    
-    std::ostringstream logged;
-    
-    if (!shoebox)
-    {
-        shoebox = ShoeboxPtr(new Shoebox(shared_from_this()));
-        
-        int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
-                                                  SHOEBOX_FOREGROUND_PADDING);
-        int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_PADDING",
-                                               SHOEBOX_NEITHER_PADDING);
-        int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
-                                                  SHOEBOX_BACKGROUND_PADDING);
-        bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
-        
-        logged << "Shoebox created from values " << foregroundLength << ", " << neitherLength << ", " << backgroundLength << std::endl;
-        
-        shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
-    }
-    
-    double x = 0;
-    double y = 0;
-    
-    positionOnDetector(&x, &y);
-    
-    if (x == -INT_MAX || y == -INT_MAX)
-    {
-        rawIntensity = nan(" ");
-        return;
-    }
-    
-    if (is(-60, 2, -16))
-    {
-        logged << "Predicted x, y = " << x << ", " << y << std::endl;
-        sendLog();
-    }
-    
+
+	makeShoebox();
+
+    double x = correctedX;
+    double y = correctedY;
+
+	positionOnDetector(&x, &y, !quick);
+
     rawIntensity = getImage()->intensityAt(x, y, shoebox, &countingSigma, 0);
 }
 
@@ -988,9 +969,16 @@ bool Miller::isOverlappedWithSpots(std::vector<SpotPtr> *spots, bool actuallyDel
 
 bool Miller::isOverlapped()
 {
+	if (!hasDetector())
+	{
+		return false;
+	}
+
     int x = correctedX;
     int y = correctedY;
-    
+
+	makeShoebox();
+
     unsigned char max = getImage()->maximumOverlapMask(x, y, shoebox);
     
     return (max >= 2);

@@ -65,7 +65,6 @@ source = [
 'source/Hdf5ManagerProcessing.cpp',
 'source/Hdf5Table.cpp',
 'source/Image.cpp',
-'source/IOMRefiner.cpp',
 'source/IndexManager.cpp',
 'source/IndexingSolution.cpp',
 'source/InputFileParser.cpp',

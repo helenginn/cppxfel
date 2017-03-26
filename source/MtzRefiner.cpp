@@ -57,60 +57,56 @@ void MtzRefiner::cycleThreadWrapper(MtzRefiner *object, int offset)
 
 void MtzRefiner::cycleThread(int offset)
 {
-    int img_num = (int)mtzManagers.size();
-    int j = 0;
-    
+    int img_num = (int)images.size();
+
     std::vector<int> targets = FileParser::getKey("TARGET_FUNCTIONS", std::vector<int>());
-    bool lowMemoryMode = FileParser::getKey("LOW_MEMORY_MODE", false);
-    
+
     int maxThreads = FileParser::getMaxThreads();
     
     for (int i = offset; i < img_num; i += maxThreads)
     {
-        j++;
-        
         std::ostringstream logged;
-        
-        MtzPtr image = mtzManagers[i];
-        
-        if (!image->isRejected())
-        {
-            logged << "Refining image " << i << " " << image->getFilename() << std::endl;
-            Logger::mainLogger->addStream(&logged);
-            
-            bool silent = (targets.size() > 0);
-            
-            image->refinePartialities();
 
-			if (lowMemoryMode)
+		ImagePtr image = images[i];
+
+		for (int j = 0; j < image->mtzCount(); j++)
+		{
+			MtzPtr mtz = image->mtz(j);
+
+			if (!mtz->isRejected())
 			{
-				image->dropReflections();
-			}
+				logged << "Refining image " << i << " " << image->getFilename() << std::endl;
+				Logger::mainLogger->addStream(&logged);
 
-            if (targets.size() > 0)
-            {
-                ScoreType firstScore = image->getScoreType();
-                for (int i = 0; i < targets.size(); i++)
-                {
-                    silent = (i < targets.size() - 1);
-                    image->setDefaultScoreType((ScoreType)targets[i]);
-                    
-                    image->refinePartialities();
+				bool silent = (targets.size() > 0);
+
+				mtz->refinePartialities();
+
+				if (targets.size() > 0)
+				{
+					ScoreType firstScore = mtz->getScoreType();
+					for (int i = 0; i < targets.size(); i++)
+					{
+						silent = (i < targets.size() - 1);
+						mtz->setDefaultScoreType((ScoreType)targets[i]);
+
+						mtz->refinePartialities();
+					}
+
+					mtz->setDefaultScoreType(firstScore);
 				}
-
-                image->setDefaultScoreType(firstScore);
-            }
-        }
+			}
+		}
     }
 }
 
 void MtzRefiner::cycle()
 {
     MtzManager::setReference(&*reference);
-    
+
     time_t startcputime;
     time(&startcputime);
-    
+
     boost::thread_group threads;
     
     int maxThreads = FileParser::getMaxThreads();
@@ -143,7 +139,8 @@ void MtzRefiner::cycle()
 void MtzRefiner::initialMerge()
 {
     MtzManager *originalMerge = NULL;
-    
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
     AmbiguityBreaker breaker = AmbiguityBreaker(mtzManagers);
     breaker.run();
     referencePtr = breaker.getMergedMtz();
@@ -164,10 +161,28 @@ void MtzRefiner::setupFreeMillers()
     }
 }
 
+std::vector<MtzPtr> MtzRefiner::getAllMtzs()
+{
+	std::vector<MtzPtr> allMtzs;
+
+	for (int i = 0; i < images.size(); i++)
+	{
+		ImagePtr image = images[i];
+
+		for (int j = 0; j < image->mtzCount(); j++)
+		{
+			MtzPtr mtz = image->mtz(j);
+			allMtzs.push_back(mtz);
+		}
+	}
+
+	return allMtzs;
+}
+
 void MtzRefiner::refine()
 {
     setupFreeMillers();
-    
+	
     MtzPtr originalMerge;
     
     bool initialExists = loadInitialMtz();
@@ -177,28 +192,7 @@ void MtzRefiner::refine()
     {
         initialMerge();
     }
-    
-    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", false);
-    
-    if (fixUnitCell)
-    {
-        for (int i = 0; i < mtzManagers.size(); i++)
-        {
-            vector<double> givenUnitCell = FileParser::getKey("UNIT_CELL", vector<double>());
-            
-            mtzManagers[i]->getMatrix()->changeOrientationMatrixDimensions(givenUnitCell);
-            mtzManagers[i]->setUnitCell(givenUnitCell);
-        }
-    }
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        mtzManagers[i]->loadParametersMap();
-    }
-    
-    logged << "N: Total crystals loaded: " << mtzManagers.size() << std::endl;
-    sendLog();
-    
+
     reference->writeToFile("originalMerge.mtz");
     
     MtzManager::setReference(&*reference);
@@ -210,11 +204,15 @@ void MtzRefiner::refine()
 
 void MtzRefiner::refineCycle(bool once)
 {
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
     int i = 0;
     bool finished = false;
     
     bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
-    
+	int maximumCycles = FileParser::getKey("MAXIMUM_CYCLES", 50);
+	bool stop = FileParser::getKey("STOP_REFINEMENT", true);
+
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
                                         (int) SCALING_STRATEGY);
     ScalingType scaling = (ScalingType) scalingInt;
@@ -258,11 +256,17 @@ void MtzRefiner::refineCycle(bool once)
 		merger.setFreeOnly(true);
 		merger.mergeFull();
 
-		if (replaceReference)
+		if (replaceReference && mergedMtz)
 		{
 			reference = mergedMtz;
 			MtzManager::setReference(&*reference);
 		}
+
+		if (once)
+			finished = true;
+
+		if (i == maximumCycles - 1 && stop)
+			finished = true;
 
 		i++;
 	}
@@ -290,6 +294,7 @@ bool MtzRefiner::loadInitialMtz(bool force)
         reference = MtzPtr(new MtzManager());
         
         reference->setFilename(referenceFile.c_str());
+		reference->setDefaultMatrix();
         reference->loadReflections();
         reference->setSigmaToUnity();
         
@@ -332,10 +337,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     
     std::vector<std::string> hdf5Sources = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
     bool readFromHdf5 = hdf5Sources.size() > 0;
-    bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", false);
     vector<double> cellDims = FileParser::getKey("UNIT_CELL", vector<double>());
-    
-    bool hasBeamCentre = FileParser::hasKey("BEAM_CENTRE");
     
     bool setSigmaToUnity = FileParser::getKey("SET_SIGMA_TO_UNITY", true);
     
@@ -407,7 +409,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         double usedWavelength = wavelength;
         double usedDistance = detectorDistance;
         
-        bool fromDials = FileParser::getKey("FROM_DIALS", true);
+        bool fromDials = FileParser::getKey("FROM_DIALS", false);
         
         if (components.size() >= 3)
         {
@@ -436,210 +438,168 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         
         bool hasSpots = false;
         std::string parentImage = "";
-        int currentCrystal = -1;
-        
-        for (int i = 1; i < lines.size(); i++)
-        {
-            vector<std::string> components = FileReader::split(lines[i], ' ');
-            
-            if (components.size() == 0)
-                continue;
-            
-            if (components[0] == "spots")
-            {
-                std::string spotsFile = components[1];
-                newImage->setSpotsFile(spotsFile);
-                hasSpots = true;
-            }
-            
-            if (components[0] == "parent")
-            {
-                parentImage = components[1];
-            }
-            
-            if (components[0] == "crystal")
-            {
-                currentCrystal = atoi(components[1].c_str());
-            }
-            
-            if (components[0] == "matrix")
-            {
-                // individual matrices
-                double matrix[9];
-                readMatrix(matrix, lines[i]);
-                
-                newMatrix = MatrixPtr(new Matrix(matrix));
-                
-                if (fromDials)
-                {
-                    newMatrix->rotate(0, 0, M_PI / 2);
-                }
-                
-                if (newImages)
-                {
-                    newImage->setUpIOMRefiner(newMatrix);
-                }
-            }
-            
-            if (components[0] == "wavelength")
-            {
-                double newWavelength = wavelength;
-                
-                if (components.size() >= 2)
-                    newWavelength = atof(components[1].c_str());
-                
-                newImage->setWavelength(newWavelength);
-                
-                logged << "Setting wavelength for " << imgName << " to " << newWavelength << " Angstroms." << std::endl;
-                Logger::log(logged);
-            }
+		int currentCrystal = -1;
 
-            if (components[0] == "centre" && !hasBeamCentre)
-            {
-                if (components.size() < 3)
-                    continue;
-                
-                double centreX = atof(components[1].c_str());
-                double centreY = atof(components[2].c_str());
-                
-                newImage->setBeamX(centreX);
-                newImage->setBeamY(centreY);
-            }
-            
-            if (components[0] == "unitcell")
-            {
-                // individual matrices
-                double matrix[9];
-                readMatrix(matrix, lines[i]);
-                
-                unitCell = MatrixPtr(new Matrix(matrix));
-            }
-            
-            if (components[0] == "rotation")
-            {
-                // individual matrices
-                double matrix[9];
-                readMatrix(matrix, lines[i]);
-                
-                MatrixPtr rotation = MatrixPtr(new Matrix(matrix));
-                
-                if (unitCell)
-                {
-                    if (newImages)
-                    {
-                        vector<double> correction = FileParser::getKey("ORIENTATION_CORRECTION", vector<double>());
-                        
-                        if (fromDials && !v3)
-                        {
-                            rotation->rotate(0, 0, M_PI / 2);
-                        }
-                        
-                        if (correction.size() >= 2)
-                        {
-                            double rightRot = correction[0] * M_PI / 180;
-                            double upRot = correction[1] * M_PI / 180;
-                            double swivelRot = 0;
-                            
-                            if (correction.size() > 2)
-                                swivelRot = correction[2] * M_PI / 180;
-                            
-                            rotation->rotate(rightRot, upRot, swivelRot);
-                        }
-                    }
-                    
-                    newMatrix = MatrixPtr(new Matrix);
-                    newMatrix->setComplexMatrix(unitCell, rotation);
-                    
-                    if (fixUnitCell)
-                    {
-                        newMatrix->changeOrientationMatrixDimensions(cellDims);
-                    }
-                    
-                    if (newImages)
-                    {
-                        newImage->setUpIOMRefiner(newMatrix);
-                    }
-                    
-                    if (v3 && newMtzs)
-                    {
-                        MtzPtr newManager = MtzPtr(new MtzManager());
-                        std::string prefix = (me->readRefinedMtzs ? "ref-" : "");
-                        newManager->setFilename((prefix + "img-" + imgNameOnly + "_" + i_to_str(currentCrystal) + ".mtz").c_str());
-                        newManager->setMatrix(newMatrix);
-                        
-                        if (setSigmaToUnity)
-                            newManager->setSigmaToUnity();
-                        
-                        newManager->setParamLine(paramsLine);
-                        newManager->setTimeDelay(delay);
-                        newManager->setImage(newImage);
-                        newManager->loadReflections();
-                        
-                        if (newManager->reflectionCount() > 0)
-                        {
-                            newImage->addMtz(newManager);
-                            newMtzs->push_back(newManager);
-                        }
-                    }
-                    
-                    unitCell = MatrixPtr();
-                }
-                else
-                {
-                    std::cout << "Warning, unmatched unitcell / rotation pair?" << std::endl;
-                }
-            }
-            
-            if (components[0] == "params" && newMtzs)
-            {
-                paramsLine = lines[i];
-            }
-            
-            if (components[0] == "delay" && newMtzs)
-            {
-                if (components.size() > 1)
-                    delay = atof(components[1].c_str());
-            }
-        }
-        
+		for (int i = 1; i < lines.size(); i++)
+		{
+			vector<std::string> components = FileReader::split(lines[i], ' ');
+
+			if (components.size() == 0)
+				continue;
+
+			if (components[0] == "spots")
+			{
+				std::string spotsFile = components[1];
+				newImage->setSpotsFile(spotsFile);
+				hasSpots = true;
+			}
+
+			if (components[0] == "crystal")
+			{
+				currentCrystal = atoi(components[1].c_str());
+			}
+
+			if (components[0] == "matrix")
+			{
+				// individual matrices
+				double matrix[9];
+				readMatrix(matrix, lines[i]);
+
+				newMatrix = MatrixPtr(new Matrix(matrix));
+
+				if (newImages)
+				{
+					newImage->setUpCrystal(newMatrix);
+				}
+			}
+
+			if (components[0] == "wavelength")
+			{
+				double newWavelength = wavelength;
+
+				if (components.size() >= 2)
+					newWavelength = atof(components[1].c_str());
+
+				newImage->setWavelength(newWavelength);
+
+				logged << "Setting wavelength for " << imgName << " to " << newWavelength << " Angstroms." << std::endl;
+				Logger::log(logged);
+			}
+
+			if (components[0] == "params" && newMtzs)
+			{
+				paramsLine = lines[i];
+			}
+
+			if (components[0] == "unitcell")
+			{
+				// individual matrices
+				double matrix[9];
+				readMatrix(matrix, lines[i]);
+
+				unitCell = MatrixPtr(new Matrix(matrix));
+			}
+
+			if (components[0] == "rotation")
+			{
+				// individual matrices
+				double matrix[9];
+				readMatrix(matrix, lines[i]);
+
+				MatrixPtr rotation = MatrixPtr(new Matrix(matrix));
+
+				if (unitCell)
+				{
+					if (newImages)
+					{
+						vector<double> correction = FileParser::getKey("ORIENTATION_CORRECTION", vector<double>());
+
+						if (fromDials && !v3)
+						{
+							rotation->rotate(0, 0, M_PI / 2);
+						}
+
+						if (correction.size() >= 2)
+						{
+							double rightRot = correction[0] * M_PI / 180;
+							double upRot = correction[1] * M_PI / 180;
+							double swivelRot = 0;
+
+							if (correction.size() > 2)
+								swivelRot = correction[2] * M_PI / 180;
+
+							rotation->rotate(rightRot, upRot, swivelRot);
+						}
+					}
+
+					newMatrix = MatrixPtr(new Matrix);
+					newMatrix->setComplexMatrix(unitCell, rotation);
+
+					if (v3)
+					{
+						MtzPtr newManager = MtzPtr(new MtzManager());
+						std::string prefix = (me->readRefinedMtzs ? "ref-" : "");
+						newManager->setFilename((prefix + "img-" + imgNameOnly + "_" + i_to_str(currentCrystal) + ".mtz").c_str());
+						newManager->setMatrix(newMatrix);
+
+						if (setSigmaToUnity)
+							newManager->setSigmaToUnity();
+
+						newManager->setParamLine(paramsLine);
+						newManager->setTimeDelay(delay);
+						newManager->setImage(newImage);
+						newManager->loadReflections();
+
+						newImage->addMtz(newManager);
+
+						if (newMtzs)
+						{
+							newMtzs->push_back(newManager);
+						}
+					}
+				}
+			}
+
+			if (components[0] == "delay" && newMtzs)
+			{
+				if (components.size() > 1)
+					delay = atof(components[1].c_str());
+			}
+		}
+
         if (newImages)
         {
-/*            if (hasSpots)
-            {
-                newImage->processSpotList();
-            }*/
-            
             newImages->push_back(newImage);
         }
-        
+
         if (newMtzs && !v3)
         {
             MtzPtr newManager = MtzPtr(new MtzManager());
-            
+
             newManager->setFilename(imgName.c_str());
-            
+
             newManager->setParentImageName(parentImage);
-            
+
             if (!newMatrix)
             {
                 logged << "Warning! Matrix for " << imgName << " is missing." << std::endl;
                 Logger::setShouldExit();
                 Logger::log(logged);
             }
-            
+
             newManager->setMatrix(newMatrix);
-            
+
             if (!lowMemoryMode)
             {
                 newManager->loadReflections();
             }
-            
+
             if (setSigmaToUnity)
                 newManager->setSigmaToUnity();
-            
+
             newManager->setParamLine(paramsLine);
             newManager->setTimeDelay(delay);
-            
+
             if (newManager->reflectionCount() > 0 || lowMemoryMode)
             {
                 newMtzs->push_back(newManager);
@@ -651,20 +611,20 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
 {
     double version = FileParser::getKey("MATRIX_LIST_VERSION", 2.0);
-    
+
     // thought: turn the vector concatenation into a templated function
-    
+
     boost::thread_group threads;
-    
+
     int maxThreads = FileParser::getMaxThreads();
-    
+
     vector<vector<ImagePtr> > imageSubsets;
     vector<vector<MtzPtr> > mtzSubsets;
     imageSubsets.resize(maxThreads);
     mtzSubsets.resize(maxThreads);
-    
+
     std::string contents;
-    
+
     try
     {
         contents = FileReader::get_file_contents( filename->c_str());
@@ -675,7 +635,7 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
         sendLogAndExit();
     }
     vector<std::string> imageList = FileReader::split(contents, "\nimage ");
-    
+
     std::ostringstream logged;
     
     if (imageList[0].substr(0, 6) == "ersion")
@@ -719,37 +679,23 @@ void MtzRefiner::readDataFromOrientationMatrixList(std::string *filename, bool a
     
     for (int i = 0; i < maxThreads; i++)
     {
-        if (areImages)
-            total += imageSubsets[i].size();
-        
-        if (!areImages)
-            total += mtzSubsets[i].size();
+		total += imageSubsets[i].size();
     }
     
     if (targetImages == NULL)
     {
         targetImages = &images;
     }
-    
-    mtzManagers.reserve(total);
-    targetImages->reserve(total);
-    int lastPos = 0;
-    
-    for (int i = 0; i < maxThreads; i++)
-    {
-        if (areImages)
-        {
-            targetImages->insert(targetImages->begin() + lastPos,
-                                 imageSubsets[i].begin(), imageSubsets[i].end());
-            lastPos += imageSubsets[i].size();
-        }
-        else
-        {
-            mtzManagers.insert(mtzManagers.begin() + lastPos,
-                               mtzSubsets[i].begin(), mtzSubsets[i].end());
-            lastPos += mtzSubsets[i].size();
-        }
-    }
+	targetImages->reserve(total);
+	int lastPos = 0;
+
+	for (int i = 0; i < maxThreads; i++)
+	{
+		targetImages->insert(targetImages->begin() + lastPos,
+							 imageSubsets[i].begin(), imageSubsets[i].end());
+		lastPos += imageSubsets[i].size();
+	}
+
 }
 
 void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages)
@@ -808,7 +754,9 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
         maskImage->setMask();
     }
 
-    logged << "Summary\nImages: " << images.size() << "\nCrystals: " << mtzManagers.size() << std::endl;
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
+	logged << "Summary\nImages: " << images.size() << "\nCrystals: " << mtzManagers.size() << std::endl;
     sendLog();
 
 
@@ -859,6 +807,7 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
     {
         logged << "Loading all images from HDF5 source files." << std::endl;
     }
+
     sendLog();
     
     int inputHdf5Count = Hdf5ManagerCheetah::cheetahManagerCount();
@@ -894,17 +843,7 @@ void MtzRefiner::readFromHdf5(std::vector<ImagePtr> *newImages)
             count++;
         }
     }
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        for (int j = 0; j < images[i]->mtzCount(); j++)
-        {
-            MtzPtr mtz = images[i]->mtz(j);
-            
-            mtzManagers.push_back(mtz);
-        }
-    }
-    
+
     logged << "N: Images loaded from HDF5: " << newImages->size() << std::endl;;
     
     sendLog();
@@ -943,8 +882,9 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
     {
         MtzManager::setReference(&*reference);
     }
-    
-    
+
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         double correl = mtzManagers[i]->correlation(true);
@@ -971,7 +911,8 @@ void MtzRefiner::linearScaling()
 {
     loadInitialMtz();
     readMatricesAndMtzs();
-    
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
     MtzMerger merger;
     merger.setSomeMtzs(mtzManagers);
     merger.setCycle(-1);
@@ -991,7 +932,8 @@ void MtzRefiner::merge(bool mergeOnly)
     readRefinedMtzs = true;
     readMatricesAndMtzs();
 
-    correlationAndInverse(true);
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+	correlationAndInverse(true);
 
     vector<MtzPtr> idxOnly;
     
@@ -1028,13 +970,13 @@ void MtzRefiner::merge(bool mergeOnly)
 // MARK: Integrating images
 
 void MtzRefiner::integrateImagesWrapper(MtzRefiner *object,
-                                        vector<MtzPtr> *&mtzSubset, int offset, bool orientation)
+                                        vector<MtzPtr> *&mtzSubset, int offset)
 {
-    object->integrateImages(mtzSubset, offset, orientation);
+    object->integrateImages(mtzSubset, offset);
 }
 
 void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
-                                 int offset, bool orientation)
+                                 int offset)
 {
     int maxThreads = FileParser::getMaxThreads();
     
@@ -1043,19 +985,11 @@ void MtzRefiner::integrateImages(vector<MtzPtr> *&mtzSubset,
         std::ostringstream logged;
         logged << "Integrating image " << i << std::endl;
         Logger::mainLogger->addStream(&logged);
-        
-        images[i]->clearMtzs();
-        
-        if (orientation)
-            images[i]->refineOrientations();
+
+        images[i]->refineOrientations();
         
         vector<MtzPtr> mtzs = images[i]->currentMtzs();
-        
-        for (int j = 0; j < mtzs.size(); j++)
-        {
-            images[i]->addMtz(mtzs[j]);
-        }
-        
+
         mtzSubset->insert(mtzSubset->end(), mtzs.begin(), mtzs.end());
         images[i]->dropImage();
     }
@@ -1136,27 +1070,18 @@ void MtzRefiner::loadImageFiles()
 
 void MtzRefiner::integrate()
 {
-    bool orientation = FileParser::getKey("REFINE_ORIENTATIONS", true); // unused I think
-    
     loadImageFiles();
     
     int crystals = 0;
     
     for (int i = 0; i < images.size(); i++)
     {
-        crystals += images[i]->IOMRefinerCount();
+        crystals += images[i]->mtzCount();
     }
     
     logged << images.size() << " images with " << crystals << " crystal orientations." << std::endl;
     sendLog();
-    
-    mtzManagers.clear();
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        images[i]->clearMtzs();
-    }
-    
+
     int maxThreads = FileParser::getMaxThreads();
     
     boost::thread_group threads;
@@ -1166,32 +1091,12 @@ void MtzRefiner::integrate()
     for (int i = 0; i < maxThreads; i++)
     {
         boost::thread *thr = new boost::thread(integrateImagesWrapper, this,
-                                               &managerSubsets[i], i, orientation);
+                                               &managerSubsets[i], i);
         threads.add_thread(thr);
     }
     
     threads.join_all();
-    
-    int total = 0;
-    
-    for (int i = 0; i < maxThreads; i++)
-    {
-        total += managerSubsets[i].size();
-    }
-    
-    logged << "N: Total images loaded: " << total << std::endl;
-    sendLog();
-    
-    mtzManagers.reserve(total);
-    int lastPos = 0;
-    
-    for (int i = 0; i < maxThreads; i++)
-    {
-        mtzManagers.insert(mtzManagers.begin() + lastPos,
-                           managerSubsets[i].begin(), managerSubsets[i].end());
-        lastPos += managerSubsets[i].size();
-    }
-    
+
     writeNewOrientations(false, true);
     
     integrationSummary();
@@ -1203,17 +1108,17 @@ void MtzRefiner::integrationSummary()
     std::ostringstream refineSummary;
     
     int imageCount = (int)images.size();
-    int iomRefinerCount = 0;
+    int mtzCount = 0;
     
-    refineSummary << IOMRefiner::refinementSummaryHeader() << std::endl;
+    refineSummary << MtzManager::parameterHeaders() << std::endl;
     
     for (int i = 0; i < images.size(); i++)
     {
-        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
+        for (int j = 0; j < images[i]->mtzCount(); j++)
         {
-            refineSummary << images[i]->getIOMRefiner(j)->refinementSummary() << std::endl;
+            refineSummary << images[i]->mtz(j)->writeParameterSummary() << std::endl;
             
-            iomRefinerCount++;
+            mtzCount++;
         }
     }
     
@@ -1227,8 +1132,8 @@ void MtzRefiner::integrationSummary()
     summaryCSV << summaryString;
     summaryCSV.close();
     
-    float percentage = (float)iomRefinerCount / (float)imageCount * 100;
-    logged << "Indexed " << iomRefinerCount << " images out of " << imageCount << " (" << percentage << "%)." << std::endl;
+    float percentage = (float)mtzCount / (float)imageCount * 100;
+    logged << "Indexed " << mtzCount << " crystals out of " << imageCount << " images (" << percentage << "%)." << std::endl;
     sendLog();
     
     Logger::mainLogger->addString("Written integration summary to integration.csv");
@@ -1300,8 +1205,8 @@ void MtzRefiner::writeAllNewOrientations()
             
             if (includeRots)
             {
-                double hRad = mtz->getHRot() * M_PI / 180;
-                double kRad = mtz->getKRot() * M_PI / 180;
+				double hRad = MtzManager::getHRot(&*mtz) * M_PI / 180;
+                double kRad = MtzManager::getKRot(&*mtz) * M_PI / 180;
                 
                 matrix->rotate(hRad, kRad, 0);
             }
@@ -1321,13 +1226,14 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
     std::ofstream mergeMats;
     std::ofstream refineMats;
     std::ofstream integrateMats;
-    
+
     std::string filename = FileParser::getKey("NEW_MATRIX_LIST", std::string("new_orientations.dat"));
     
     mergeMats.open(FileReader::addOutputDirectory("merge-" + filename));
     refineMats.open(FileReader::addOutputDirectory("refine-" + filename));
     integrateMats.open(FileReader::addOutputDirectory("integrate-" + filename));
-    
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         MtzPtr manager = mtzManagers[i];
@@ -1347,9 +1253,9 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         
         if (includeRots)
         {
-            double hRad = manager->getHRot() * M_PI / 180;
-            double kRad = manager->getKRot() * M_PI / 180;
-            
+			double hRad = MtzManager::getHRot(&*manager) * M_PI / 180;
+			double kRad = MtzManager::getKRot(&*manager) * M_PI / 180;
+
             matrix->rotate(hRad, kRad, 0);
         }
         
@@ -1391,11 +1297,10 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
         
         integrateMats << "image " << imgFilename << std::endl;
         
-        for (int j = 0; j < image->IOMRefinerCount(); j++)
+        for (int j = 0; j < image->mtzCount(); j++)
         {
-            MatrixPtr matrix = image->getIOMRefiner(j)->getMatrix()->copy();
+            MatrixPtr matrix = image->mtz(j)->getMatrix()->copy();
             
-            matrix->rotate(0, 0, -M_PI / 2);
             std::string desc90 = matrix->description(true);
             integrateMats << desc90 << std::endl;
         }
@@ -1410,7 +1315,9 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
     
     if (!images.size())
     {
-        for (int i = 0; i < mtzManagers.size(); i++)
+		std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
+		for (int i = 0; i < mtzManagers.size(); i++)
         {
             std::string filename = mtzManagers[i]->getFilename();
             filename.erase(filename.end() - 6, filename.end());
@@ -1420,7 +1327,6 @@ void MtzRefiner::writeNewOrientations(bool includeRots, bool detailed)
             
             MatrixPtr matrix = mtzManagers[i]->getMatrix()->copy();
             
-            matrix->rotate(0, 0, -M_PI / 2);
             std::string desc90 = matrix->description(true);
             integrateMats << desc90 << std::endl;
 
@@ -1459,8 +1365,6 @@ void MtzRefiner::index()
         indexManager = new IndexManager(images);
     
     indexManager->index();
-    
-    mtzManagers = indexManager->getMtzs();
     
     writeNewOrientations(false, true);
     integrationSummary();
@@ -1571,10 +1475,11 @@ void MtzRefiner::plotIntegrationWindows()
         k = hkl[1];
         l = hkl[2];
         
+		std::vector<MtzPtr> mtzManagers = getAllMtzs();
         logged << "Drawing integration windows for " << h << " " << k << " " << l << " for " << mtzManagers.size() << " mtzs." << std::endl;
         sendLog();
-        
-        drawer.cutoutIntegrationAreas(mtzManagers, h, k, l);
+
+		drawer.cutoutIntegrationAreas(mtzManagers, h, k, l);
     }
 
 }
@@ -1589,7 +1494,7 @@ void MtzRefiner::plotIntensities()
     {
         logged << "To plot a specific Miller index please use MILLER_INDEX; this will dump a huge number" << std::endl;
         sendLog();
-        drawer.plotReflectionFromMtzs(getMtzManagers());
+        drawer.plotReflectionFromMtzs(getAllMtzs());
     }
     else
     {
@@ -1597,7 +1502,7 @@ void MtzRefiner::plotIntensities()
         k = hkl[1];
         l = hkl[2];
         
-        drawer.plotReflectionFromMtzs(getMtzManagers(), h, k, l);
+        drawer.plotReflectionFromMtzs(getAllMtzs(), h, k, l);
     }
     
     
@@ -1606,7 +1511,9 @@ void MtzRefiner::plotIntensities()
 void MtzRefiner::refineMetrology(bool global)
 {
     loadImageFiles();
-    
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+	Detector::getMaster()->clearMillers();
+
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         mtzManagers[i]->millersToDetector();
@@ -1662,8 +1569,6 @@ MtzRefiner::~MtzRefiner()
 {
     //    std::cout << "Deallocating MtzRefiner." << std::endl;
     
-    mtzManagers.clear();
-    
     images.clear();
     
     // TODO Auto-generated destructor stub
@@ -1671,6 +1576,8 @@ MtzRefiner::~MtzRefiner()
 
 void MtzRefiner::removeSigmaValues()
 {
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         mtzManagers[i]->setSigmaToUnity();
@@ -1683,7 +1590,8 @@ void MtzRefiner::removeSigmaValues()
 
 void MtzRefiner::displayIndexingHands()
 {
-    std::ostringstream idxLogged, invLogged;
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+	std::ostringstream idxLogged, invLogged;
     
     for (int i = 0; i < mtzManagers.size(); i++)
     {
@@ -1701,6 +1609,8 @@ void MtzRefiner::displayIndexingHands()
 
 void MtzRefiner::applyUnrefinedPartiality()
 {
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+
     for (int i = 0; i < mtzManagers.size(); i++)
     {
         mtzManagers[i]->applyUnrefinedPartiality();
@@ -1710,7 +1620,7 @@ void MtzRefiner::applyUnrefinedPartiality()
 void MtzRefiner::orientationPlot()
 {
     GraphDrawer drawer = GraphDrawer(NULL);
-    drawer.plotOrientationStats(mtzManagers);
+    drawer.plotOrientationStats(getAllMtzs());
 }
 
 int MtzRefiner::imageSkip(size_t totalCount)

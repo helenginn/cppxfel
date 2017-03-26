@@ -126,7 +126,7 @@ void RefinementStrategy::finish()
     if (endScore > startingScore || endScore != endScore)
     {
         logged << "No change for " << jobName << " (" << startingScore << ")" << std::endl;
-        sendLog();
+        sendLog(LogLevelDetailed);
         
 		resetToInitialParameters();
     }
@@ -151,7 +151,7 @@ void RefinementStrategy::finish()
         }
 
 		logged << "(" << startingScore << " to " << endScore << ")" << std::endl;
-        sendLog();
+        sendLog(LogLevelNormal);
     }
     
     cycleNum = 0;

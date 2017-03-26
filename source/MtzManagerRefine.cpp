@@ -45,8 +45,8 @@ void MtzManager::addParameters(RefinementStrategyPtr refiner)
 
     if (optimisingOrientation)
     {
-        refiner->addParameter(this, getHRotStatic, setHRotStatic, stepSizeOrientation, toleranceOrientation, "hRot");
-        refiner->addParameter(this, getKRotStatic, setKRotStatic, stepSizeOrientation, toleranceOrientation, "kRot");
+        refiner->addParameter(this, getHRot, setHRot, stepSizeOrientation, toleranceOrientation, "hRot");
+        refiner->addParameter(this, getKRot, setKRot, stepSizeOrientation, toleranceOrientation, "kRot");
     }
     
     if (optimisingRlpSize)

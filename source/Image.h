@@ -9,7 +9,6 @@
 #define IMAGE_H_
 
 #include "Matrix.h"
-#include "IOMRefiner.h"
 #include "parameters.h"
 #include "Logger.h"
 #include "csymlib.h"
@@ -24,7 +23,6 @@ typedef enum
     ImageClassHdf5,
 } ImageClass;
 
-class IOMRefiner;
 class ImageCluster;
 
 typedef enum
@@ -46,8 +44,6 @@ private:
     static bool interpolate;
     
     virtual void loadImage();
-    vector<IOMRefinerPtr> indexers;
-    vector<IOMRefinerPtr> failedRefiners;
     vector<ImagePtr> maxes;
 
     bool shouldMaskValue;
@@ -104,7 +100,7 @@ protected:
     static std::mutex setupMutex;
     double standardDeviationOfPixels();
     std::vector<SpotPtr> spots;
-    virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, IOMRefinerPtr *refiner);
+	virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, MtzPtr *anMtz);
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     virtual bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
     int minimumSolutionNetworkCount;
@@ -127,7 +123,7 @@ public:
     virtual void processSpotList();
     virtual void writeSpotsList(std::string spotFile = "");
     
-    signed char maskValueAt(signed char *firstByte, int x, int y);
+    signed char maskValueAt(int x, int y);
     unsigned char maximumOverlapMask(int x, int y, ShoeboxPtr shoebox);
 	Image(std::string filename = "", double wavelength = 0,
 			double distance = 0);
@@ -136,7 +132,7 @@ public:
     void dropImage();
     void newImage();
 	virtual ~Image();
-	void setUpIOMRefiner(MatrixPtr matrix);
+	void setUpCrystal(MatrixPtr matrix);
 	void addMask(int startX, int startY, int endX, int endY);
 	static void applyMaskToImages(vector<ImagePtr> images, int startX,
 			int startY, int endX, int endY);
@@ -195,8 +191,6 @@ public:
 	vector<MtzPtr> currentMtzs();
 	bool isLoaded();
     
-    void setSpaceGroup(CSym::CCP4SPG *spg);
-    void setUnitCell(vector<double> dims);
     void weedOutCloseSpots();
     
     virtual void findIndexingSolutions();
@@ -214,16 +208,11 @@ public:
         return spotVectorWeight;
     }
 
-    void removeRefiner(int j)
+    void removeCrystal(int j)
     {
-        indexers.erase(indexers.begin() + j);
+        mtzs.erase(mtzs.begin() + j);
     }
-    
-    void setIOMRefiners(std::vector<IOMRefinerPtr> refiners)
-    {
-        indexers = refiners;
-    }
-    
+
     int spotVectorCount()
     {
         return (int)spotVectors.size();
@@ -252,33 +241,18 @@ public:
     {
         _hasSeeded = seed;
     }
-    
-    int IOMRefinerCount()
-    {
-        return (int)indexers.size();
-    }
-    
-    IOMRefinerPtr getIOMRefiner(int i)
-    {
-        return indexers[i];
-    }
-    
-    void addIOMRefiner(IOMRefinerPtr newRefiner)
-    {
-        indexers.push_back(newRefiner);
-    }
-    
-    void clearIOMRefiners()
-    {
-        indexers.clear();
-        std::vector<IOMRefinerPtr>().swap(indexers);
-    }
-    
+
     void clearMtzs()
     {
         mtzs.clear();
         std::vector<MtzPtr>().swap(mtzs);
     }
+
+	void addMtzs(std::vector<MtzPtr> _mtzs)
+	{
+		mtzs.reserve(mtzs.size() + _mtzs.size());
+		mtzs.insert(mtzs.end(), _mtzs.begin(), _mtzs.end());
+	}
     
 	int getXDim() const
 	{
@@ -372,16 +346,6 @@ public:
     {
         if (good) return (int)goodSolutions.size();
         else return (int)badSolutions.size();
-    }
-    
-    int failedRefinerCount()
-    {
-        return (int)failedRefiners.size();
-    }
-    
-    IOMRefinerPtr failedRefiner(int i)
-    {
-        return failedRefiners[i];
     }
     
     virtual ImageClass getClass()

@@ -196,7 +196,7 @@ void GeometryRefiner::reportProgress()
     double intraAngleIncrease = 100;
     double interAngleIncrease = 100;
     double mScore = Detector::getMaster()->millerScore(false, false);
-    double sScore = Detector::getMaster()->millerScore(true, true);
+	double sScore = Detector::getMaster()->millerScore(false, true);
     Detector::getMaster()->reportMillerScores(refinementEvent);
 
     interIncrease = -100 * (interScore - lastInterScore) / interScore;
@@ -223,10 +223,9 @@ void GeometryRefiner::reportProgress()
         << " (" << (interAngleIncrease > 0 ? "+" : "") << interAngleIncrease << "% from last round)" << std::endl;
     }
     
-    if (mScore != 0 || sScore != 0)
+    if (mScore != 0)
     {
         logged << "N: Progress score (event " << refinementEvent << ", miller mean): " << mScore << std::endl;
-        logged << "N: Progress score (event " << refinementEvent << ", miller stdev): " << sScore << std::endl;
     }
     sendLog();
     
@@ -290,6 +289,12 @@ void GeometryRefiner::refineGeometry()
 		interPanelCycle();
         refineBeamCentre();
     }
+
+	logged << "**** Geometry refinement complete ****" << std::endl;
+	logged << "**** Now setting METROLOGY_SEARCH_SIZE to 0 for convenience. ****" << std::endl;
+	sendLog();
+
+	FileParser::setKey("METROLOGY_SEARCH_SIZE", 0);
 }
 
 
@@ -543,12 +548,12 @@ void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector)
     RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeIntraMiller);
     detector->prepareInterNudges();
     strategy->setJobName(detector->getTag() + "_miller_stdev_z");
-    strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0.1, "nudge_z");
+    strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0, "nudge_z");
     strategy->refine();
     strategy->clearParameters();
     detector->prepareInterNudges();
-    strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, interNudge, 0.01, "nudgetilt_x");
-    strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, interNudge, 0.01, "nudgetilt_y");
+    strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, interNudge, 0, "nudgetilt_x");
+    strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, interNudge, 0, "nudgetilt_y");
     strategy->setJobName(detector->getTag() + "_miller_stdev_tilt");
     strategy->refine();
     
@@ -564,9 +569,9 @@ void GeometryRefiner::interPanelMillerSearch(DetectorPtr detector)
     strategy->setJobName(detector->getTag() + "_miller");
     detector->resetPoke();
   
-    strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0.000001, "internudge_x");
-    strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0.000001, "internudge_y");
-    strategy->addParameter(&*detector, Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge, 0.000001, "internudge_z");
+    strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0, "internudge_x");
+    strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0, "internudge_y");
+    strategy->addParameter(&*detector, Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge, 0, "internudge_z");
     strategy->refine();
     
     detector->resetPoke();

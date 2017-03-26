@@ -125,11 +125,16 @@ Image::Image(std::string filename, double wavelength,
     pixelCountCutoff = FileParser::getKey("PIXEL_COUNT_CUTOFF", 0);
 }
 
-void Image::setUpIOMRefiner(MatrixPtr matrix)
+void Image::setUpCrystal(MatrixPtr matrix)
 {
-    IOMRefinerPtr indexer = IOMRefinerPtr(new IOMRefiner(shared_from_this(), matrix));
-    
-    indexers.push_back(indexer);
+	MtzPtr mtz = MtzPtr(new MtzManager());
+	std::string numStr = i_to_str(mtzCount());
+	mtz->setImage(shared_from_this());
+
+	mtz->setFilename("img-" + getBasename() + "_" + numStr + ".mtz");
+	mtz->setMatrix(matrix);
+
+	mtzs.push_back(mtz);
 }
 
 Image::~Image()
@@ -139,13 +144,12 @@ Image::~Image()
     
     overlapMask.clear();
     vector<signed char>().swap(overlapMask);
-    
-    /*
+
     spots.clear();
     vector<SpotPtr>().swap(spots);
     
     spotVectors.clear();
-    vector<SpotVectorPtr>().swap(spotVectors);*/
+    vector<SpotVectorPtr>().swap(spotVectors);
 }
 
 void Image::addMask(int startX, int startY, int endX, int endY)
@@ -252,9 +256,8 @@ void Image::checkAndSetupLookupTable()
 
             logged << "Setting up detector lookup table for size " << xDim << " " << yDim << std::endl;
             sendLog();
-            
-            
-            generalMask = vector<signed char>(totalSize, -1);
+
+			generalMask = vector<signed char>(totalSize, -1);
             perPixelDetectors = vector<DetectorPtr>(totalSize, DetectorPtr());
             
             for (int y = 0; y < yDim; y++)
@@ -308,14 +311,13 @@ void Image::loadImage()
         
         int bitsPerPixel = FileParser::getKey("BITS_PER_PIXEL", 32);
         useShortData = (bitsPerPixel == 16);
-        
+		overlapMask = vector<signed char>(memblock.size(), 0);
+
         if (!useShortData)
             data.resize(memblock.size() / sizeof(int));
         else
             shortData.resize(memblock.size() / sizeof(short));
-        
-        overlapMask = vector<signed char>(memblock.size(), 0);
-        
+
         logged << "Image size: " << memblock.size() << " for image: "
         << getFilename() << std::endl;
         sendLog();
@@ -365,8 +367,8 @@ void Image::dropImage()
     overlapMask.clear();
     vector<signed char>().swap(overlapMask);
     
-    for (int i = 0; i < IOMRefinerCount(); i++)
-        getIOMRefiner(i)->dropMillers();
+    for (int i = 0; i < mtzCount(); i++)
+        mtz(i)->dropMillers();
 }
 
 
@@ -1031,45 +1033,44 @@ bool Image::accepted(int x, int y)
 
 void Image::refineOrientations()
 {
-    if (indexers.size() == 0)
+    if (mtzCount() == 0)
     {
-        logged << "No orientation matrices, cannot index/integrate." << std::endl;
+        logged << "No crystals, moving on..." << std::endl;
         sendLog();
         return;
     }
     
-    for (int i = 0; i < indexers.size(); i++)
+    for (int i = 0; i < mtzCount(); i++)
     {
-        indexers[i]->refineOrientationMatrix();
+        mtzs[i]->refineOrientationMatrix();
     }
 }
 
 vector<MtzPtr> Image::currentMtzs()
 {
-    vector<MtzPtr> mtzs;
-    int count = 0;
     bool rejecting = FileParser::getKey("REJECT_OVERLAPPING_REFLECTIONS", true);
-    
-    for (int i = 0; i < IOMRefinerCount(); i++)
-    {
-        MtzPtr newMtz = indexers[i]->newMtz(i);
-        newMtz->removeStrongSpots(&spots, true);
-        logged << "After integrating crystal " << i << " on " << getBasename() << ", spot count now " << spots.size() << std::endl;
-        sendLog();
+	int count = 0;
 
-        std::string imgFilename = "img-" + getBasename() + "_" + i_to_str(i) + ".mtz";
-        newMtz->writeToFile(imgFilename, true);
+	if (!overlapMask.size())
+	{
+		overlapMask = vector<signed char>(xDim * yDim, 0);
+	}
+
+    for (int i = 0; i < mtzCount(); i++)
+    {
+        mtz(i)->removeStrongSpots(&spots, true);
+        mtz(i)->writeToFile("", true);
 
         if (rejecting)
-            count += newMtz->rejectOverlaps();
-        mtzs.push_back(newMtz);
+            count += mtz(i)->rejectOverlaps();
     }
-    
+
+	logged << "After integrating crystals for " << getBasename() << ", spot count now " << spots.size() << std::endl;
+	sendLog();
+
     logged << "Generated " << mtzs.size() << " mtzs with " << count << " rejected reflections." << std::endl;
     sendLog();
-    
-    // fix me
-    
+
     return mtzs;
 }
 
@@ -1083,23 +1084,6 @@ int Image::throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs)
     }
     
     return thrown;
-}
-
-void Image::setSpaceGroup(CCP4SPG *spg)
-{
-    for (int i = 0; i < IOMRefinerCount(); i++)
-    {
-        indexers[i]->setSpaceGroup(spg);
-    }
-}
-
-
-void Image::setUnitCell(vector<double> dims)
-{
-    for (int i = 0; i < indexers.size(); i++)
-    {
-        indexers[i]->setUnitCell(dims);
-    }
 }
 
 void Image::incrementOverlapMask(int x, int y)
@@ -1140,7 +1124,7 @@ void Image::incrementOverlapMask(int x, int y, ShoeboxPtr shoebox)
     }
 }
 
-signed char Image::maskValueAt(signed char *firstByte, int x, int y)
+signed char Image::maskValueAt(int x, int y)
 {
     int position = y * xDim + x;
     int maxSize = xDim * yDim;
@@ -1148,7 +1132,7 @@ signed char Image::maskValueAt(signed char *firstByte, int x, int y)
     if (position < 0 || position >= maxSize)
         return 0;
     
-    return firstByte[position];
+    return overlapMask[position];
 }
 
 unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
@@ -1173,9 +1157,9 @@ unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
             
             if (flagAtShoeboxIndex(shoebox, i, j))
             
-            if (maskValueAt(&overlapMask[0], x, y) > max)
+            if (maskValueAt(x, y) > max)
             {
-                max = maskValueAt(&overlapMask[0], x, y);
+                max = maskValueAt(x, y);
             }
         }
     }
@@ -1209,22 +1193,24 @@ void Image::fakeSpots()
     spots.clear();
     spotVectors.clear();
     
-    if (IOMRefinerCount() == 0)
+    if (mtzCount() == 0)
     {
         int num = rand() % 2 + 1;
         
         for (int i = 0; i < num; i++)
         {
             MatrixPtr mat = Matrix::randomOrientationMatrix();
-            IOMRefinerPtr refiner = IOMRefinerPtr(new IOMRefiner(shared_from_this(), mat));
+            MtzPtr anMtz = MtzPtr(new MtzManager());
+			anMtz->setImage(shared_from_this());
+			anMtz->setMatrix(mat);
             
-            addIOMRefiner(refiner);
+			addMtz(anMtz);
         }
     }
     
-    for (int i = 0; i < IOMRefinerCount(); i++)
+    for (int i = 0; i < mtzCount(); i++)
     {
-        getIOMRefiner(i)->fakeSpots();
+        mtz(i)->fakeSpots();
     }
     
     logged << "Generated " << spotCount() << " fake spots." << std::endl;
@@ -1524,7 +1510,7 @@ void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCl
         logged << "(" << getFilename() << ") Aborting image due to too few spots." << std::endl;
         sendLog();
         
-        if (IOMRefinerCount() == 0)
+        if (mtzCount() == 0)
         {
             sendLog();
         }
@@ -1687,9 +1673,9 @@ void Image::filterSpotVectors()
 
 bool Image::checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast)
 {
-    for (int i = 0; i < IOMRefinerCount() - excludeLast; i++)
+    for (int i = 0; i < mtzCount() - excludeLast; i++)
     {
-        MatrixPtr oldSolution = getIOMRefiner(i)->getMatrix();
+        MatrixPtr oldSolution = mtz(i)->getMatrix();
         
         bool similar = IndexingSolution::matrixSimilarToMatrix(newSolution, oldSolution, true);
         
@@ -1710,7 +1696,7 @@ bool Image::checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeL
     return false;
 }
 
-IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, IOMRefinerPtr *aRefiner)
+IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, MtzPtr *anMtz)
 {
     logged << "(" << getFilename() << ") Trying solution from " << solutionPtr->spotVectorCount() << " vectors." << std::endl;
     sendLog(LogLevelNormal);
@@ -1737,7 +1723,6 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
         return IndexingSolutionTrialDuplicate;
     }
     
-    bool refineOrientations = FileParser::getKey("REFINE_ORIENTATIONS", true);
     int minimumSpotsExplained = FileParser::getKey("MINIMUM_SPOTS_EXPLAINED", 20);
     
     logged << solutionPtr->printNetwork();
@@ -1745,38 +1730,32 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     
     sendLog(LogLevelDetailed);
     
-    setUpIOMRefiner(solutionMatrix);
-    int lastRefiner = IOMRefinerCount() - 1;
-    IOMRefinerPtr refiner = getIOMRefiner(lastRefiner);
-    *aRefiner = refiner;
+    setUpCrystal(solutionMatrix);
+    int lastMtz = mtzCount() - 1;
+    MtzPtr myMtz = mtz(lastMtz);
+    *anMtz = myMtz;
 
-    if (refineOrientations)
-    {
-        refiner->refineOrientationMatrix();
-        bool similar = checkIndexingSolutionDuplicates(refiner->getMatrix(), true);
-        
-        if (similar)
-        {
-            removeRefiner(lastRefiner);
-            
-            badSolutions.push_back(solutionPtr);
-            logged << "Indexing solution too similar to previous solution after refinement. Continuing..." << std::endl;
-            sendLog(LogLevelNormal);
-            
-            return IndexingSolutionTrialDuplicate;
-        }
-    }
-    else
-    {
-		refiner->recalculateMillers(true);
-    }
-    
-    bool successfulImage = refiner->isGoodSolution();
-    
-    MtzPtr mtz = refiner->newMtz(lastRefiner, true);
-    *spotsRemoved = mtz->removeStrongSpots(&spots, false);
+	myMtz->refineOrientationMatrix(true);
+	similar = checkIndexingSolutionDuplicates(myMtz->getMatrix(), true);
+
+	if (similar)
+	{
+		removeCrystal(lastMtz);
+
+		badSolutions.push_back(solutionPtr);
+		logged << "Indexing solution too similar to previous solution after refinement. Continuing..." << std::endl;
+		sendLog(LogLevelNormal);
+
+		return IndexingSolutionTrialDuplicate;
+	}
+
+    bool successfulImage = myMtz->isGoodSolution();
+
     int minSpotsForImage = std::min(minimumSpotsExplained, (int)(spotCount() * 0.5));
-    
+
+	std::vector<SpotPtr> someSpots = spots;
+	*spotsRemoved = myMtz->removeStrongSpots(&someSpots);
+
     if (*spotsRemoved < minSpotsForImage)
     {
         logged << "(" << getFilename() << ") However, does not explain enough spots (" << *spotsRemoved << " vs  " << minSpotsForImage << ")" << std::endl;
@@ -1787,10 +1766,12 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     {
         logged << "(" << getFilename() << ") Enough spots are explained (" << *spotsRemoved << " vs  " << minSpotsForImage << ")" << std::endl;
         sendLog();
+		spots = someSpots;
+		myMtz->getWavelengthHistogram(NULL, NULL, false);
         
     }
     
-    removeRefiner(lastRefiner);
+    removeCrystal(lastMtz);
     
     return successfulImage ? IndexingSolutionTrialSuccess : IndexingSolutionTrialFailure;
 }
@@ -1798,7 +1779,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
 IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPtr)
 {
     bool acceptAllSolutions = FileParser::getKey("ACCEPT_ALL_SOLUTIONS", false);
-    IOMRefinerPtr normRefiner, modRefiner;
+    MtzPtr normRefiner, modRefiner;
     int spotsRemoved = 0;
     int modSpotsRemoved = 0;
     IndexingSolutionStatus status = tryIndexingSolution(solutionPtr, false, &spotsRemoved, &normRefiner);
@@ -1846,31 +1827,20 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     logged << "(" << getFilename() << ") " << (modBetter ? "custom ambiguity" : "expected ambiguity") << " is better." << std::endl;
     sendLog();
 
-    IOMRefinerPtr myRefiner = modBetter ? modRefiner : normRefiner;
-    myRefiner->setIndexingSolution(solutionPtr);
+    MtzPtr myMtz = modBetter ? modRefiner : normRefiner;
+    myMtz->setIndexingSolution(solutionPtr);
     
-    int lastRefiner = IOMRefinerCount();
-    addIOMRefiner(myRefiner);
-    MtzPtr mtz = myRefiner->newMtz(lastRefiner, true);
-    
+    addMtz(myMtz);
+
     logged << "Successful crystal for " << getFilename() << std::endl;
     Logger::log(logged); logged.str("");
     goodSolutions.push_back(solutionPtr);
-    int spotCountBefore = (int)spots.size();
-    
-    mtz->removeStrongSpots(&spots);
+
+    myMtz->removeStrongSpots(&spots);
     compileDistancesFromSpots();
     IndexingSolution::calculateSimilarStandardVectorsForImageVectors(spotVectors);
-    
-    int spotCountAfter = (int)spots.size();
-    
-    logged << "Removed spots; from " << spotCountBefore << " to " << spotCountAfter << "." << std::endl;
-    
-    Logger::log(logged); logged.str("");
-    
-    addMtz(mtz);
-    std::string imgFilename = "img-" + mtz->getFilename();
-    mtz->writeToFile(imgFilename, true);
+
+	myMtz->writeToFile("", true);
     
     return IndexingSolutionTrialSuccess;
 }
@@ -2074,18 +2044,20 @@ void Image::findIndexingSolutions()
     
     int maxSearch = FileParser::getKey("MAX_SEARCH_NUMBER_MATCHES", 2000);
     
-    if (IOMRefinerCount() > 0)
+    if (mtzCount() > 0)
     {
         logged << "Existing solution spot removal (image " << getFilename() << "):" << std::endl;
         
-        for (int i = 0; i < IOMRefinerCount(); i++)
+        for (int i = 0; i < mtzCount(); i++)
         {
-            MtzPtr mtz = getIOMRefiner(i)->newMtz(i);
-            int spotCountBefore = (int)spots.size();
-            mtz->removeStrongSpots(&spots);
+			MtzPtr anMtz = mtz(i);
+			anMtz->integrateChosenMillers();
+			int spotCountBefore = (int)spots.size();
+            anMtz->removeStrongSpots(&spots);
             int spotCountAfter = (int)spots.size();
             int spotDiff = spotCountBefore - spotCountAfter;
-            
+			anMtz->getWavelengthHistogram(NULL, NULL, false);
+
             logged << "Removed " << spotDiff << " spots from existing solution leaving " << spotCountAfter << " spots." << std::endl;
         }
 
@@ -2109,7 +2081,7 @@ void Image::findIndexingSolutions()
     if (maxLattices < maxSuccesses)
         maxLattices = maxSuccesses;
     
-    if (IOMRefinerCount() >= maxLattices)
+    if (mtzCount() >= maxLattices)
         return;
     
     int indexingTimeLimit = FileParser::getKey("INDEXING_TIME_LIMIT", 1200);
@@ -2161,7 +2133,7 @@ void Image::findIndexingSolutions()
                         }
                     }
                     
-                    if (successes >= maxSuccesses || IOMRefinerCount() >= maxLattices)
+                    if (successes >= maxSuccesses || mtzCount() >= maxLattices)
                     {
                         continuing = false;
                     }
@@ -2207,7 +2179,7 @@ void Image::findIndexingSolutions()
             
             if (reachedTime)
             {
-                logged << "N: Time limit reached on image " << getFilename() << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
+                logged << "N: Time limit reached on image " << getFilename() << " on " << mtzCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
                 sendLog();
                 return;
             }
@@ -2218,10 +2190,8 @@ void Image::findIndexingSolutions()
         }
     }
     
-    logged << "N: Finished image " << getFilename() << " on " << IOMRefinerCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
+    logged << "N: Finished image " << getFilename() << " on " << mtzCount() << " crystals and " << spotCount() << " remaining spots." << std::endl;
     sendLog();
-    
-    dropImage();
 }
 
 
@@ -2611,10 +2581,10 @@ void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
     
     for (int i = 0; i < images.size(); i++)
     {
-        for (int j = 0; j < images[i]->IOMRefinerCount(); j++)
+        for (int j = 0; j < images[i]->mtzCount(); j++)
         {
-            IOMRefinerPtr refiner = images[i]->getIOMRefiner(j);
-            IndexingSolutionPtr solution = refiner->getIndexingSolution();
+            MtzPtr anMtz = images[i]->mtz(j);
+            IndexingSolutionPtr solution = anMtz->getIndexingSolution();
             
             if (!solution)
                 continue;

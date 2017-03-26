@@ -359,8 +359,8 @@ void FileParser::intVector(ParametersMap *map, std::string command,
 void FileParser::generateDeprecatedList()
 {
     deprecatedList["MAX_MILLER_INDEX_TRIAL"] = "Please specify your maximum reciprocal distance using MAX_RECIPROCAL_DISTANCE.";
-    deprecatedList["MINIMUM_TRUST_DISTANCE"] = "This value is automatically calculated from INITIAL_RLP_SIZE. Please use this instead.";
-    deprecatedList["RECIPROCAL_TOLERANCE"] = "This value is now provided by INITIAL_RLP_SIZE. Please use this instead.";
+    deprecatedList["MINIMUM_TRUST_DISTANCE"] = "This value is automatically calculated from INDEXING_RLP_SIZE. Please use this instead.";
+    deprecatedList["RECIPROCAL_TOLERANCE"] = "This value is now provided by INDEXING_RLP_SIZE. Please use this instead.";
     deprecatedList["ROTATION_MODE"] = "This option has been removed as it provided no benefit.";
     deprecatedList["INITIAL_GRID_SEARCH"] = "This option has been removed as it provided no benefit.";
     deprecatedList["LANDSCAPE_DIVISIONS"] = "This option has been removed as it provided no benefit.";
@@ -399,6 +399,8 @@ void FileParser::generateDeprecatedList()
 	deprecatedList["NEW_INDEXING_METHOD"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
 	deprecatedList["MINIMUM_NEIGHBOURS"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
 
+	deprecatedList["BAD_SOLUTION_ST_DEV"] = "Basing goodness of indexing solutions on standard deviations has been disabled due to too high false positive/negative rates. Please rely on the other methods.";
+	deprecatedList["GOOD_SOLUTION_ST_DEV"] = "Basing goodness of indexing solutions on standard deviations has been disabled due to too high false positive/negative rates. Please rely on the other methods.";
 }
 
 void FileParser::generateCodeList()
@@ -486,15 +488,12 @@ void FileParser::generateCategories()
     CategoryMap indexing;
     std::vector<std::string> indexingSolutionChecks;
     indexingSolutionChecks.push_back("GOOD_SOLUTION_HIGHEST_PEAK");
-    indexingSolutionChecks.push_back("GOOD_SOLUTION_ST_DEV");
     indexingSolutionChecks.push_back("GOOD_SOLUTION_SUM_RATIO");
     indexingSolutionChecks.push_back("BAD_SOLUTION_HIGHEST_PEAK");
-    indexingSolutionChecks.push_back("BAD_SOLUTION_HIGHEST_PEAK");
-    indexingSolutionChecks.push_back("BAD_SOLUTION_ST_DEV");
     indexingSolutionChecks.push_back("MINIMUM_SPOTS_EXPLAINED");
     
     std::vector<std::string> easyIndexingParameters;
-    easyIndexingParameters.push_back("INITIAL_RLP_SIZE");
+    easyIndexingParameters.push_back("INDEXING_RLP_SIZE");
     easyIndexingParameters.push_back("MAX_RECIPROCAL_DISTANCE");
     easyIndexingParameters.push_back("INDEXING_TIME_LIMIT");
     easyIndexingParameters.push_back("SOLUTION_ATTEMPTS");
@@ -983,7 +982,8 @@ void FileParser::generateFunctionList()
     parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;
     parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
     parserMap["ROUGH_CALCULATION"] = simpleBool;
-    
+
+	parserMap["INDEXING_RLP_SIZE"] = simpleFloat;
     parserMap["MINIMUM_SPOTS_EXPLAINED"] = simpleInt;
     parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
     parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;
@@ -991,10 +991,8 @@ void FileParser::generateFunctionList()
     parserMap["ACCEPT_ALL_SOLUTIONS"] = simpleBool;
     parserMap["INDEXING_MIN_RESOLUTION"] = simpleFloat;
     parserMap["SPOTS_PER_LATTICE"] = simpleInt;
-    parserMap["GOOD_SOLUTION_ST_DEV"] = simpleFloat;
     parserMap["GOOD_SOLUTION_SUM_RATIO"] = simpleFloat;
     parserMap["GOOD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
-	parserMap["BAD_SOLUTION_ST_DEV"] = simpleFloat;
 	parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
 	parserMap["SOLUTION_ATTEMPTS"] = simpleInt;
     parserMap["MAX_RECIPROCAL_DISTANCE"] = simpleFloat;

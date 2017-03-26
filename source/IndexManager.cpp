@@ -78,7 +78,9 @@ void IndexManager::indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSu
         image->findIndexingSolutions();
         
         std::vector<MtzPtr> mtzs = image->currentMtzs();
-        
+
+		image->dropImage();
+
         mtzSubset->reserve(mtzSubset->size() + mtzs.size());
         mtzSubset->insert(mtzSubset->begin(), mtzs.begin(), mtzs.end());
     }
@@ -1160,18 +1162,19 @@ void IndexManager::indexingParameterAnalysis()
     histogramCSV("angleTrustAnalysis.csv", goodAnglesHistogram, badAnglesHistogram);
 }
 
-std::vector<IOMRefinerPtr> IndexManager::consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both)
+std::vector<MtzPtr> IndexManager::consolidateOrientations(ImagePtr image1,
+ImagePtr image2, int *oneHand, int *otherHand, int *both)
 {
-    std::vector<IOMRefinerPtr> refiners;
+    std::vector<MtzPtr> refiners;
     
-    for (int i = 0; i < image1->IOMRefinerCount(); i++)
+    for (int i = 0; i < image1->mtzCount(); i++)
     {
         bool found = false;
-        IOMRefinerPtr refiner1 = image1->getIOMRefiner(i);
+        MtzPtr refiner1 = image1->mtz(i);
         
-        for (int j = 0; j < image2->IOMRefinerCount(); j++)
+        for (int j = 0; j < image2->mtzCount(); j++)
         {
-            IOMRefinerPtr refiner2 = image2->getIOMRefiner(j);
+            MtzPtr refiner2 = image2->mtz(j);
             
             MatrixPtr mat1 = refiner1->getMatrix();
             MatrixPtr mat2 = refiner2->getMatrix();
@@ -1193,14 +1196,14 @@ std::vector<IOMRefinerPtr> IndexManager::consolidateOrientations(ImagePtr image1
         }
     }
     
-    for (int i = 0; i < image2->IOMRefinerCount(); i++)
+    for (int i = 0; i < image2->mtzCount(); i++)
     {
-        IOMRefinerPtr refiner1 = image2->getIOMRefiner(i);
+        MtzPtr refiner1 = image2->mtz(i);
         bool found = false;
         
-        for (int j = 0; j < image1->IOMRefinerCount(); j++)
+        for (int j = 0; j < image1->mtzCount(); j++)
         {
-            IOMRefinerPtr refiner2 = image1->getIOMRefiner(j);
+            MtzPtr refiner2 = image1->mtz(j);
             
             MatrixPtr mat1 = refiner1->getMatrix();
             MatrixPtr mat2 = refiner2->getMatrix();
@@ -1251,9 +1254,9 @@ void IndexManager::combineLists()
                 found = true;
                 // we have a duplicate! check individual orientations
                 
-                std::vector<IOMRefinerPtr> newRefiners = consolidateOrientations(image1, image2, &oneHand, &otherHand, &both);
-                image1->clearIOMRefiners();
-                image1->setIOMRefiners(newRefiners);
+                std::vector<MtzPtr> newRefiners = consolidateOrientations(image1, image2, &oneHand, &otherHand, &both);
+                image1->clearMtzs();
+                image1->addMtzs(newRefiners);
                 mergedImages.push_back(image1);
                 
                 break;
@@ -1263,7 +1266,7 @@ void IndexManager::combineLists()
         if (!found)
         {
             mergedImages.push_back(image1);
-            oneHand += image1->IOMRefinerCount();
+            oneHand += image1->mtzCount();
         }
     }
     
@@ -1288,7 +1291,7 @@ void IndexManager::combineLists()
         if (!found)
         {
             mergedImages.push_back(image1);
-            otherHand += image1->IOMRefinerCount();
+            otherHand += image1->mtzCount();
         }
     }
     

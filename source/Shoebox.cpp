@@ -55,8 +55,6 @@ void Shoebox::simpleShoebox(int foregroundLength, int neitherLength, int backgro
     int adjustment2 = shoeboxEven ? -1 : 0;
     even = shoeboxEven;
     
-    sendLog();
-    
     clearShoebox();
     
     for (int i = 0; i < backgroundLength * 2 + adjustment1; i++)

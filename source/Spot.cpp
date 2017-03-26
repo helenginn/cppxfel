@@ -419,7 +419,6 @@ vec Spot::estimatedVector()
         }
     }
     
-    arrangedPos.k = -arrangedPos.k;
     scale_vector_to_distance(&arrangedPos, storedRadius);
     arrangedPos.l -= storedRadius;
     

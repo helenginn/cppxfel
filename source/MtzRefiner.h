@@ -17,7 +17,6 @@ class IndexManager;
 class MtzRefiner : public LoggableObject
 {
 private:
-    vector<MtzPtr> mtzManagers;
 	MtzPtr reference;
     MtzPtr referencePtr;
 	vector<ImagePtr> images;
@@ -27,7 +26,8 @@ private:
     static void findSpotsThread(MtzRefiner *me, int offset);
     void readFromHdf5(std::vector<ImagePtr> *newImages);
     bool readRefinedMtzs;
-IndexManager *indexManager;
+	std::vector<MtzPtr> getAllMtzs();
+	IndexManager *indexManager;
     static int cycleNum;
     bool hasRefined;
     int maxThreads;
@@ -66,9 +66,8 @@ public:
     static void fakeSpotsThread(std::vector<ImagePtr> *images, int offset);
     void fakeSpots();
     void integrationSummary();
-	static void integrateImagesWrapper(MtzRefiner *object,
-			vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
-	void integrateImages(vector<MtzPtr> *&mtzSubset, int offset, bool orientation);
+	static void integrateImagesWrapper(MtzRefiner *object, vector<MtzPtr> *&mtzSubset, int offset);
+	void integrateImages(vector<MtzPtr> *&mtzSubset, int offset);
 	void readMatricesAndImages(std::string *filename = NULL, bool areImages = true, std::vector<ImagePtr> *targetImages = NULL);
     void combineLists();
     
@@ -83,12 +82,7 @@ public:
     {
         return cycleNum;
     }
-    
-    vector<MtzPtr> getMtzManagers()
-    {
-        return mtzManagers;
-    }
-    
+
     bool isFromPython()
     {
         return isPython;

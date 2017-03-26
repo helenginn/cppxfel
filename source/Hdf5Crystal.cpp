@@ -6,6 +6,7 @@
 //  Copyright (c) 2016 Division of Structural Biology Oxford. All rights reserved.
 //
 
+#include "Reflection.h"
 #include "Hdf5Crystal.h"
 #include "Hdf5Image.h"
 #include "Hdf5ManagerProcessing.h"

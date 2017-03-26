@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Division of Structural Biology Oxford. All rights reserved.
 //
 
-
+#include <float.h>
 #include "IndexingSolution.h"
 #include "FileParser.h"
 #include "Logger.h"
@@ -305,9 +305,6 @@ MatrixPtr IndexingSolution::createSolution(SpotVectorPtr firstObserved, SpotVect
   
     // We want to apply the first matrix and then the second matrix, so we multiply these.
     rotateSpotDiffMatrix->multiply(*secondTwizzleMatrix);
-
-    // Rotate because of funny business from cctbx.xfel (rotated matrix is 90º from DIALS).
-    rotateSpotDiffMatrix->rotate(0, 0, -M_PI/2);
     
     // Create the goods.
     MatrixPtr fullMat = MatrixPtr(new Matrix());

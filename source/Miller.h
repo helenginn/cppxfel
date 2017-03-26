@@ -83,9 +83,9 @@ private:
     BeamPtr beam;
     ImageWeakPtr image;
     DetectorWeakPtr lastDetector;
-    IOMRefinerWeakPtr refiner;
     ShoeboxPtr shoebox;
 	MtzManager *mtzParent;
+	void makeShoebox();
 
 	unsigned char flipMatrix;
     static bool absoluteIntensity;
@@ -128,7 +128,7 @@ public:
 	bool positiveFriedel(bool *positive, int *isym = NULL);
 	void setRejected(RejectReason reason, bool rejection);
 	bool isRejected(RejectReason reason);
-	void integrateIntensity(MatrixPtr transformedMatrix);
+	void integrateIntensity(bool quick = false);
     
 	bool accepted(void);
 	bool isFree()
@@ -388,15 +388,9 @@ public:
 		this->shift = shift;
 	}
     
-    void setImageAndIOMRefiner(ImagePtr newImage, IOMRefinerPtr indexer)
+    void setImage(ImagePtr newImage)
     {
         if (newImage) this->image = newImage;
-        if (indexer) this->refiner = indexer;
-    }
-    
-    IOMRefinerPtr getIOMRefiner()
-    {
-        return refiner.lock();
     }
     
     ImagePtr getImage()

@@ -424,7 +424,18 @@ public:
     /* Keeping track of all Millers */
     
     void addMillerCarefully(MillerPtr miller);
-    
+
+	void clearMillers()
+	{
+		millers.clear();
+		std::vector<MillerWeakPtr>().swap(millers);
+
+		for (int i = 0; i < childrenCount(); i++)
+		{
+			getChild(i)->clearMillers();
+		}
+	}
+
     size_t millerCount()
     {
         return millers.size();
