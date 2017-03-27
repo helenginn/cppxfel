@@ -393,7 +393,12 @@ void Image::addValueAt(int x, int y, int addedValue)
 int Image::rawValueAt(int x, int y)
 {
     loadImage();
-    
+
+	if (!isLoaded())
+	{
+		return 0;
+	}
+
     if (x < 0 || y < 0)
         return 0;
     
@@ -1010,7 +1015,7 @@ bool Image::accepted(int x, int y)
         return false;
     }
     
-    if (generalMask.size() && generalMask[pos] == 0)
+    if (pos < generalMask.size() && generalMask[pos] == 0)
     {
         return false;
     }
