@@ -1481,7 +1481,11 @@ void MtzRefiner::plotPixelValueVsFiducial()
 	loadImageFiles();
 
 	CSVPtr csv = CSVPtr(new CSV(2, "fiducial", "value"));
-	int x = 50; int y = 50;
+
+	std::vector<int> pix = FileParser::getKey("SPECIAL_PIXEL", std::vector<int>(50, 2));
+
+	int x = pix[0];
+	int y = pix[1];
 
 	for (int i = 0; i < images.size(); i++)
 	{

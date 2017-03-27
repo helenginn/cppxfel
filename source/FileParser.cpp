@@ -1053,6 +1053,7 @@ void FileParser::generateFunctionList()
     parserMap["DETECTOR_LIST"] = simpleString;
     
     parserMap["MILLER_INDEX"] = intVector;
+	parserMap["SPECIAL_PIXEL"] = intVector;
 }
 
 ParserFunction FileParser::splitLine(std::string line, std::string &command,
