@@ -75,8 +75,8 @@ void MtzRefiner::cycleThread(int offset)
 
 			if (!mtz->isRejected())
 			{
-				logged << "Refining image " << i << " " << image->getFilename() << std::endl;
-				Logger::mainLogger->addStream(&logged);
+//				logged << "Refining image " << i << " " << image->getFilename() << std::endl;
+//				Logger::mainLogger->addStream(&logged);
 
 				bool silent = (targets.size() > 0);
 

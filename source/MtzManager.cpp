@@ -502,6 +502,11 @@ void MtzManager::loadReflections()
 
 		if (givenUnitCell.size() == 6)
 		{
+			if (!matrix)
+			{
+				matrix = MatrixPtr(new Matrix());
+			}
+
 			setUnitCell(givenUnitCell);
 			lockUnitCellDimensions();
 			getMatrix()->changeOrientationMatrixDimensions(givenUnitCell);
