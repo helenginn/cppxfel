@@ -956,14 +956,15 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
     }
   
     double totalSigmaForBackground = sqrt(background);
-    double averageSigmaForBackground = totalSigmaForBackground / (double)backNum;
-    
+	double averageSigmaForBackground = 0;
 	double aveBackground = 0;
 
 	if (backNum > 0)
 	{
+		averageSigmaForBackground = totalSigmaForBackground / (double)backNum;
 		aveBackground = (double) background / (double) backNum;
 	}
+
     double backgroundInForeground = aveBackground * (double) foreNum;
     
     double totalSigmaForForeground = sqrt(foreground);
