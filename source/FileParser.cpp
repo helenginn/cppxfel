@@ -1051,7 +1051,6 @@ void FileParser::generateFunctionList()
     parserMap["EXPECTED_GEOMETRY_MOVEMENT"] = simpleFloat;
     
     parserMap["DETECTOR_LIST"] = simpleString;
-
     
     parserMap["MILLER_INDEX"] = intVector;
 }

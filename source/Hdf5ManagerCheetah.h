@@ -73,10 +73,20 @@ public:
         return (int)imagePaths.size();
     }
     
-    std::string imageAddress(int i)
+	int numberForAddress(std::string address)
     {
-        return imagePaths[i];
+        if (imagePathMap.count(address) == 0)
+		{
+			return -1;
+		}
+
+		return imagePathMap[address];
     }
+
+	std::string imageAddress(int i)
+	{
+		return imagePaths[i];
+	}
 };
 
 #endif /* defined(__cppxfel__Hdf5ManagerCheetah__) */

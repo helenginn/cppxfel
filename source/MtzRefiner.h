@@ -96,10 +96,10 @@ public:
     void setupFreeMillers();
     void polarisationGraph();
     void displayIndexingHands();
+	void plotPixelValueVsFiducial();
     
     void writeAllNewOrientations();
     void writeNewOrientations(bool includeRots = false, bool detailed = false);
-    void removeSigmaValues();
     void integrateSpots();
     void linearScaling();
     

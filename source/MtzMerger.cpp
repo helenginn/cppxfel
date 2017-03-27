@@ -857,9 +857,12 @@ MtzMerger::MtzMerger()
 
 void MtzMerger::merge()
 {
-    double refScale = 1000 / MtzManager::getReferenceManager()->averageIntensity();
-    MtzManager::getReferenceManager()->applyScaleFactor(refScale);
-    
+	if (MtzManager::getReferenceManager())
+	{
+		double refScale = 1000 / MtzManager::getReferenceManager()->averageIntensity();
+		MtzManager::getReferenceManager()->applyScaleFactor(refScale);
+	}
+
     writeParameterCSV();
     
     if (allMtzs.size() <= 1)

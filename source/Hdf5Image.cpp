@@ -377,3 +377,28 @@ void Hdf5Image::getWavelengthFromHdf5()
         this->setWavelength(wavelength);
     }
 }
+
+int Hdf5Image::getFiducial()
+{
+	std::string address = "LCLS/fiducial";
+	int fiducial = 0;
+	int *fidPtr = &fiducial;
+
+	Hdf5ManagerCheetahPtr manager = this->getManager();
+
+	if (!manager)
+	{
+		return 0;
+	}
+
+	int index = manager->numberForAddress(imageAddress);
+
+	if (index < 0)
+	{
+		return -1;
+	}
+	
+	manager->dataForAddress(address, (void **)&fidPtr, index);
+
+	return fiducial;
+}

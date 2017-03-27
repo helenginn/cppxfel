@@ -186,12 +186,6 @@ void InputFileParser::parse(bool fromPython)
                 refiner->merge(true);
 			}
             
-            if (line == "REMOVE_SIGMA_VALUES")
-            {
-                understood = true;
-                refiner->removeSigmaValues();
-            }
-            
             if (line == "DISPLAY_INDEXING_HANDS")
             {
                 understood = true;
@@ -240,7 +234,13 @@ void InputFileParser::parse(bool fromPython)
                 understood = true;
                 refiner->initialMerge();
             }
-            
+
+			if (line == "PIXEL_VS_FIDUCIAL")
+			{
+				understood = true;
+				refiner->plotPixelValueVsFiducial();
+			}
+
             if (line == "ORIENTATION_PLOT")
             {
                 understood = true;

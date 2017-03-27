@@ -25,7 +25,6 @@ private:
     Hdf5Table spotTable;
     void createSpotTable();
     void getWavelengthFromHdf5();
-    
 protected:
     
 public:
@@ -69,6 +68,7 @@ public:
     void writeSpotsList(std::string spotFile);
     void processSpotList();
     void loadCrystals();
+	virtual int getFiducial();
 
     virtual ImageClass getClass()
     {

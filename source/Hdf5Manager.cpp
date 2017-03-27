@@ -424,6 +424,12 @@ bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer, int off
     try
     {
         hid_t dataset = H5Dopen1(handle, dataAddress.c_str());
+
+		if (dataset < 0)
+		{
+			return false;
+		}
+
         hid_t type = H5Dget_type(dataset);
         
         if (offset == -1) // numDims = 2
@@ -436,19 +442,30 @@ bool Hdf5Manager::dataForAddress(std::string dataAddress, void **buffer, int off
             hsize_t unsigned_offset[3];
             hsize_t count[3];
             int numDims = H5Sget_simple_extent_ndims(space);
-            
-            if (numDims < 2)
+
+
+			if (numDims == 1)
+			{
+				// default to: a single value from an array, OK!
+
+				count[0] = 1;
+				hid_t memspace_id = H5Screate_simple (1, count, NULL);
+				unsigned_offset[0] = offset;
+
+				H5Sselect_hyperslab(space, H5S_SELECT_SET, unsigned_offset, NULL, count, NULL);
+				H5Dread(dataset, type, memspace_id, space, H5P_DEFAULT, *buffer);
+				H5Sclose(space);
+				H5Sclose(memspace_id);
+			}
+            else if (numDims == 2)
             {
-                logged << "I have no idea what this error message should say!" << std::endl;
-                sendLog();
-            }
-            else if (numDims < 3)
-            {
+				// act as though this is a SACLA image
+
                 H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, *buffer);
             }
             else
             {
-                /* make data space thing */
+                /* act as though this is from LCLS CXI file*/
                 hsize_t dims[numDims];
                 H5Sget_simple_extent_dims(space, dims, NULL);
                 

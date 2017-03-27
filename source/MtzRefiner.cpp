@@ -18,6 +18,7 @@
 #include "AmbiguityBreaker.h"
 #include "IndexManager.h"
 #include "FreeMillerLibrary.h"
+#include "CSV.h"
 
 #include "FileParser.h"
 #include "parameters.h"
@@ -310,6 +311,20 @@ bool MtzRefiner::loadInitialMtz(bool force)
     return hasInitialMtz;
 }
 
+
+int MtzRefiner::imageSkip(size_t totalCount)
+{
+	int skip = FileParser::getKey("IMAGE_SKIP", 0);
+
+	if (skip > totalCount)
+	{
+		std::ostringstream logged;
+		logged << "IMAGE_SKIP specified is beyond the image count of the available images." << std::endl;
+		LoggableObject::staticLogAndExit(logged);
+	}
+
+	return skip;
+}
 
 int MtzRefiner::imageMax(size_t lineCount)
 {
@@ -1461,6 +1476,46 @@ void MtzRefiner::integrateSpots()
 
 // MARK: Miscellaneous
 
+void MtzRefiner::plotPixelValueVsFiducial()
+{
+	loadImageFiles();
+
+	CSVPtr csv = CSVPtr(new CSV(2, "fiducial", "value"));
+	int x = 50; int y = 50;
+
+	for (int i = 0; i < images.size(); i++)
+	{
+		ImagePtr image = images[i];
+
+		double value = image->valueAt(x, y);
+		double fiducial = image->getFiducial();
+
+		if (fiducial < 0)
+		{
+			logged << "Fiducial not found for image " << image->getFilename() << std::endl;
+			sendLog();
+			continue;
+		}
+
+		csv->addEntry(2, fiducial, value);
+
+		image->dropImage();
+	}
+
+	std::string filename = "pixel_vs_fiducial_" + i_to_str(x) +  "_" +  i_to_str(y);
+	csv->writeToFile(filename + ".csv");
+
+	std::map<std::string, std::string> plotMap;
+	plotMap["filename"] = filename;
+	plotMap["xHeader0"] = "fiducial";
+	plotMap["yHeader0"] = "value";
+	plotMap["xTitle0"] = "Fiducial for frame";
+	plotMap["yTitle0"] = "Pixel value ADU";
+	plotMap["style0"] = "line";
+
+	csv->plotPNG(plotMap);
+}
+
 void MtzRefiner::plotIntegrationWindows()
 {
     int h, k, l;
@@ -1577,20 +1632,6 @@ MtzRefiner::~MtzRefiner()
     // TODO Auto-generated destructor stub
 }
 
-void MtzRefiner::removeSigmaValues()
-{
-	std::vector<MtzPtr> mtzManagers = getAllMtzs();
-
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        mtzManagers[i]->setSigmaToUnity();
-    }
-    
-    if (MtzManager::getReferenceManager() != NULL)
-        MtzManager::getReferenceManager()->setSigmaToUnity();
-}
-
-
 void MtzRefiner::displayIndexingHands()
 {
 	std::vector<MtzPtr> mtzManagers = getAllMtzs();
@@ -1624,20 +1665,6 @@ void MtzRefiner::orientationPlot()
 {
     GraphDrawer drawer = GraphDrawer(NULL);
     drawer.plotOrientationStats(getAllMtzs());
-}
-
-int MtzRefiner::imageSkip(size_t totalCount)
-{
-    int skip = FileParser::getKey("IMAGE_SKIP", 0);
-    
-    if (skip > totalCount)
-    {
-        std::ostringstream logged;
-        logged << "IMAGE_SKIP specified is beyond the image count of the available images." << std::endl;
-        LoggableObject::staticLogAndExit(logged);
-    }
-    
-    return skip;
 }
 
 void MtzRefiner::writePNGs(int total)
