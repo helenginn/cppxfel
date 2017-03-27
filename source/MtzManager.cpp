@@ -1413,6 +1413,13 @@ void MtzManager::calculateNearbyMillers()
 	double maxDistSquared = pow(1 / maxResolutionAll, 2);
 	double minResolutionSquared = pow(1 / minResolutionAll, 2);
 
+	CCP4SPG *spg = getSpaceGroup();
+	if (!spg)
+	{
+		logged << "Error: Trying to integrate reflections, but could not load missing SPACE_GROUP information." << std::endl;
+		sendLogAndExit();
+	}
+
 	for (int h = -maxMillers[0]; h < maxMillers[0]; h++)
 	{
 		for (int k = -maxMillers[1]; k < maxMillers[1]; k++)
@@ -1483,6 +1490,14 @@ void MtzManager::checkNearbyMillers()
 	MatrixPtr matrix = getMatrix();
 
 	std::vector<double> unitCell = getUnitCell();
+
+	if (!(unitCell.size() == 6))
+	{
+		logged << "Error: Trying to integrate reflections, but need the UNIT_CELL dimension information." << std::endl;
+		sendLogAndExit();
+	}
+
+
 	lockUnitCellDimensions();
 	matrix->changeOrientationMatrixDimensions(unitCell);
 
@@ -1506,9 +1521,6 @@ void MtzManager::checkNearbyMillers()
 	sendLog(LogLevelDetailed);
 
 	Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &rotatedMatrix);
-
-	logged << "Checking " << nearbyMillers.size() << " reflections." << std::endl;
-	sendLog(LogLevelDetailed);
 
 	for (int i = 0; i < nearbyMillers.size(); i++)
 	{
@@ -1554,7 +1566,7 @@ void MtzManager::checkNearbyMillers()
 	logged << "Using wavelength " << wavelength << " Å." << std::endl;
 	logged << "Beyond resolution cutoff: " << cutResolution << std::endl;
 	logged << "Partiality equal to 0: " << partialityTooLow << std::endl;
-	logged << "Image pixels were masked/flagged: " << unacceptableIntensity << std::endl;
+	logged << "Reflections left: " << millerCount() << std::endl;
 
 	sendLog(LogLevelDetailed);
 }

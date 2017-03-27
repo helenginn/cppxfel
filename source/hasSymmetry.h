@@ -60,6 +60,7 @@ public:
 	void lockUnitCellDimensions()
 	{
 		double spgNum = _spaceGroup->spg_num;
+
 		if (spgNum >= 75 && spgNum <= 194)
 		{
 			_unitCell[1] = _unitCell[0];
