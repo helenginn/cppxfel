@@ -872,10 +872,10 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
     
     shoebox->sideLengths(&slowSide, &fastSide);
     
-    int foreground = 0;
+    double foreground = 0;
     int foreNum = 0;
     
-    int background = 0;
+    double background = 0;
     int backNum = 0;
     
     int rejects = 0;
@@ -953,7 +953,12 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
     double totalSigmaForBackground = sqrt(background);
     double averageSigmaForBackground = totalSigmaForBackground / (double)backNum;
     
-    double aveBackground = (double) background / (double) backNum;
+	double aveBackground = 0;
+
+	if (backNum > 0)
+	{
+		aveBackground = (double) background / (double) backNum;
+	}
     double backgroundInForeground = aveBackground * (double) foreNum;
     
     double totalSigmaForForeground = sqrt(foreground);
