@@ -514,9 +514,12 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 					{
 						vector<double> correction = FileParser::getKey("ORIENTATION_CORRECTION", vector<double>());
 
-						if (fromDials && !v3)
+						if (fromDials)
 						{
 							rotation->rotate(0, 0, M_PI / 2);
+							rotation->components[1] *= -1;
+							rotation->components[5] *= -1;
+							rotation->components[9] *= -1;
 						}
 
 						if (correction.size() >= 2)

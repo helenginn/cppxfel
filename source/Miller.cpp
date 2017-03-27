@@ -771,7 +771,7 @@ bool Miller::positiveFriedel(bool *positive, int *_isym)
     
     int isym = CSym::ccp4spg_put_in_asu(spg, h, k, l, &_h, &_k, &_l);
     
-    *positive = ((isym % 2) == 1);
+    *positive = ((isym % 2) == 0);
     
     return isym != 0;
 }
