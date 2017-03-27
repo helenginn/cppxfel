@@ -1010,7 +1010,7 @@ bool Image::accepted(int x, int y)
         return false;
     }
     
-    if (generalMask[pos] == 0)
+    if (generalMask.size() && generalMask[pos] == 0)
     {
         return false;
     }
