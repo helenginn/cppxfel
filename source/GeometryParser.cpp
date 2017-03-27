@@ -383,7 +383,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     std::map<std::string, std::string> panelMap;
     bool isSacla = false;
 
-	if (FileParser::getKey("DETECTOR_DISTANCE", 0) <= 0)
+	if (FileParser::getKey("DETECTOR_DISTANCE", 0.) <= 0)
 	{
 		logged << "Detector distance not set or set to zero/negative." << std::endl;
 		logged << "You must specify a detector distance for CrystFEL geometry format!" << std::endl;
