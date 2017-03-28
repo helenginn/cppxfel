@@ -1433,14 +1433,6 @@ void MtzRefiner::powderPattern()
     indexManager->powderPattern();
 }
 
-void MtzRefiner::indexingParameterAnalysis()
-{
-    if (!indexManager)
-        indexManager = new IndexManager(images);
-    
-    indexManager->indexingParameterAnalysis();
-}
-
 // MARK: SACLA stuff for April 2016
 
 

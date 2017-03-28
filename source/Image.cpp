@@ -1178,19 +1178,6 @@ unsigned char Image::maximumOverlapMask(int x, int y, ShoeboxPtr shoebox)
     return max;
 }
 
-void Image::updateAllSpots()
-{
-    for (int i = 0; i < spots.size(); i++)
-    {
-        spots[i]->setUpdate();
-    }
-    
-    for (int i = 0; i < spotVectors.size(); i++)
-    {
-        spotVectors[i]->setUpdate();
-    }
-}
-
 void Image::addSpotIfNotMasked(SpotPtr newSpot)
 {
     bool masked = SolventMask::isMasked(newSpot);

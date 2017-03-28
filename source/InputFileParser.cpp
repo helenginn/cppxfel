@@ -271,12 +271,6 @@ void InputFileParser::parse(bool fromPython)
                 refiner->powderPattern();
             }
             
-            if (line == "INDEXING_PARAMETER_ANALYSIS")
-            {
-                understood = true;
-                refiner->indexingParameterAnalysis();
-            }
-            
             if (line == "COMBINE_LISTS")
             {
                 understood = true;

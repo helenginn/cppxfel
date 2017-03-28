@@ -45,15 +45,12 @@ protected:
     PseudoScoreType scoreType;
     double proportionDistance;
     static double pseudoAngleScore(void *object);
-    double pseudoDistanceConsistency();
-    void processConsistencyVector(SpotVectorPtr vec, CSVPtr distCSV, bool lock = false, bool skipCheck = false);
     CSVPtr angleCSV;
     CSVPtr angleConsistencyCSV;
     bool _canLockVectors;
     int _cycleNum;
     PseudoScoreWeightingAxis _axisWeighting;
     
-    void updateAllSpots();
     double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;
@@ -120,12 +117,10 @@ public:
     
     static double pseudoDistanceScore(void *object, bool writeToCSV = false, std::string tag = "");
     void combineLists();
-    void indexingParameterAnalysis();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
     void pseudoAngleCSV();
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
-    void refineUnitCell();
     
     void lockVectors()
     {

@@ -199,7 +199,6 @@ public:
     void filterSpotVectors();
     void plotTakeTwoVectors(std::vector<ImagePtr> images);
     int throwAwayIntegratedSpots(std::vector<MtzPtr> mtzs);
-    void updateAllSpots();
     bool acceptableSpotCount();
 
     void addSpotIfNotMasked(SpotPtr newSpot);

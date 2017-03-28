@@ -49,7 +49,6 @@ private:
 
 public:
     void setup();
-    void refineUnitCell(PowderHistogram histogram);
     void getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax);
     void weightUnitCell();
     

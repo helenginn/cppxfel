@@ -44,7 +44,6 @@ public:
     void index();
     void powderPattern();
 	bool loadInitialMtz(bool force = false);
-    void indexingParameterAnalysis();
     
 	void cycle();
 	void cycleThread(int offset);

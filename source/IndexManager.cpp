@@ -168,12 +168,6 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
 double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
- 
-    if (me->_axisWeighting != PseudoScoreWeightingAxisNone)
-    {
-        double distanceScore = me->pseudoDistanceConsistency();
-        return distanceScore;
-    }
     
     double angleScore = (me->proportionDistance < 0.999) ? pseudoAngleScore(object) : 0;
     double distanceScore = (me->proportionDistance > 0.0001) ? pseudoDistanceScore(object) : 0;
@@ -182,36 +176,6 @@ double IndexManager::pseudoScore(void *object)
     distanceScore *= me->proportionDistance;
     
     return angleScore + distanceScore;
-}
-
-void IndexManager::processConsistencyVector(SpotVectorPtr vect, CSVPtr distCSV, bool lock, bool skipCheck)
-{
-    if (!skipCheck && !checkVector(vect))
-    {
-        return;
-    }
-
-    vect->setUpdate();
-    double realDistance = vect->distance();
-    vec firstSpotVec = vect->getFirstSpot()->estimatedVector();
-    vec secondSpotVec = vect->getFirstSpot()->estimatedVector();
-    
-    add_vector_to_vector(&firstSpotVec, secondSpotVec);
-    double axisValue =  (_axisWeighting == PseudoScoreWeightingAxisH) ? firstSpotVec.h : firstSpotVec.k;
-    
-    double distanceWeight = lattice->weightForDistance(realDistance);
-    double axisWeight = 1;//fabs(axisValue);
-    distanceWeight *= sqrt(axisWeight);
-//    distanceWeight *= vect->getFirstSpot()->getParentImage()->getSpotVectorWeight();
-    
-    int column = axisValue > 0 ? 1 : 2;
-    
-    distCSV->addOneToFrequency(realDistance, column, distanceWeight);
-    
-    if (lock)
-    {
-        goodVectors.push_back(vect);
-    }
 }
 
 bool IndexManager::processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck)
@@ -236,51 +200,6 @@ bool IndexManager::processVector(SpotVectorPtr vec, double *score, double *count
     }
     
     return true;
-}
-
-double IndexManager::pseudoDistanceConsistency()
-{
-    double score = 0;
-    double count = 0;
-    
-    bool locked = (goodVectors.size() > 0);
-    CSVPtr distCSV = CSVPtr(new CSV(0));
-    double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
-    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
-    distCSV->setupHistogram(0, maxDistance, step, "Distance", 4, "half1", "half2", "convol1", "convol2");
-    
-    if (!locked)
-    {
-        for (int i = 0; i < images.size(); i++)
-        {
-            for (int j = 0; j < images[i]->spotVectorCount(); j++)
-            {
-                SpotVectorPtr vec = images[i]->spotVector(j);
-                processConsistencyVector(vec, distCSV, _canLockVectors, false);
-            }
-        }
-    }
-    else
-    {
-        for (int i = 0; i < goodVectors.size(); i++)
-        {
-            SpotVectorPtr vec = goodVectors[i];
-            processConsistencyVector(vec, distCSV, false, true);
-        }
-    }
-    
-    for (int i = 0; i < distCSV->entryCount(); i++)
-    {
-        distCSV->convolutedPeaks("Distance", "half1", "convol1", 0, ConvolutionTypeUniform);
-        distCSV->convolutedPeaks("Distance", "half2", "convol2", 0, ConvolutionTypeUniform);
-        double value1 = distCSV->valueForEntry("convol1", i);
-        double value2 = distCSV->valueForEntry("convol2", i);
-        
-        score -= value1 * value2;
-        count++;
-    }
-    
-    return score / pow(count, 2);
 }
 
 std::string targetString(PseudoScoreType type)
@@ -947,20 +866,6 @@ void IndexManager::powderPattern(std::string csvName, bool force)
    // angleLog.close();
 }
 
-void IndexManager::refineUnitCell()
-{
-    bool alwaysFilterSpots = FileParser::getKey("ALWAYS_FILTER_SPOTS", false);
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        images[i]->compileDistancesFromSpots(maxDistance, smallestDistance, alwaysFilterSpots);
-    }
-    
-    PowderHistogram frequencies = generatePowderHistogram();
-    
-    lattice->refineUnitCell(frequencies);
-}
-
 ImagePtr IndexManager::getNextImage()
 {
     std::lock_guard<std::mutex> lock(indexMutex);
@@ -1085,81 +990,6 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
     }
     
     return frequencies;
-}
-
-void IndexManager::updateAllSpots()
-{
-    for (int i = 0; i < images.size(); i++)
-    {
-        images[i]->updateAllSpots();
-    }
-}
-
-void IndexManager::indexingParameterAnalysis()
-{
-    std::vector<double> goodNetworkCount, badNetworkCount;
-    std::vector<double> goodDistanceTrusts, badDistanceTrusts;
-    std::vector<double> goodAngleTrusts, badAngleTrusts;
-    std::vector<double> goodDistances, badDistances;
-    
-    logged << "Indexing parameter analysis." << std::endl;
-    sendLog();
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        logged << "Processing image " << images[i]->getFilename() << std::endl;
-        sendLog();
-        
-        for (int good = 0; good < 2; good++)
-        {
-            std::vector<double> *networkCount = good ? &goodNetworkCount : &badNetworkCount;
-            std::vector<double> *distanceTrusts = good ? &goodDistanceTrusts : &badDistanceTrusts;
-            std::vector<double> *angles = good ? &goodAngleTrusts : &badAngleTrusts;
-            std::vector<double> *distances = good ? &goodDistances : &badDistances;
-            
-            for (int j = 0; j < images[i]->goodOrBadSolutionCount(good); j++)
-            {
-                IndexingSolutionPtr solution = images[i]->getGoodOrBadSolution(j, good);
-                
-                networkCount->push_back(solution->spotVectorCount());
-                
-                std::vector<double> additionalTrusts = solution->totalDistanceTrusts();
-                distanceTrusts->reserve(distanceTrusts->size() + additionalTrusts.size());
-                distanceTrusts->insert(distanceTrusts->begin(), additionalTrusts.begin(), additionalTrusts.end());
-                
-                std::vector<double> additionalDistances = solution->totalDistances();
-                distances->reserve(distances->size() + additionalDistances.size());
-                distances->insert(distances->begin(), additionalDistances.begin(), additionalDistances.end());
-                
-                std::vector<double> additionalAngles = solution->totalAngles();
-                angles->reserve(angles->size() + additionalAngles.size());
-                angles->insert(angles->begin(), additionalAngles.begin(), additionalAngles.end());
-            }
-        }
-    }
-    /*
-    std::vector<double> goodNetworkCount, badNetworkCount;
-    std::vector<double> goodDistanceTrusts, badDistanceTrusts;
-    std::vector<double> goodAngleTrusts, badAngleTrusts;
-    std::vector<double> goodDistances, badDistances;
-    */
-    
-    std::map<double, int> goodNetworkCountHistogram = histogram(goodNetworkCount, 2);
-    std::map<double, int> badNetworkCountHistogram = histogram(badNetworkCount, 2);
-    histogramCSV("networkCountAnalysis.csv", goodNetworkCountHistogram, badNetworkCountHistogram);
-
-    std::map<double, int> goodDistanceTrustsHistogram = histogram(goodDistanceTrusts, 100);
-    std::map<double, int> badDistanceTrustsHistogram = histogram(badDistanceTrusts, 100);
-    histogramCSV("distanceTrustAnalysis.csv", goodDistanceTrustsHistogram, badDistanceTrustsHistogram);
-
-    double powderPatternStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.001);
-    std::map<double, int> goodDistancesHistogram = histogram(goodDistances, powderPatternStep);
-    std::map<double, int> badDistancesHistogram = histogram(badDistances, powderPatternStep);
-    histogramCSV("distanceAnalysis.csv", goodDistancesHistogram, badDistancesHistogram);
-
-    std::map<double, int> goodAnglesHistogram = histogram(goodAngleTrusts, 0.05);
-    std::map<double, int> badAnglesHistogram = histogram(badAngleTrusts, 0.05);
-    histogramCSV("angleTrustAnalysis.csv", goodAnglesHistogram, badAnglesHistogram);
 }
 
 std::vector<MtzPtr> IndexManager::consolidateOrientations(ImagePtr image1,

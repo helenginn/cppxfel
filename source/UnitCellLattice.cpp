@@ -317,11 +317,6 @@ void UnitCellLattice::setup()
     setupLattice = true;
 }
 
-void UnitCellLattice::refineUnitCell(PowderHistogram aHistogram)
-{
-    histogram = aHistogram;
-}
-
 double UnitCellLattice::weightForDistance(double distance)
 {
     double correctedDistance = distance + powderStep / 2;
