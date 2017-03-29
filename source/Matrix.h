@@ -73,7 +73,6 @@ public:
     void scale(double a, double b, double c);
     void identity(void);
 	static MatrixPtr matrixFromUnitCell(std::vector<double> &unitCell);
-    void orientationMatrixUnitCell(double *a, double *b, double *c);
     void changeOrientationMatrixDimensions(std::vector<double> cell);
     void setComplexMatrix(MatrixPtr unitCell, MatrixPtr rotation);
     void maxMillers(int (&millers)[3], double maxResolution);

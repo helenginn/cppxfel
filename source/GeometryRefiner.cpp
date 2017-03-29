@@ -188,7 +188,9 @@ void GeometryRefiner::reportProgress()
     double intraAngle = -IndexManager::pseudoScore(&*manager);
     manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
     double interAngle = -IndexManager::pseudoScore(&*manager);
-    
+
+	manager->clearGoodVectors();
+	manager->setActiveDetector(Detector::getMaster()->getChild(0)->getChild(0)->getChild(0)->getChild(0)->getChild(0));
     manager->pseudoAnglePDB();
     
     double intraIncrease = 100;

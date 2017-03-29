@@ -169,7 +169,7 @@ double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
     
-    double angleScore = (me->proportionDistance < 0.999) ? pseudoAngleScore(object) : 0;
+	double angleScore = 0;// (me->proportionDistance < 0.999) ? pseudoAngleScore(object) : 0;
     double distanceScore = (me->proportionDistance > 0.0001) ? pseudoDistanceScore(object) : 0;
     
     angleScore *= (1 - me->proportionDistance);
@@ -354,7 +354,12 @@ void IndexManager::pseudoAnglePDB()
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
         {
             SpotVectorPtr vec1 = images[i]->spotVector(j);
-            
+
+			if (!vec1->isOnlyFromDetector(getActiveDetector()))
+			{
+				continue;
+			}
+
             if (!vec1->originalDistanceLessThan(angleDistance))
                 continue;
             
@@ -730,15 +735,21 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     plotMap["xHeader0"] = "Distance";
     plotMap["xTitle0"] = "Reciprocal distance between vectors (Ang)";
     plotMap["yHeader0"] = "Intra-panel";
+	plotMap["yTitle0"] = "Frequency of distance";
     plotMap["style0"] = "line";
     plotMap["round0"] = "true";
-    plotMap["xHeader1"] = "Distance";
+/*    plotMap["xHeader1"] = "Distance";
     plotMap["xTitle1"] = "Reciprocal distance between vectors (Ang)";
     plotMap["yHeader1"] = "Inter-panel";
     plotMap["style1"] = "line";
     plotMap["colour1"] = "blue";
+ */
     plotMap["filename"] = csvName;
-
+	plotMap["xHeader1"] = "Distance";
+	plotMap["xTitle1"] = "Reciprocal distance between vectors (Ang)";
+	plotMap["yHeader1"] = "Perfect frequency";
+	plotMap["style1"] = "line";
+	plotMap["colour1"] = "blue";
 
     powder.plotPNG(plotMap);
     logged << "Written to " << csvName << std::endl;

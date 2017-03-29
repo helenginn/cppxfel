@@ -222,22 +222,6 @@ MatrixPtr Matrix::matrixFromUnitCell(std::vector<double> &unitCell)
     return aMatrix->unitCell;
 }
 
-// might be totally crap
-void Matrix::orientationMatrixUnitCell(double *a, double *b, double *c)
-{
-    MatrixPtr orientationTranspose = this->transpose();
-    Matrix transposeTimesMatrix = *orientationTranspose * *this;
-    MatrixPtr inverted = transposeTimesMatrix.inverse3DMatrix();
-    
-    double aSquared = (*inverted)[0];
-    double bSquared = (*inverted)[5];
-    double cSquared = (*inverted)[10];
-    
-    *a = sqrt(aSquared);
-    *b = sqrt(bSquared);
-    *c = sqrt(cSquared);
-}
-
 void Matrix::subtract(MatrixPtr secondMatrix)
 {
     for (int i = 0; i < 15; i++)

@@ -142,9 +142,9 @@ void UnitCellLattice::weightUnitCell()
 
 	CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
 
-    for (int i = 0; i < uniqueSymVectorCount(); i++)
+    for (int i = 0; i < standardVectorCount(); i++)
     {
-        double distance = uniqueSymVector(i)->distance();
+        double distance = standardVector(i)->distance();
         
         if (distance <= 0)
             continue;
@@ -154,16 +154,17 @@ void UnitCellLattice::weightUnitCell()
 
         for (int j = 0; j < standardVectorCount(); j++)
         {
-            if (j == i)
-                continue;
-            
             double jDistance = standardVector(j)->distance();
             
             if (jDistance > maxAngleDistance)
                 continue;
             
-            double angle = standardVector(j)->angleWithVector(uniqueSymVector(i));
+            double angle = standardVector(j)->angleWithVector(standardVector(i));
 
+			if (angle != angle || distance != distance || jDistance != jDistance)
+			{
+				continue;
+			}
 
             angle *= 180 / M_PI;
             angle = (angle > 90) ? 180 - angle : angle;
