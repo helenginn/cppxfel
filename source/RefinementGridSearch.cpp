@@ -71,9 +71,7 @@ void RefinementGridSearch::refine()
     csv->addHeader("result");
     
     recursiveEvaluation(currentValues, ParamList(), &results);
-    
-    std::cout << std::endl;
-    
+
     double minResult = FLT_MAX;
     ParamList minParams;
     

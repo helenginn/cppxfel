@@ -93,7 +93,6 @@ void RefinementStrategy::refine()
         startingValues.push_back(objectValue);
     }
 
-    
     reportProgress(startingScore);
 }
 
@@ -112,17 +111,16 @@ void RefinementStrategy::reportProgress(double score)
 
     logged << " - score: ";
     logged << score << std::endl;
+
     cycleNum++;
 }
 
 void RefinementStrategy::finish()
 {
     double endScore = (*evaluationFunction)(evaluateObject);
-    
-    Logger::mainLogger->addStream(&logged, priority);
-    logged.clear();
-    logged.str("");
-    
+
+	sendLog(priority);
+
     if (endScore > startingScore || endScore != endScore)
     {
         logged << "No change for " << jobName << " (" << startingScore << ")" << std::endl;

@@ -189,7 +189,7 @@ void GeometryRefiner::reportProgress()
     manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
     double interAngle = -IndexManager::pseudoScore(&*manager);
     
-    manager->pseudoAngleCSV();
+    manager->pseudoAnglePDB();
     
     double intraIncrease = 100;
     double interIncrease = 100;

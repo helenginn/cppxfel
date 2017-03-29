@@ -36,19 +36,10 @@ void UnitCellLattice::weightUnitCell()
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER;
     double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
     distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 2, "Perfect frequency", "Correction");
-    CSVPtr angleCSV = CSVPtr(new CSV(0));
-    angleCSV->setupHistogram(0, 90, 0.1, "Angle", 2, "Perfect frequency", "Cosine");
-    
+
     double km = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
     double n = 2;
     km = pow(km, n);
-    
-    for (int i = 0; i < angleCSV->entryCount(); i++)
-    {
-        double angle = angleCSV->valueForEntry("Angle", i);
-        double cosine = cos(angle * M_PI / 180);
-        angleCSV->setValueForEntry(i, "Cosine", cosine);
-    }
     
     double distTotal = 0;
     double angleTotal = 0;
@@ -148,22 +139,19 @@ void UnitCellLattice::weightUnitCell()
         
         csvPos++;
     }
-    
+
+	CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
+
     for (int i = 0; i < uniqueSymVectorCount(); i++)
     {
         double distance = uniqueSymVector(i)->distance();
         
         if (distance <= 0)
             continue;
-        
-        double inverse = 1 / distance;
-        inverse *= maxDistance;
-        
+
         if (distance > maxAngleDistance)
             continue;
-        
-        inverse /= uniqueSymVectorCount() * standardVectorCount();
-        
+
         for (int j = 0; j < standardVectorCount(); j++)
         {
             if (j == i)
@@ -175,15 +163,17 @@ void UnitCellLattice::weightUnitCell()
                 continue;
             
             double angle = standardVector(j)->angleWithVector(uniqueSymVector(i));
-            
+
+
             angle *= 180 / M_PI;
             angle = (angle > 90) ? 180 - angle : angle;
             
-            angleCSV->addConvolutedPeak(1, angle, 0.3, inverse);
-            angleTotal += inverse;
+			angleCSV->addEntry(3, angle, distance, jDistance);
         }
     }
-    
+
+	angleCSV->plotPDB("perfect_angles.pdb", "aLength", "bLength", "angle");
+
     angleCSV->writeToFile("perfect_angles.csv");
     distCSV->writeToFile("perfect_unit_cell.csv");
     weightedUnitCell = distCSV;
@@ -330,7 +320,7 @@ double UnitCellLattice::weightForAngle(double angle)
 
 double UnitCellLattice::weightForCosine(double cosine)
 {
-    return weightedAngles->valueForHistogramEntry("Perfect frequency", cosine, "Cosine") * distanceToAngleRatio;
+	return 0;//weightedAngles->valueForHistogramEntry("Perfect frequency", cosine, "Cosine") * distanceToAngleRatio;
 }
 
 UnitCellLatticePtr UnitCellLattice::getMainLattice()

@@ -116,8 +116,8 @@ public:
     ~CSV();
     
     void plotPNG(std::map<std::string, std::string> properties);
-    
-    
+	void plotPDB(std::string filename, std::string header1, std::string header2, std::string header3);
+
     void addPartialEntry(int dummy, ...);
     void addEntry(int dummy, ...);
     void writeToFile(std::string filename);

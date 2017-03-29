@@ -338,7 +338,7 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
     return score;
 }
 
-void IndexManager::pseudoAngleCSV()
+void IndexManager::pseudoAnglePDB()
 {
     double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
     
@@ -347,9 +347,8 @@ void IndexManager::pseudoAngleCSV()
         return;
     }
     
-    angleCSV = CSVPtr(new CSV(0));
-    angleCSV->setupHistogram(0, 90, 0.1, "Angle", 3, "all", "intra-angle", "inter-angle");
-    
+    angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
+
     for (int i = 0; i < images.size(); i++)
     {
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
@@ -365,7 +364,12 @@ void IndexManager::pseudoAngleCSV()
                 
                 if (!vec2->originalDistanceLessThan(angleDistance))
                     continue;
-                
+
+				if (!vec2->hasCommonSpotWithVector(vec2))
+				{
+					continue;
+				}
+
                 if (k == j)
                 {
                     continue;
@@ -379,19 +383,15 @@ void IndexManager::pseudoAngleCSV()
                 double weight = lattice->weightForDistance(vec1->distance());
                 weight *= lattice->weightForDistance(vec2->distance());
 
-                angleCSV->addOneToFrequency(angle, "all", weight);
-                
                 if (vec1->isIntraPanelVector() && vec2->isIntraPanelVector())
                 {
-                    angleCSV->addOneToFrequency(angle, "intra-angle", weight);
-                }
-                else
-                {
-                    angleCSV->addOneToFrequency(angle, "inter-angle", weight);
+                    angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
                 }
             }
         }
     }
+
+	angleCSV->plotPDB("test.pdb", "aLength", "bLength", "angle");
 }
 
 PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec2)

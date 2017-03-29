@@ -119,7 +119,7 @@ public:
     void combineLists();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
-    void pseudoAngleCSV();
+    void pseudoAnglePDB();
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
     
     void lockVectors()

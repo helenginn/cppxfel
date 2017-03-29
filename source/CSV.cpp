@@ -269,6 +269,56 @@ void CSV::minMaxCol(int col, double *min, double *max, bool round)
     }
 }
 
+void CSV::plotPDB(std::string filename, std::string header1, std::string header2, std::string header3)
+{
+	int nums[3];
+
+	nums[0] = findHeader(header1);
+	nums[1] = findHeader(header2);
+	nums[2] = findHeader(header3);
+
+	int scales[3];
+
+	for (int i = 0; i < 3; i++)
+	{
+		double min = 0;
+		double max = 0;
+
+		minMaxCol(nums[i], &min, &max);
+
+		scales[i] = 100 / max;
+	}
+
+	scales[0] = 100 / 0.03;
+	scales[1] = 100 / 0.03;
+	scales[2] = 100 / 90;
+
+	std::ofstream pdbLog;
+	std::string fullName = FileReader::addOutputDirectory(filename);
+	pdbLog.open(fullName.c_str());
+	pdbLog << "CRYST1  100.000  100.000  100.000  90.00  90.00  90.00 P 1  " << std::endl;
+
+	for (int i = 0; i < entryCount(); i++)
+	{
+		pdbLog << "HETATM";
+		pdbLog << std::fixed;
+		pdbLog << std::setw(5) << i + 1 << "  O   HOH Z";
+		pdbLog << std::setw(4) << 100;
+
+		pdbLog << "    ";
+
+		for (int j = 0; j < 3; j++)
+		{
+			double valForEntry = entries[i][nums[j]] * scales[j];
+			pdbLog << std::setprecision(2) << std::setw(8)  << valForEntry;
+		}
+
+		pdbLog << "  1.00 30.00           O" << std::endl;
+	}
+
+	pdbLog.close();
+}
+
 void CSV::writeStringToPlot(std::string text, Plot *plot, int y, int x)
 {
     for (int i = 0; i < text.length(); i++)
