@@ -26,6 +26,7 @@ bool Detector::enabledNudge = false;
 int Detector::specialImageCounter = 0;
 std::mutex Detector::setupMutex;
 double Detector::cacheStep = 0;
+std::vector<double> Detector::millerTargetTable;
 
 #define GOOD_GEOMETRY_RLP_SIZE 0.0015
 
@@ -1271,6 +1272,22 @@ void Detector::drawSpecialImage(std::string filename)
     drawImage->drawSpotsOnPNG(filename, true);
 }
 
+vec Detector::getAverageMidpoint()
+{
+	vec aveMidpoint = new_vector(0, 0, 0);
+
+	for (int i = 0; i < childrenCount(); i++)
+	{
+		vec myMidpoint = getChild(i)->midPointOffsetFromParent(false);
+		getChangeOfBasis()->multiplyVector(&myMidpoint);
+		add_vector_to_vector(&aveMidpoint, myMidpoint);
+	}
+
+	multiply_vector(&aveMidpoint, 1 / (double)childrenCount());
+
+	return aveMidpoint;
+}
+
 void Detector::fixMidpoints()
 {
     for (int i = 0; i < childrenCount(); i++)
@@ -1289,16 +1306,7 @@ void Detector::fixMidpoints()
         return;
     }
     
-    vec aveMidpoint = new_vector(0, 0, 0);
-    
-    for (int i = 0; i < childrenCount(); i++)
-    {
-        vec myMidpoint = getChild(i)->midPointOffsetFromParent(false);
-        getChangeOfBasis()->multiplyVector(&myMidpoint);
-        add_vector_to_vector(&aveMidpoint, myMidpoint);
-    }
-    
-    multiply_vector(&aveMidpoint, 1 / (double)childrenCount());
+	vec aveMidpoint = getAverageMidpoint();
     
     setArrangedMidPoint(aveMidpoint);
     
@@ -1324,6 +1332,31 @@ void Detector::reportMillerScores(int refinementNum)
     {
         getChild(i)->reportMillerScores(refinementNum);
     }
+}
+
+std::vector<DetectorPtr> Detector::getSubDetectorsOnLevel(int level)
+{
+	std::vector<DetectorPtr> lastDetectors, currentDetectors;
+	lastDetectors.push_back(getMaster());
+	int currentLevel = 0;
+
+	while (currentLevel < level)
+	{
+		currentDetectors.clear();
+
+		for (int i = 0; i < lastDetectors.size(); i++)
+		{
+			for (int j = 0; j < lastDetectors[i]->childrenCount(); j++)
+			{
+				currentDetectors.push_back(lastDetectors[i]->getChild(j));
+			}
+		}
+
+		lastDetectors = currentDetectors;
+		currentLevel++;
+	}
+
+	return lastDetectors;
 }
 
 void Detector::getAllSubDetectors(std::vector<DetectorPtr> &array, bool childrenOnly)

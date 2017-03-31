@@ -322,6 +322,14 @@ DetectorPtr GeometryParser::makeDetectorFromPanelMap(std::vector<PanelMap> panel
     return DetectorPtr();
 }
 
+bool detectorCloserThan(DetectorPtr a, DetectorPtr b)
+{
+	vec aVec = a->getAverageMidpoint();
+	vec bVec = b->getAverageMidpoint();
+
+	return (length_of_vector(aVec) < length_of_vector(bVec));
+}
+
 DetectorPtr GeometryParser::makeDetectorFromPanelMap(PanelMap panelMap, DetectorPtr parent)
 {
     int    min_fs;
@@ -545,137 +553,62 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
         q8->setRefinable(refineLocalGeometry);
 
     }
-    else if (!isSacla) // for now, CSPAD
-    {
-        Detector::setDetectorType(DetectorTypeCSPAD);
+	else if (!isSacla)
+	{
+		std::vector<DetectorPtr> pairs;
 
-        std::vector<DetectorPtr> quarters;
-        DetectorPtr q0_1 = DetectorPtr(new Detector(master, new_vector(0, 0, 0), "q0_1"));
-        q0_1->setRefinable(refineQuadrantGeometry);
-        master->addChild(q0_1);
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 16; j += 2)
+			{
+				std::string qaCombo;
+				qaCombo = "q" + i_to_str(i) + "a" + i_to_str(j) + "_" + i_to_str(j + 1);
+				DetectorPtr asicPair = DetectorPtr(new Detector(master, new_vector(0, 0, 0), qaCombo));
+				asicPair->setRefinable(true);
+				pairs.push_back(asicPair);
+			}
+		}
 
-        DetectorPtr q2_3 = DetectorPtr(new Detector(master, new_vector(0, 0, 0), "q2_3"));
-        q2_3->setRefinable(refineQuadrantGeometry);
-        master->addChild(q2_3);
+		for (int i = 0; i < panelMaps.size(); i++)
+		{
+			PanelMap map = panelMaps[i];
+			std::string name = map["name"];
+			if (name.length() < 4)
+			{
+				logged << "I'm struggling..." << std::endl;
+				sendLog();
+			}
 
-        // hard coded for now - convert to some kind of input
-        
-        std::vector<std::vector<DetectorPtr> > pairs;
-        /* Top right */
-        
-        DetectorPtr q0 = DetectorPtr(new Detector(q0_1, new_vector(0, 0, 0), "q0"));
-        q0_1->addChild(q0);
-        q0->setRefinable(refineQuadrantGeometry);
-        quarters.push_back(q0);
+			int aLength = (int)name.length() - 3;
+			int qNum = atoi(name.substr(1, 1).c_str());
+			int aNum = atoi(name.substr(3, aLength).c_str());
+			int pairNum = qNum * 8 + aNum / 2;
 
-        DetectorPtr q1 = DetectorPtr(new Detector(q0_1, new_vector(0, 0, 0), "q1"));
-        q0_1->addChild(q1);
-        q1->setRefinable(refineQuadrantGeometry);
-        quarters.push_back(q1);
+			DetectorPtr myParent;
+			DetectorPtr segment = makeDetectorFromPanelMap(panelMaps[i], pairs[pairNum]);
+			segment->setRefinable(false);
+		}
 
-        DetectorPtr q2 = DetectorPtr(new Detector(q2_3, new_vector(0, 0, 0), "q2"));
-        q2_3->addChild(q2);
-        q2->setRefinable(refineQuadrantGeometry);
-        quarters.push_back(q2);
+		std::sort(pairs.begin(), pairs.end(), detectorCloserThan);
+		DetectorPtr lastParent = Detector::getMaster();
 
-        DetectorPtr q3 = DetectorPtr(new Detector(q2_3, new_vector(0, 0, 0), "q3"));
-        q2_3->addChild(q3);
-        q3->setRefinable(refineQuadrantGeometry);
-        quarters.push_back(q3);
+		for (int i = 0; i < pairs.size(); i++)
+		{
+			std::string setName = "panel_set_" + i_to_str(i);
+			DetectorPtr theRest = DetectorPtr(new Detector(DetectorPtr(), new_vector(0, 0, 0), setName));
+			theRest->setRefinable(true);
 
-        for (int i = 0; i < quarters.size(); i++)
-        {
-            pairs.push_back(std::vector<DetectorPtr>());
-            DetectorPtr qX = quarters[i];
-            std::string qXName = qX->getTag();
-            
-            DetectorPtr qXa0_8 = DetectorPtr(new Detector(qX, new_vector(0, 0, 0), qXName + "a0_8"));
-            qXa0_8->setRefinable(refineLocalGeometry);
-            qX->addChild(qXa0_8);
-            
-            DetectorPtr qXa0_3 = DetectorPtr(new Detector(qXa0_8, new_vector(0, 0, 0), qXName + "a0_3"));
-            qXa0_3->setRefinable(refineLocalGeometry);
-            qXa0_8->addChild(qXa0_3);
-            
-            DetectorPtr qXa0_1 = DetectorPtr(new Detector(qXa0_3, new_vector(0, 0, 0), qXName + "a0_1")); //
-            qXa0_1->setRefinable(refineLocalGeometry);
-            qXa0_3->addChild(qXa0_1);
-            pairs[i].push_back(qXa0_1);
-            
-            DetectorPtr qXa2_3 = DetectorPtr(new Detector(qXa0_3, new_vector(0, 0, 0), qXName + "a2_3")); //
-            qXa2_3->setRefinable(refineLocalGeometry);
-            qXa0_3->addChild(qXa2_3);
-            pairs[i].push_back(qXa2_3);
-            
-            DetectorPtr qXa4_7 = DetectorPtr(new Detector(qXa0_8, new_vector(0, 0, 0), qXName + "a4_7"));
-            qXa4_7->setRefinable(refineLocalGeometry);
-            qXa0_8->addChild(qXa4_7);
-            
-            DetectorPtr qXa4_5 = DetectorPtr(new Detector(qXa4_7, new_vector(0, 0, 0), qXName + "a4_5")); //
-            qXa4_5->setRefinable(refineLocalGeometry);
-            qXa4_7->addChild(qXa4_5);
-            pairs[i].push_back(qXa4_5);
+			lastParent->addChild(pairs[i]);
 
-            DetectorPtr qXa6_7 = DetectorPtr(new Detector(qXa4_7, new_vector(0, 0, 0), qXName + "a6_7")); //
-            qXa6_7->setRefinable(refineLocalGeometry);
-            qXa4_7->addChild(qXa6_7);
-            pairs[i].push_back(qXa6_7);
+			if (i < pairs.size() - 1)
+			{
+				lastParent->addChild(theRest);
+			}
 
-            DetectorPtr qXa8_15 = DetectorPtr(new Detector(qX, new_vector(0, 0, 0), qXName + "a8_15"));
-            qXa8_15->setRefinable(refineLocalGeometry);
-            qX->addChild(qXa8_15);
-            
-            DetectorPtr qXa8_11 = DetectorPtr(new Detector(qXa8_15, new_vector(0, 0, 0), qXName + "a8_11"));
-            qXa8_11->setRefinable(refineLocalGeometry);
-            qXa8_15->addChild(qXa8_11);
-            
-            DetectorPtr qXa8_9 = DetectorPtr(new Detector(qXa8_11, new_vector(0, 0, 0), qXName + "a8_9")); //
-            qXa8_9->setRefinable(refineLocalGeometry);
-            qXa8_11->addChild(qXa8_9);
-            pairs[i].push_back(qXa8_9);
+			lastParent = theRest;
+		}
+	}
 
-            DetectorPtr qXa10_11 = DetectorPtr(new Detector(qXa8_11, new_vector(0, 0, 0), qXName + "a10_11")); //
-            qXa10_11->setRefinable(refineLocalGeometry);
-            qXa8_11->addChild(qXa10_11);
-            pairs[i].push_back(qXa10_11);
-
-            DetectorPtr qXa12_15 = DetectorPtr(new Detector(qXa8_15, new_vector(0, 0, 0), qXName + "a12_15"));
-            qXa12_15->setRefinable(refineLocalGeometry);
-            qXa8_15->addChild(qXa12_15);
-            
-            DetectorPtr qXa12_13 = DetectorPtr(new Detector(qXa12_15, new_vector(0, 0, 0), qXName + "a12_13")); //
-            qXa12_13->setRefinable(refineLocalGeometry);
-            qXa12_15->addChild(qXa12_13);
-            pairs[i].push_back(qXa12_13);
-
-            DetectorPtr qXa14_15 = DetectorPtr(new Detector(qXa12_15, new_vector(0, 0, 0), qXName + "a14_15")); //
-            qXa14_15->setRefinable(refineLocalGeometry);
-            qXa12_15->addChild(qXa14_15);
-            pairs[i].push_back(qXa14_15);
-
-        }
-        
-        for (int i = 0; i < panelMaps.size(); i++)
-        {
-            PanelMap map = panelMaps[i];
-            std::string name = map["name"];
-            if (name.length() < 4)
-            {
-                logged << "I'm struggling..." << std::endl;
-                sendLog();
-            }
-            
-            int aLength = (int)name.length() - 3;
-            int qNum = atoi(name.substr(1, 1).c_str());
-            int aNum = atoi(name.substr(3, aLength).c_str());
-            int pairNum = aNum / 2;
-            
-            DetectorPtr myParent;
-            DetectorPtr segment = makeDetectorFromPanelMap(panelMaps[i], pairs[qNum][pairNum]);
-            segment->setRefinable(false);
-        }
-    }
-    
     Detector::getMaster()->updateCurrentRotation();
     Detector::getMaster()->fixMidpoints();
     Detector::getMaster()->postInit();

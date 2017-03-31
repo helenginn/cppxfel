@@ -43,8 +43,8 @@ private:
     
     void interPanelGridSearch(DetectorPtr detector);
     void interPanelNormalSearch(DetectorPtr detector);
-    void interPanelMillerSearch(DetectorPtr detector);
-    void intraPanelMillerSearch(DetectorPtr detector);
+    void interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
+    void intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
     void intraPanelNormalSearch(DetectorPtr detector);
     void nudgeZGridSearch(DetectorPtr detector);    
     

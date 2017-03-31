@@ -279,17 +279,17 @@ void Matrix::changeOrientationMatrixDimensions(std::vector<double> cell)
     
     MatrixPtr ortho = MatrixPtr(new Matrix());
     ortho->components[0] = cell[0];
-    ortho->components[4] = cosGamma * cell[1];
-    ortho->components[8] = cosBeta * cell[2];
-    ortho->components[1] = 0.;
+    ortho->components[1] = cosGamma * cell[1];
+    ortho->components[2] = cosBeta * cell[2];
+    ortho->components[4] = 0.;
     ortho->components[5] = sinGamma * cell[1];
-    ortho->components[9] = -sinBeta * rCosAlpha * cell[2];
-    ortho->components[2] = 0.;
-    ortho->components[6] = 0.;
+    ortho->components[6] = -sinBeta * rCosAlpha * cell[2];
+    ortho->components[8] = 0.;
+    ortho->components[9] = 0.;
     ortho->components[10] = sinBeta * cell[2] * s1rca2;
     
     this->unitCell = ortho->inverse3DMatrix();
-    
+
     recalculateOrientationMatrix();
 }
 

@@ -161,12 +161,11 @@ private:
     std::vector<MillerWeakPtr> millers;
     std::mutex millerMutex;
     static double cacheStep;
-    double lookupCache(double distSq);
-    
+
     /* In the interests of caching distance target function */
     void setupCache();
     static std::mutex setupMutex;
-    std::vector<double> millerTargetTable;
+    static std::vector<double> millerTargetTable;
     
     /* These keep track of the pointers to the Miller index shifts for easy access */
     std::vector<float *> xShifts;
@@ -215,7 +214,9 @@ public:
     void postInit();
     void resetNudgeBasis();
     void nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *nudgeStep, double *interNudge = NULL);
-    
+
+	static double lookupCache(double distSq);
+
     static bool isActive()
     {
         if (detectorActive == -1)
@@ -387,6 +388,7 @@ public:
 
     // MARK: Fix midpoints of mid-level panels
     void fixMidpoints();
+	vec getAverageMidpoint();
     
     void rearrangeCoord(std::pair<float, float> *aShift);
     
@@ -724,6 +726,7 @@ public:
     
     vec midPointOffsetFromParent(bool useParent = true, bool resetNudge = false);
     void getAllSubDetectors(std::vector<DetectorPtr> &array, bool childrenOnly = false);
+	std::vector<DetectorPtr> getSubDetectorsOnLevel(int level);
     
     void reportMillerScores(int refinementNum = 0);
     

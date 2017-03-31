@@ -23,6 +23,8 @@
 #include <mutex>
 #include "Detector.h"
 
+typedef std::pair<SpotVectorPtr, SpotVectorPtr> SpotVectorPair;
+
 class IndexManager : LoggableObject, public boost::enable_shared_from_this<IndexManager>
 {
 protected:
@@ -31,6 +33,7 @@ protected:
     std::vector<ImagePtr> mergeImages;
     std::vector<double> unitCell;
     std::vector<SpotVectorPtr> goodVectors;
+	std::vector<SpotVectorPair> goodVectorPairs;
     MatrixPtr unitCellOnly;
     MatrixPtr unitCellMatrix;
     DetectorWeakPtr _activeDetector;
@@ -46,7 +49,6 @@ protected:
     double proportionDistance;
     static double pseudoAngleScore(void *object);
     CSVPtr angleCSV;
-    CSVPtr angleConsistencyCSV;
     bool _canLockVectors;
     int _cycleNum;
     PseudoScoreWeightingAxis _axisWeighting;
@@ -119,7 +121,7 @@ public:
     void combineLists();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
-    void pseudoAnglePDB();
+    CSVPtr pseudoAnglePDB();
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
     
     void lockVectors()
@@ -150,6 +152,7 @@ public:
     void clearGoodVectors()
     {
         goodVectors.clear();
+		goodVectorPairs.clear();
     }
     
     void plotGoodVectors();

@@ -53,7 +53,12 @@ public:
     void weightUnitCell();
     
     static UnitCellLatticePtr getMainLattice();
-    
+
+	CSVPtr getAngleCSV()
+	{
+		return weightedAngles;
+	}
+
     int standardVectorCount()
     {
         return (int)spotVectors.size();

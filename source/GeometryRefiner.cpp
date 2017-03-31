@@ -173,58 +173,32 @@ void GeometryRefiner::reportProgress()
     
     _changed = false;
     
-    double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.);
     std::string filename = "special_image_" + i_to_str(refinementEvent) + ".png";
     Detector::drawSpecialImage(filename);
     
-    manager->setProportionDistance(1.0);
     manager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
     double intraScore = IndexManager::pseudoScore(&*manager);
     manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
     double interScore = IndexManager::pseudoScore(&*manager);
-    
-    manager->setProportionDistance(0.0);
-    manager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
-    double intraAngle = -IndexManager::pseudoScore(&*manager);
-    manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
-    double interAngle = -IndexManager::pseudoScore(&*manager);
 
-	manager->clearGoodVectors();
-	manager->setActiveDetector(Detector::getMaster()->getChild(0)->getChild(0)->getChild(0)->getChild(0)->getChild(0));
-    manager->pseudoAnglePDB();
-    
     double intraIncrease = 100;
     double interIncrease = 100;
-    double intraAngleIncrease = 100;
-    double interAngleIncrease = 100;
     double mScore = Detector::getMaster()->millerScore(false, false);
-	double sScore = Detector::getMaster()->millerScore(false, true);
+	Detector::getMaster()->millerScore(false, true);
     Detector::getMaster()->reportMillerScores(refinementEvent);
 
-    interIncrease = -100 * (interScore - lastInterScore) / interScore;
-    intraIncrease = -100 * (intraScore - lastIntraScore) / intraScore;
-    interAngleIncrease = 100 * (interAngle - lastInterAngleScore) / interAngle;
-    intraAngleIncrease = 100 * (intraAngle - lastIntraAngleScore) / intraAngle;
-    
+	intraIncrease = (intraScore / lastIntraScore - 1) * 100;
+	interIncrease = (interScore / lastInterScore - 1) * 100;
+
     lastInterScore = interScore;
     lastIntraScore = intraScore;
-    lastInterAngleScore = interAngle;
-    lastIntraAngleScore = intraAngle;
-    
+
     
     logged << "N: Progress score (event " << refinementEvent << ", intra-panel-dist): " << intraScore
     << " (" << (intraIncrease > 0 ? "+" : "") << intraIncrease << "% from last round) " << std::endl;
     logged << "N: Progress score (event " << refinementEvent << ", inter-panel-dist): " << interScore
     << " (" << (interIncrease > 0 ? "+" : "") << interIncrease << "% from last round)" << std::endl;
-    
-    if (maxAngleDistance > 0)
-    {
-        logged << "N: Progress score (event " << refinementEvent << ", intra-panel-angle): " << intraAngle
-        << " (" << (intraAngleIncrease > 0 ? "+" : "") << intraAngleIncrease << "% from last round) " << std::endl;
-        logged << "N: Progress score (event " << refinementEvent << ", inter-panel-angle): " << interAngle
-        << " (" << (interAngleIncrease > 0 ? "+" : "") << interAngleIncrease << "% from last round)" << std::endl;
-    }
-    
+
     if (mScore != 0)
     {
         logged << "N: Progress score (event " << refinementEvent << ", miller mean): " << mScore << std::endl;
@@ -324,38 +298,57 @@ void GeometryRefiner::intraPanelCycle()
 	printHeader(detectors);
 
 	GeometryScoreType type = GeometryScoreTypeIntrapanel;
+	int cycles = 2;
 
 	if (hasMillers)
 	{
 		type = GeometryScoreTypeIntraMiller;
+		cycles = 4;
 	}
 
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < cycles; i++)
 	{
 		refineDetectorStrategyWrapper(this, detectors, type, 0);
-		refineDetectorStrategyWrapper(this, detectors, type, 1);
 	}
 }
 
 void GeometryRefiner::interPanelCycle()
 {
 	bool hasMillers = Detector::getMaster()->millerCount() > 0;
-	std::vector<DetectorPtr> detectors;
-	Detector::getMaster()->getAllSubDetectors(detectors, true);
-	printHeader(detectors);
 
 	GeometryScoreType type = GeometryScoreTypeInterpanel;
 
 	if (hasMillers)
 	{
 		type = GeometryScoreTypeInterMiller;
+		std::vector<DetectorPtr> detectors;
+		Detector::getMaster()->getAllSubDetectors(detectors, true);
+		printHeader(detectors);
+
+		for (int i = 0; i < 4; i++)
+		{
+			refineDetectorStrategyWrapper(this, detectors, type, 0);
+		}
+	}
+	else
+	{
+		int i = 0;
+		while (true)
+		{
+			std::vector<DetectorPtr> detectors;
+			detectors = Detector::getMaster()->getSubDetectorsOnLevel(i);
+
+			if (detectors.size() == 0)
+			{
+				break;
+			}
+
+			refineDetectorStrategyWrapper(this, detectors, type, 0);
+
+			i++;
+		}
 	}
 
-	for (int i = 0; i < 4; i++)
-	{
-		refineDetectorStrategyWrapper(this, detectors, type, 0);
-		refineDetectorStrategyWrapper(this, detectors, type, 1);
-	}
 }
 
 bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detectors, bool interPanelOnly)
@@ -462,35 +455,20 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
 	{
 		if (detector->millerCount())
 		{
-			interPanelMillerSearch(detector);
+			interPanelMillerSearch(detector, type);
 		}
 	}
 	else if (type == GeometryScoreTypeIntraMiller)
 	{
-		intraPanelMillerSearch(detector);
+		intraPanelMillerSearch(detector, type);
 	}
 	else if (type == GeometryScoreTypeInterpanel)
 	{
-		if (strategyType == 0)
-		{
-			interPanelGridSearch(detector);
-		}
-		else if (strategyType == 1)
-		{
-			interPanelNormalSearch(detector);
-		}
+		interPanelMillerSearch(detector, type);
 	}
 	else if (type == GeometryScoreTypeIntrapanel)
 	{
-
-		if (strategyType == 0)
-		{
-			nudgeZGridSearch(detector);
-		}
-		else if (strategyType == 1)
-		{
-			intraPanelNormalSearch(detector);
-		}
+		intraPanelMillerSearch(detector, type);
 	}
 
 	{
@@ -527,9 +505,9 @@ void GeometryRefiner::interPanelGridSearch(DetectorPtr detector)
 
 void GeometryRefiner::interPanelNormalSearch(DetectorPtr detector)
 {
-    double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
+ /*   double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
-    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeInterpanel);
+    RefinementStrategyPtr strategy = makeRefiner(detector, type);
     detector->prepareInterNudges();
     strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge / 10, 0.001, "poke_x");
     strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge / 10, 0.001, "poke_y");
@@ -539,15 +517,18 @@ void GeometryRefiner::interPanelNormalSearch(DetectorPtr detector)
     detector->prepareInterNudges();
     
     
-    return;
+    return;*/
 }
 
-void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector)
+void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type)
 {
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
-    
-    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeIntraMiller);
+	nudgeStep /= 2;
+	nudgeTiltX /= 2;
+	nudgeTiltY /= 2;
+
+    RefinementStrategyPtr strategy = makeRefiner(detector, type);
     detector->prepareInterNudges();
     strategy->setJobName(detector->getTag() + "_miller_stdev_z");
     strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0, "nudge_z");
@@ -562,18 +543,34 @@ void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector)
     detector->prepareInterNudges();
 }
 
-void GeometryRefiner::interPanelMillerSearch(DetectorPtr detector)
+void GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type)
 {
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
     
-    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeInterMiller);
+    RefinementStrategyPtr strategy = makeRefiner(detector, type);
     strategy->setJobName(detector->getTag() + "_miller");
     detector->resetPoke();
-  
-    strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0, "internudge_x");
-    strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0, "internudge_y");
-    strategy->addParameter(&*detector, Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge, 0, "internudge_z");
+
+	if (type == GeometryScoreTypeInterMiller)
+	{
+		strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0, "internudge_x");
+		strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0, "internudge_y");
+		strategy->addParameter(&*detector, Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge, 0, "internudge_z");
+	}
+	else
+	{
+		/*
+		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge, 0, "poke_x");
+		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge, 0, "poke_y");
+		strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge, 0, "poke_z");*/
+
+		strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0, "internudge_x");
+		strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0, "internudge_y");
+		strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge, 0, "internudge_z");
+
+	}
+
     strategy->refine();
     
     detector->resetPoke();
@@ -597,7 +594,9 @@ void GeometryRefiner::intraPanelNormalSearch(DetectorPtr detector)
 void GeometryRefiner::refineBeamCentre()
 {
     DetectorPtr detector = Detector::getMaster();
-    
+
+	return;
+
     if (detector->millerCount() > 0)
     {
         return;

@@ -108,11 +108,6 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
         activeDetector = Detector::getMaster();
     }
     
-    if (scoreType == PseudoScoreTypeAngleConsistency && vec->isIntraPanelVector())
-    {
-        return true;
-    }
-    
     if (isInterPanel && vec->isIntraPanelVector() && !permissive)
     {
         return false;
@@ -168,14 +163,8 @@ bool IndexManager::checkVector(SpotVectorPtr vec, bool permissive)
 double IndexManager::pseudoScore(void *object)
 {
     IndexManager *me = static_cast<IndexManager *>(object);
-    
-	double angleScore = 0;// (me->proportionDistance < 0.999) ? pseudoAngleScore(object) : 0;
-    double distanceScore = (me->proportionDistance > 0.0001) ? pseudoDistanceScore(object) : 0;
-    
-    angleScore *= (1 - me->proportionDistance);
-    distanceScore *= me->proportionDistance;
-    
-    return angleScore + distanceScore;
+
+	return pseudoAngleScore(object);
 }
 
 bool IndexManager::processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck)
@@ -338,27 +327,44 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
     return score;
 }
 
-void IndexManager::pseudoAnglePDB()
+CSVPtr IndexManager::pseudoAnglePDB()
 {
     double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
     
     if (angleDistance <= 0)
     {
-        return;
+        return CSVPtr();
     }
     
-    angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
+    CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
+
+	if (_canLockVectors && goodVectorPairs.size())
+	{
+		for (int i = 0; i < goodVectors.size(); i++)
+		{
+			goodVectors[i]->calculateDistance();
+		}
+
+		for (int i = 0; i < goodVectorPairs.size(); i++)
+		{
+			SpotVectorPtr vec1 = goodVectorPairs[i].first;
+			SpotVectorPtr vec2 = goodVectorPairs[i].second;
+
+			double angle = vec1->angleWithVector(vec2);
+			angle *= 180 / M_PI;
+			angle = (angle > 90) ? 180 - angle : angle;
+
+			angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
+		}
+
+		return angleCSV;
+	}
 
     for (int i = 0; i < images.size(); i++)
     {
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
         {
             SpotVectorPtr vec1 = images[i]->spotVector(j);
-
-			if (!vec1->isOnlyFromDetector(getActiveDetector()))
-			{
-				continue;
-			}
 
             if (!vec1->originalDistanceLessThan(angleDistance))
                 continue;
@@ -370,251 +376,163 @@ void IndexManager::pseudoAnglePDB()
                 if (!vec2->originalDistanceLessThan(angleDistance))
                     continue;
 
-				if (!vec2->hasCommonSpotWithVector(vec2))
+				if (checkVectors(vec1, vec2) != scoreType)
 				{
 					continue;
 				}
 
-                if (k == j)
-                {
-                    continue;
-                }
-                
-                double angle = vec1->angleWithVector(vec2);
-                
-                angle *= 180 / M_PI;
-                angle = (angle > 90) ? 180 - angle : angle;
-                
-                double weight = lattice->weightForDistance(vec1->distance());
-                weight *= lattice->weightForDistance(vec2->distance());
+				if (_canLockVectors)
+				{
+					goodVectorPairs.push_back(std::make_pair(vec1, vec2));
+					goodVectors.push_back(vec1);
+					goodVectors.push_back(vec2);
+				}
 
-                if (vec1->isIntraPanelVector() && vec2->isIntraPanelVector())
-                {
-                    angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
-                }
+				vec1->calculateDistance();
+				vec2->calculateDistance();
+
+				double angle = vec1->angleWithVector(vec2);
+				angle *= 180 / M_PI;
+				angle = (angle > 90) ? 180 - angle : angle;
+
+				angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
             }
         }
     }
 
-	angleCSV->plotPDB("test.pdb", "aLength", "bLength", "angle");
+	std::string filename = "angles_" + getActiveDetector()->getTag() + "_" + targetString(scoreType) + ".pdb";
+	angleCSV->plotPDB(filename, "aLength", "bLength", "angle");
+
+	return angleCSV;
 }
 
 PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec2)
 {
     DetectorPtr activeDetector = getActiveDetector();
-    DetectorPtr brother = activeDetector->getChild(0);
-    DetectorPtr sister = activeDetector->getChild(1);
     bool isInterPanel = scoreType == PseudoScoreTypeAllInterPanel || scoreType == PseudoScoreTypeInterPanel;
-    
-    if (!checkVector(vec1, true))
-    {
-        return PseudoScoreTypeInvalid;
-    }
 
-    if (!checkVector(vec2, true))
-    {
-        return PseudoScoreTypeInvalid;
-    }
-    
-    if (scoreType == PseudoScoreTypeAngleConsistency)
-    {
-        return scoreType;
-    }
-    
-    if (!isInterPanel)
-    {
-        if (!(vec1->isIntraPanelVector() && vec2->isIntraPanelVector()))
-        {
-            return PseudoScoreTypeInvalid;
-        }
-        
-        if (vec1->getFirstSpot()->getDetector() != vec2->getFirstSpot()->getDetector())
-        {
-            return PseudoScoreTypeInvalid;
-        }
-        
-        return PseudoScoreTypeIntraPanel;
-    }
-    else
-    {
-        bool vec1Okay = false;
-        bool vec2Okay = false;
-        
-        if (!vec1->isIntraPanelVector())
-        {
-            vec1Okay = true;
-        }
+	if (!isInterPanel && !vec1->hasCommonSpotWithVector(vec2))
+	{
+		return PseudoScoreTypeInvalid;
+	}
 
-        if (!vec2->isIntraPanelVector())
-        {
-            vec2Okay = true;
-        }
-        
-        if (vec1Okay || vec2Okay)
-        {
-            return PseudoScoreTypeInterPanel;
-        }
-        
-        DetectorPtr dec1 = vec1->getFirstSpot()->getDetector();
-        DetectorPtr dec2 = vec2->getFirstSpot()->getDetector();
-        
-        vec1Okay = true;
-        vec2Okay = true;
-        
-        if (!brother || (brother->isAncestorOf(dec1) && brother->isAncestorOf(dec2)))
-        {
-            vec1Okay = false;
-        }
-        
-        if (!sister || (sister->isAncestorOf(dec1) && sister->isAncestorOf(dec2)))
-        {
-            vec2Okay = false;
-        }
-        
-        if (dec1 != dec2 && scoreType == PseudoScoreTypeAllInterPanel)
-        {
-            return PseudoScoreTypeAllInterPanel;
-        }
-        
-        if (vec1Okay || vec2Okay)
-        {
-            return PseudoScoreTypeInterPanel;
-        }
-    }
-    
+	if (!isInterPanel && vec1->isIntraPanelVector() && vec2->isIntraPanelVector())
+	{
+		if (vec1->isOnlyFromDetector(activeDetector) && vec2->isOnlyFromDetector(activeDetector))
+		{
+			return PseudoScoreTypeIntraPanel;
+		}
+
+		return PseudoScoreTypeInvalid;
+	}
+	else if (!isInterPanel)
+	{
+		return PseudoScoreTypeInvalid;
+	}
+
+	// now definitely interpanel (specific) or all interpanel
+
+	if (vec1->isIntraPanelVector() || vec2->isIntraPanelVector())
+	{
+		return PseudoScoreTypeInvalid;
+	}
+
+	if (scoreType == PseudoScoreTypeAllInterPanel)
+	{
+		if (!vec1->hasCommonSpotWithVector(vec2))
+		{
+			return PseudoScoreTypeInvalid;
+		}
+
+		return PseudoScoreTypeAllInterPanel;
+	}
+
+	// now definitely specific interpanel
+
+	if (vec1->spansChildrenOfDetector(activeDetector))
+	{
+		return PseudoScoreTypeInterPanel;
+	}
+
     return PseudoScoreTypeInvalid;
 }
 
 double IndexManager::pseudoAngleScore(void *object)
 {
-    IndexManager *me = static_cast<IndexManager *>(object);
-    DetectorPtr activeDetector = me->getActiveDetector();
-    
-    double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
-    double score = 0;
-    double count = 0;
-    int panelCount = 0;
-    int staticCount = 0;
-    
-    bool firstCSV = (me->angleConsistencyCSV == CSVPtr());
-    
-    if (me->scoreType == PseudoScoreTypeAngleConsistency)
-    {
-        if (firstCSV)
-        {
-            me->angleConsistencyCSV = CSVPtr(new CSV(0));
-            
-            me->angleConsistencyCSV->setupHistogram(0, 90, 0.2, "Angle", 4, "Cosine", "Static", "Convol", "Panel");
-            
-            for (int i = 0; i < me->angleConsistencyCSV->entryCount(); i++)
-            {
-                double angle = me->angleConsistencyCSV->valueForEntry("Angle", i);
-                double cosine = cos(angle * M_PI / 180);
-                me->angleConsistencyCSV->setValueForEntry(i, "Cosine", cosine);
-            }
-        }
-        else
-        {
-            if (me->scoreType == PseudoScoreTypeAngleConsistency)
-            {
-                me->angleConsistencyCSV->resetColumn("Panel", 0);
-            }
-        }
-    }
-    
-    for (int i = 0; i < me->images.size(); i++)
-    {
-        for (int j = 0; j < me->images[i]->spotVectorCount(); j++)
-        {
-            SpotVectorPtr vec1 = me->images[i]->spotVector(j);
-            
-            if (!vec1->originalDistanceLessThan(angleDistance))
-                continue;
-            
-            vec1->calculateDistance();
-            double distanceWeight1 = me->lattice->weightForDistance(vec1->distance());
-            
-            if (distanceWeight1 <= 0)
-                continue;
-            
-            if (vec1->usesBeamCentre())
-                continue;
-            
-            if (me->scoreType == PseudoScoreTypeAngleConsistency)
-            {
-                bool isPanel = vec1->isOnlyFromDetector(activeDetector);
-                int *counter = isPanel ? &panelCount : &staticCount;
-                (*counter)++;
-                
-                std::string chosenVecType = isPanel ? "Panel" : "Static";
-                double cosine = vec1->cosineWithVertical();
-                
-                if (firstCSV || (!firstCSV && isPanel))
-                {
-                    me->angleConsistencyCSV->addOneToFrequency(cosine, chosenVecType, distanceWeight1, "Cosine");
-                }
-                
-                continue;
-            }
-            
-            for (int k = 0; k < j; k++)
-            {
-                SpotVectorPtr vec2 = me->images[i]->spotVector(k);
-                vec2->calculateDistance();
-                
-                if (vec2->usesBeamCentre())
-                    continue;
+	double maxAngleDist = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
 
-                if (!vec2->originalDistanceLessThan(angleDistance))
-                    continue;
+	if (maxAngleDist <= 0)
+	{
+		return 0;
+	}
 
-                if (k == j)
-                {
-                    continue;
-                }
-                
-                if (me->checkVectors(vec1, vec2) != me->scoreType)
-                {
-                    continue;
-                }
-                
-                double vec2Distance = vec2->distance();
-                
-                double distanceWeight2 = me->lattice->weightForDistance(vec2Distance);
-                
-                double cosine = vec1->cosineWithVector(vec2);
-                cosine = fabs(cosine);
-                
-                double angleWeight = me->lattice->weightForCosine(cosine);
-                
-                if (distanceWeight2 <= 0)
-                    continue;
-                
-                score += distanceWeight1 * distanceWeight2 * angleWeight / 10000000;
-                count += distanceWeight1 * distanceWeight2 / 10000000;
-            }
-        }
-    }
-    
-    if (me->scoreType == PseudoScoreTypeAngleConsistency)
-    {
-        if (firstCSV)
-        {
-            me->angleConsistencyCSV->convolutedPeaks("Angle", "Static", "Convol", 0.5);
-        }
-        
-        for (int i = 0; i < me->angleConsistencyCSV->entryCount(); i++)
-        {
-            double panelValue = me->angleConsistencyCSV->valueForEntry("Panel", i);
-            double staticValue = me->angleConsistencyCSV->valueForEntry("Convol", i);
-            
-            score += panelValue * staticValue;
-            count++;
-        }
-    }
-    
-    score /= count;
-    return -sqrt(score);
+	IndexManager *me = static_cast<IndexManager *>(object);
+	CSVPtr observedAngles = me->pseudoAnglePDB();
+	CSVPtr predictedAngles = me->getLattice()->getAngleCSV();
+
+	double angleTolerance = 90.0;
+	double lengthTol = 0.1;
+	double totalScore = 0;
+
+	double maxDistSq = 3 * pow(0.0022, 2);
+
+	for (int i = 0; i < observedAngles->entryCount(); i++)
+	{
+		double angle = observedAngles->valueForEntry("angle", i);
+		double aLength = observedAngles->valueForEntry("aLength", i);
+		double bLength = observedAngles->valueForEntry("bLength", i);
+		double bestScore = 0.;
+
+		for (int i = 0; i < predictedAngles->entryCount(); i++)
+		{
+			double pAngle = predictedAngles->valueForEntry("angle", i);
+			double paLength = predictedAngles->valueForEntry("aLength", i);
+			double pbLength = predictedAngles->valueForEntry("bLength", i);
+
+			double angleDiff = fabs(pAngle - angle);
+			if (angleDiff > angleTolerance)
+			{
+				continue;
+			}
+
+			double aLengthDiff = fabs(paLength - aLength);
+			if (aLengthDiff > lengthTol)
+			{
+				continue;
+			}
+
+			double bLengthDiff = fabs(pbLength - bLength);
+			if (bLengthDiff > lengthTol)
+			{
+				continue;
+			}
+
+			angleDiff *= maxAngleDist / 90;
+
+			double distSq = angleDiff * angleDiff + aLengthDiff * aLengthDiff
+			+ bLengthDiff * bLengthDiff;
+
+			distSq /= maxDistSq;
+
+			if (distSq != distSq)
+			{
+				continue;
+			}
+
+			double score = Detector::lookupCache(distSq);
+
+			if (score == score && score > bestScore)
+			{
+				bestScore = score;
+			}
+		}
+
+		totalScore += bestScore;
+	}
+
+	totalScore /= observedAngles->entryCount();
+
+	return -totalScore;
 }
 
 void IndexManager::powderPattern(std::string csvName, bool force)
@@ -738,18 +656,17 @@ void IndexManager::powderPattern(std::string csvName, bool force)
 	plotMap["yTitle0"] = "Frequency of distance";
     plotMap["style0"] = "line";
     plotMap["round0"] = "true";
-/*    plotMap["xHeader1"] = "Distance";
+    plotMap["xHeader1"] = "Distance";
     plotMap["xTitle1"] = "Reciprocal distance between vectors (Ang)";
     plotMap["yHeader1"] = "Inter-panel";
     plotMap["style1"] = "line";
     plotMap["colour1"] = "blue";
- */
     plotMap["filename"] = csvName;
-	plotMap["xHeader1"] = "Distance";
-	plotMap["xTitle1"] = "Reciprocal distance between vectors (Ang)";
-	plotMap["yHeader1"] = "Perfect frequency";
-	plotMap["style1"] = "line";
-	plotMap["colour1"] = "blue";
+	plotMap["xHeader2"] = "Distance";
+	plotMap["xTitle2"] = "Reciprocal distance between vectors (Ang)";
+	plotMap["yHeader2"] = "Perfect frequency";
+	plotMap["style2"] = "line";
+	plotMap["colour2"] = "blue";
 
     powder.plotPNG(plotMap);
     logged << "Written to " << csvName << std::endl;

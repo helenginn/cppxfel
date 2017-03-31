@@ -145,9 +145,9 @@ void UnitCellLattice::weightUnitCell()
     for (int i = 0; i < standardVectorCount(); i++)
     {
         double distance = standardVector(i)->distance();
-        
-        if (distance <= 0)
-            continue;
+
+		if (distance <= 0)
+			continue;
 
         if (distance > maxAngleDistance)
             continue;
@@ -155,16 +155,14 @@ void UnitCellLattice::weightUnitCell()
         for (int j = 0; j < standardVectorCount(); j++)
         {
             double jDistance = standardVector(j)->distance();
-            
+
+			if (jDistance > distance)
+				continue;
+
             if (jDistance > maxAngleDistance)
                 continue;
             
             double angle = standardVector(j)->angleWithVector(standardVector(i));
-
-			if (angle != angle || distance != distance || jDistance != jDistance)
-			{
-				continue;
-			}
 
             angle *= 180 / M_PI;
             angle = (angle > 90) ? 180 - angle : angle;
