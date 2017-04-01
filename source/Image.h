@@ -151,7 +151,8 @@ public:
     void makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults = false);
     void excludeWeakestSpots(double fraction);
     void plotVectorsOnPNG(std::vector<SpotVectorPtr> vectors, std::string filename = "");
-    
+	DetectorPtr getDetectorForPosition(int x, int y);
+
     static void setImageMask(ImagePtr mask)
     {
         _imageMask = mask;

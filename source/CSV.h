@@ -135,7 +135,13 @@ public:
                            int categoryNum = 0, ConvolutionType convolutionType = ConvolutionTypeSuperGaussian);
     
     void setValueForEntry(int entry, std::string header, double value);
-    void addEntry(std::vector<double> entry)
+
+	void reserveEntries(unsigned long num)
+	{
+		entries.reserve(num);
+	}
+
+	void addEntry(std::vector<double> entry)
     {
         entries.push_back(entry);
     }
@@ -144,7 +150,12 @@ public:
     {
         return (int)entries.size();
     }
-    
+
+	double valueForEntry(int headerNum, int entry)
+	{
+		return entries[entry][headerNum];
+	}
+
     int headerCount()
     {
         return (int)headers.size();

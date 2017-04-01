@@ -27,7 +27,8 @@ SpotVector::SpotVector(vec transformedHKL, vec normalHKL)
     secondSpot = SpotPtr();
     approxResolution = 0;
     minDistanceTolerance = 0;
-  
+	_isIntraPanelVector = -1;
+
     update = false;
     hkl = normalHKL;
     spotDiff = copy_vector(transformedHKL);
@@ -42,7 +43,8 @@ SpotVector::SpotVector(SpotPtr first, SpotPtr second)
     approxResolution = 0;
     minDistanceTolerance = 0;
     minAngleTolerance = 0;
-    
+	_isIntraPanelVector = -1;
+
     if (!first || !second)
         return;
     
@@ -265,21 +267,31 @@ double SpotVector::getMinDistanceTolerance()
 
 bool SpotVector::isIntraPanelVector()
 {
+	if (_isIntraPanelVector >= 0)
+	{
+		return _isIntraPanelVector;
+	}
+
     DetectorPtr onePanel = firstSpot->getDetector();
     DetectorPtr twoPanel = secondSpot->getDetector();
     
     if (!onePanel || !twoPanel)
-        return false;
-    
+	{
+		_isIntraPanelVector = 0;
+        return _isIntraPanelVector;
+	}
+
     if ((onePanel != twoPanel) && onePanel->getParent() == twoPanel->getParent())
     {
         if (!onePanel->getParent()->isRefinable(GeometryScoreTypeInterpanel))
         {
-            return true;
+			_isIntraPanelVector = 1;
+            return _isIntraPanelVector;
         }
     }
-    
-    return (onePanel == twoPanel);
+
+	_isIntraPanelVector = (onePanel == twoPanel);
+    return _isIntraPanelVector;
 }
 
 bool SpotVector::spansChildrenOfDetector(DetectorPtr parent)
@@ -299,6 +311,7 @@ bool SpotVector::spansChildrenOfDetector(DetectorPtr parent)
     
     if (parent->isAncestorOf(onePanel) && parent->isAncestorOf(twoPanel))
     {
+
         for (int i = 0; i < parent->childrenCount(); i++)
         {
             if (parent->getChild(i)->isAncestorOf(onePanel) &&

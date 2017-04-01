@@ -121,7 +121,7 @@ void RefinementStrategy::finish()
 
 	sendLog(priority);
 
-    if (endScore > startingScore || endScore != endScore)
+    if (endScore >= startingScore || endScore != endScore)
     {
         logged << "No change for " << jobName << " (" << startingScore << ")" << std::endl;
         sendLog(LogLevelDetailed);

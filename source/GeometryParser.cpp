@@ -322,12 +322,12 @@ DetectorPtr GeometryParser::makeDetectorFromPanelMap(std::vector<PanelMap> panel
     return DetectorPtr();
 }
 
-bool detectorCloserThan(DetectorPtr a, DetectorPtr b)
+bool detectorFurtherThan(DetectorPtr a, DetectorPtr b)
 {
 	vec aVec = a->getAverageMidpoint();
 	vec bVec = b->getAverageMidpoint();
 
-	return (length_of_vector(aVec) < length_of_vector(bVec));
+	return (length_of_vector(aVec) > length_of_vector(bVec));
 }
 
 DetectorPtr GeometryParser::makeDetectorFromPanelMap(PanelMap panelMap, DetectorPtr parent)
@@ -589,7 +589,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
 			segment->setRefinable(false);
 		}
 
-		std::sort(pairs.begin(), pairs.end(), detectorCloserThan);
+		std::sort(pairs.begin(), pairs.end(), detectorFurtherThan);
 		DetectorPtr lastParent = Detector::getMaster();
 
 		for (int i = 0; i < pairs.size(); i++)

@@ -272,6 +272,7 @@ void CSV::minMaxCol(int col, double *min, double *max, bool round)
 void CSV::plotPDB(std::string filename, std::string header1, std::string header2, std::string header3)
 {
 	int nums[3];
+	double maxAngle = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
 
 	nums[0] = findHeader(header1);
 	nums[1] = findHeader(header2);
@@ -289,8 +290,8 @@ void CSV::plotPDB(std::string filename, std::string header1, std::string header2
 		scales[i] = 100 / max;
 	}
 
-	scales[0] = 100 / 0.03;
-	scales[1] = 100 / 0.03;
+	scales[0] = 100 / maxAngle;
+	scales[1] = 100 / maxAngle;
 	scales[2] = 100 / 90;
 
 	std::ofstream pdbLog;

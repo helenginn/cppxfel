@@ -1388,7 +1388,7 @@ void Detector::getAllSubDetectors(std::vector<DetectorPtr> &array, bool children
 
 void Detector::resetPoke()
 {
-    if (hasNoChildren())
+    if (childrenCount() < 2)
     {
         return;
     }

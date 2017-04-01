@@ -24,6 +24,8 @@
 #include "misc.h"
 #include "Detector.h"
 
+int IndexManager::_cycleNum = 0;
+
 IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
     images = newImages;
@@ -32,8 +34,9 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     _canLockVectors = false;
     _axisWeighting = PseudoScoreWeightingAxisNone;
     _maxFrequency = -1;
-    interPanelDistance = 0.07;
-    intraPanelDistance = 0.07;
+
+    interPanelDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.02);
+    intraPanelDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.02);
     
     unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
     
@@ -340,12 +343,14 @@ CSVPtr IndexManager::pseudoAnglePDB()
 
 	if (_canLockVectors && goodVectorPairs.size())
 	{
+		angleCSV->reserveEntries(goodVectorPairs.size());
+
 		for (int i = 0; i < goodVectors.size(); i++)
 		{
 			goodVectors[i]->calculateDistance();
 		}
 
-		for (int i = 0; i < goodVectorPairs.size(); i++)
+		for (int i = 1; i < goodVectorPairs.size(); i++)
 		{
 			SpotVectorPtr vec1 = goodVectorPairs[i].first;
 			SpotVectorPtr vec2 = goodVectorPairs[i].second;
@@ -353,11 +358,20 @@ CSVPtr IndexManager::pseudoAnglePDB()
 			double angle = vec1->angleWithVector(vec2);
 			angle *= 180 / M_PI;
 			angle = (angle > 90) ? 180 - angle : angle;
+			std::vector<double> entry;
+			entry.push_back(angle);
+			entry.push_back(vec1->distance());
+			entry.push_back(vec2->distance());
 
-			angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
+			angleCSV->addEntry(entry);
 		}
 
 		return angleCSV;
+	}
+
+	if (_canLockVectors)
+	{
+		goodVectorPairs.push_back(std::make_pair(SpotVectorPtr(), SpotVectorPtr()));
 	}
 
     for (int i = 0; i < images.size(); i++)
@@ -365,18 +379,13 @@ CSVPtr IndexManager::pseudoAnglePDB()
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
         {
             SpotVectorPtr vec1 = images[i]->spotVector(j);
+			vec1->calculateDistance();
 
-            if (!vec1->originalDistanceLessThan(angleDistance))
-                continue;
-            
             for (int k = 0; k < j; k++)
             {
                 SpotVectorPtr vec2 = images[i]->spotVector(k);
                 
-                if (!vec2->originalDistanceLessThan(angleDistance))
-                    continue;
-
-				if (checkVectors(vec1, vec2) != scoreType)
+                if (checkVectors(vec1, vec2) != scoreType)
 				{
 					continue;
 				}
@@ -388,7 +397,6 @@ CSVPtr IndexManager::pseudoAnglePDB()
 					goodVectors.push_back(vec2);
 				}
 
-				vec1->calculateDistance();
 				vec2->calculateDistance();
 
 				double angle = vec1->angleWithVector(vec2);
@@ -400,7 +408,19 @@ CSVPtr IndexManager::pseudoAnglePDB()
         }
     }
 
-	std::string filename = "angles_" + getActiveDetector()->getTag() + "_" + targetString(scoreType) + ".pdb";
+	if (angleCSV->entryCount() > 0)
+	{
+		logged << "Returning CSV with " << angleCSV->entryCount() << " observations." << std::endl;
+		sendLog();
+	}
+
+	if (getActiveDetector() == Detector::getMaster())
+	{
+		return angleCSV;
+	}
+
+	std::string filename = "angles_" + getActiveDetector()->getTag() +
+	"_" + targetString(scoreType) + "_" + i_to_str(getCycleNum()) + ".pdb";
 	angleCSV->plotPDB(filename, "aLength", "bLength", "angle");
 
 	return angleCSV;
@@ -410,6 +430,13 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 {
     DetectorPtr activeDetector = getActiveDetector();
     bool isInterPanel = scoreType == PseudoScoreTypeAllInterPanel || scoreType == PseudoScoreTypeInterPanel;
+
+	// intra panel dealings
+
+	if ((!vec1->originalDistanceLessThan(intraPanelDistance) || !vec2->originalDistanceLessThan(intraPanelDistance)))
+	{
+		return PseudoScoreTypeInvalid;
+	}
 
 	if (!isInterPanel && !vec1->hasCommonSpotWithVector(vec2))
 	{
@@ -439,17 +466,17 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 
 	if (scoreType == PseudoScoreTypeAllInterPanel)
 	{
-		if (!vec1->hasCommonSpotWithVector(vec2))
+		if (vec1->hasCommonSpotWithVector(vec2))
 		{
-			return PseudoScoreTypeInvalid;
+			return PseudoScoreTypeAllInterPanel;
 		}
 
-		return PseudoScoreTypeAllInterPanel;
+		return PseudoScoreTypeInvalid;
 	}
 
 	// now definitely specific interpanel
 
-	if (vec1->spansChildrenOfDetector(activeDetector))
+	if (vec1->spansChildrenOfDetector(activeDetector) && vec2->spansChildrenOfDetector(activeDetector))
 	{
 		return PseudoScoreTypeInterPanel;
 	}
@@ -470,24 +497,29 @@ double IndexManager::pseudoAngleScore(void *object)
 	CSVPtr observedAngles = me->pseudoAnglePDB();
 	CSVPtr predictedAngles = me->getLattice()->getAngleCSV();
 
-	double angleTolerance = 90.0;
-	double lengthTol = 0.1;
+	double angleTolerance = 30;
+	double lengthTol = me->intraPanelDistance / 3;
 	double totalScore = 0;
 
 	double maxDistSq = 3 * pow(0.0022, 2);
 
+	if (observedAngles->entryCount() == 0)
+	{
+		return 0;
+	}
+
 	for (int i = 0; i < observedAngles->entryCount(); i++)
 	{
-		double angle = observedAngles->valueForEntry("angle", i);
-		double aLength = observedAngles->valueForEntry("aLength", i);
-		double bLength = observedAngles->valueForEntry("bLength", i);
+		double angle = observedAngles->valueForEntry(0, i);
+		double aLength = observedAngles->valueForEntry(1, i);
+		double bLength = observedAngles->valueForEntry(2, i);
 		double bestScore = 0.;
 
-		for (int i = 0; i < predictedAngles->entryCount(); i++)
+		for (int j = 0; j < predictedAngles->entryCount(); j++)
 		{
-			double pAngle = predictedAngles->valueForEntry("angle", i);
-			double paLength = predictedAngles->valueForEntry("aLength", i);
-			double pbLength = predictedAngles->valueForEntry("bLength", i);
+			double pAngle = predictedAngles->valueForEntry(0, j);
+			double paLength = predictedAngles->valueForEntry(1, j);
+			double pbLength = predictedAngles->valueForEntry(2, j);
 
 			double angleDiff = fabs(pAngle - angle);
 			if (angleDiff > angleTolerance)
@@ -514,7 +546,7 @@ double IndexManager::pseudoAngleScore(void *object)
 
 			distSq /= maxDistSq;
 
-			if (distSq != distSq)
+			if (distSq != distSq || distSq > 3)
 			{
 				continue;
 			}

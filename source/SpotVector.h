@@ -16,7 +16,8 @@
 class SpotVector : public LoggableObject
 {
 private:
-    SpotPtr firstSpot;
+	int _isIntraPanelVector;
+	SpotPtr firstSpot;
     SpotPtr secondSpot;
     bool update;
     double cachedDistance;

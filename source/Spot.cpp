@@ -411,8 +411,8 @@ vec Spot::estimatedVector()
     }
     else
     {
-        DetectorPtr det = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
-        
+		DetectorPtr det  = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+
         if (!det)
         {
             return new_vector(0, 0, 0);

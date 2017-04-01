@@ -50,7 +50,7 @@ protected:
     static double pseudoAngleScore(void *object);
     CSVPtr angleCSV;
     bool _canLockVectors;
-    int _cycleNum;
+    static int _cycleNum;
     PseudoScoreWeightingAxis _axisWeighting;
     
     double maxMillerIndexTrial;
@@ -134,12 +134,12 @@ public:
         _axisWeighting = weighting;
     }
     
-    void setCycleNum(int num)
+    static void setCycleNum(int num)
     {
         _cycleNum = num;
     }
     
-    int getCycleNum()
+    static int getCycleNum()
     {
         return _cycleNum;
     }

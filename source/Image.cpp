@@ -478,6 +478,27 @@ double Image::interpolateAt(double x, double y, double *total)
     return weighted / *total;
 }
 
+DetectorPtr Image::getDetectorForPosition(int x, int y)
+{
+	int pos = y * xDim + x;
+
+	if (pos < 0 || pos > generalMask.size() || pos > perPixelDetectors.size())
+	{
+		return DetectorPtr();
+	}
+
+	signed char maskValue = generalMask[pos];
+
+	if (maskValue == 0)
+	{
+		return DetectorPtr();
+	}
+
+	DetectorPtr det = perPixelDetectors[pos];
+
+	return det;
+}
+
 int Image::valueAt(int x, int y)
 {
     loadImage();
@@ -1426,7 +1447,12 @@ void Image::processSpotList()
             bool add = true;
             
             vec myVec = newSpot->estimatedVector();
-            
+
+			if (!newSpot->hasDetector())
+			{
+				add = false;
+			}
+
             vec aCopy = myVec;
             double dStar = length_of_vector(aCopy);
             

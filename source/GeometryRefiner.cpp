@@ -258,12 +258,13 @@ void GeometryRefiner::refineGeometry()
         reportProgress();
     }
     
-    for (int i = 0; i < maxCycles; i++)
+	intraPanelCycle();
+
+	for (int i = 0; i < maxCycles; i++)
     {
         cycleNum++;
-		intraPanelCycle();
 		interPanelCycle();
-        refineBeamCentre();
+	    refineBeamCentre();
     }
 
 	logged << "**** Geometry refinement complete ****" << std::endl;
@@ -332,20 +333,19 @@ void GeometryRefiner::interPanelCycle()
 	}
 	else
 	{
-		int i = 0;
-		while (true)
+		int i = 64;
+		while (i >= 0)
 		{
 			std::vector<DetectorPtr> detectors;
 			detectors = Detector::getMaster()->getSubDetectorsOnLevel(i);
+			i--;
 
 			if (detectors.size() == 0)
 			{
-				break;
+				continue;
 			}
 
 			refineDetectorStrategyWrapper(this, detectors, type, 0);
-
-			i++;
 		}
 	}
 
@@ -464,6 +464,7 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
 	}
 	else if (type == GeometryScoreTypeInterpanel)
 	{
+		interPanelGridSearch(detector);
 		interPanelMillerSearch(detector, type);
 	}
 	else if (type == GeometryScoreTypeIntrapanel)
@@ -479,28 +480,19 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
 
 void GeometryRefiner::interPanelGridSearch(DetectorPtr detector)
 {
-    RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypeInterpanel);
-    
-    detector->resetPoke();
-    double distFromSample = detector->distanceFromSample();
-    double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
-    detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
+	double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
+	detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
-    strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge, 0.001, "poke_x");
-    strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge, 0.001, "poke_y");
-    strategy->setGridLength(99);
-    
-    double pixelPerTiltNudge = sin(nudgeTiltY) * distFromSample;
-    double pixelsToCheck = 1.0;
-    int gridPointsToCheck = pixelsToCheck / pixelPerTiltNudge + 0.5;
-    gridPointsToCheck *= 2;
-    
-    strategy->setCheckGridNum(gridPointsToCheck);
-    
-    strategy->setJobName("interpanel_grid_" + detector->getTag() + "_" + i_to_str(refinementEvent));
-    
-    strategy->refine();
-    strategy->assignInterpanelMinimum();
+	RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypeInterpanel);
+	detector->resetPoke();
+	strategy->setJobName(detector->getTag() + "_powder");
+	strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge * 5, 0, "internudge_x");
+	strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge * 5, 0, "internudge_y");
+	strategy->setGridLength(19);
+
+	strategy->refine();
+
+	detector->resetPoke();
 }
 
 void GeometryRefiner::interPanelNormalSearch(DetectorPtr detector)
@@ -560,15 +552,10 @@ void GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScore
 	}
 	else
 	{
-		/*
-		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge, 0, "poke_x");
-		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge, 0, "poke_y");
-		strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge, 0, "poke_z");*/
-
+		strategy->setJobName(detector->getTag() + "_powder");
 		strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0, "internudge_x");
 		strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0, "internudge_y");
 		strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge, 0, "internudge_z");
-
 	}
 
     strategy->refine();
