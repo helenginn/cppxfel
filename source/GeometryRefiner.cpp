@@ -258,11 +258,11 @@ void GeometryRefiner::refineGeometry()
         reportProgress();
     }
     
-	intraPanelCycle();
 
 	for (int i = 0; i < maxCycles; i++)
     {
         cycleNum++;
+		intraPanelCycle();
 		interPanelCycle();
 	    refineBeamCentre();
     }
@@ -299,7 +299,7 @@ void GeometryRefiner::intraPanelCycle()
 	printHeader(detectors);
 
 	GeometryScoreType type = GeometryScoreTypeIntrapanel;
-	int cycles = 2;
+	int cycles = 4;
 
 	if (hasMillers)
 	{

@@ -497,8 +497,8 @@ double IndexManager::pseudoAngleScore(void *object)
 	CSVPtr observedAngles = me->pseudoAnglePDB();
 	CSVPtr predictedAngles = me->getLattice()->getAngleCSV();
 
-	double angleTolerance = 30;
-	double lengthTol = me->intraPanelDistance / 3;
+	double angleTolerance = 90. / 6.;
+	double lengthTol = me->intraPanelDistance / 6.;
 	double totalScore = 0;
 
 	double maxDistSq = 3 * pow(0.0022, 2);
