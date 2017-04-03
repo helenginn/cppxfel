@@ -187,8 +187,8 @@ void MtzRefiner::refine()
     MtzPtr originalMerge;
     
     bool initialExists = loadInitialMtz();
-    readMatricesAndMtzs();
-    
+	loadImageFiles();
+
     if (!initialExists)
     {
         initialMerge();

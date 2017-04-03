@@ -215,8 +215,8 @@ void AmbiguityBreaker::merge()
 	merger.setAllMtzs(mtzs);
 	merger.setCycle(-1);
 	merger.setScalingType(ScalingTypeAverage);
-	merger.mergeFull();
 	merger.setExcludeWorst(false);
+	merger.mergeFull();
 	merged = merger.getMergedMtz();
 }
 
