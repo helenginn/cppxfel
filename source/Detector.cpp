@@ -28,7 +28,7 @@ std::mutex Detector::setupMutex;
 double Detector::cacheStep = 0;
 std::vector<double> Detector::millerTargetTable;
 
-#define GOOD_GEOMETRY_RLP_SIZE 0.0015
+#define GOOD_GEOMETRY_RLP_SIZE 0.0010
 
 // MARK: initialisation and constructors
 
@@ -84,6 +84,7 @@ double Detector::lookupCache(double distSq)
 void Detector::initialiseZeros()
 {
     gain = 1;
+	_changed = true;
     
     unarrangedTopLeftX = 0;
     unarrangedTopLeftY = 0;
@@ -908,7 +909,7 @@ std::string Detector::writeGeometryFile(int fileCount, int indentCount, CSVPtr d
     output << indents(indentCount + 1) << "midpoint_y = " << arrangedMidPoint.k << std::endl;
     output << indents(indentCount + 1) << "midpoint_z = " << arrangedMidPoint.l << std::endl;
     output << indents(indentCount + 1) << "ghost = " << (hasChildren() ? "true" : "false") << std::endl;
-    output << indents(indentCount + 1) << "refine = " << (_refinable == true) << std::endl;
+	output << indents(indentCount + 1) << "refine = " << (_refinable ? "true" : "false") << std::endl;
 
     if (!differenceCSV)
     {
@@ -1324,10 +1325,10 @@ void Detector::reportMillerScores(int refinementNum)
     {
         logged << "Writing pixel and reciprocal offset graph..." << std::endl;
         sendLog();
-        millerScore(true, true, refinementNum);
-        millerScore(true, false, refinementNum);
-    }
-    
+ }
+	millerScore(true, false, refinementNum);
+	millerScore(true, true, refinementNum);
+
     for (int i = 0; i < childrenCount(); i++)
     {
         getChild(i)->reportMillerScores(refinementNum);

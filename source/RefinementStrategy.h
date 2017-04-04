@@ -22,6 +22,7 @@ protected:
     LogLevel priority;
     std::string jobName;
     int cycleNum;
+	int _changed;
     
     std::vector<int> couplings;
     std::vector<void *> objects;
@@ -43,6 +44,7 @@ public:
         priority = LogLevelDebug;
         cycleNum = 0;
         startingScore = 0;
+		_changed = -1;
     };
     
     static RefinementStrategyPtr userChosenStrategy();
@@ -70,6 +72,11 @@ public:
             priority = LogLevelDebug;
         }
     }
+
+	bool didChange()
+	{
+		return (_changed == 1);
+	}
     
     void setCycles(int num)
     {

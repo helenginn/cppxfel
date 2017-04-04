@@ -38,6 +38,7 @@ private:
     double gain;
     bool _refinable;
     std::mutex threadMutex;
+	bool _changed;
     
     static bool enabledNudge;
     bool mustUpdateMidPoint;
@@ -282,14 +283,6 @@ public:
         rotationAngles.l = gamma;
     }
     
-    /* Supply angles in radians */
-    void setRotationAngles(double alpha, double beta, double gamma)
-    {
-        rotationAngles.h = alpha;
-        rotationAngles.k = beta;
-        rotationAngles.l = gamma;
-    }
-    
     void setTag(std::string newTag)
     {
         tag = newTag;
@@ -315,11 +308,14 @@ public:
     {
         return changeOfBasisMat;
     }
-    
+
+	bool didChange()
+	{
+		return _changed;
+	}
+
     void rotateAxisRecursive(bool fix = false);
-    
-    // MARK: Public family functions
-    
+
     void setParent(DetectorPtr myParent)
     {
         parent = myParent;
@@ -455,7 +451,7 @@ public:
     std::string writeGeometryFile(int fileCount, int indentCount = 0, CSVPtr differenceCSV = CSVPtr());
     std::string writeCrystFELFile();
     
-    /* Refinement getter/setters */
+	// MARK: Refinement getter/setters
     
     static void setArrangedMidPointX(void *object, double newX)
     {
@@ -488,42 +484,6 @@ public:
     static double getArrangedMidPointZ(void *object)
     {
         return static_cast<Detector *>(object)->arrangedMidPoint.l;
-    }
-    
-    static void setAlpha(void *object, double newAlpha)
-    {
-        static_cast<Detector *>(object)->rotationAngles.h = newAlpha;
-        static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
-    }
-    
-    static double getAlpha(void *object)
-    {
-        return static_cast<Detector *>(object)->rotationAngles.h;
-    }
-    
-    static void setBeta(void *object, double newBeta)
-    {
-        static_cast<Detector *>(object)->rotationAngles.k = newBeta;
-        static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
-    }
-    
-    static double getBeta(void *object)
-    {
-        return static_cast<Detector *>(object)->rotationAngles.k;
-    }
-    
-    static void setGamma(void *object, double newGamma)
-    {
-        static_cast<Detector *>(object)->rotationAngles.l = newGamma;
-        static_cast<Detector *>(object)->updateCurrentRotation();
-        static_cast<Detector *>(object)->setUpdateMidPointForDetector();
-    }
-    
-    static double getGamma(void *object)
-    {
-        return static_cast<Detector *>(object)->rotationAngles.l;
     }
     
     static void setInterNudgeX(void *object, double horiz)
@@ -770,8 +730,7 @@ public:
 			return true;
         }
         
-        if (scoreType == GeometryScoreTypeIntrapanelParent ||
-            scoreType == GeometryScoreTypeBeamCentre)
+        if (scoreType == GeometryScoreTypeBeamCentre)
         {
             return _refinable;
         }

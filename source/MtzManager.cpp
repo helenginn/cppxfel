@@ -1867,11 +1867,11 @@ void MtzManager::refineOrientationMatrix(bool force)
 	lastTotal = getTotalReflections();
 
 	int oldSearchSize = searchSize;
-	int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 6);
+	int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 3);
 
 	// FIXME: read support for unit cell dimensions
 
-	searchSize = bigSize;
+	searchSize = oldSearchSize + bigSize;
 
 	if (refineOrientations || force)
 	{

@@ -42,7 +42,6 @@ public:
     
     ResultMap results;
     void recursiveEvaluation(ParamList referenceList, ParamList workingList, ResultMap *results);
-    void assignInterpanelMinimum();
     virtual void clearParameters()
     {
         orderedResults.clear();

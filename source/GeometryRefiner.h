@@ -42,11 +42,8 @@ private:
     void printHeader(std::vector<DetectorPtr> detectors);
     
     void interPanelGridSearch(DetectorPtr detector);
-    void interPanelNormalSearch(DetectorPtr detector);
     void interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
     void intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
-    void intraPanelNormalSearch(DetectorPtr detector);
-    void nudgeZGridSearch(DetectorPtr detector);    
     
     RefinementGridSearchPtr makeGridRefiner(DetectorPtr detector, GeometryScoreType type);
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);

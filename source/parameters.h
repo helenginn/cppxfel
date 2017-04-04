@@ -295,7 +295,6 @@ typedef enum
     GeometryScoreTypeIntraMiller,
     GeometryScoreTypeIntrapanel,
     GeometryScoreTypeInterpanel,
-    GeometryScoreTypeIntrapanelParent,
     GeometryScoreTypeBeamCentre,
     
 } GeometryScoreType;

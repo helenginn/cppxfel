@@ -127,6 +127,7 @@ void RefinementStrategy::finish()
         sendLog(LogLevelDetailed);
         
 		resetToInitialParameters();
+		_changed = 0;
     }
     else
     {
@@ -150,6 +151,8 @@ void RefinementStrategy::finish()
 
 		logged << "(" << startingScore << " to " << endScore << ")" << std::endl;
         sendLog(LogLevelDetailed);
+
+		_changed = 1;
     }
     
     cycleNum = 0;

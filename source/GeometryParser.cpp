@@ -44,6 +44,7 @@ DetectorPtr GeometryParser::makeDetector(DetectorPtr parent, int min_fs, int min
     segment->initialise(topLeft, bottomRight, slowAxis, fastAxis, middle, true, ghost);
     
     segment->prepareRotationAngles(alpha, beta, gamma);
+	segment->setRefinable(refinable);
     
     return segment;
 }
@@ -294,7 +295,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
         
         if (components[0] == "ghost")
             ghost = (strcmp(components[2].c_str(), "true") == 0);
-        if (components[0] == "refinable")
+        if (components[0] == "refine")
             refinable = (strcmp(components[2].c_str(), "true") == 0);
     }
     

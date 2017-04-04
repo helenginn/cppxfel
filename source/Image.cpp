@@ -1075,6 +1075,7 @@ void Image::refineOrientations()
     for (int i = 0; i < mtzCount(); i++)
     {
         mtzs[i]->refineOrientationMatrix();
+		mtzs[i]->getWavelengthHistogram(NULL, NULL, false);
     }
 }
 
@@ -1759,7 +1760,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     MtzPtr myMtz = mtz(lastMtz);
     *anMtz = myMtz;
 
-	myMtz->refineOrientationMatrix(true);
+	myMtz->refineOrientationMatrix();
 	similar = checkIndexingSolutionDuplicates(myMtz->getMatrix(), true);
 
 	if (similar)

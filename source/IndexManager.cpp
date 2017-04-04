@@ -408,12 +408,6 @@ CSVPtr IndexManager::pseudoAnglePDB()
         }
     }
 
-	if (angleCSV->entryCount() > 0)
-	{
-		logged << "Returning CSV with " << angleCSV->entryCount() << " observations." << std::endl;
-		sendLog();
-	}
-
 	if (getActiveDetector() == Detector::getMaster())
 	{
 		return angleCSV;
@@ -432,6 +426,16 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
     bool isInterPanel = scoreType == PseudoScoreTypeAllInterPanel || scoreType == PseudoScoreTypeInterPanel;
 
 	// intra panel dealings
+
+	if (scoreType == PseudoScoreTypeBeamCentre)
+	{
+		if (vec1->usesBeamCentre() && vec2->usesBeamCentre())
+		{
+			return PseudoScoreTypeBeamCentre;
+		}
+
+		return PseudoScoreTypeInvalid;
+	}
 
 	if ((!vec1->originalDistanceLessThan(intraPanelDistance) || !vec2->originalDistanceLessThan(intraPanelDistance)))
 	{
