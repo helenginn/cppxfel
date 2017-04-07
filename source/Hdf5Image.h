@@ -47,6 +47,7 @@ public:
     void setMask()
     {
         _isMask = true;
+
         imageAddress = Hdf5ManagerCheetah::getMaskAddress();
         setFilename("mask.img");
         loadImage();

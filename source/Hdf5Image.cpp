@@ -108,14 +108,21 @@ void Hdf5Image::loadImage()
     
     if (!address.length())
     {
-        address = manager->addressForImage(getFilename());
+		address = manager->addressForImage(getFilename());
     }
     
     if (!address.length())
     {
         failureMessage();
     }
-    
+
+	if (!manager->datasetExists(address) && !manager->groupExists(address))
+	{
+		logged << "Cannot find an image with data address " << getBasename() << ", nevermind." << std::endl;
+		sendLog();
+		return;
+	}
+
     useShortData = (manager->bytesPerTypeForImageAddress(address) == 2);
     
     char *buffer;
@@ -360,6 +367,7 @@ void Hdf5Image::getWavelengthFromHdf5()
     }
     
     std::string address = getAddress();
+
     double wavelength = 0;
     double *wavePtr = &wavelength;
 
@@ -369,7 +377,12 @@ void Hdf5Image::getWavelengthFromHdf5()
     {
         return;
     }
-    
+
+	if (!manager->groupExists(address) && !manager->datasetExists(address))
+	{
+		return;
+	}
+
     manager->wavelengthForImage(address, (void **)&wavePtr);
     
     if (wavelength > 0)
