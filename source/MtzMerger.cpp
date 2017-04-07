@@ -17,7 +17,6 @@
 #include "csymlib.h"
 #include "ccp4_general.h"
 #include "ccp4_parser.h"
-#include "FreeMillerLibrary.h"
 #include "StatisticsManager.h"
 
 // MARK: Miscellaneous
@@ -930,14 +929,6 @@ void MtzMerger::mergeFull(bool anomalous)
 {
     time_t startcputime;
     time(&startcputime);
-
-    if (freeOnly)
-    {
-        if (!FreeMillerLibrary::active())
-        {
-            return;
-        }
-    }
 
     std::vector<MtzPtr> firstHalfMtzs, secondHalfMtzs;
     splitAllMtzs(firstHalfMtzs, secondHalfMtzs);

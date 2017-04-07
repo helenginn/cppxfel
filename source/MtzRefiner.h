@@ -92,7 +92,6 @@ public:
         isPython = newValue;
     }
     
-    void setupFreeMillers();
     void polarisationGraph();
     void displayIndexingHands();
 	void plotPixelValueVsFiducial();

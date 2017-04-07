@@ -19,7 +19,6 @@
 #include "Beam.h"
 #include "Image.h"
 #include "Spot.h"
-#include "FreeMillerLibrary.h"
 #include "polyfit.hpp"
 #include "Detector.h"
 
@@ -138,11 +137,6 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     
     int rlpInt = FileParser::getKey("RLP_MODEL", 0);
     rlpModel = (RlpModel)rlpInt;
-    
-    if (calcFree)
-    {
-        free = FreeMillerLibrary::isMillerFree(this);
-    }
     
     std::vector<int> special = FileParser::getKey("MILLER_INDEX", std::vector<int>());
     

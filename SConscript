@@ -52,7 +52,6 @@ source = [
 'source/FileParser.cpp',
 'source/FileReader.cpp',
 'source/FreeLattice.cpp',
-'source/FreeMillerLibrary.cpp',
 'source/GeometryParser.cpp',
 'source/GeometryRefiner.cpp',
 'source/GraphDrawer.cpp',
