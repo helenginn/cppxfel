@@ -47,7 +47,6 @@ protected:
     std::mutex indexMutex;
     PseudoScoreType scoreType;
     double proportionDistance;
-    static double pseudoAngleScore(void *object);
     CSVPtr angleCSV;
     bool _canLockVectors;
     static int _cycleNum;
@@ -117,10 +116,12 @@ public:
         proportionDistance = newProp;
     }
     
-    static double pseudoDistanceScore(void *object, bool writeToCSV = false, std::string tag = "");
+	static double pseudoAngleScore(void *object);
+	static double pseudoDistanceScore(void *object, bool writeToCSV = false, std::string tag = "");
     void combineLists();
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
+	bool writtenPDB;
     CSVPtr pseudoAnglePDB();
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
     

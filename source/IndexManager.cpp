@@ -28,6 +28,7 @@ int IndexManager::_cycleNum = 0;
 
 IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 {
+	writtenPDB = false;
     images = newImages;
     scoreType = PseudoScoreTypeIntraPanel;
     proportionDistance = FileParser::getKey("DISTANCE_VS_ANGLE_FRACTION", 1.0);
@@ -332,14 +333,14 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
 
 CSVPtr IndexManager::pseudoAnglePDB()
 {
-    double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
-    
-    if (angleDistance <= 0)
-    {
-        return CSVPtr();
-    }
-    
-    CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
+	double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
+
+	if (angleDistance <= 0)
+	{
+		return CSVPtr();
+	}
+
+	CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
 
 	if (_canLockVectors && goodVectorPairs.size())
 	{
@@ -365,57 +366,60 @@ CSVPtr IndexManager::pseudoAnglePDB()
 
 			angleCSV->addEntry(entry);
 		}
-
-		return angleCSV;
 	}
-
-	if (_canLockVectors)
+	else
 	{
-		goodVectorPairs.push_back(std::make_pair(SpotVectorPtr(), SpotVectorPtr()));
+		if (_canLockVectors)
+		{
+			goodVectorPairs.push_back(std::make_pair(SpotVectorPtr(), SpotVectorPtr()));
+		}
+
+		for (int i = 0; i < images.size(); i++)
+		{
+			for (int j = 0; j < images[i]->spotVectorCount(); j++)
+			{
+				SpotVectorPtr vec1 = images[i]->spotVector(j);
+				vec1->calculateDistance();
+
+				for (int k = 0; k < j; k++)
+				{
+					SpotVectorPtr vec2 = images[i]->spotVector(k);
+
+					if (checkVectors(vec1, vec2) != scoreType)
+					{
+						continue;
+					}
+
+					if (_canLockVectors)
+					{
+						goodVectorPairs.push_back(std::make_pair(vec1, vec2));
+						goodVectors.push_back(vec1);
+						goodVectors.push_back(vec2);
+					}
+
+					vec2->calculateDistance();
+
+					double angle = vec1->angleWithVector(vec2);
+					angle *= 180 / M_PI;
+					angle = (angle > 90) ? 180 - angle : angle;
+
+					angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
+				}
+			}
+		}
 	}
-
-    for (int i = 0; i < images.size(); i++)
-    {
-        for (int j = 0; j < images[i]->spotVectorCount(); j++)
-        {
-            SpotVectorPtr vec1 = images[i]->spotVector(j);
-			vec1->calculateDistance();
-
-            for (int k = 0; k < j; k++)
-            {
-                SpotVectorPtr vec2 = images[i]->spotVector(k);
-                
-                if (checkVectors(vec1, vec2) != scoreType)
-				{
-					continue;
-				}
-
-				if (_canLockVectors)
-				{
-					goodVectorPairs.push_back(std::make_pair(vec1, vec2));
-					goodVectors.push_back(vec1);
-					goodVectors.push_back(vec2);
-				}
-
-				vec2->calculateDistance();
-
-				double angle = vec1->angleWithVector(vec2);
-				angle *= 180 / M_PI;
-				angle = (angle > 90) ? 180 - angle : angle;
-
-				angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
-            }
-        }
-    }
 
 	if (getActiveDetector() == Detector::getMaster())
 	{
 		return angleCSV;
 	}
 
+	std::string prePost = writtenPDB ? "_post_" : "_pre_";
 	std::string filename = "angles_" + getActiveDetector()->getTag() +
-	"_" + targetString(scoreType) + "_" + i_to_str(getCycleNum()) + ".pdb";
+	"_" + targetString(scoreType) + prePost + i_to_str(getCycleNum()) + ".pdb";
 	angleCSV->plotPDB(filename, "aLength", "bLength", "angle");
+
+	writtenPDB = true;
 
 	return angleCSV;
 }
@@ -442,7 +446,7 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 		return PseudoScoreTypeInvalid;
 	}
 
-	if (!isInterPanel && !vec1->hasCommonSpotWithVector(vec2))
+	if (!isInterPanel && !vec1->hasCommonSpotWithVector(vec2) && activeDetector == Detector::getMaster())
 	{
 		return PseudoScoreTypeInvalid;
 	}
@@ -463,13 +467,13 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 
 	// now definitely interpanel (specific) or all interpanel
 
-	if (vec1->isIntraPanelVector() || vec2->isIntraPanelVector())
-	{
-		return PseudoScoreTypeInvalid;
-	}
-
 	if (scoreType == PseudoScoreTypeAllInterPanel)
 	{
+		if (vec1->isIntraPanelVector() || vec2->isIntraPanelVector())
+		{
+			return PseudoScoreTypeInvalid;
+		}
+
 		if (vec1->hasCommonSpotWithVector(vec2))
 		{
 			return PseudoScoreTypeAllInterPanel;
@@ -480,7 +484,19 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 
 	// now definitely specific interpanel
 
-	if (vec1->spansChildrenOfDetector(activeDetector) && vec2->spansChildrenOfDetector(activeDetector))
+	if (vec1->isIntraPanelVector() && vec2->isIntraPanelVector())
+	{
+		return PseudoScoreTypeInvalid;
+	}
+
+	if ((vec1->spansChildrenOfDetector(activeDetector) && (vec2->spansChildrenOfDetector(activeDetector))))
+	{
+		return PseudoScoreTypeInterPanel;
+	}
+
+	if ((vec1->isOnlyFromDetector(activeDetector) && (vec2->isOnlyFromDetector(activeDetector))
+		 && ((vec1->spansChildrenOfDetector(activeDetector) || (vec1->spansChildrenOfDetector(activeDetector))))
+		 && vec1->hasCommonSpotWithVector(vec2)))
 	{
 		return PseudoScoreTypeInterPanel;
 	}
@@ -505,7 +521,7 @@ double IndexManager::pseudoAngleScore(void *object)
 	double lengthTol = me->intraPanelDistance / 6.;
 	double totalScore = 0;
 
-	double maxDistSq = 3 * pow(0.0022, 2);
+	double maxDistSq = pow(0.0010, 2);
 
 	if (observedAngles->entryCount() == 0)
 	{
@@ -517,6 +533,9 @@ double IndexManager::pseudoAngleScore(void *object)
 		double angle = observedAngles->valueForEntry(0, i);
 		double aLength = observedAngles->valueForEntry(1, i);
 		double bLength = observedAngles->valueForEntry(2, i);
+
+		double myAngTol = angleTolerance;
+		double myLengthTol = lengthTol;
 		double bestScore = 0.;
 
 		for (int j = 0; j < predictedAngles->entryCount(); j++)
@@ -526,19 +545,19 @@ double IndexManager::pseudoAngleScore(void *object)
 			double pbLength = predictedAngles->valueForEntry(2, j);
 
 			double angleDiff = fabs(pAngle - angle);
-			if (angleDiff > angleTolerance)
+			if (angleDiff > myAngTol)
 			{
 				continue;
 			}
-
+			
 			double aLengthDiff = fabs(paLength - aLength);
-			if (aLengthDiff > lengthTol)
+			if (aLengthDiff > myLengthTol)
 			{
 				continue;
 			}
 
 			double bLengthDiff = fabs(pbLength - bLength);
-			if (bLengthDiff > lengthTol)
+			if (bLengthDiff > myLengthTol)
 			{
 				continue;
 			}
@@ -560,6 +579,8 @@ double IndexManager::pseudoAngleScore(void *object)
 			if (score == score && score > bestScore)
 			{
 				bestScore = score;
+				myLengthTol = std::max(bLengthDiff, aLengthDiff);
+				myAngTol = angleDiff;
 			}
 		}
 
