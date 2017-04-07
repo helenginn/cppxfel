@@ -377,12 +377,12 @@ void Hdf5Image::getWavelengthFromHdf5()
     {
         return;
     }
-
+/*
 	if (!manager->groupExists(address) && !manager->datasetExists(address))
 	{
 		return;
 	}
-
+*/
     manager->wavelengthForImage(address, (void **)&wavePtr);
     
     if (wavelength > 0)
