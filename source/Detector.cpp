@@ -107,7 +107,10 @@ void Detector::initialiseZeros()
     memset(&poke.h, 0, sizeof(poke.h) * 3);
     memset(&interNudge.h, 0, sizeof(interNudge.h) * 3);
     memset(&originalNudgePosition.h, 0, sizeof(originalNudgePosition.h) * 3);
-    
+	memset(&pokeLateralAxis, 0, sizeof(pokeLateralAxis.h) * 3);
+	memset(&pokeLongitudinalAxis, 0, sizeof(pokeLongitudinalAxis.h) * 3);
+	memset(&pokePerpendicularAxis, 0, sizeof(pokePerpendicularAxis.h) * 3);
+
     for (int i = 0; i < 4; i++)
     {
         memset(&originalCorners[i].h, 0, sizeof(originalCorners[i].h) * 3);
@@ -418,6 +421,7 @@ void Detector::rotateAxisRecursive(bool fix)
         memset(&nudgeTranslation.h, 0, sizeof(nudgeTranslation.h) * 3);
         memset(&nudgeRotation.h, 0, sizeof(nudgeRotation.h) * 3);
         memset(&interNudge.h, 0, sizeof(interNudge.h) * 3);
+		interRotation->setIdentity();
         
         resetNudgeBasis();
     }
@@ -1190,7 +1194,6 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
                 csv->addEntry(0, x1, y1);
             }
             
-            // polynomial fit to below
             double contribution = 0;
             
             contribution = lookupCache(distSq);

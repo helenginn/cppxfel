@@ -26,8 +26,7 @@ private:
     static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors,
                                       int offset, GeometryScoreType type, int strategyType);
     void refineGeometryCycle();
-    bool geometryCycleForDetector(std::vector<DetectorPtr> detectors, bool interPanelOnly);
-
+    
 	void intraPanelCycle();
 	void interPanelCycle();
 	

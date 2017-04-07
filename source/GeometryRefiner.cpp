@@ -85,7 +85,7 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
     aManager->setActiveDetector(detector);
-    aManager->setCycleNum(refinementEvent + 1);
+    aManager->setCycleNum(refinementEvent);
     aManager->lockVectors();
     
     switch (type)
@@ -146,7 +146,7 @@ void GeometryRefiner::startingGraphs()
         if (detector->isRefinable(GeometryScoreTypeIntrapanel))
         {
             aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
-            IndexManager::pseudoDistanceScore(&*aManager, true, "start_");
+            IndexManager::pseudoAngleScore(&*aManager);
             aManager->plotGoodVectors();
         }
         
@@ -154,8 +154,7 @@ void GeometryRefiner::startingGraphs()
         {
             aManager->clearGoodVectors();
             aManager->setPseudoScoreType(PseudoScoreTypeInterPanel);
-            aManager->resetMaxFrequency();
-            IndexManager::pseudoDistanceScore(&*aManager, true, "start_");
+            IndexManager::pseudoAngleScore(&*aManager);
             aManager->plotGoodVectors();
         }
     }
@@ -258,6 +257,7 @@ void GeometryRefiner::refineGeometry()
 	for (int i = 0; i < maxCycles; i++)
     {
         cycleNum++;
+		refineUnitCell();
 		refineBeamCentre();
 		refineBeamCentre();
 		refineBeamCentre();
@@ -350,58 +350,6 @@ void GeometryRefiner::interPanelCycle()
 
 }
 
-bool GeometryRefiner::geometryCycleForDetector(std::vector<DetectorPtr> detectors, bool interPanelOnly)
-{
-    bool hasRefineableDetectors = false;
-    bool hasMillers = Detector::getMaster()->millerCount() > 0;
-    GeometryScoreType type = GeometryScoreTypeIntrapanel;
-    
-    if (interPanelOnly)
-    {
-        type = GeometryScoreTypeInterpanel;
-    }
-    
-    if (hasMillers && type == GeometryScoreTypeIntrapanel)
-    {
-        type = GeometryScoreTypeIntraMiller;
-    }
-    else if (hasMillers && type == GeometryScoreTypeInterpanel)
-    {
-        type = GeometryScoreTypeInterMiller;
-    }
-
-    refineUnitCell();
-
-	for (int i = 0; i < 4; i++)
-	{
-		refineDetectorStrategyWrapper(this, detectors, type, 0);
-		refineDetectorStrategyWrapper(this, detectors, type, 1);
-	}
-
-    std::vector<DetectorPtr> nextDetectors;
-    
-    for (int i = 0; i < detectors.size(); i++)
-    {
-        for (int j = 0; j < detectors[i]->childrenCount(); j++)
-        {
-            nextDetectors.push_back(detectors[i]->getChild(j));
-        }
-    }
-    
-    if (nextDetectors.size())
-    {
-        bool somethingHappened = geometryCycleForDetector(nextDetectors, interPanelOnly);
-        
-        if (!somethingHappened)
-        {
-            return true;
-        }
-    }
-
-    refineUnitCell();
-    
-    return hasRefineableDetectors;
-}
 
 void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, GeometryScoreType type, int strategyType)
 {
@@ -487,7 +435,7 @@ void GeometryRefiner::interPanelGridSearch(DetectorPtr detector)
 	strategy->setJobName(detector->getTag() + "_powder");
 	strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge * 5, 0, "internudge_x");
 	strategy->addParameter(&*detector->getChild(0), Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge * 5, 0, "internudge_y");
-	strategy->setGridLength(19);
+	strategy->setGridLength(11);
 
 	strategy->refine();
 
@@ -548,6 +496,8 @@ void GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScore
 void GeometryRefiner::refineBeamCentre()
 {
     DetectorPtr detector = Detector::getMaster();
+
+	return;
 
     if (detector->millerCount() > 0)
     {
@@ -630,7 +580,8 @@ void GeometryRefiner::refineUnitCell()
     {
         strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellGamma, UnitCellLattice::setUnitCellGamma, 0.1, 0.00001, "unit_cell_gamma");
     }
-    
+
+	_changed = true;
     strategy->setCycles(15);
     
     strategy->refine();
