@@ -314,42 +314,6 @@ void new_main(int argc, char *argv[])
 
 		mtz->writeToFile(std::string("inv-") + argv[2], true, true);
 	}
-
-	if (strcmp(argv[1], "-stats") == 0)
-	{
-		if (argc < 3)
-		{
-			std::cout << "arguments: -stats <filein> <threshold>." << std::endl;
-			exit(1);
-		}
-
-		if (argc >= 3)
-		{
-			StatisticsManager stats;
-			stats.loadFiles(&argv[2], 1, 0);
-            
-            double threshold = -100;
-            int h = 0; int k = 0; int l = 0;
-            
-            if (argc >= 3)
-            {
-                threshold = atof(argv[3]);
-                std::cout << "Threshold set to " << threshold << std::endl;
-            }
-            
-            if (argc >= 6)
-            {
-                h = atoi(argv[4]);
-                k = atoi(argv[5]);
-                l = atoi(argv[6]);
-
-                std::cout << "Searching for " << h << " " << k << " " << l << std::endl;
-            }
-
-            GraphDrawer drawer = GraphDrawer(&*stats.mtzs[0]);
-            drawer.plotPartialityStats(h, k, l);
-		}
-	}
     
     if (strcmp(argv[1], "-intensities") == 0)
     {

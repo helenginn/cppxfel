@@ -25,35 +25,13 @@ public:
 	GraphDrawer(MtzManager *mtz);
 	virtual ~GraphDrawer();
 
-	static std::string generateFilename(std::string stem);
-	static std::string generateFilename(std::string stem, std::string ext);
-
-
-	std::string plot(std::string filename, GraphMap properties,
-			vector<double> x, vector<double> y,
-			vector<double> x2, vector<double> y2);
-
-	std::string plot(std::string filename, GraphMap properties,
-			vector<vector<double> > x, vector<vector<double> > y,
-			vector<double> x2, vector<double> y2);
-
-	std::string plot(std::string filename,
-			GraphMap properties,
-			vector<double> x, vector<double> y);
-
-	std::string plot(std::string filename, GraphMap properties,
-			vector<vector<double> > xs, vector<vector<double> > ys);
-
     void resolutionStatsCSV(std::vector<MtzManager *>& managers);
 	
-    void plotPolarisation(vector<MtzPtr> mtzs);
-	void correlationPlot(std::string filename, double xMax = 0, double yMax = 0);
-	void partialityPNG(MtzPtr mtz, double maxRes = 0);
+    void partialityPNG(MtzPtr mtz, double maxRes = 0);
 
     void plotSingleMillerFromMtzs(std::vector<MtzPtr> mtzs, int h, int k, int l);
     void plotReflectionFromMtzs(std::vector<MtzPtr> mtzs, int h = 0, int k = 0, int l = 0);
     void plotOrientationStats(vector<MtzPtr> mtzs);
-    void plotPartialityStats(int h = 0, int k = 0, int l = 0);
     void cutoutIntegrationAreas(std::vector<MtzPtr> mtzs, int h = 0, int k = 0, int l = 0);
     
     void partialityPNGResolutionShell(std::string filename, double meanWavelength,
