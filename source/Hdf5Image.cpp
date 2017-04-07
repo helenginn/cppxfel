@@ -115,13 +115,13 @@ void Hdf5Image::loadImage()
     {
         failureMessage();
     }
-
+/*
 	if (!manager->datasetExists(address) && !manager->groupExists(address))
 	{
 		logged << "Cannot find an image with data address " << getBasename() << ", nevermind." << std::endl;
 		sendLog();
 		return;
-	}
+	}*/
 
     useShortData = (manager->bytesPerTypeForImageAddress(address) == 2);
     
