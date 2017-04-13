@@ -107,7 +107,6 @@ public:
         return minDistance;
     }
     
-    double weightForDistance(double distance);
 	double weightForPair(double dist1, double dist2, double angle);
     
     std::vector<SpotVectorPtr> getStandardVectors()

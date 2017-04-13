@@ -788,9 +788,9 @@ double Miller::getPredictedWavelength()
 
 void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
 {
-    
     bool even = false;
-    if (shoebox)
+
+	if (shoebox)
         even = shoebox->isEven();
     
     double xSpotPred = 0;
@@ -828,11 +828,7 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
 
         if (search > 0)
         {
-		//	logged << "(" << xVal << ", " << yVal << ") to ";
 			detector->addBulkPixelOffsetToSpot(&xVal, &yVal);
-		//	logged << "(" << xVal << ", " << yVal << ")" << std::endl;
-		//	sendLog();
-
             getImage()->focusOnAverageMax(&xVal, &yVal, search, 0, even);
         }
         

@@ -181,7 +181,7 @@ bool IndexManager::processVector(SpotVectorPtr vec, double *score, double *count
     vec->setUpdate();
     double realDistance = vec->distance();
     
-    double value = lattice->weightForDistance(realDistance);
+    double value = 1;
     double weight = 1;
     
     *score += weight * value;
@@ -235,21 +235,6 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
     double count = 0;
     
     CSVPtr csv = CSVPtr(new CSV());
-    
-    if (writeToCSV)
-    {
-        double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER;
-        double step = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005) * 20;
-
-        csv->setupHistogram(0, maxDistance, step, "distance", 2, "observed", "model");
-        
-        for (int i = 0; i < csv->entryCount(); i++)
-        {
-            double distance = csv->valueForEntry("distance", i);
-            double weight = me->lattice->weightForDistance(distance);
-            csv->addOneToFrequency(distance, "model", weight);
-        }
-    }
     
     bool locked = me->goodVectors.size();
     

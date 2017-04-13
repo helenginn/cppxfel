@@ -35,113 +35,6 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
 
 void UnitCellLattice::weightUnitCell()
 {
-    CSVPtr distCSV = CSVPtr(new CSV(0));
-    double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER;
-    distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 2, "Perfect frequency", "Correction");
-
-    double km = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
-    double n = 2;
-    km = pow(km, n);
-    
-    double distTotal = 0;
-    double angleTotal = 0;
-    int csvPos = 0;
-    
-    double normDist = 0;
-    
-    for (int i = 0; i < orderedDistanceCount() - 1; i++)
-    {
-        double firstDistance = orderedDistance(i);
-        double secondDistance = orderedDistance(i + 1);
-        double separation = secondDistance - firstDistance;
-        double vmax = 100000 * separation;
-        
-        if (separation < 0.000001)
-        {
-            continue;
-        }
-        
-        if (normDist == 0)
-        {
-            normDist = sqrt(secondDistance);
-        }
-        
-        while (true)
-        {
-            if (csvPos >= distCSV->entryCount())
-                break;
-            
-            double csvDist = distCSV->valueForEntry("Distance", csvPos);
-            
-            if (csvDist > secondDistance)
-                break;
-            
-            double x = std::min(csvDist - firstDistance, secondDistance - csvDist);
-            
-            double y = vmax * pow(x, n) / (km + pow(x, n));
-            
-            distCSV->setValueForEntry(csvPos, "Perfect frequency", y);
-            
-            csvPos++;
-        }
-    }
-    
-    double averageableDist = maxDistance / 8;
-    int stepsPerAverage = (averageableDist / powderStep + 0.5) / 2;
-    
-    csvPos = stepsPerAverage;
-    
-    while (true)
-    {
-        if (csvPos >= distCSV->entryCount() - stepsPerAverage)
-            break;
-        
-        double integration = 0;
-        
-        for (int i = -stepsPerAverage; i <= stepsPerAverage; i++)
-        {
-            int csvPosAdd = csvPos + i;
-            
-            double value = distCSV->valueForEntry("Perfect frequency", csvPosAdd);
-            
-            integration += value * powderStep;
-        }
-        
-        integration = 1 / integration;
-        
-        distCSV->setValueForEntry(csvPos, "Correction", integration);
-
-        csvPos++;
-    }
-    
-    csvPos = 0;
-    
-    while (true)
-    {
-        int checkPos = csvPos;
-        
-        if (checkPos < stepsPerAverage)
-        {
-            checkPos = stepsPerAverage;
-        }
-        
-        if (checkPos > distCSV->entryCount() - stepsPerAverage)
-        {
-            checkPos = distCSV->entryCount() - stepsPerAverage;
-        }
-        
-        if (csvPos >= distCSV->entryCount())
-            break;
-        
-        double correction = distCSV->valueForEntry("Correction", checkPos);
-        double weight = distCSV->valueForEntry("Perfect frequency", csvPos);
-        
-        weight *= correction;
-        distCSV->setValueForEntry(csvPos, "Perfect frequency", weight);
-        
-        csvPos++;
-    }
-
 	CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
 
     for (int i = 0; i < standardVectorCount(); i++)
@@ -181,10 +74,7 @@ void UnitCellLattice::weightUnitCell()
 	angleCSV->plotPDB("perfect_angles.pdb", "aLength", "bLength", "angle");
 
     angleCSV->writeToFile("perfect_angles.csv");
-    distCSV->writeToFile("perfect_unit_cell.csv");
-    weightedUnitCell = distCSV;
     weightedAngles = angleCSV;
-    distanceToAngleRatio = distTotal / angleTotal;
 
 	double maxAngle = 90.;
 	double intervals = LOOKUP_INTERVALS;
@@ -416,9 +306,7 @@ void UnitCellLattice::setup()
     }
     
     std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
-    
-    weightUnitCell();
-    
+
     minDistance = FLT_MAX;
     
     for (int i = 0; i < 3; i++)
@@ -434,14 +322,18 @@ void UnitCellLattice::setup()
     setupLattice = true;
 }
 
-double UnitCellLattice::weightForDistance(double distance)
-{
-    double correctedDistance = distance + powderStep / 2;
-    return correctedDistance * weightedUnitCell->valueForHistogramEntry(1, correctedDistance);
-}
-
 double UnitCellLattice::weightForPair(double dist1, double dist2, double angle)
 {
+	if (!weightedAngles)
+	{
+		std::lock_guard<std::mutex> lg(setupLock);
+
+		if (!weightedAngles)
+		{
+			weightUnitCell();
+		}
+	}
+
 	if (dist1 > maxAngleDistance || dist2 > maxAngleDistance)
 	{
 		return -1;
