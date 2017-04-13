@@ -75,7 +75,7 @@ void SpotVector::calculateDistance()
 
 double SpotVector::distance()
 {
-    if (update)
+    if (update || cachedDistance != cachedDistance)
     {
         calculateDistance();
         update = false;

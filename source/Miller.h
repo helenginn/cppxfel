@@ -167,8 +167,7 @@ public:
     double observedPartiality(double reference);
     double observedPartiality(MtzManager *reference);
     
-    static void refreshMillerPositions(std::vector<MillerWeakPtr> millers);
-    static void refreshMillerPositions(std::vector<MillerPtr> millers);
+    static void refreshMillerPositions(std::vector<MillerWeakPtr> millers, bool shouldSearch = false);
     vec getTransformedHKL(MatrixPtr matrix = MatrixPtr());
     vec getRay();
     void makeComplexShoebox(double wavelength, double bandwidth, double mosaicity, double rlpSize);

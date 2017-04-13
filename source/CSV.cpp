@@ -280,16 +280,6 @@ void CSV::plotPDB(std::string filename, std::string header1, std::string header2
 
 	int scales[3];
 
-	for (int i = 0; i < 3; i++)
-	{
-		double min = 0;
-		double max = 0;
-
-		minMaxCol(nums[i], &min, &max);
-
-		scales[i] = 100 / max;
-	}
-
 	scales[0] = 100 / maxAngle;
 	scales[1] = 100 / maxAngle;
 	scales[2] = 100 / 90;

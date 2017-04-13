@@ -14,6 +14,7 @@
 #include "hasSymmetry.h"
 #include "Matrix.h"
 #include "parameters.h"
+#define LOOKUP_INTERVALS 270
 
 class UnitCellLattice : public FreeLattice, public hasSymmetry, public LoggableObject
 {
@@ -24,6 +25,7 @@ private:
     MatrixPtr unitCellMatrixInverse;
     static std::vector<MatrixPtr> symOperators;
     double maxDistance;
+	double maxAngleDistance;
     double minDistance;
     double powderStep;
     PowderHistogram histogram;
@@ -34,6 +36,7 @@ private:
     double distanceToAngleRatio;
     std::mutex setupLock;
     static bool setupLattice;
+	float lookupIntervals[LOOKUP_INTERVALS * LOOKUP_INTERVALS * LOOKUP_INTERVALS];
     
     double _aDim;
     double _bDim;
@@ -105,8 +108,7 @@ public:
     }
     
     double weightForDistance(double distance);
-    double weightForAngle(double angle);
-    double weightForCosine(double cosine);
+	double weightForPair(double dist1, double dist2, double angle);
     
     std::vector<SpotVectorPtr> getStandardVectors()
     {

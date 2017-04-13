@@ -17,6 +17,7 @@ class RefinementStrategy : public LoggableObject
 {
 protected:
     Getter evaluationFunction;
+	Getter finishFunction;
     int maxCycles;
     void *evaluateObject;
     LogLevel priority;
@@ -45,6 +46,7 @@ public:
         cycleNum = 0;
         startingScore = 0;
 		_changed = -1;
+		finishFunction = NULL;
     };
     
     static RefinementStrategyPtr userChosenStrategy();
@@ -60,6 +62,11 @@ public:
         evaluationFunction = function;
         evaluateObject = evaluatedObject;
     }
+
+	void setFinishFunction(Getter finishFunc)
+	{
+		finishFunction = finishFunc;
+	}
     
     void setVerbose(bool verbose)
     {

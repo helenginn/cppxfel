@@ -75,6 +75,11 @@ public:
     {
         return sameLengthStandardVectors;
     }
+
+	double getFirstDistance()
+	{
+		return firstDistance;
+	}
     
     bool isOnlyFromDetector(DetectorPtr detector);
     

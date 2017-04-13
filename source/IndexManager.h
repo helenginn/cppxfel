@@ -23,11 +23,15 @@
 #include <mutex>
 #include "Detector.h"
 
-typedef std::pair<SpotVectorPtr, SpotVectorPtr> SpotVectorPair;
-
 class IndexManager : LoggableObject, public boost::enable_shared_from_this<IndexManager>
 {
 protected:
+	struct SpotVectorPair
+	{
+		SpotVectorPtr vec1;
+		SpotVectorPtr vec2;
+	};
+
     UnitCellLatticePtr lattice;
     std::vector<ImagePtr> images;
     std::vector<ImagePtr> mergeImages;
@@ -94,11 +98,13 @@ public:
     {
         _activeDetector = detector;
         detector->setIndexManager(shared_from_this());
+		goodVectorPairs.clear();
     }
     
     void setPseudoScoreType(PseudoScoreType type)
     {
         scoreType = type;
+		goodVectorPairs.clear();
     }
     
     PseudoScoreType getPseudoScoreType()
@@ -122,7 +128,8 @@ public:
     static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
 	bool writtenPDB;
-    CSVPtr pseudoAnglePDB();
+	static double staticPseudoAnglePDB(void *object);
+	CSVPtr pseudoAnglePDB(bool writePost = false);
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
     
     void lockVectors()

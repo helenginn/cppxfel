@@ -152,6 +152,12 @@ private:
     double nudgeStep;
     double nudgeTiltX;
     double nudgeTiltY;
+
+	/* Additional pixel offsets applied to all Miller indices before additional
+	 geometry search */
+
+	double addPixelOffsetX;
+	double addPixelOffsetY;
     
     vec originalCorners[4];
     
@@ -443,7 +449,18 @@ public:
     {
         return millers[i].lock();
     }
-    
+
+	void addBulkPixelOffsetToSpot(double *x, double *y)
+	{
+		*x += addPixelOffsetX;
+		*y += addPixelOffsetY;
+
+		if (!isLUCA())
+		{
+			getParent()->addBulkPixelOffsetToSpot(x, y);
+		}
+	}
+
     void removeMidPointRelativeToParent();
 
     /* Write geometry file */
@@ -533,9 +550,9 @@ public:
         Detector *det = static_cast<Detector *>(object);
         double angles = (det->nudgeRotation.k / det->nudgeTiltY
                          + det->nudgeRotation.h / det->nudgeTiltX);
-        double distance = det->nudgeStep * angles;
+        double distance = fabs(det->nudgeStep * angles);
         det->nudgeRotation.h = horizTilt;
-        det->nudgeTranslation.l = distance;
+        det->nudgeTranslation.l = -distance;
         det->updateCurrentRotation();
     }
     
@@ -594,6 +611,27 @@ public:
         return static_cast<Detector *>(object)->poke.l;
     }
 
+	static double getAddPixelOffsetX(void *object)
+	{
+		return static_cast<Detector *>(object)->addPixelOffsetX;
+	}
+
+	static double getAddPixelOffsetY(void *object)
+	{
+		return static_cast<Detector *>(object)->addPixelOffsetY;
+	}
+
+	static void setAddPixelOffsetX(void *object, double value)
+	{
+		Detector *det = static_cast<Detector *>(object);
+		det->addPixelOffsetX = value;
+	}
+
+	static void setAddPixelOffsetY(void *object, double value)
+	{
+		static_cast<Detector *>(object)->addPixelOffsetY = value;
+	}
+
     void resetPoke();
     
     
@@ -639,7 +677,10 @@ public:
     double millerScore(bool ascii = false, bool stdev = false, int number = -1);
     static double millerScoreWrapper(void *object);
     static double millerStdevScoreWrapper(void *object);
-    
+
+	double peakScore();
+	static double peakScoreWrapper(void *object);
+
     /* Special image functions */
     
     static void drawSpecialImage(std::string filename = "");
@@ -717,7 +758,8 @@ public:
     bool isRefinable(GeometryScoreType scoreType)
     {
         if (scoreType == GeometryScoreTypeInterMiller ||
-            scoreType == GeometryScoreTypeIntraMiller)
+            scoreType == GeometryScoreTypeIntraMiller ||
+			scoreType == GeometryScoreTypePeakSearch)
         {
             for (int i = 0; i < childrenCount(); i++)
             {

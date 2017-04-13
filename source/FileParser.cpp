@@ -1010,6 +1010,7 @@ void FileParser::generateFunctionList()
     parserMap["POWDER_PATTERN_STEP_ANGLE"] = simpleFloat;
     parserMap["LOW_MEMORY_MODE"] = simpleBool;
     parserMap["GEOMETRY_FORMAT"] = simpleInt;
+	parserMap["GEOMETRY_IS_APPROXIMATE"] = simpleBool;
     
     // force spot finding
     

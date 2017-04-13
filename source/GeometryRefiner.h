@@ -26,7 +26,7 @@ private:
     static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors,
                                       int offset, GeometryScoreType type, int strategyType);
     void refineGeometryCycle();
-    
+
 	void intraPanelCycle();
 	void interPanelCycle();
 	
@@ -43,12 +43,14 @@ private:
     void interPanelGridSearch(DetectorPtr detector);
     void interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
     void intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
+	void peakSearchDetector(DetectorPtr detector);
     
     RefinementGridSearchPtr makeGridRefiner(DetectorPtr detector, GeometryScoreType type);
     RefinementStrategyPtr makeRefiner(DetectorPtr detector, GeometryScoreType type);
     void gridSearchDetectorDistance(DetectorPtr detector, double start, double end);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
-    
+	void gridSearchDetectorOffsets();
+
 public:
     GeometryRefiner();
     

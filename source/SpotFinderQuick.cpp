@@ -124,8 +124,6 @@ void SpotFinderQuick::findSpecificSpots(std::vector<SpotPtr> *spots)
                 findSignalToNoise(data, position, xDim, yDim, &signalToNoiseRatio, &background, &backgroundVariance);
             }
             
-      //      std::cout << signalToNoiseRatio << std::endl;
-            
             if (signalToNoiseRatio < signalToNoiseThreshold)
             {
                 continue;

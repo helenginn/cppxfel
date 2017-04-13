@@ -120,7 +120,10 @@ void Detector::initialiseZeros()
     nudgeTiltX = 0;
     nudgeStep = 0;
 
-    parent = DetectorPtr();
+	addPixelOffsetX = 0;
+	addPixelOffsetY = 0;
+
+	parent = DetectorPtr();
     rotMat = MatrixPtr(new Matrix());
     changeOfBasisMat = MatrixPtr(new Matrix());
     fixedBasis = MatrixPtr(new Matrix());
@@ -1262,6 +1265,35 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
     return totalScore;
 }
 
+double Detector::peakScore()
+{
+	if (!millers.size())
+	{
+		return 0;
+	}
+
+	double peakScore = 0;
+
+	Miller::refreshMillerPositions(millers, true);
+
+	for (int i = 0; i < millerCount(); i++)
+	{
+		MillerPtr myMiller = miller(i);
+
+		if (!myMiller || !myMiller->reachesThreshold())
+			continue;
+
+		peakScore++;
+	}
+
+	return -peakScore;
+}
+
+double Detector::peakScoreWrapper(void *object)
+{
+	return static_cast<Detector *>(object)->peakScore();
+}
+
 void Detector::drawSpecialImage(std::string filename)
 {
     if (!drawImage)
@@ -1275,6 +1307,8 @@ void Detector::drawSpecialImage(std::string filename)
     
     drawImage->drawSpotsOnPNG(filename, true);
 }
+
+// MARK: others
 
 vec Detector::getAverageMidpoint()
 {

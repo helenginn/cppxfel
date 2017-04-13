@@ -16,6 +16,9 @@
 #include "Vector.h"
 #include <algorithm>
 
+#define ANGLE_FUNNEL_START 1.5
+#define ANGLE_DISTANCE_BUFFER 0.02
+
 bool UnitCellLattice::setupLattice = false;
 std::vector<MatrixPtr> UnitCellLattice::symOperators;
 UnitCellLatticePtr UnitCellLattice::mainLattice;
@@ -34,7 +37,6 @@ void UnitCellLattice::weightUnitCell()
 {
     CSVPtr distCSV = CSVPtr(new CSV(0));
     double maxDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER;
-    double maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
     distCSV->setupHistogram(0, maxDistance, powderStep, "Distance", 2, "Perfect frequency", "Correction");
 
     double km = FileParser::getKey("INITIAL_BANDWIDTH", 0.0013);
@@ -166,7 +168,12 @@ void UnitCellLattice::weightUnitCell()
 
             angle *= 180 / M_PI;
             angle = (angle > 90) ? 180 - angle : angle;
-            
+
+			if (angle != angle)
+			{
+				continue;
+			}
+
 			angleCSV->addEntry(3, angle, distance, jDistance);
         }
     }
@@ -178,6 +185,121 @@ void UnitCellLattice::weightUnitCell()
     weightedUnitCell = distCSV;
     weightedAngles = angleCSV;
     distanceToAngleRatio = distTotal / angleTotal;
+
+	double maxAngle = 90.;
+	double intervals = LOOKUP_INTERVALS;
+	double lengthStep = maxAngleDistance / intervals;
+	double angleStep = maxAngle / intervals;
+
+	double angleTolerance = ANGLE_FUNNEL_START * 1.1;
+	double lengthTolerance = 1.1 * ANGLE_FUNNEL_START * maxAngleDistance / 90;
+	double total = pow(intervals, 3);
+	memset(lookupIntervals, 0, total * sizeof(float));
+
+	time_t startTime;
+	time(&startTime);
+	logged << "Calculating vector pair scores in advance..." << std::endl;
+	sendLog();
+
+	for (int dist1 = 0; dist1 < intervals; dist1++)
+	{
+		logged << ".";
+		sendLog();
+
+		std::vector<std::vector<double> > dist1Filter;
+		double chosenDist1 = dist1 * lengthStep;
+
+		for (int l = 0; l < angleCSV->entryCount(); l++)
+		{
+			double paLength = angleCSV->valueForEntry(1, l);
+			double aLengthDiff = fabs(paLength - chosenDist1);
+			if (aLengthDiff > lengthTolerance)
+			{
+				continue;
+			}
+
+			dist1Filter.push_back(angleCSV->entry(l));
+		}
+
+		for (int dist2 = 0; dist2 < intervals; dist2++)
+		{
+			double chosenDist2 = dist2 * lengthStep;
+			std::vector<std::vector<double> > dist2Filter;
+
+			for (int l = 0; l < dist1Filter.size(); l++)
+			{
+				double pbLength = dist1Filter[l][2];
+
+				double bLengthDiff = fabs(pbLength - chosenDist2);
+				if (bLengthDiff > lengthTolerance)
+				{
+					continue;
+				}
+
+				dist2Filter.push_back(dist1Filter[l]);
+			}
+
+			for (int angles = 0; angles < intervals; angles++)
+			{
+				double bestDist = FLT_MAX;
+
+				double chosenAngle = ((double)angles) * angleStep;
+
+				for (int l = 0; l < dist2Filter.size(); l++)
+				{
+					double pAngle = dist2Filter[l][0];
+					double paLength = dist2Filter[l][1];
+					double pbLength = dist2Filter[l][2];
+					double aLengthDiff = fabs(paLength - chosenDist1);
+					double bLengthDiff = fabs(pbLength - chosenDist2);
+
+					double angleDiff = fabs(pAngle - chosenAngle);
+					if (angleDiff > angleTolerance)
+					{
+						continue;
+					}
+
+					double scaleUp = 90. / maxAngleDistance;
+
+					aLengthDiff *= scaleUp;
+					bLengthDiff *= scaleUp;
+
+					double distSq = angleDiff * angleDiff +
+					aLengthDiff * aLengthDiff +
+					bLengthDiff * bLengthDiff;
+
+					if (distSq < bestDist)
+					{
+						bestDist = distSq;
+					}
+				}
+
+				int position = dist1 * intervals * intervals +
+				dist2 * intervals + angles;
+				bestDist = sqrt(bestDist);
+
+				if (bestDist > ANGLE_FUNNEL_START)
+				{
+					lookupIntervals[position] = -1;
+				}
+				else
+				{
+					bestDist *= M_PI / 180.;
+					double score = 2 * sin((60 / ANGLE_FUNNEL_START) * bestDist + M_PI / 6) - 1;
+					lookupIntervals[position] = -score;
+				}
+
+
+			}
+		}
+	}
+
+	time_t endTime;
+	time(&endTime);
+
+	double seconds = endTime - startTime;
+	logged << "Pre-calculation took " << seconds << " seconds." << std::endl;
+	sendLog();
 }
 
 void UnitCellLattice::updateUnitCellData()
@@ -218,6 +340,12 @@ void UnitCellLattice::setup()
     }
     
     powderStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
+	maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
+
+	if (maxAngleDistance > 0)
+	{
+		maxAngleDistance += ANGLE_DISTANCE_BUFFER;
+	}
 
 	std::vector<double> unitCell = getUnitCell();
 
@@ -312,14 +440,26 @@ double UnitCellLattice::weightForDistance(double distance)
     return correctedDistance * weightedUnitCell->valueForHistogramEntry(1, correctedDistance);
 }
 
-double UnitCellLattice::weightForAngle(double angle)
+double UnitCellLattice::weightForPair(double dist1, double dist2, double angle)
 {
-    return weightedAngles->valueForHistogramEntry("Perfect frequency", angle) * distanceToAngleRatio;
-}
+	if (dist1 > maxAngleDistance || dist2 > maxAngleDistance)
+	{
+		return -1;
+	}
 
-double UnitCellLattice::weightForCosine(double cosine)
-{
-	return 0;//weightedAngles->valueForHistogramEntry("Perfect frequency", cosine, "Cosine") * distanceToAngleRatio;
+	if (dist1 != dist1 || dist2 != dist2 || angle != angle)
+	{
+		return -1;
+	}
+
+	int dist1Step = dist1 * LOOKUP_INTERVALS / (maxAngleDistance);
+	int dist2Step = dist2 * LOOKUP_INTERVALS / (maxAngleDistance);
+	int angleStep = angle * LOOKUP_INTERVALS / 90.;
+
+	int position = dist1Step * LOOKUP_INTERVALS * LOOKUP_INTERVALS +
+	dist2Step * LOOKUP_INTERVALS + angleStep;
+
+	return lookupIntervals[position];
 }
 
 UnitCellLatticePtr UnitCellLattice::getMainLattice()

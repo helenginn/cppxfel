@@ -151,6 +151,11 @@ public:
         return (int)entries.size();
     }
 
+	std::vector<double> entry(int i)
+	{
+		return entries[i];
+	}
+
 	double valueForEntry(int headerNum, int entry)
 	{
 		return entries[entry][headerNum];

@@ -137,7 +137,7 @@ void RefinementStrategy::finish()
         
         if (reduction == reduction)
         {
-            logged << "by " << std::fixed << std::setprecision(3) <<
+            logged << "by " << std::fixed << std::setprecision(4) <<
             reduction * 100 << "% ";
         }
         
@@ -156,6 +156,11 @@ void RefinementStrategy::finish()
     }
     
     cycleNum = 0;
+
+	if (finishFunction != NULL)
+	{
+		(*finishFunction)(evaluateObject);
+	}
 }
 
 void RefinementStrategy::resetToInitialParameters()

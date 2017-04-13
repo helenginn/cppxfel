@@ -828,6 +828,11 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
 
         if (search > 0)
         {
+		//	logged << "(" << xVal << ", " << yVal << ") to ";
+			detector->addBulkPixelOffsetToSpot(&xVal, &yVal);
+		//	logged << "(" << xVal << ", " << yVal << ")" << std::endl;
+		//	sendLog();
+
             getImage()->focusOnAverageMax(&xVal, &yVal, search, 0, even);
         }
         
@@ -1074,22 +1079,21 @@ bool Miller::reachesThreshold()
     return (iSigI > intensityThreshold);
 }
 
-void Miller::refreshMillerPositions(std::vector<MillerPtr> millers)
-{
-    for (int i = 0; i < millers.size(); i++)
-    {
-        millers[i]->positionOnDetector();
-    }
-}
-
-void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers)
+void Miller::refreshMillerPositions(std::vector<MillerWeakPtr> millers, bool shouldSearch)
 {
     for (int i = 0; i < millers.size(); i++)
     {
         MillerPtr miller = millers[i].lock();
         if (miller)
         {
-            miller->positionOnDetector(NULL, NULL, false);
+			if (!shouldSearch)
+			{
+				miller->positionOnDetector(NULL, NULL, false);
+			}
+			else
+			{
+				miller->integrateIntensity();
+			}
         }
     }
 }

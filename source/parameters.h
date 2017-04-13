@@ -296,6 +296,7 @@ typedef enum
     GeometryScoreTypeIntrapanel,
     GeometryScoreTypeInterpanel,
     GeometryScoreTypeBeamCentre,
+	GeometryScoreTypePeakSearch,
     
 } GeometryScoreType;
 

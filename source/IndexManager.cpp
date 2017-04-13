@@ -36,8 +36,8 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
     _axisWeighting = PseudoScoreWeightingAxisNone;
     _maxFrequency = -1;
 
-    interPanelDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.02);
-    intraPanelDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.02);
+	interPanelDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
+	intraPanelDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
     
     unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
     
@@ -331,7 +331,13 @@ double IndexManager::pseudoDistanceScore(void *object, bool writeToCSV, std::str
     return score;
 }
 
-CSVPtr IndexManager::pseudoAnglePDB()
+double IndexManager::staticPseudoAnglePDB(void *object)
+{
+	static_cast<IndexManager *>(object)->pseudoAnglePDB(true);
+	return 0;
+}
+
+CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 {
 	double angleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
 
@@ -341,70 +347,58 @@ CSVPtr IndexManager::pseudoAnglePDB()
 	}
 
 	CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
+	goodVectorPairs.clear();
 
-	if (_canLockVectors && goodVectorPairs.size())
+	CSVPtr predictedAngles = getLattice()->getAngleCSV();
+
+	double angleTolerance = 90. / 6.;
+	double lengthTol = intraPanelDistance / 6.;
+
+//	if (_canLockVectors)
+//	{
+		SpotVectorPair nullPair;
+		goodVectorPairs.push_back(nullPair);
+//	}
+
+	for (int i = 0; i < images.size(); i++)
 	{
-		angleCSV->reserveEntries(goodVectorPairs.size());
-
-		for (int i = 0; i < goodVectors.size(); i++)
+		for (int j = 0; j < images[i]->spotVectorCount(); j++)
 		{
-			goodVectors[i]->calculateDistance();
-		}
+			SpotVectorPtr vec1 = images[i]->spotVector(j);
+			vec1->calculateDistance();
 
-		for (int i = 1; i < goodVectorPairs.size(); i++)
-		{
-			SpotVectorPtr vec1 = goodVectorPairs[i].first;
-			SpotVectorPtr vec2 = goodVectorPairs[i].second;
-
-			double angle = vec1->angleWithVector(vec2);
-			angle *= 180 / M_PI;
-			angle = (angle > 90) ? 180 - angle : angle;
-			std::vector<double> entry;
-			entry.push_back(angle);
-			entry.push_back(vec1->distance());
-			entry.push_back(vec2->distance());
-
-			angleCSV->addEntry(entry);
-		}
-	}
-	else
-	{
-		if (_canLockVectors)
-		{
-			goodVectorPairs.push_back(std::make_pair(SpotVectorPtr(), SpotVectorPtr()));
-		}
-
-		for (int i = 0; i < images.size(); i++)
-		{
-			for (int j = 0; j < images[i]->spotVectorCount(); j++)
+			if (!vec1->originalDistanceLessThan(angleDistance))
 			{
-				SpotVectorPtr vec1 = images[i]->spotVector(j);
-				vec1->calculateDistance();
+				continue;
+			}
 
-				for (int k = 0; k < j; k++)
+		//	double aLength = vec1->distance();
+
+			for (int k = 0; k < j; k++)
+			{
+				SpotVectorPtr vec2 = images[i]->spotVector(k);
+
+				if (checkVectors(vec1, vec2) != scoreType)
 				{
-					SpotVectorPtr vec2 = images[i]->spotVector(k);
-
-					if (checkVectors(vec1, vec2) != scoreType)
-					{
-						continue;
-					}
-
-					if (_canLockVectors)
-					{
-						goodVectorPairs.push_back(std::make_pair(vec1, vec2));
-						goodVectors.push_back(vec1);
-						goodVectors.push_back(vec2);
-					}
-
-					vec2->calculateDistance();
-
-					double angle = vec1->angleWithVector(vec2);
-					angle *= 180 / M_PI;
-					angle = (angle > 90) ? 180 - angle : angle;
-
-					angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
+					continue;
 				}
+
+				SpotVectorPair pair;
+				pair.vec1 = vec1;
+				pair.vec2 = vec2;
+
+				vec2->calculateDistance();
+		//		double bLength = vec2->distance();
+
+				double angle = vec1->angleWithVector(vec2);
+				angle *= 180 / M_PI;
+				angle = (angle > 90) ? 180 - angle : angle;
+
+				angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
+
+				goodVectorPairs.push_back(pair);
+				goodVectors.push_back(vec1);
+				goodVectors.push_back(vec2);
 			}
 		}
 	}
@@ -414,7 +408,7 @@ CSVPtr IndexManager::pseudoAnglePDB()
 		return angleCSV;
 	}
 
-	std::string prePost = writtenPDB ? "_post_" : "_pre_";
+	std::string prePost = writePost ? "_post_" : "_pre_";
 	std::string filename = "angles_" + getActiveDetector()->getTag() +
 	"_" + targetString(scoreType) + prePost + i_to_str(getCycleNum()) + ".pdb";
 	angleCSV->plotPDB(filename, "aLength", "bLength", "angle");
@@ -428,8 +422,6 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 {
     DetectorPtr activeDetector = getActiveDetector();
     bool isInterPanel = scoreType == PseudoScoreTypeAllInterPanel || scoreType == PseudoScoreTypeInterPanel;
-
-	// intra panel dealings
 
 	if (scoreType == PseudoScoreTypeBeamCentre)
 	{
@@ -445,6 +437,8 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 	{
 		return PseudoScoreTypeInvalid;
 	}
+
+	// intra panel dealings
 
 	if (!isInterPanel && !vec1->hasCommonSpotWithVector(vec2) && activeDetector == Detector::getMaster())
 	{
@@ -514,80 +508,34 @@ double IndexManager::pseudoAngleScore(void *object)
 	}
 
 	IndexManager *me = static_cast<IndexManager *>(object);
-	CSVPtr observedAngles = me->pseudoAnglePDB();
-	CSVPtr predictedAngles = me->getLattice()->getAngleCSV();
 
-	double angleTolerance = 90. / 6.;
-	double lengthTol = me->intraPanelDistance / 6.;
+	if (me->goodVectorPairs.size() == 0)
+	{
+		me->pseudoAnglePDB();
+	}
+
 	double totalScore = 0;
+	double sumDistances = 0;
 
-	double maxDistSq = pow(0.0010, 2);
-
-	if (observedAngles->entryCount() == 0)
+	for (int i = 1; i < me->goodVectorPairs.size(); i++)
 	{
-		return 0;
+		SpotVectorPair pair = me->goodVectorPairs[i];
+		pair.vec1->calculateDistance();
+		pair.vec2->calculateDistance();
+
+		double aLength = pair.vec1->distance();
+		double bLength = pair.vec2->distance();
+		double angle = pair.vec1->angleWithVector(pair.vec2);
+		angle *= 180 / M_PI;
+		angle = (angle > 90) ? 180 - angle : angle;
+		sumDistances += aLength;
+		sumDistances += bLength;
+
+		double score = me->getLattice()->weightForPair(aLength, bLength, angle);
+		totalScore += score;
 	}
 
-	for (int i = 0; i < observedAngles->entryCount(); i++)
-	{
-		double angle = observedAngles->valueForEntry(0, i);
-		double aLength = observedAngles->valueForEntry(1, i);
-		double bLength = observedAngles->valueForEntry(2, i);
-
-		double myAngTol = angleTolerance;
-		double myLengthTol = lengthTol;
-		double bestScore = 0.;
-
-		for (int j = 0; j < predictedAngles->entryCount(); j++)
-		{
-			double pAngle = predictedAngles->valueForEntry(0, j);
-			double paLength = predictedAngles->valueForEntry(1, j);
-			double pbLength = predictedAngles->valueForEntry(2, j);
-
-			double angleDiff = fabs(pAngle - angle);
-			if (angleDiff > myAngTol)
-			{
-				continue;
-			}
-			
-			double aLengthDiff = fabs(paLength - aLength);
-			if (aLengthDiff > myLengthTol)
-			{
-				continue;
-			}
-
-			double bLengthDiff = fabs(pbLength - bLength);
-			if (bLengthDiff > myLengthTol)
-			{
-				continue;
-			}
-
-			angleDiff *= maxAngleDist / 90;
-
-			double distSq = angleDiff * angleDiff + aLengthDiff * aLengthDiff
-			+ bLengthDiff * bLengthDiff;
-
-			distSq /= maxDistSq;
-
-			if (distSq != distSq || distSq > 3)
-			{
-				continue;
-			}
-
-			double score = Detector::lookupCache(distSq);
-
-			if (score == score && score > bestScore)
-			{
-				bestScore = score;
-				myLengthTol = std::max(bLengthDiff, aLengthDiff);
-				myAngTol = angleDiff;
-			}
-		}
-
-		totalScore += bestScore;
-	}
-
-	totalScore /= observedAngles->entryCount();
+	totalScore /= me->goodVectorPairs.size();
 
 	return -totalScore;
 }
@@ -617,71 +565,13 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     PowderHistogram allFrequencies = generatePowderHistogram();
     PowderHistogram intraFrequencies = generatePowderHistogram(1);
     PowderHistogram interFrequencies = generatePowderHistogram(0);
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        for (int j = 0; j < images[i]->spotVectorCount(); j++)
-        {
-            SpotVectorPtr spotVec = images[i]->spotVector(j);
-            
-            vec spotDiff = copy_vector(spotVec->getVector());
-            spotDiff.h *= 106 * 20;
-            spotDiff.k *= 106 * 20;
-            spotDiff.l *= 106 * 20;
 
-            if (i == 0)
-            {
-                pdbLog << "HETATM";
-                pdbLog << std::fixed;
-                pdbLog << std::setw(5) << j << "                   ";
-                pdbLog << std::setprecision(2) << std::setw(8)  << spotDiff.h;
-                pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.k;
-                pdbLog << std::setprecision(2) << std::setw(8) << spotDiff.l;
-                pdbLog << "                       O" << std::endl;
-            }
-        }
-    }
-    
     if (images.size() == 0)
     {
         logged << "No images specified." << std::endl;
         sendLog();
         return;
     }
-    
-    pdbLog << "HETATM";
-    pdbLog << std::fixed;
-    pdbLog << std::setw(5) << images[0]->spotVectorCount() + 1 << "                   ";
-    pdbLog << std::setw(8) << std::setprecision(2) << 0;
-    pdbLog << std::setw(8) << std::setprecision(2) << 0;
-    pdbLog << std::setw(8) << std::setprecision(2) << 0;
-    pdbLog << "                       N" << std::endl;
-    
-    std::ofstream pdbLog2;
-    pdbLog2.open("projection.pdb");
-    
-    for (int j = 0; j < images[0]->spotCount(); j++)
-    {
-        vec estimatedVector = images[0]->spot(j)->estimatedVector();
-        
-        pdbLog2 << "HETATM";
-        pdbLog2 << std::fixed;
-        pdbLog2 << std::setw(5) << j << "                   ";
-        pdbLog2 << std::setw(8) << std::setprecision(2) << estimatedVector.h * 106;
-        pdbLog2 << std::setw(8) << std::setprecision(2) << estimatedVector.k * 106;
-        pdbLog2 << std::setw(8) << std::setprecision(2) << estimatedVector.l * 106;
-        pdbLog2 << "                       O" << std::endl;
-    }
-    
-    pdbLog2 << "HETATM";
-    pdbLog2 << std::fixed;
-    pdbLog2 << std::setw(5) << images[0]->spotCount() + 1 << "                   ";
-    pdbLog2 << std::setw(8) << std::setprecision(2) << 0;
-    pdbLog2 << std::setw(8) << std::setprecision(2) << 0;
-    pdbLog2 << std::setw(8) << std::setprecision(2) << 0;
-    pdbLog2 << "                       N" << std::endl;
-    
-    pdbLog2.close();
     
     logged << "******* DISTANCE FREQUENCY *******" << std::endl;
     
@@ -950,7 +840,7 @@ PowderHistogram IndexManager::generatePowderHistogram(int intraPanel, int perfec
         for (int j = 0; j < images[i]->spotVectorCount(); j++)
         {
             SpotVectorPtr spotVec = images[i]->spotVector(j);
-            
+
             double distance = spotVec->distance();
             int categoryNum = distance / step;
             
