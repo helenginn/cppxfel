@@ -458,7 +458,7 @@ void GeometryRefiner::peakSearchDetector(DetectorPtr detector)
 {
 	int searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3);
 	RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypePeakSearch);
-	strategy->setGridLength(15);
+	strategy->setGridLength(11);
 
 	strategy->addParameter(&*detector, Detector::getAddPixelOffsetX, Detector::setAddPixelOffsetX, searchSize, 0.1);
 	strategy->addParameter(&*detector, Detector::getAddPixelOffsetY, Detector::setAddPixelOffsetY, searchSize, 0.1);

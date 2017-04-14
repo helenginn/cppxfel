@@ -28,7 +28,7 @@ std::mutex Detector::setupMutex;
 double Detector::cacheStep = 0;
 std::vector<double> Detector::millerTargetTable;
 
-#define GOOD_GEOMETRY_RLP_SIZE 0.0010
+#define GOOD_GEOMETRY_RLP_SIZE 0.0020
 
 // MARK: initialisation and constructors
 
