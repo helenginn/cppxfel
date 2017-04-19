@@ -40,7 +40,7 @@ private:
 
     void printHeader(std::vector<DetectorPtr> detectors);
     
-    void interPanelGridSearch(DetectorPtr detector);
+    void interPanelGridSearch(DetectorPtr detector, GeometryScoreType type);
     void interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
     void intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
 	void peakSearchDetector(DetectorPtr detector);

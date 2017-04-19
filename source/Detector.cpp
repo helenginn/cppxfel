@@ -14,6 +14,7 @@
 #include "Spot.h"
 #include "misc.h"
 #include "CSV.h"
+#include <vector>
 #include <iomanip>
 
 double Detector::mmPerPixel = 0;
@@ -28,7 +29,7 @@ std::mutex Detector::setupMutex;
 double Detector::cacheStep = 0;
 std::vector<double> Detector::millerTargetTable;
 
-#define GOOD_GEOMETRY_RLP_SIZE 0.0010
+#define GOOD_GEOMETRY_RLP_SIZE 0.0020
 
 // MARK: initialisation and constructors
 
@@ -111,6 +112,8 @@ void Detector::initialiseZeros()
 	memset(&pokeLongitudinalAxis, 0, sizeof(pokeLongitudinalAxis.h) * 3);
 	memset(&pokePerpendicularAxis, 0, sizeof(pokePerpendicularAxis.h) * 3);
 
+	memset(&requiredRotToOrigin, 0, sizeof(requiredRotToOrigin.h) * 3);
+
     for (int i = 0; i < 4; i++)
     {
         memset(&originalCorners[i].h, 0, sizeof(originalCorners[i].h) * 3);
@@ -128,7 +131,7 @@ void Detector::initialiseZeros()
     changeOfBasisMat = MatrixPtr(new Matrix());
     fixedBasis = MatrixPtr(new Matrix());
     invWorkingBasisMat = MatrixPtr(new Matrix());
-    
+
     originalNudgeMat = MatrixPtr(new Matrix());
     interRotation = MatrixPtr(new Matrix());
     
@@ -869,11 +872,16 @@ DetectorPtr Detector::spotCoordForMiller(MillerPtr miller, double *xSpot, double
 void Detector::addMillerCarefully(MillerPtr miller)
 {
     millerMutex.lock();
-    
-    millers.push_back(miller);
-    
+
+	if (miller->reachesThreshold())
+	{
+		millers.push_back(miller);
+	}
+
+	allMillers.push_back(miller);
+
     millerMutex.unlock();
-    
+
     if (!isLUCA())
     {
         getParent()->addMillerCarefully(miller);
@@ -1098,6 +1106,40 @@ CSVPtr Detector::resolutionHistogram()
 
 // MARK: Scoring functions
 
+void Detector::calculateMillerShifts(bool stdev)
+{
+	Miller::refreshMillerPositions(millers);
+
+	xShifts.clear();
+	yShifts.clear();
+
+	for (int i = 0; i < millerCount(); i++)
+	{
+		MillerPtr myMiller = miller(i);
+
+		if (!myMiller || !myMiller->reachesThreshold())
+			continue;
+
+		float *shiftX = NULL;
+		float *shiftY = NULL;
+
+		if (stdev)
+		{
+			// pixels
+			shiftX = myMiller->getXShiftPointer();
+			shiftY = myMiller->getYShiftPointer();
+		}
+		else if (!stdev)
+		{
+			shiftX = myMiller->getRecipXShiftPtr();
+			shiftY = myMiller->getRecipYShiftPtr();
+		}
+
+		xShifts.push_back(shiftX);
+		yShifts.push_back(shiftY);
+	}
+}
+
 double Detector::millerStdevScoreWrapper(void *object)
 {
     return static_cast<Detector *>(object)->millerScore(false, true);
@@ -1110,47 +1152,21 @@ double Detector::millerScoreWrapper(void *object)
 
 double Detector::millerScore(bool ascii, bool stdev, int number)
 {
-    if (!millers.size())
-    {
-        return 0;
-    }
-    
-    Miller::refreshMillerPositions(millers);
-    
-    xShifts.clear();
-    yShifts.clear();
-    
-    for (int i = 0; i < millerCount(); i++)
-    {
-        MillerPtr myMiller = miller(i);
-        
-        if (!myMiller || !myMiller->reachesThreshold())
-            continue;
-        
-        float *shiftX = NULL;
-        float *shiftY = NULL;
-        
-        if (stdev)
-        {
-            // pixels
-            shiftX = myMiller->getXShiftPointer();
-            shiftY = myMiller->getYShiftPointer();
-        }
-        else if (!stdev)
-        {
-            shiftX = myMiller->getRecipXShiftPtr();
-            shiftY = myMiller->getRecipYShiftPtr();
-        }
-        
-        xShifts.push_back(shiftX);
-        yShifts.push_back(shiftY);
-    }
+	if (!millers.size())
+	{
+		return 0;
+	}
+
+	calculateMillerShifts(stdev);
 
     std::vector<double> distances;
     
     CSVPtr csv = CSVPtr(new CSV(2, "x", "y"));
     
     double totalScore = 0;
+	double biggestContribution = 0;
+	Coord bestPix;
+
     int count = 0;
     double maxSqr = 16;
 
@@ -1170,7 +1186,8 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
             continue;
         }
 
-        double x0 = 0;
+		double contribution = 0;
+		double x0 = 0;
         double y0 = 0;
         
         if (stdev)
@@ -1196,21 +1213,34 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
             {
                 csv->addEntry(0, x1, y1);
             }
+
+            contribution += lookupCache(distSq);
             
-            double contribution = 0;
-            
-            contribution = lookupCache(distSq);
-            
-            totalScore -= contribution;
         }
         
-        if (!stdev || (stdev && number >= 0))
+		totalScore -= contribution;
+
+		if (stdev && contribution > biggestContribution)
+		{
+			biggestContribution = contribution;
+			bestPix = std::make_pair(x0, y0);
+		}
+
+		if (!stdev || (stdev && number >= 0))
         {
             break;
         }
     }
-    
-    if (count)
+
+	// assuming all Millers have same wavelength
+	double wavelength = miller(0)->getImage()->getWavelength();
+	double radius = 1 / wavelength;
+
+	// to get the same thing in radians.
+	requiredRotToOrigin = new_vector(bestPix.first * radius, bestPix.second * radius, 0);
+	//workingBasisMat->multiplyVector(&requiredRotToOrigin);
+
+	if (count)
     {
         totalScore /= count;
     }
@@ -1265,6 +1295,48 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
     return totalScore;
 }
 
+void Detector::quickJumpToOrigin()
+{
+	millerScore();
+	logged << getTag() << " - " << requiredRotToOrigin.h << ", " << requiredRotToOrigin.k << std::endl;
+	sendLog();
+	resetNudgeBasis();
+	setInterNudgeX(this, requiredRotToOrigin.h);
+	setInterNudgeY(this, requiredRotToOrigin.k);
+	resetNudgeBasis();
+}
+
+void Detector::transferSingleMillers()
+{
+	for (int i = 0; i < allMillers.size(); i++)
+	{
+		MillerPtr myMiller = allMillers[i].lock();
+
+		if (!myMiller || !myMiller->reachesThreshold())
+			continue;
+
+		addMillerCarefully(myMiller);
+	}
+}
+
+double Detector::transferMillers(void *object)
+{
+	Detector *me = static_cast<Detector *>(object);
+
+	Miller::refreshMillerPositions(me->allMillers, true);
+	Detector::getMaster()->clearMillers();
+
+	std::vector<DetectorPtr> allChildren;
+	getMaster()->getAllSubDetectors(allChildren, true);
+
+	for (int i = 0; i < allChildren.size(); i++)
+	{
+		allChildren[i]->transferSingleMillers();
+	}
+
+	return 0;
+}
+
 double Detector::peakScore()
 {
 	if (!millers.size())
@@ -1273,20 +1345,29 @@ double Detector::peakScore()
 	}
 
 	double peakScore = 0;
+	double total = 0;
 
-	Miller::refreshMillerPositions(millers, true);
+	Miller::refreshMillerPositions(allMillers, true);
 
-	for (int i = 0; i < millerCount(); i++)
+	for (int i = 0; i < allMillers.size(); i++)
 	{
-		MillerPtr myMiller = miller(i);
+		MillerPtr myMiller = allMillers[i].lock();
 
-		if (!myMiller || !myMiller->reachesThreshold())
+		if (!myMiller)
 			continue;
 
-		peakScore++;
+		if (myMiller->getRawestIntensity() == myMiller->getRawestIntensity())
+		{
+			total++;
+		}
+
+		if (myMiller->reachesThreshold())
+		{
+			peakScore++;
+		}
 	}
 
-	return -peakScore;
+	return -peakScore / total;
 }
 
 double Detector::peakScoreWrapper(void *object)

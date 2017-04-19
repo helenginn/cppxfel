@@ -502,8 +502,7 @@ DetectorPtr Image::getDetectorForPosition(int x, int y)
 int Image::valueAt(int x, int y)
 {
     loadImage();
-    ImagePtr mask = getImageMask();
-    
+
     int pos = y * xDim + x;
     
     if (pos < 0 || pos > xDim * yDim)
@@ -514,20 +513,27 @@ int Image::valueAt(int x, int y)
     signed char maskValue = generalMask[pos];
     
     if (maskValue == 0)
-    {
-        return 0;
-    }
-    
-    if (mask && (&*mask != this))
-    {
-        if (mask->valueAt(x, y) > 0)
-        {
-            generalMask[pos] = 0;
-            return 0;
-        }
-    }
-    
+	{
+		return 0;
+	}
+
+	else if (maskValue < -1)
+	{
+		ImagePtr mask = getImageMask();
+
+		if (mask && (&*mask != this))
+		{
+			if (mask->valueAt(x, y) > 0)
+			{
+				generalMask[pos] = 0;
+				return 0;
+			}
+		}
+	}
+
     double rawValue = rawValueAt(x, y);
+
+	return rawValue;
     
     DetectorPtr det = perPixelDetectors[pos];
     
@@ -543,7 +549,7 @@ int Image::valueAt(int x, int y)
 
 void Image::focusOnAverageMax(double *x, double *y, int tolerance1, int tolerance2, bool even)
 {
-    int maxValue = 0;
+    int maxValue = valueAt(*x, *y);
     int newX = *x;
     int newY = *y;
     std::string bestPixels;
@@ -554,8 +560,10 @@ void Image::focusOnAverageMax(double *x, double *y, int tolerance1, int toleranc
         for (int i = *x - tolerance1; i <= *x + tolerance1; i++)
         {
             if (!accepted(i, j))
+			{
                 continue;
-            
+			}
+
             double newValue = valueAt(i, j);
             
             if (newValue > maxValue)
@@ -1817,7 +1825,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     
     bool modBetter = false;
 
-    if ((status != IndexingSolutionTrialSuccess && modStatus != IndexingSolutionTrialSuccess) && !acceptAllSolutions)
+    if (status != IndexingSolutionTrialSuccess && modStatus != IndexingSolutionTrialSuccess && !acceptAllSolutions)
     {
         badSolutions.push_back(solutionPtr);
         indexingFailureCount++;
@@ -2155,12 +2163,14 @@ void Image::findIndexingSolutions()
                         {
                             i = 1;
                             j = 0;
+							successes++;
                         }
                     }
                     
                     if (successes >= maxSuccesses || mtzCount() >= maxLattices)
                     {
                         continuing = false;
+						break;
                     }
                 }
                 

@@ -126,8 +126,8 @@ Miller::Miller(MtzManager *parent, int _h, int _k, int _l, bool calcFree)
     shift = std::make_pair(0, 0);
     shoebox = ShoeboxPtr();
     flipMatrix = 0;
-    correctedX = 0;
-    correctedY = 0;
+    correctedX = -1;
+    correctedY = -1;
     predictedWavelength = 0;
     recipShiftX = 0;
     recipShiftY = 0;
@@ -450,7 +450,7 @@ void Miller::limitingEwaldWavelengths(vec hkl, double mosaicity, double spotSize
     *limitLow = outwards_bandwidth;
 }
 
-double Miller::calculatePartiality(double pB, double qB, double beamMean, double beamSigma, double beamExp)
+double Miller::calculatePartiality(double pB, double qB, double beamMean, double beamSigma, double beamExp, double binary)
 {
     beamSigma *= beamMean;
     beamSigma /= 2;
@@ -465,15 +465,17 @@ double Miller::calculatePartiality(double pB, double qB, double beamMean, double
     double pqMin = std::min(pB - beamMean, qB - beamMean);
     double pqMax = std::max(pB - beamMean, qB - beamMean);
     
-    
-    
     if ((pqMin > 0 && pqMax > pqMin && diffLimit < pqMin) ||
         (pqMax < 0 && pqMin < pqMax && -diffLimit > pqMax))
     {
         // way too far from the diffraction condition
         return 0;
     }
-    
+	else if (binary)
+	{
+		return 1;
+	}
+
     int sampling = 10;
     double bValue = -limitP;
     double integralBeam = 0;
@@ -555,26 +557,9 @@ double Miller::resolution()
 bool Miller::crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
                                 double spotSize, double wavelength, double bandwidth)
 {
-    vec hkl = new_vector(h, k, l);
-    
-    rotatedMatrix->multiplyVector(&hkl);
-    
-    double inwards_bandwidth = 0; double outwards_bandwidth = 0;
-    
-    limitingEwaldWavelengths(hkl, mosaicity, spotSize, wavelength, &outwards_bandwidth, &inwards_bandwidth);
-    
-    double limit = 2 * bandwidth;
-    double inwardsLimit = wavelength + limit;
-    double outwardsLimit = wavelength - limit;
-    
-    if (outwards_bandwidth > inwardsLimit || inwards_bandwidth < outwardsLimit)
-    {
-        partiality = 0;
-        return false;
-    }
-    
-    partiality = 1;
-    return true;
+	recalculatePartiality(rotatedMatrix, mosaicity, spotSize, wavelength, bandwidth, 1.5, true);
+
+	return (partiality > partialCutoff);
 }
 
 
@@ -609,10 +594,10 @@ void Miller::recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
     
     limitingEwaldWavelengths(hkl, mosaicity, spotSize, wavelength, &pB, &qB);
     
-    double integral = calculatePartiality(pB, qB, wavelength, bandwidth, exponent);
+    double integral = calculatePartiality(pB, qB, wavelength, bandwidth, exponent, binary);
     partiality = integral;
     
-    if (integral > 0)
+    if (integral > 0 && !binary)
     {
         double newH = 0;
         double newK = sqrt((4 * pow(dStar, 2) - pow(dStar, 4) * pow(wavelength, 2)) / 4);
@@ -722,7 +707,7 @@ MillerPtr Miller::copy(void)
     newMiller->countingSigma = countingSigma;
     newMiller->rejectedReasons = rejectedReasons;
     newMiller->shift = shift;
-    
+
     return newMiller;
 }
 
@@ -818,7 +803,7 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
     double xVal = xSpotPred;
     double yVal = ySpotPred;
     
-    bool refocus = (shouldSearch || (correctedX == 0 && correctedY == 0));
+    bool refocus = (shouldSearch || (correctedX <= 0 || correctedY <= 0));
     
     if (refocus)
     {
@@ -829,6 +814,14 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
         if (search > 0)
         {
 			detector->addBulkPixelOffsetToSpot(&xVal, &yVal);
+
+			if (!detector->spotCoordWithinBounds(xVal, yVal))
+			{
+				*x = -1;
+				*y = -1;
+				return;
+			}
+
             getImage()->focusOnAverageMax(&xVal, &yVal, search, 0, even);
         }
         
@@ -863,9 +856,11 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
     
     take_vector_away_from_vector(new_vector(0, 0, 1), &newRay);
     newRay.l = 0;
-    recipShiftX = newRay.h;
-    recipShiftY = newRay.k;
-    
+	std::pair<float, float> recipShift = std::make_pair(newRay.h, newRay.k);
+//	detector->rearrangeCoord(&recipShift);
+    recipShiftX = recipShift.first;
+    recipShiftY = recipShift.second;
+
     if (x != NULL && y != NULL)
     {
         *x = correctedX;
@@ -876,8 +871,15 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
 
 vec Miller::getShiftedRay()
 {
-    Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
-    
+	if (hasDetector())
+	{
+		getDetector()->spotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
+	}
+	else
+	{
+		Detector::getMaster()->findDetectorAndSpotCoordToAbsoluteVec(correctedX, correctedY, &shiftedRay);
+	}
+
     return shiftedRay;
 }
 
@@ -917,6 +919,11 @@ void Miller::integrateIntensity(bool quick)
     double y = correctedY;
 
 	positionOnDetector(&x, &y, !quick);
+
+	if (x < 0 || y < 0)
+	{
+		rawIntensity = std::nan(" ");
+	}
 
     rawIntensity = getImage()->intensityAt(x, y, shoebox, &countingSigma, 0);
 }
@@ -1065,6 +1072,11 @@ double Miller::getRawestIntensity()
 
 bool Miller::reachesThreshold()
 {
+	if (getRawestIntensity() != getRawestIntensity())
+	{
+		return false;
+	}
+
     double iSigI = getRawIntensity() / getCountingSigma();
     
     if (absoluteIntensity)

@@ -166,6 +166,7 @@ private:
     
     // MARK: keeping track of millers, etc.
     std::vector<MillerWeakPtr> millers;
+	std::vector<MillerWeakPtr> allMillers;
     std::mutex millerMutex;
     static double cacheStep;
 
@@ -177,9 +178,12 @@ private:
     /* These keep track of the pointers to the Miller index shifts for easy access */
     std::vector<float *> xShifts;
     std::vector<float *> yShifts;
-    std::vector<double *> intensities;
-    
-    // MARK: private housekeeping
+
+	/* Quick jump to centre the peak of observations on the origin.
+	   Calculated every stdev miller score */
+	vec requiredRotToOrigin;
+
+	// MARK: private housekeeping
     
     void initialiseZeros();
     void updateUnarrangedMidPoint();
@@ -424,7 +428,11 @@ public:
     void intersectionWithRay(vec ray, vec *intersection);
     DetectorPtr spotCoordForMiller(MillerPtr miller, double *xSpot, double *ySpot);
     DetectorPtr intersectionForMiller(MillerPtr miller, vec *intersection);
-    
+
+	/* Apply quick jump calculated by stdev miller score */
+
+	void quickJumpToOrigin();
+
     /* Keeping track of all Millers */
     
     void addMillerCarefully(MillerPtr miller);
@@ -673,13 +681,16 @@ public:
     }
     
     /* MARK: Scoring functions */
-    
+
+	void calculateMillerShifts(bool stdev);
     double millerScore(bool ascii = false, bool stdev = false, int number = -1);
     static double millerScoreWrapper(void *object);
     static double millerStdevScoreWrapper(void *object);
 
 	double peakScore();
 	static double peakScoreWrapper(void *object);
+	static double transferMillers(void *object);
+	void transferSingleMillers();
 
     /* Special image functions */
     

@@ -1370,11 +1370,6 @@ void MtzManager::millersToDetector()
                 }
             }
             
-            if (!miller->reachesThreshold())
-            {
-                continue;
-            }
-            
             det->addMillerCarefully(miller);
         }
     }
@@ -1526,6 +1521,7 @@ void MtzManager::checkNearbyMillers()
 	{
 		MillerPtr miller = nearbyMillers[i];
 		miller->setMatrix(rotatedMatrix);
+		miller->setImage(getImagePtr());
 
 		double d = miller->resolution();
 
@@ -1535,7 +1531,7 @@ void MtzManager::checkNearbyMillers()
 			continue;
 		}
 
-		miller->crossesBeamRoughly(rotatedMatrix, 0.0, testSpotSize, wavelength, testBandwidth);
+		miller->crossesBeamRoughly(rotatedMatrix, 0.0, testSpotSize * 2, wavelength, testBandwidth * 2);
 
 		if (i == 0)
 		{
@@ -1563,7 +1559,7 @@ void MtzManager::checkNearbyMillers()
 		addMiller(miller);
 	}
 
-	logged << "Using wavelength " << wavelength << " Å." << std::endl;
+	logged << "Using wavelength " << std::setprecision(9) << getImagePtr()->getWavelength() << " Å." << std::endl;
 	logged << "Beyond resolution cutoff: " << cutResolution << std::endl;
 	logged << "Partiality equal to 0: " << partialityTooLow << std::endl;
 	logged << "Reflections left: " << millerCount() << std::endl;
@@ -1655,7 +1651,7 @@ int MtzManager::getTotalReflections()
 		{
 			MillerPtr miller = reflection(i)->miller(j);
 
-			if (miller->reachesThreshold())
+			if (miller->reachesThreshold() && millerWithinBandwidth(miller))
 			{
 				count++;
 			}

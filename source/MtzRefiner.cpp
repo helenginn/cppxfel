@@ -316,16 +316,20 @@ int MtzRefiner::imageMax(size_t lineCount)
 {
     int skip = imageSkip(lineCount);
     
-    int end = (int)lineCount;
+    int end = (int)lineCount - 1;
     
     if (imageLimit != 0)
+	{
         end = imageLimit < lineCount ? imageLimit : (int)lineCount;
-    
+	}
+
     end += skip;
     
     if (end > lineCount)
-        end = (int)lineCount;
-    
+	{
+        end = (int)lineCount - 1;
+	}
+
     return end;
 }
 
@@ -365,7 +369,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         Logger::mainLogger->addStream(&logged);
     }
     
-    for (int i = offset + skip; i < end; i += maxThreads)
+    for (int i = offset + skip; i <= end; i += maxThreads)
     {
         if (imageList[i].length() == 0)
             continue;
@@ -553,6 +557,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 						newManager->setTimeDelay(delay);
 						newManager->setImage(newImage);
 						newManager->loadReflections();
+						newManager->setWavelength(newImage->getWavelength());
 
 						newImage->addMtz(newManager);
 
@@ -582,7 +587,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 
             newManager->setFilename(imgName.c_str());
 
-            newManager->setParentImageName(parentImage);
+			newManager->setImage(newImage);
 
             if (!newMatrix)
             {

@@ -162,7 +162,7 @@ public:
     
     void recalculatePartiality(MatrixPtr rotatedMatrix, double mosaicity,
                                double spotSize, double wavelength, double bandwidth, double exponent, bool binary = false, bool no_norm = false);
-    double calculatePartiality(double pB, double qB, double beamMean, double beamSigma, double beamExp);
+    double calculatePartiality(double pB, double qB, double beamMean, double beamSigma, double beamExp, double binary = false);
 
     double observedPartiality(double reference);
     double observedPartiality(MtzManager *reference);
