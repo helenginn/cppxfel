@@ -367,15 +367,7 @@ void Image::dropImage()
     overlapMask.clear();
     vector<signed char>().swap(overlapMask);
 
-	spots.clear();
-	vector<SpotPtr>().swap(spots);
-
-	spotVectors.clear();
-	vector<SpotVectorPtr>().swap(spotVectors);
-
-	loadedSpots = false;
-
-    for (int i = 0; i < mtzCount(); i++)
+	for (int i = 0; i < mtzCount(); i++)
         mtz(i)->dropMillers();
 }
 
