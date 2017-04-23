@@ -150,8 +150,8 @@ public:
 	bool isGoodSolution();
 	void refineOrientationMatrix(bool force = false);
 	void fakeSpots();
-	void getWavelengthHistogram(vector<double> *wavelengths,
-								vector<int> *frequencies, bool silent);
+	void getWavelengthHistogram(vector<double> *wavelengths = NULL,
+								vector<int> *frequencies = NULL, bool silent = false);
 	void integrateChosenMillers(bool quick = false);
 
 /* END */

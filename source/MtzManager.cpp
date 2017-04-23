@@ -1617,7 +1617,7 @@ double MtzManager::getReflectionWavelengthStdev()
 		for (int j = 0; j < reflection(i)->millerCount(); j++)
 		{
 			MillerPtr miller = reflection(i)->miller(j);
-			if (miller->reachesThreshold() && millerWithinBandwidth(miller))
+			if (miller->reachesThreshold())
 			{
 				double wavelength = miller->getWavelength();
 
@@ -1636,7 +1636,8 @@ double MtzManager::getReflectionWavelengthStdev()
 		mean = weighted_mean(&values);
 	}
 
-	double stdev = standard_deviation(&values, NULL, mean);
+//	double stdev = standard_deviation(&values, NULL, mean);
+	double stdev = bitty_deviation(&values, NULL);
 
 	return stdev;
 }
@@ -1687,6 +1688,13 @@ double MtzManager::hkScore(bool finalise)
 {
 	double stdev = getReflectionWavelengthStdev();
 	double refTotal = getTotalReflections();
+
+	if (Logger::getPriorityLevel() >= LogLevelDetailed)
+	{
+		getWavelengthHistogram();
+	}
+
+	return stdev;
 
 	if (finalise)
 	{
