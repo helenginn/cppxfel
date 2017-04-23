@@ -587,19 +587,19 @@ MatrixPtr Matrix::inverse3DMatrix()
     double i = components[10];
     
     double det = determinant();
-    MatrixPtr newMat = MatrixPtr(new Matrix());
+    Matrix newMat = Matrix();
     
-    newMat->components[0] = (e * i - f * h) / det;
-    newMat->components[4] = -(d * i - f * g) / det;
-    newMat->components[8] = (d * h - e * g) / det;
-    newMat->components[1] = - (b * i - c * h) / det;
-    newMat->components[5] = (a * i - c * g) / det;
-    newMat->components[9] = - (a * h - b * g) / det;
-    newMat->components[2] = (b * f - c * e) / det;
-    newMat->components[6] = - (a * f - c * d) / det;
-    newMat->components[10] = (a * e - b * d) / det;
+    newMat.components[0] = (e * i - f * h) / det;
+    newMat.components[4] = -(d * i - f * g) / det;
+    newMat.components[8] = (d * h - e * g) / det;
+    newMat.components[1] = - (b * i - c * h) / det;
+    newMat.components[5] = (a * i - c * g) / det;
+    newMat.components[9] = - (a * h - b * g) / det;
+    newMat.components[2] = (b * f - c * e) / det;
+    newMat.components[6] = - (a * f - c * d) / det;
+    newMat.components[10] = (a * e - b * d) / det;
 
-    return newMat->transpose();
+    return newMat.transpose();
 }
 
 double Matrix::determinant()
