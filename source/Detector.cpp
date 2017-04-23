@@ -1367,7 +1367,7 @@ double Detector::peakScore()
 		}
 	}
 
-	return -peakScore / total;
+	return -peakScore;
 }
 
 double Detector::peakScoreWrapper(void *object)
