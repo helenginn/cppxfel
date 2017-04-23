@@ -13,7 +13,7 @@
 #include "Matrix.h"
 #include "Logger.h"
 #include <fstream>
-
+#include "Detector.h"
 
 
 vec reverseVector(vec vec1)
@@ -648,6 +648,42 @@ double standard_deviation(vector<double> *values, vector<double> *weights)
     double mean = weighted_mean(values, weights);
     
     return standard_deviation(values, weights, mean);
+}
+
+double bitty_deviation(vector<double> *values, vector<double> *weights)
+{
+	double bittyDevTotal = 0;
+
+	for (int i = 0; i < values->size(); i++)
+	{
+		double first = values->at(i);
+
+		for (int j = 0; j < values->size(); j++)
+		{
+			if (i == j)
+			{
+				continue;
+			}
+
+			double second = values->at(j);
+
+			double diff = fabs(second - first);
+
+			if (diff > 0.2)
+			{
+				continue;
+			}
+
+			diff *= 1 / 0.001;
+			diff *= diff;
+
+			bittyDevTotal -=Detector::lookupCache(diff);
+		}
+	}
+
+	bittyDevTotal /= values->size();
+
+	return bittyDevTotal;
 }
 
 double standard_deviation(vector<double> *values, vector<double> *weights, double mean)

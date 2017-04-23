@@ -185,8 +185,9 @@ void MtzRefiner::refine()
     MtzManager::setReference(&*reference);
     
     refineCycle();
-    
+
     hasRefined = true;
+	FileParser::setKey("REFINE_ORIENTATIONS", false);
 }
 
 void MtzRefiner::refineCycle(bool once)
@@ -197,7 +198,7 @@ void MtzRefiner::refineCycle(bool once)
     bool finished = false;
     
     bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
-	int maximumCycles = FileParser::getKey("MAXIMUM_CYCLES", 50);
+	int maximumCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
 	bool stop = FileParser::getKey("STOP_REFINEMENT", true);
 
     int scalingInt = FileParser::getKey("SCALING_STRATEGY",
@@ -239,9 +240,6 @@ void MtzRefiner::refineCycle(bool once)
 		{
 			merger.mergeFull(true);
 		}
-
-		merger.setFreeOnly(true);
-		merger.mergeFull();
 
 		if (replaceReference && mergedMtz)
 		{
@@ -316,7 +314,7 @@ int MtzRefiner::imageMax(size_t lineCount)
 {
     int skip = imageSkip(lineCount);
     
-    int end = (int)lineCount - 1;
+    int end = (int)lineCount;
     
     if (imageLimit != 0)
 	{
@@ -327,7 +325,7 @@ int MtzRefiner::imageMax(size_t lineCount)
     
     if (end > lineCount)
 	{
-        end = (int)lineCount - 1;
+        end = (int)lineCount;
 	}
 
     return end;
@@ -369,7 +367,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         Logger::mainLogger->addStream(&logged);
     }
     
-    for (int i = offset + skip; i <= end; i += maxThreads)
+    for (int i = offset + skip; i < end; i += maxThreads)
     {
         if (imageList[i].length() == 0)
             continue;

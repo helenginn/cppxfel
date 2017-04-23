@@ -68,6 +68,7 @@ double standard_deviation(vector<double> *values, vector<double> *weights = NULL
 double r_factor_between_vectors(vector<double> *vec1,
 		vector<double> *vec2, vector<double> *weights, double scale);
 double standard_deviation(vector<double> *values, vector<double> *weights, double mean);
+double bitty_deviation(vector<double> *values, vector<double> *weights);
 void printDesc(vec hkl);
 std::string desc(vec hkl);
 std::string prettyDesc(vec hkl);
