@@ -1892,10 +1892,9 @@ void MtzManager::refineOrientationMatrix(bool force)
 		checkNearbyMillers();
 
 		hkScoreFinalise(this);
-		RefinementStepSearchPtr hkStrategy = RefinementStepSearchPtr(new RefinementStepSearch());
+		RefinementStrategyPtr hkStrategy = RefinementStrategy::userChosenStrategy();
 		hkStrategy->setVerbose(Logger::getPriorityLevel() >= LogLevelDetailed);
 		hkStrategy->setEvaluationFunction(hkScoreStdevWrapper, this);
-		hkStrategy->setAfterCycleFunction(hkScoreFinalise, this);
 		hkStrategy->setJobName("Refining angles for " + getFilename());
 		hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
 		hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");

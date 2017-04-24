@@ -1079,7 +1079,8 @@ void Image::refineOrientations()
         sendLog();
         return;
     }
-    
+
+	
     for (int i = 0; i < mtzCount(); i++)
     {
         mtzs[i]->refineOrientationMatrix();
