@@ -75,9 +75,6 @@ void MtzRefiner::cycleThread(int offset)
 
 			if (!mtz->isRejected())
 			{
-//				logged << "Refining image " << i << " " << image->getFilename() << std::endl;
-//				Logger::mainLogger->addStream(&logged);
-
 				bool silent = (targets.size() > 0);
 
 				mtz->refinePartialities();
@@ -95,6 +92,8 @@ void MtzRefiner::cycleThread(int offset)
 
 					mtz->setDefaultScoreType(firstScore);
 				}
+
+				mtz->setRefineOrientations(false);
 			}
 		}
     }
@@ -187,7 +186,6 @@ void MtzRefiner::refine()
     refineCycle();
 
     hasRefined = true;
-	FileParser::setKey("REFINE_ORIENTATIONS", false);
 }
 
 void MtzRefiner::refineCycle(bool once)

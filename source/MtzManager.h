@@ -566,6 +566,11 @@ public:
 	{
 		return searchSize;
 	}
+
+	void setRefineOrientations(bool newValue)
+	{
+		refineOrientations = newValue;
+	}
 };
 
 #endif
