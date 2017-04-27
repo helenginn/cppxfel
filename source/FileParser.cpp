@@ -401,6 +401,7 @@ void FileParser::generateDeprecatedList()
 
 	deprecatedList["BAD_SOLUTION_ST_DEV"] = "Basing goodness of indexing solutions on standard deviations has been disabled due to too high false positive/negative rates. Please rely on the other methods.";
 	deprecatedList["GOOD_SOLUTION_ST_DEV"] = "Basing goodness of indexing solutions on standard deviations has been disabled due to too high false positive/negative rates. Please rely on the other methods.";
+	deprecatedList["ABSOLUTE_INTENSITY"] = "This option provided no benefit unless in the default position, and so has been removed (default OFF).";
 }
 
 void FileParser::generateCodeList()
@@ -590,7 +591,6 @@ void FileParser::generateCategories()
     std::vector<std::string> hardIntegration;
     hardIntegration.push_back("REFINE_IN_PLANE_OF_DETECTOR");
     hardIntegration.push_back("SPHERE_THICKNESS");
-    hardIntegration.push_back("ABSOLUTE_INTENSITY");
     hardIntegration.push_back("UNBALANCED_REFLECTIONS");
     hardIntegration.push_back("IGNORE_MISSING_IMAGES");
     
@@ -751,7 +751,6 @@ void FileParser::generateHelpList()
     helpMap["REFINE_ORIENTATIONS"] = "If set to ON, using the INTEGRATE command will also refine orientation matrices according to the protocol in Ginn et al Nat Comms 2015. Default ON.";
     helpMap["INDEXING_ORIENTATION_TOLERANCE"] = "Initial orientation matrix refinement will finish when the step search angle decreases below x degrees. Default 1 × 10-3º.";
     helpMap["INTENSITY_THRESHOLD"] = "Absolute (counts) or signal-to-noise (I/sigI) threshold at which a spot is considered to be a strong spot for initial orientation matrix refinement. Default 12 (assuming a detector gain of 1.0) and also dependent on ABSOLUTE_INTENSITY.";
-    helpMap["ABSOLUTE_INTENSITY"] = "If set to ON, intensity threshold is measured in counts, whereas if set to OFF this is a I/sigI threshold for spots to be considered strong spots for initial orientation matrix refinement. Default OFF.";
     helpMap["METROLOGY_SEARCH_SIZE"] = "Metrology search size can be set to an integer number of pixels from which the predicted spot position may deviate in order to find the highest pixel value. Integration will be performed centred on this highest pixel value. Default 0 but needs changing.";
     helpMap["SHOEBOX_FOREGROUND_PADDING"] = "For a simple shoebox centred on a coordinate, this represents the extra number of pixels in both axes which will be integrated as part of the signal foreground. This overrides the background and neither flags. Default 1.";
     helpMap["SHOEBOX_NEITHER_PADDING"] = "For a simple shoebox centred on a coordinate, this represents the extra number of pixels from the centre in both axes for which pixels will not be considered as part of foreground or background signal. This overrides the background flags. Default 2.";
@@ -949,8 +948,7 @@ void FileParser::generateFunctionList()
     parserMap["REFINE_ORIENTATIONS"] = simpleBool;
     parserMap["INDEXING_ORIENTATION_TOLERANCE"] = simpleFloat;
   	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
-    parserMap["ABSOLUTE_INTENSITY"] = simpleBool;
-	parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;
+    parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;
     parserMap["METROLOGY_SEARCH_SIZE_BIG"] = simpleInt;
     parserMap["SHOEBOX_FOREGROUND_PADDING"] = simpleInt;
 	parserMap["SHOEBOX_NEITHER_PADDING"] = simpleInt;

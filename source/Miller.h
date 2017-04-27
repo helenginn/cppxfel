@@ -88,7 +88,6 @@ private:
 	void makeShoebox();
 
 	unsigned char flipMatrix;
-    static bool absoluteIntensity;
     static double intensityThreshold;
 public:
     int getH();

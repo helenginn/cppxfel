@@ -28,7 +28,6 @@ double Miller::polarisationFactor = false;
 bool Miller::setupStatic = false;
 PartialityModel Miller::model = PartialityModelScaled;
 bool Miller::correctedPartiality = false;
-bool Miller::absoluteIntensity = false;
 double Miller::intensityThreshold = 0;
 bool Miller::individualWavelength = false;
 std::mutex Miller::millerMutex;
@@ -50,7 +49,6 @@ void Miller::setupStaticVariables()
     correctingPolarisation = FileParser::getKey("POLARISATION_CORRECTION", false);
     polarisationFactor = FileParser::getKey("POLARISATION_FACTOR", 0.0);
     correctedPartiality = FileParser::getKey("CORRECTED_PARTIALITY_MODEL", false);
-    absoluteIntensity = FileParser::getKey("ABSOLUTE_INTENSITY", false);
     intensityThreshold = FileParser::getKey("INTENSITY_THRESHOLD", INTENSITY_THRESHOLD);
     
     setupStatic = true;
@@ -1078,11 +1076,6 @@ bool Miller::reachesThreshold()
 	}
 
     double iSigI = getRawIntensity() / getCountingSigma();
-    
-    if (absoluteIntensity)
-    {
-        return (getRawIntensity() > intensityThreshold);
-    }
     
     return (iSigI > intensityThreshold);
 }
