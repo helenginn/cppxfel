@@ -1809,7 +1809,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     {
         logged << "(" << getFilename() << ") Enough spots are explained (" << *spotsRemoved << " vs  " << minSpotsForImage << ")" << std::endl;
         sendLog();
-		spots = someSpots;
+//		spots = someSpots;
 		myMtz->getWavelengthHistogram(NULL, NULL, false);
         
     }
