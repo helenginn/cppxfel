@@ -290,12 +290,13 @@ void GeometryRefiner::refineGeometry()
 		intraPanelCycle();
 		interPanelCycle();
     }
-
+/*
 	logged << "**** Geometry refinement complete ****" << std::endl;
 	logged << "**** Now setting METROLOGY_SEARCH_SIZE to 0 for convenience. ****" << std::endl;
 	sendLog();
 
 	FileParser::setKey("METROLOGY_SEARCH_SIZE", 0);
+ */
 }
 
 
