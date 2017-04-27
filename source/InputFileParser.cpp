@@ -162,7 +162,7 @@ void InputFileParser::parse(bool fromPython)
                 refiner->integrateSpots();
             }
             
-			if (line == "REFINE_PARTIALITY")
+			if (line == "REFINE_PARTIALITY" || line == "POST_REFINE")
 			{
                 understood = true;
                 refiner->refine();
