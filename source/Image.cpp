@@ -517,7 +517,7 @@ int Image::valueAt(int x, int y)
 		return 0;
 	}
 
-	else if (maskValue < -1)
+	else if (maskValue < 0 || maskValue == 1)
 	{
 		ImagePtr mask = getImageMask();
 
@@ -527,6 +527,10 @@ int Image::valueAt(int x, int y)
 			{
 				generalMask[pos] = 0;
 				return 0;
+			}
+			else
+			{
+				generalMask[pos] = 2;
 			}
 		}
 	}
