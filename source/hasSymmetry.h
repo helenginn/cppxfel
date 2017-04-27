@@ -83,6 +83,19 @@ public:
 		}
 	}
 
+	std::string printUnitCell()
+	{
+		std::ostringstream logged;
+		logged << "(";
+		for (int i = 0; i < 5; i++)
+		{
+			logged << _unitCell[i] << ", ";
+		}
+
+		logged << _unitCell[5] << ")";
+		return logged.str();
+	}
+
 	static double getUnitCellAStatic(void *object)
 	{
 		return static_cast<hasSymmetry *>(object)->_unitCell[0];

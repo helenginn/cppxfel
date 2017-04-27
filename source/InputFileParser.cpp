@@ -180,6 +180,13 @@ void InputFileParser::parse(bool fromPython)
                 refiner->refineMetrology(false);
             }
 
+			if (line == "REFINE_UNIT_CELL")
+			{
+				understood = true;
+				refiner->refineUnitCell();
+			}
+
+
 			if (line == "MERGE")
 			{
                 understood = true;

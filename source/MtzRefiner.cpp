@@ -17,6 +17,7 @@
 #include <fstream>
 #include "AmbiguityBreaker.h"
 #include "IndexManager.h"
+#include "UnitCellLattice.h"
 #include "CSV.h"
 
 #include "FileParser.h"
@@ -1545,6 +1546,12 @@ void MtzRefiner::plotIntensities()
     }
     
     
+}
+
+void MtzRefiner::refineUnitCell()
+{
+	std::vector<MtzPtr> mtzManagers = getAllMtzs();
+	UnitCellLattice::getMainLattice()->refineMtzs(mtzManagers);
 }
 
 void MtzRefiner::refineMetrology(bool global)

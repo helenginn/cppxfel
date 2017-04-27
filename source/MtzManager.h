@@ -255,7 +255,8 @@ public:
 	void refreshPartialities(double hRot, double kRot, double mosaicity,
                              double spotSize, double wavelength,
 							 double bandwidth, double exponent);
-	
+
+	std::vector<MillerPtr> strongMillers();
 // more grid search
 
     void setParamLine(std::string line);

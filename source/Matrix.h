@@ -109,6 +109,11 @@ public:
     {
         return unitCell;
     }
+
+	void setUnitCell(MatrixPtr newMat)
+	{
+		unitCell = newMat;
+	}
     
     void setComponents(double *newComponents)
     {

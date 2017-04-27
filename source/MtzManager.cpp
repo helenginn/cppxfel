@@ -281,6 +281,26 @@ int MtzManager::millerCount()
     return sum;
 }
 
+std::vector<MillerPtr> MtzManager::strongMillers()
+{
+	std::vector<MillerPtr> strongs;
+
+	for (int i = 0; i < reflectionCount(); i++)
+	{
+		for (int j = 0; j < reflection(i)->millerCount(); j++)
+		{
+			MillerPtr miller = reflection(i)->miller(j);
+
+			if (miller->reachesThreshold())
+			{
+				strongs.push_back(miller);
+			}
+		}
+	}
+
+	return strongs;
+}
+
 void MtzManager::setMatrix(MatrixPtr newMat)
 {
     matrix = newMat;
@@ -1580,6 +1600,18 @@ void MtzManager::integrateChosenMillers(bool quick)
 			miller->integrateIntensity(quick);
 			miller->recalculateWavelength();
 			miller->setMatrix(matrix);
+
+			if (!miller->accepted())
+			{
+				reflection(i)->removeMiller(j);
+				j--;
+			}
+		}
+
+		if (reflection(i)->millerCount() == 0)
+		{
+			removeReflection(i);
+			i--;
 		}
 	}
 }

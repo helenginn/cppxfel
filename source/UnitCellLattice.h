@@ -24,6 +24,9 @@ private:
     MatrixPtr unitCellOnly;
     MatrixPtr unitCellMatrixInverse;
     static std::vector<MatrixPtr> symOperators;
+
+	std::vector<MillerPtr> allMillers;
+	std::vector<MtzPtr> mtzs; // for unit cell refinement
     double maxDistance;
 	double maxAngleDistance;
     double minDistance;
@@ -54,7 +57,8 @@ public:
     void setup();
     void getMaxMillerIndicesForResolution(double resolution, int *hMax, int *kMax, int *lMax);
     void weightUnitCell();
-    
+	static double refineUnitCellScore(void *object);
+
     static UnitCellLatticePtr getMainLattice();
 
 	CSVPtr getAngleCSV()
@@ -113,7 +117,8 @@ public:
     {
         return spotVectors;
     }
-    
+
+	void refineMtzs(std::vector<MtzPtr> newMtzs);
     
     CSVPtr getWeightedUnitCell()
     {

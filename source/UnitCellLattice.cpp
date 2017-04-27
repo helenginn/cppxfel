@@ -15,6 +15,8 @@
 #include "CSV.h"
 #include "Vector.h"
 #include <algorithm>
+#include "Miller.h"
+#include "RefinementStrategy.h"
 
 #define ANGLE_FUNNEL_START 1.5
 #define ANGLE_DISTANCE_BUFFER 0.02
@@ -194,10 +196,21 @@ void UnitCellLattice::weightUnitCell()
 
 void UnitCellLattice::updateUnitCellData()
 {
-    lockUnitCellDimensions();
-	std::vector<double> unitCell = getUnitCell();
-    unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
-    
+    std::vector<double> newUnitCell;
+	newUnitCell.push_back(_aDim);
+	newUnitCell.push_back(_bDim);
+	newUnitCell.push_back(_cDim);
+	newUnitCell.push_back(_alpha);
+	newUnitCell.push_back(_beta);
+	newUnitCell.push_back(_gamma);
+	setUnitCell(newUnitCell);
+	lockUnitCellDimensions();
+	newUnitCell = getUnitCell();
+
+    MatrixPtr newUnitCellOnly = Matrix::matrixFromUnitCell(newUnitCell);
+
+	unitCellOnly->copyComponents(newUnitCellOnly);
+
     for (int i = 0; i < standardVectorCount(); i++)
     {
         SpotVectorPtr spotVec = standardVector(i);
@@ -216,7 +229,7 @@ void UnitCellLattice::updateUnitCellData()
     }
     
     std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
-    weightUnitCell();
+  //  weightUnitCell();
 }
 
 void UnitCellLattice::setup()
@@ -238,6 +251,13 @@ void UnitCellLattice::setup()
 	}
 
 	std::vector<double> unitCell = getUnitCell();
+
+	_aDim = unitCell[0];
+	_bDim = unitCell[1];
+	_cDim = unitCell[2];
+	_alpha = unitCell[3];
+	_beta = unitCell[4];
+	_gamma = unitCell[5];
 
 	if (!symOperators.size())
     {
@@ -362,4 +382,63 @@ UnitCellLatticePtr UnitCellLattice::getMainLattice()
     }
     
     return mainLattice;
+}
+
+double UnitCellLattice::refineUnitCellScore(void *object)
+{
+	UnitCellLattice *lat = static_cast<UnitCellLattice *>(object);
+	double score = 0;
+
+	for (int i = 0; i < lat->allMillers.size(); i++)
+	{
+		MillerPtr miller = lat->allMillers[i];
+		miller->getMatrix()->recalculateOrientationMatrix();
+		miller->recalculateWavelength();
+
+		double wave = miller->getWavelength();
+		double mean = miller->getMtzParent()->getWavelength();
+
+		double diff = fabs(mean - wave);
+		diff *= 1 / 0.005;
+
+		double contrib = Detector::lookupCache(diff);
+
+		score -= contrib;
+	}
+
+	return score;
+}
+
+void UnitCellLattice::refineMtzs(std::vector<MtzPtr> newMtzs)
+{
+	for (int i = 0; i < newMtzs.size(); i++)
+	{
+		// collect Millers
+		std::vector<MillerPtr> millers = newMtzs[i]->strongMillers();
+		newMtzs[i]->getMatrix()->setUnitCell(unitCellOnly);
+
+		for (int j = 0; j < millers.size(); j++)
+		{
+			millers[j]->getMatrix()->setUnitCell(unitCellOnly);
+		}
+
+		allMillers.reserve(allMillers.size() + millers.size());
+		allMillers.insert(allMillers.end(), millers.begin(), millers.end());
+	}
+
+	logged << "Unit cell dimension before: " << printUnitCell() << std::endl;
+	sendLog();
+
+	RefinementStrategyPtr strategy = RefinementStrategy::userChosenStrategy();
+	strategy->setEvaluationFunction(refineUnitCellScore, this);
+	strategy->addParameter(this, getUnitCellA, setUnitCellA, 0.1, 0.0001);
+	strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.1, 0.0001);
+	strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.1, 0.0001);
+	strategy->refine();
+	strategy->setVerbose(true);
+
+	logged << "Unit cell dimension after: " << printUnitCell() << std::endl;
+	sendLog();
+
+
 }
