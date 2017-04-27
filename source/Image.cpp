@@ -1261,7 +1261,12 @@ void Image::findSpots()
     std::vector<SpotPtr> tempSpots;
     loadImage();
     SpotFinderPtr spotFinder;
-    
+
+	if (algorithm == 2)
+	{
+		loadedSpots = true;
+		return;
+	}
     if (algorithm == 1)
     {
         spotFinder = SpotFinderPtr(new SpotFinderQuick(shared_from_this()));

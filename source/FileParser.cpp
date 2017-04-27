@@ -459,6 +459,7 @@ void FileParser::generateCodeList()
         CodeMap codeMap;
         codeMap["blob"] = 0;
         codeMap["peakfinder6"] = 1;
+		codeMap["none"] = 2;
         codeMaps["SPOT_FINDING_ALGORITHM"] = codeMap;
     }
 }
