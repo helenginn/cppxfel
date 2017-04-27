@@ -2456,6 +2456,7 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
 			pngCoord = std::make_pair(intersection.h, intersection.k);
 
             bool strong = myMiller->reachesThreshold();
+			double inversePartiality = myMiller->getPartiality();
             
             if (myMiller->isSpecial())
             {
@@ -2468,7 +2469,7 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
                 continue;
             }
             
-            file->drawCircleAroundPixel(pngCoord.first, pngCoord.second, 14, (strong ? 2 : 1), red, green, blue, (strong ? 4 : 1));
+            file->drawCircleAroundPixel(pngCoord.first, pngCoord.second, 14, inversePartiality, red, green, blue, (strong ? 4 : 1));
             count++;
             
             if (addShoebox)
