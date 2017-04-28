@@ -2496,7 +2496,7 @@ void Image::drawCrystalsOnPNG(int crystalNum)
     if (crystalNum >= 0)
     {
         MtzPtr myMtz = mtz(crystalNum);
-        drawMillersOnPNG(file, myMtz, 0, 0, 255);
+        drawMillersOnPNG(file, myMtz, 0, 0, 0);
     }
     else
     {
@@ -2511,11 +2511,8 @@ void Image::drawCrystalsOnPNG(int crystalNum)
 			png_byte green = 0;
 			png_byte blue = 0;
 
-			if (count > 1)
-			{
-				PNGFile::HSB_to_RGB(hue, saturation, brightness, &red, &blue, &green);
-			}
-
+			PNGFile::HSB_to_RGB(hue, saturation, brightness, &red, &blue, &green);
+			
             MtzPtr myMtz = mtz(i);
             drawMillersOnPNG(file, myMtz, red, green, blue);
             
