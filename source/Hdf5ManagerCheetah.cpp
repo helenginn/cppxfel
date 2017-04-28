@@ -86,7 +86,8 @@ Hdf5ManagerCheetahPtr Hdf5ManagerCheetah::hdf5ManagerForImage(std::string imageN
         Hdf5ManagerCheetahPtr cheetahManager = cheetahManagers[i];
         
         std::string address = cheetahManager->addressForImage(imageName);
-        
+
+
         if (address.length() > 0)
         {
             return cheetahManager;

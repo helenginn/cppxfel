@@ -25,13 +25,13 @@ bool Hdf5ManagerCheetahSacla::getImageSize(std::string address, int *dims)
 bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer, bool rawAddress)
 {
     std::string dataAddress = concatenatePaths(address, "data");
-    
+
     if (rawAddress)
     {
-        dataAddress = address;
+    //    dataAddress = address;
     }
-    
-    return Hdf5Manager::dataForAddress(dataAddress, buffer);
+
+	return Hdf5Manager::dataForAddress(dataAddress, buffer);
 }
 
 double Hdf5ManagerCheetahSacla::wavelengthForImage(std::string address, void **buffer)

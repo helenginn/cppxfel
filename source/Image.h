@@ -159,6 +159,7 @@ public:
         std::ostringstream logged;
         logged << "Loaded mask from HDF5" << std::endl;
         Logger::log(logged);
+		
     }
     
     static ImagePtr getImageMask()

@@ -756,7 +756,7 @@ void MtzRefiner::readMatricesAndImages(std::string *filename, bool areImages, st
     
     if (hdf5)
     {
-        Hdf5ImagePtr maskImage = Hdf5ImagePtr(new Hdf5Image());
+        Hdf5ImagePtr maskImage = Hdf5ImagePtr(new Hdf5Image("tag-mask"));
         maskImage->setMask();
     }
 

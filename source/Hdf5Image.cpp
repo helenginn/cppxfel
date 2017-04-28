@@ -105,7 +105,7 @@ void Hdf5Image::loadImage()
     }
     
     std::string address = imageAddress;
-    
+
     if (!address.length())
     {
 		address = manager->addressForImage(getFilename());
@@ -115,6 +115,10 @@ void Hdf5Image::loadImage()
     {
         failureMessage();
     }
+
+	logged << "Chosen manager " << manager->getFilename() << std::endl;
+	sendLog();
+
 /*
 	if (!manager->datasetExists(address) && !manager->groupExists(address))
 	{

@@ -2507,9 +2507,15 @@ void Image::drawCrystalsOnPNG(int crystalNum)
         {
             double brightness = 0.8;
             double saturation = 1.0;
-            png_byte red, green, blue;
-            PNGFile::HSB_to_RGB(hue, saturation, brightness, &red, &blue, &green);
-            
+			png_byte red = 0;
+			png_byte green = 0;
+			png_byte blue = 0;
+
+			if (count > 1)
+			{
+				PNGFile::HSB_to_RGB(hue, saturation, brightness, &red, &blue, &green);
+			}
+
             MtzPtr myMtz = mtz(i);
             drawMillersOnPNG(file, myMtz, red, green, blue);
             
