@@ -674,7 +674,7 @@ double bitty_deviation(vector<double> *values, vector<double> *weights)
 				continue;
 			}
 
-			diff *= 1 / 0.005;
+			diff /= 0.01;
 //			diff *= diff;
 
 			bittyDevTotal -=Detector::lookupCache(diff);
