@@ -18,8 +18,8 @@
 #include "Miller.h"
 #include "RefinementStrategy.h"
 
-#define ANGLE_FUNNEL_START 1.5
-#define ANGLE_DISTANCE_BUFFER 0.02
+#define ANGLE_FUNNEL_START 1.2
+#define ANGLE_DISTANCE_BUFFER 0.005
 
 bool UnitCellLattice::setupLattice = false;
 std::vector<MatrixPtr> UnitCellLattice::symOperators;
@@ -83,8 +83,8 @@ void UnitCellLattice::weightUnitCell()
 	double lengthStep = maxAngleDistance / intervals;
 	double angleStep = maxAngle / intervals;
 
-	double angleTolerance = ANGLE_FUNNEL_START * 1.1;
-	double lengthTolerance = 1.1 * ANGLE_FUNNEL_START * maxAngleDistance / 90;
+	double angleTolerance = ANGLE_FUNNEL_START * 1.0;
+	double lengthTolerance = 1.01 * ANGLE_FUNNEL_START * maxAngleDistance / 90;
 	double total = pow(intervals, 3);
 	memset(lookupIntervals, 0, total * sizeof(float));
 
@@ -93,13 +93,15 @@ void UnitCellLattice::weightUnitCell()
 	logged << "Calculating vector pair scores in advance..." << std::endl;
 	sendLog();
 
+	CSVPtr refAngles = CSVPtr(new CSV(3, "aLength", "bLength", "angle"));
+
 	for (int dist1 = 0; dist1 < intervals; dist1++)
 	{
 		logged << ".";
 		sendLog();
 
 		std::vector<std::vector<double> > dist1Filter;
-		double chosenDist1 = dist1 * lengthStep;
+		double chosenDist1 = ((double)dist1 + 0.5) * lengthStep;
 
 		for (int l = 0; l < angleCSV->entryCount(); l++)
 		{
@@ -115,7 +117,7 @@ void UnitCellLattice::weightUnitCell()
 
 		for (int dist2 = 0; dist2 < intervals; dist2++)
 		{
-			double chosenDist2 = dist2 * lengthStep;
+			double chosenDist2 = ((double)dist2 + 0.5) * lengthStep;
 			std::vector<std::vector<double> > dist2Filter;
 
 			for (int l = 0; l < dist1Filter.size(); l++)
@@ -135,7 +137,7 @@ void UnitCellLattice::weightUnitCell()
 			{
 				double bestDist = FLT_MAX;
 
-				double chosenAngle = ((double)angles) * angleStep;
+				double chosenAngle = ((double)angles + 0.5) * angleStep;
 
 				for (int l = 0; l < dist2Filter.size(); l++)
 				{
@@ -169,22 +171,25 @@ void UnitCellLattice::weightUnitCell()
 				int position = dist1 * intervals * intervals +
 				dist2 * intervals + angles;
 				bestDist = sqrt(bestDist);
+				double score = 0;
 
-				if (bestDist > ANGLE_FUNNEL_START)
+				if (bestDist <= ANGLE_FUNNEL_START)
 				{
-					lookupIntervals[position] = -1;
-				}
-				else
-				{
-					bestDist *= M_PI / 180.;
-					double score = 2 * sin((60 / ANGLE_FUNNEL_START) * bestDist + M_PI / 6) - 1;
-					lookupIntervals[position] = -score;
+					score = 1 - bestDist / ANGLE_FUNNEL_START;
 				}
 
+				if (score > 0.8)
+				{
+					refAngles->addEntry(3, chosenDist1, chosenDist2, chosenAngle);
+				}
 
+				lookupIntervals[position] = score;
 			}
 		}
 	}
+
+	refAngles->plotPDB("ref_angles.pdb", "aLength", "bLength", "angle");
+
 
 	time_t endTime;
 	time(&endTime);
@@ -356,12 +361,12 @@ double UnitCellLattice::weightForPair(double dist1, double dist2, double angle)
 
 	if (dist1 > maxAngleDistance || dist2 > maxAngleDistance)
 	{
-		return -1;
+		return 0;
 	}
 
 	if (dist1 != dist1 || dist2 != dist2 || angle != angle)
 	{
-		return -1;
+		return 0;
 	}
 
 	int dist1Step = dist1 * LOOKUP_INTERVALS / (maxAngleDistance);

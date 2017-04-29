@@ -324,7 +324,7 @@ void GeometryRefiner::intraPanelCycle()
 	printHeader(detectors);
 
 	GeometryScoreType type = GeometryScoreTypeIntrapanel;
-	int cycles = 1;
+	int cycles = 4;
 
 	if (hasMillers)
 	{
@@ -447,8 +447,8 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
 	}
 	else if (type == GeometryScoreTypeInterpanel)
 	{
-	//	interPanelGridSearch(detector, type);
-	//	interPanelMillerSearch(detector, type);
+		interPanelGridSearch(detector, type);
+		interPanelMillerSearch(detector, type);
 	}
 	else if (type == GeometryScoreTypeIntrapanel)
 	{
@@ -503,9 +503,8 @@ void GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 	else
 	{
 		strategy->setJobName(detector->getTag() + "_powder");
-		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge * 1.0, 0, "internudge_x");
-		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge * 1.0, 0, "internudge_y");
-		strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge * 1.0, 0, "internudge_y");
+		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge * 1.0, 0, "poke_x");
+		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge * 1.0, 0, "poke_y");
 		strategy->setGridLength(31);
 	}
 

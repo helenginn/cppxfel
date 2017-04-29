@@ -14,7 +14,7 @@
 #include "hasSymmetry.h"
 #include "Matrix.h"
 #include "parameters.h"
-#define LOOKUP_INTERVALS 270
+#define LOOKUP_INTERVALS 240
 
 class UnitCellLattice : public FreeLattice, public hasSymmetry, public LoggableObject
 {
