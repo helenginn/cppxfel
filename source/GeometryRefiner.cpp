@@ -453,8 +453,9 @@ void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, Geometr
 
 	threads.join_all();
 
+	std::ostringstream logged;
 	logged << "Finished a round." << std::endl;
-	sendLog();
+	Logger::log(logged);
 	me->reportProgress();
 
 	me->firstCycle = false;
