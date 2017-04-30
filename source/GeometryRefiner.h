@@ -21,10 +21,9 @@ private:
     int refinementEvent;
     int cycleNum;
     bool firstCycle;
-    void refineDetectorStrategy(DetectorPtr detector, GeometryScoreType type, int strategyType);
-    static void refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, GeometryScoreType type, int strategyType);
-    static void refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors,
-                                      int offset, GeometryScoreType type, int strategyType);
+    bool refineDetectorStrategy(DetectorPtr detector, GeometryScoreType type, int strategyType);
+    static void refineDetectorStrategyWrapper(GeometryRefiner *me, GeometryScoreType type, int strategyType);
+    static void refineDetectorWrapper(GeometryRefiner *me, int offset, GeometryScoreType type, int strategyType);
     void refineGeometryCycle();
 
 	void intraPanelCycle();
@@ -37,12 +36,14 @@ private:
     bool _changed;
     
     void refineBeamCentre();
+	std::vector<DetectorPtr> refineQueue;
+	std::mutex queueMutex;
 
     void printHeader(std::vector<DetectorPtr> detectors);
     
-    void interPanelGridSearch(DetectorPtr detector, GeometryScoreType type);
-    void interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
-    void intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
+    bool interPanelGridSearch(DetectorPtr detector, GeometryScoreType type);
+    bool interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
+    bool intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
 	void peakSearchDetector(DetectorPtr detector);
     
     RefinementGridSearchPtr makeGridRefiner(DetectorPtr detector, GeometryScoreType type);
@@ -50,13 +51,16 @@ private:
     void gridSearchDetectorDistance(DetectorPtr detector, double start, double end);
     void refineDetector(DetectorPtr detector, GeometryScoreType type);
 	void gridSearchDetectorOffsets();
+	DetectorPtr getNextDetector();
+
+	void addToQueue(DetectorPtr det);
+	void addToQueue(std::vector<DetectorPtr> dets);
 
 public:
     GeometryRefiner();
     
     void refineGeometry();
     void reportProgress();
-    void refineUnitCell();
     void startingGraphs();
     
     void setImages(std::vector<ImagePtr> newImages);

@@ -520,8 +520,8 @@ void Matrix::rotateRoundUnitVector(vec axis, double radians)
 
 void Matrix::multiplyVector(vec *vector)
 {
-    vec oldVec = copy_vector(*vector);
-    
+	vec oldVec = *vector;
+
     vector->h = components[0] * oldVec.h + components[4] * oldVec.k
     + components[8] * oldVec.l;
     vector->k = components[1] * oldVec.h + components[5] * oldVec.k

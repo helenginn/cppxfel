@@ -1565,14 +1565,14 @@ void MtzRefiner::refineMetrology(bool global)
         mtzManagers[i]->millersToDetector();
     }
     
-    GeometryRefiner refiner = GeometryRefiner();
+    GeometryRefiner refiner;
     refiner.setImages(images);
     refiner.refineGeometry();
 }
 
 void MtzRefiner::reportMetrology()
 {
-    GeometryRefiner refiner = GeometryRefiner();
+    GeometryRefiner refiner;
     refiner.setImages(images);
     refiner.startingGraphs();
     refiner.reportProgress();

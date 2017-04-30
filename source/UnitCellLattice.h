@@ -40,7 +40,8 @@ private:
     std::mutex setupLock;
     static bool setupLattice;
 	float lookupIntervals[LOOKUP_INTERVALS * LOOKUP_INTERVALS * LOOKUP_INTERVALS];
-    
+	float *lookupIntervalPtr;
+
     double _aDim;
     double _bDim;
     double _cDim;

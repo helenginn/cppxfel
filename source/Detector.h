@@ -27,8 +27,7 @@ class Detector : public LoggableObject, public boost::enable_shared_from_this<De
 {
 private:
     /* MARK: static simple types */
-    IndexManagerPtr _manager;
-    static int detectorActive;
+	static int detectorActive;
     static double mmPerPixel;
     static DetectorPtr masterPanel;
     static bool noisy;
@@ -39,7 +38,8 @@ private:
     bool _refinable;
     std::mutex threadMutex;
 	bool _changed;
-    
+	std::map<GeometryScoreType, IndexManagerPtr> _managerMap;
+
     static bool enabledNudge;
     bool mustUpdateMidPoint;
     
@@ -702,14 +702,14 @@ public:
     
     /* Active index manager */
     
-    void setIndexManager(IndexManagerPtr manager)
+    void setIndexManager(IndexManagerPtr manager, GeometryScoreType scoreType)
     {
-        _manager = manager;
+        _managerMap[scoreType] = manager;
     }
     
-    IndexManagerPtr getIndexManager()
+    IndexManagerPtr getIndexManager(GeometryScoreType scoreType)
     {
-        return _manager;
+        return _managerMap[scoreType];
     }
     
     double distanceFromSample();

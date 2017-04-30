@@ -67,10 +67,20 @@ RefinementGridSearchPtr GeometryRefiner::makeGridRefiner(DetectorPtr detector, G
 	if (type != GeometryScoreTypePeakSearch)
 	{
 		IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
-		aManager->setActiveDetector(detector);
+
+		if (detector->getIndexManager(type))
+		{
+			aManager = detector->getIndexManager(type);
+		}
+		else
+		{
+			aManager->setActiveDetector(detector, type);
+			aManager->setCycleNum(refinementEvent);
+			aManager->lockVectors();
+		}
+
 		aManager->setPseudoScoreType(pseudoScoreTypeForGeometryType(type));
-		strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
-		strategy->setFinishFunction(IndexManager::staticPseudoAnglePDB);
+		strategy->setEvaluationFunction(IndexManager::pseudoAngleScore, &*aManager);
 	}
 	else
 	{
@@ -91,17 +101,18 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
     strategy->setVerbose(false);
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
-	PseudoScoreType pseudoType = pseudoScoreTypeForGeometryType(type);
 
 	// Reuse an old manager if the score type is correct
-	if (detector->getIndexManager() && detector->getIndexManager()->getPseudoScoreType() == pseudoType)
+	if (detector->getIndexManager(type))
 	{
-		aManager = detector->getIndexManager();
+		aManager = detector->getIndexManager(type);
 	}
-
-    aManager->setActiveDetector(detector);
-    aManager->setCycleNum(refinementEvent);
-	aManager->lockVectors();
+	else
+	{
+		aManager->setActiveDetector(detector, type);
+		aManager->setCycleNum(refinementEvent);
+		aManager->lockVectors();
+	}
 
     switch (type)
     {
@@ -157,7 +168,7 @@ void GeometryRefiner::startingGraphs()
     {
         DetectorPtr detector = allDetectors[i];
         IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
-        aManager->setActiveDetector(detector);
+        aManager->setActiveDetector(detector, GeometryScoreTypeIntrapanel);
         aManager->setCycleNum(0);
         aManager->lockVectors();
         
@@ -175,6 +186,9 @@ void GeometryRefiner::startingGraphs()
             IndexManager::pseudoAngleScore(&*aManager);
             aManager->plotGoodVectors();
         }
+
+		detector->setIndexManager(IndexManagerPtr(), GeometryScoreTypeInterpanel);
+		detector->setIndexManager(IndexManagerPtr(), GeometryScoreTypeIntrapanel);
     }
 }
 
@@ -189,11 +203,25 @@ void GeometryRefiner::reportProgress()
     
     std::string filename = "special_image_" + i_to_str(refinementEvent) + ".png";
     Detector::drawSpecialImage(filename);
-    
-    manager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
-    double intraScore = IndexManager::pseudoScore(&*manager);
-    manager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
-    double interScore = IndexManager::pseudoScore(&*manager);
+
+	IndexManagerPtr intraManager = Detector::getMaster()->getIndexManager(GeometryScoreTypeIntrapanel);
+	if (!intraManager)
+	{
+		intraManager = IndexManagerPtr(new IndexManager(images));
+		intraManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
+		Detector::getMaster()->setIndexManager(intraManager, GeometryScoreTypeIntrapanel);
+	}
+
+	IndexManagerPtr interManager = Detector::getMaster()->getIndexManager(GeometryScoreTypeInterpanel);
+	if (!interManager)
+	{
+		interManager = IndexManagerPtr(new IndexManager(images));
+		interManager->setPseudoScoreType(PseudoScoreTypeAllInterPanel);
+		Detector::getMaster()->setIndexManager(interManager, GeometryScoreTypeInterpanel);
+	}
+
+    double intraScore = IndexManager::pseudoScore(&*intraManager);
+    double interScore = IndexManager::pseudoScore(&*interManager);
 
     double intraIncrease = 100;
     double interIncrease = 100;
@@ -241,7 +269,6 @@ void GeometryRefiner::refineGeometry()
     
     if (sweepDetectorDistance.size() >= 2)
     {
-        
         double start = sweepDetectorDistance[0];
         double end = sweepDetectorDistance[1];
         
@@ -280,14 +307,15 @@ void GeometryRefiner::refineGeometry()
 	if (hasMillers && approximate)
 	{
 		// we need to search around for the peaks
-		refineDetectorStrategyWrapper(this, allDetectors, GeometryScoreTypePeakSearch, 0);
+		addToQueue(allDetectors);
+		refineDetectorStrategyWrapper(this, GeometryScoreTypePeakSearch, 0);
 	}
+
+	intraPanelCycle();
 
 	for (int i = 0; i < maxCycles; i++)
     {
         cycleNum++;
-		refineUnitCell();
-		intraPanelCycle();
 		interPanelCycle();
     }
 /*
@@ -298,7 +326,6 @@ void GeometryRefiner::refineGeometry()
 	FileParser::setKey("METROLOGY_SEARCH_SIZE", 0);
  */
 }
-
 
 void GeometryRefiner::printHeader(std::vector<DetectorPtr> detectors)
 {
@@ -324,18 +351,14 @@ void GeometryRefiner::intraPanelCycle()
 	printHeader(detectors);
 
 	GeometryScoreType type = GeometryScoreTypeIntrapanel;
-	int cycles = 4;
 
 	if (hasMillers)
 	{
 		type = GeometryScoreTypeIntraMiller;
-		cycles = 4;
 	}
 
-	for (int i = 0; i < cycles; i++)
-	{
-		refineDetectorStrategyWrapper(this, detectors, type, 0);
-	}
+	addToQueue(detectors);
+	refineDetectorStrategyWrapper(this, type, 0);
 }
 
 void GeometryRefiner::interPanelCycle()
@@ -350,11 +373,11 @@ void GeometryRefiner::interPanelCycle()
 		std::vector<DetectorPtr> detectors;
 		Detector::getMaster()->getAllSubDetectors(detectors, true);
 		printHeader(detectors);
-		refineDetectorStrategyWrapper(this, detectors, type, 1);
+		refineDetectorStrategyWrapper(this, type, 1);
 
 		for (int i = 0; i < 4; i++)
 		{
-			refineDetectorStrategyWrapper(this, detectors, type, 0);
+			refineDetectorStrategyWrapper(this, type, 0);
 		}
 	}
 	else
@@ -371,64 +394,104 @@ void GeometryRefiner::interPanelCycle()
 				continue;
 			}
 
-			refineDetectorStrategyWrapper(this, detectors, type, 0);
+			addToQueue(detectors);
+			refineDetectorStrategyWrapper(this, type, 0);
 		}
 	}
 
 }
 
-
-void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, GeometryScoreType type, int strategyType)
+void GeometryRefiner::addToQueue(std::vector<DetectorPtr> dets)
 {
-    int maxThreads = FileParser::getMaxThreads();
-   
-    {
-        boost::thread_group threads;
-        
-        for (int i = 0; i < maxThreads; i++)
-        {
-            boost::thread *thr = new boost::thread(refineDetectorWrapper, me, detectors, i, type, strategyType);
-            threads.add_thread(thr);
-        }
-        
-        threads.join_all();
-    }
+	std::lock_guard<std::mutex> lg(queueMutex);
 
-	if (type == GeometryScoreTypePeakSearch)
+	refineQueue.reserve(refineQueue.size() + dets.size());
+	refineQueue.insert(refineQueue.begin(), dets.begin(), dets.end());
+}
+
+void GeometryRefiner::addToQueue(DetectorPtr det)
+{
+	std::lock_guard<std::mutex> lg(queueMutex);
+
+	refineQueue.push_back(det);
+
+	logged << "Queue has " << refineQueue.size() << " detectors left." << std::endl;
+	sendLog();
+}
+
+DetectorPtr GeometryRefiner::getNextDetector()
+{
+	if (refineQueue.size() == 0)
 	{
-
+		return DetectorPtr();
 	}
 
-    me->reportProgress();
-    
-    me->firstCycle = false;
+	std::lock_guard<std::mutex> lg(queueMutex);
+
+	if (refineQueue.size() == 0)
+	{
+		return DetectorPtr();
+	}
+
+	DetectorPtr det = refineQueue[0];
+	refineQueue.erase(refineQueue.begin());
+
+	return det;
 }
 
-void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, std::vector<DetectorPtr> detectors, int offset, GeometryScoreType type, int strategyType)
+void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, GeometryScoreType type, int strategyType)
 {
-    int maxThreads = FileParser::getMaxThreads();
+	int maxThreads = FileParser::getMaxThreads();
 
-    for (int i = offset; i < detectors.size(); i += maxThreads)
-    {
-        me->refineDetectorStrategy(detectors[i], type, strategyType);
-    }
+	boost::thread_group threads;
+
+	for (int i = 0; i < maxThreads; i++)
+	{
+		boost::thread *thr = new boost::thread(refineDetectorWrapper, me, i, type, strategyType);
+		threads.add_thread(thr);
+	}
+
+	threads.join_all();
+
+	logged << "Finished a round." << std::endl;
+	sendLog();
+	me->reportProgress();
+
+	me->firstCycle = false;
 }
 
-void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScoreType type, int strategyType)
+void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, int offset, GeometryScoreType type, int strategyType)
 {
-    {
-    //    RefinementStrategyPtr strategy = makeRefiner(detector, type);
-    //    IndexManager::pseudoDistanceScore(&*detector->getIndexManager(), true, "before_");
-    }
-    
+	while (true)
+	{
+		DetectorPtr det = me->getNextDetector();
+
+		if (!det)
+		{
+			break;
+		}
+
+		bool finished = me->refineDetectorStrategy(det, type, strategyType);
+
+		if (!finished)
+		{
+			me->addToQueue(det);
+		}
+	}
+}
+
+bool GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScoreType type, int strategyType)
+{
     std::string typeString = stringForScoreType(type);
     
     if (!detector->isRefinable(type))
     {
-        return;
+        return true;
     }
 
 	_changed = true;
+
+	bool modifiedDetector = false;
 
 	if (type == GeometryScoreTypeInterMiller)
 	{
@@ -438,31 +501,29 @@ void GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
 			{
 				interPanelGridSearch(detector, type);
 			}
-			interPanelMillerSearch(detector, type);
+
+			modifiedDetector = interPanelMillerSearch(detector, type);
 		}
 	}
 	else if (type == GeometryScoreTypeIntraMiller)
 	{
-		intraPanelMillerSearch(detector, type);
+		modifiedDetector = intraPanelMillerSearch(detector, type);
 	}
 	else if (type == GeometryScoreTypeInterpanel)
 	{
 		interPanelGridSearch(detector, type);
-		interPanelMillerSearch(detector, type);
+		modifiedDetector = interPanelMillerSearch(detector, type);
 	}
 	else if (type == GeometryScoreTypeIntrapanel)
 	{
-		intraPanelMillerSearch(detector, type);
+		modifiedDetector = intraPanelMillerSearch(detector, type);
 	}
 	else if (type == GeometryScoreTypePeakSearch)
 	{
 		peakSearchDetector(detector);
 	}
 
-	{
-	//	RefinementStrategyPtr strategy = makeRefiner(detector, type);
-    //    IndexManager::pseudoDistanceScore(&*detector->getIndexManager(), true, "after_");
-    }
+	return !modifiedDetector;
 }
 
 void GeometryRefiner::peakSearchDetector(DetectorPtr detector)
@@ -481,7 +542,7 @@ void GeometryRefiner::peakSearchDetector(DetectorPtr detector)
 	strategy->refine();
 }
 
-void GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreType type)
+bool GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreType type)
 {
 	double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
 	detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
@@ -492,7 +553,7 @@ void GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 
 	if (type == GeometryScoreTypeInterMiller)
 	{
-		return;
+		return false;
 		strategy->setJobName(detector->getTag() + "_miller");
 		strategy->setEvaluationFunction(Detector::millerScoreWrapper, &*detector);
 		strategy->setFinishFunction(NULL);
@@ -511,9 +572,11 @@ void GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 	strategy->refine();
 
 	detector->resetPoke();
+
+	return strategy->didChange();
 }
 
-void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type)
+bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScoreType type)
 {
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
@@ -522,11 +585,22 @@ void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 	nudgeTiltX /= 2;
 	nudgeTiltY /= 2;
 
-    RefinementStrategyPtr strategy = makeRefiner(detector, type);
+	double totalMovement = nudgeStep * 50;
+	int intervals = totalMovement / 0.5;
+
+	bool changeHappened = false;
+
+
+    RefinementGridSearchPtr strategy = makeGridRefiner(detector, type);
+
     detector->prepareInterNudges();
     strategy->setJobName(detector->getTag() + "_miller_stdev_z");
     strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeStep, 0, "nudge_z");
+	strategy->setGridLength(intervals);
     strategy->refine();
+
+	changeHappened = (strategy->didChange() || changeHappened);
+
     strategy->clearParameters();
     detector->prepareInterNudges();
     strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, nudgeTiltX, 0, "nudgetilt_x");
@@ -535,9 +609,11 @@ void GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
     strategy->refine();
     
     detector->prepareInterNudges();
+
+	return (strategy->didChange() || changeHappened);
 }
 
-void GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type)
+bool GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type)
 {
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
@@ -565,6 +641,8 @@ void GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScore
     strategy->refine();
     
     detector->resetPoke();
+
+	return strategy->didChange();
 }
 
 void GeometryRefiner::refineBeamCentre()
@@ -594,71 +672,9 @@ void GeometryRefiner::refineBeamCentre()
     gridSearch->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0.001, "poke_x");
     gridSearch->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0.001, "poke_y");
 
-    detector->getIndexManager()->setPseudoScoreType(PseudoScoreTypeBeamCentre);
     gridSearch->refine();
 	_changed = true;
     
-    reportProgress();
-}
-
-void GeometryRefiner::refineUnitCell()
-{
-    bool optimisingUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
-    bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
-    bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
-    bool optimisingUnitCellAlpha = FileParser::getKey("OPTIMISING_UNIT_CELL_ALPHA", false);
-    bool optimisingUnitCellBeta = FileParser::getKey("OPTIMISING_UNIT_CELL_BETA", false);
-    bool optimisingUnitCellGamma = FileParser::getKey("OPTIMISING_UNIT_CELL_GAMMA", false);
-    
-    if (!optimisingUnitCellA && !optimisingUnitCellAlpha &&
-        !optimisingUnitCellB && !optimisingUnitCellBeta &&
-        !optimisingUnitCellC && !optimisingUnitCellGamma)
-    {
-        return;
-    }
-    
-    DetectorPtr detector = Detector::getMaster();
-    
-    logged << "***************************************************" << std::endl;
-    logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
-    logged << "  Refining unit cell: " << detector->getTag() << std::endl;
-    logged << "***************************************************" << std::endl << std::endl;
-    sendLog();
-    
-    RefinementStrategyPtr strategy = makeRefiner(detector, GeometryScoreTypeIntrapanel);
-    strategy->setJobName("Refining unit cell");
-    IndexManager *manager = static_cast<IndexManager *>(strategy->getEvaluationObject());
-
-    if (optimisingUnitCellA)
-    {
-        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellA, UnitCellLattice::setUnitCellA, 0.1, 0.00001, "unit_cell_a");
-    }
-    if (optimisingUnitCellB)
-    {
-        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellB, UnitCellLattice::setUnitCellB, 0.1, 0.00001, "unit_cell_b");
-    }
-    if (optimisingUnitCellC)
-    {
-        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellC, UnitCellLattice::setUnitCellC, 0.1, 0.00001, "unit_cell_c");
-    }
-
-    if (optimisingUnitCellAlpha)
-    {
-        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellAlpha, UnitCellLattice::setUnitCellAlpha, 0.1, 0.00001, "unit_cell_alpha");
-    }
-    if (optimisingUnitCellBeta)
-    {
-        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellBeta, UnitCellLattice::setUnitCellBeta, 0.1, 0.00001, "unit_cell_beta");
-    }
-    if (optimisingUnitCellGamma)
-    {
-        strategy->addParameter(&*(manager->getLattice()), UnitCellLattice::getUnitCellGamma, UnitCellLattice::setUnitCellGamma, 0.1, 0.00001, "unit_cell_gamma");
-    }
-
-	_changed = true;
-    strategy->setCycles(15);
-    
-    strategy->refine();
     reportProgress();
 }
 
@@ -678,15 +694,53 @@ void GeometryRefiner::gridSearchDetectorDistance(DetectorPtr detector, double st
     strategy->setJobName("Wide sweep detector " + detector->getTag());
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
-    aManager->setActiveDetector(detector);
+    aManager->setActiveDetector(detector, GeometryScoreTypeIntrapanel);
     aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
     strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
     
     strategy->refine();
 }
 
+bool vecToSpotRatioLessThan(ImagePtr one, ImagePtr two)
+{
+	double ratio1 = one->spotVectorCount() / (one->spotCount() * one->spotCount());
+	double ratio2 = two->spotVectorCount() / (one->spotCount() * one->spotCount());
+
+	return (ratio1 < ratio2);
+}
+
 void GeometryRefiner::setImages(std::vector<ImagePtr> newImages)
 {
-    images = newImages;
-    manager = IndexManagerPtr(new IndexManager(images));    
+	int cherryPick = FileParser::getKey("CHERRY_PICK", 0);
+
+    if (cherryPick > 0)
+	{
+		for (int i = 0; i < newImages.size(); i++)
+		{
+			if (!newImages[i]->acceptableSpotCount())
+			{
+				newImages.erase(newImages.begin() + i);
+				i--;
+			}
+		}
+
+		logged << "Cherry picking " << cherryPick << " images from " << newImages.size() << std::endl;
+		std::sort(newImages.begin(), newImages.end(), vecToSpotRatioLessThan);
+		images.clear();
+		images.reserve(cherryPick);
+		images.insert(images.begin(), newImages.begin(), newImages.begin() + cherryPick);
+	}
+	else
+	{
+		images = newImages;
+	}
+
+    manager = IndexManagerPtr(new IndexManager(images));
+
+	if (cherryPick > 0)
+	{
+		logged << "Cherry picked powder pattern..." << std::endl;
+		sendLog();
+		manager->powderPattern();
+	}
 }

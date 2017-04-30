@@ -36,6 +36,7 @@ private:
     int length;
     int background;
     int backgroundPadding;
+	vec _estimatedVec;
     static double maxResolution;
     static double minIntensity;
     static double minCorrelation;
@@ -71,7 +72,17 @@ public:
     double focusOnNearbySpot(double maxShift, double trialX, double trialY, int round = 0);
     
     std::string spotLine();
-    
+
+	void storeEstimatedVector()
+	{
+		_estimatedVec = estimatedVector();
+	}
+
+	vec storedVector()
+	{
+		return _estimatedVec;
+	}
+
     void setRejected(bool isRejected = true)
     {
         rejected = isRejected;

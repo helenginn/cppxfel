@@ -45,6 +45,7 @@ public:
     bool hasCommonSpotWithVector(SpotVectorPtr spotVector2);
     double distance();
     void calculateDistance();
+	void quickDistance();
     double getResolution();
     double getMinDistanceTolerance();
     double getMinAngleTolerance();

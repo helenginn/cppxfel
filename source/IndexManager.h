@@ -36,6 +36,7 @@ protected:
     std::vector<ImagePtr> images;
     std::vector<ImagePtr> mergeImages;
     std::vector<double> unitCell;
+	std::vector<SpotPtr> goodSpots;
     std::vector<SpotVectorPtr> goodVectors;
 	std::vector<SpotVectorPair> goodVectorPairs;
     MatrixPtr unitCellOnly;
@@ -94,17 +95,16 @@ public:
         mergeImages = otherImages;
     }
     
-    void setActiveDetector(DetectorPtr detector)
+    void setActiveDetector(DetectorPtr detector, GeometryScoreType type)
     {
         _activeDetector = detector;
-        detector->setIndexManager(shared_from_this());
+        detector->setIndexManager(shared_from_this(), type);
 		goodVectorPairs.clear();
     }
     
     void setPseudoScoreType(PseudoScoreType type)
     {
         scoreType = type;
-		goodVectorPairs.clear();
     }
     
     PseudoScoreType getPseudoScoreType()

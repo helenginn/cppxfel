@@ -38,6 +38,7 @@ Spot::Spot(ImagePtr image)
     _isBeamCentre = false;
     rejected = false;
     _isFake = false;
+	_estimatedVec = new_vector(0, 0, 0);
     x = 0;
     y = 0;
     height = FileParser::getKey("IMAGE_SPOT_PROBE_HEIGHT", 100);
@@ -403,15 +404,13 @@ vec Spot::estimatedVector()
         return reciprocalPos;
     }
     
-    vec arrangedPos;
-    
     if (hasDetector())
     {
-        getDetector()->spotCoordToAbsoluteVec(x, y, &arrangedPos);
+        getDetector()->spotCoordToAbsoluteVec(x, y, &_estimatedVec);
     }
     else
     {
-		DetectorPtr det  = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &arrangedPos);
+		DetectorPtr det  = Detector::getMaster()->spotToAbsoluteVec(shared_from_this(), &_estimatedVec);
 
         if (!det)
         {
@@ -419,10 +418,10 @@ vec Spot::estimatedVector()
         }
     }
     
-    scale_vector_to_distance(&arrangedPos, storedRadius);
-    arrangedPos.l -= storedRadius;
-    
-    return arrangedPos;
+    scale_vector_to_distance(&_estimatedVec, storedRadius);
+    _estimatedVec.l -= storedRadius;
+
+    return _estimatedVec;
 }
 
 double Spot::integrate()

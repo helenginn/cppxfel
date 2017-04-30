@@ -18,7 +18,7 @@
 #include "Miller.h"
 #include "RefinementStrategy.h"
 
-#define ANGLE_FUNNEL_START 1.2
+#define ANGLE_FUNNEL_START 2.5
 #define ANGLE_DISTANCE_BUFFER 0.005
 
 bool UnitCellLattice::setupLattice = false;
@@ -39,9 +39,9 @@ void UnitCellLattice::weightUnitCell()
 {
 	CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
 
-    for (int i = 0; i < standardVectorCount(); i++)
+    for (int i = 0; i < uniqueSymVectorCount(); i++)
     {
-        double distance = standardVector(i)->distance();
+        double distance = uniqueSymVector(i)->distance();
 
 		if (distance <= 0)
 			continue;
@@ -53,12 +53,15 @@ void UnitCellLattice::weightUnitCell()
         {
             double jDistance = standardVector(j)->distance();
 
-			if (jDistance > distance)
-				continue;
+		//	if (jDistance > distance)
+		//		continue;
 
             if (jDistance > maxAngleDistance)
                 continue;
-            
+
+			double minDistance = (distance > jDistance) ? jDistance : distance;
+			double maxDistance = (distance <= jDistance) ? jDistance : distance;
+
             double angle = standardVector(j)->angleWithVector(standardVector(i));
 
             angle *= 180 / M_PI;
@@ -69,7 +72,7 @@ void UnitCellLattice::weightUnitCell()
 				continue;
 			}
 
-			angleCSV->addEntry(3, angle, distance, jDistance);
+			angleCSV->addEntry(3, angle, maxDistance, minDistance);
         }
     }
 
@@ -87,6 +90,7 @@ void UnitCellLattice::weightUnitCell()
 	double lengthTolerance = 1.01 * ANGLE_FUNNEL_START * maxAngleDistance / 90;
 	double total = pow(intervals, 3);
 	memset(lookupIntervals, 0, total * sizeof(float));
+	lookupIntervalPtr = &lookupIntervals[0];
 
 	time_t startTime;
 	time(&startTime);
@@ -175,6 +179,7 @@ void UnitCellLattice::weightUnitCell()
 
 				if (bestDist <= ANGLE_FUNNEL_START)
 				{
+				//	score = Detector::lookupCache(bestDist);
 					score = 1 - bestDist / ANGLE_FUNNEL_START;
 				}
 
@@ -376,7 +381,7 @@ double UnitCellLattice::weightForPair(double dist1, double dist2, double angle)
 	int position = dist1Step * LOOKUP_INTERVALS * LOOKUP_INTERVALS +
 	dist2Step * LOOKUP_INTERVALS + angleStep;
 
-	return lookupIntervals[position];
+	return lookupIntervalPtr[position];
 }
 
 UnitCellLatticePtr UnitCellLattice::getMainLattice()

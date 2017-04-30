@@ -336,17 +336,43 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 
 	CSVPtr predictedAngles = getLattice()->getAngleCSV();
 
-	double angleTolerance = 90. / 6.;
-	double lengthTol = intraPanelDistance / 6.;
+	SpotVectorPair nullPair;
+	goodVectorPairs.push_back(nullPair);
+	DetectorPtr myDet = getActiveDetector();
 
-//	if (_canLockVectors)
-//	{
-		SpotVectorPair nullPair;
-		goodVectorPairs.push_back(nullPair);
-//	}
+	logged << "Preparing vector pairs for " << myDet->getTag() << std::endl;
+	sendLog();
 
 	for (int i = 0; i < images.size(); i++)
 	{
+		/*
+		for (int j = 0; j < images[i]->spotCount(); j++)
+		{
+			SpotPtr aSpot = images[i]->spot(j);
+
+			if (scoreType == PseudoScoreTypeIntraPanel)
+			{
+				if (aSpot->isBeamCentre())
+				{
+					continue;
+				}
+				else if (aSpot->hasDetector() && myDet->isAncestorOf(aSpot->getDetector()))
+				{
+					goodSpots.push_back(aSpot);
+				}
+				else if (!aSpot->hasDetector())
+				{
+					vec test = aSpot->estimatedVector();
+
+					if (aSpot->hasDetector() && myDet->isAncestorOf(aSpot->getDetector()))
+					{
+						goodSpots.push_back(aSpot);
+					}
+				}
+			}
+		}
+		 */
+
 		for (int j = 0; j < images[i]->spotVectorCount(); j++)
 		{
 			SpotVectorPtr vec1 = images[i]->spotVector(j);
@@ -357,7 +383,10 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 				continue;
 			}
 
-		//	double aLength = vec1->distance();
+			if (!vec1->isOnlyFromDetector(myDet))
+			{
+				continue;
+			}
 
 			for (int k = 0; k < j; k++)
 			{
@@ -379,11 +408,17 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 				angle *= 180 / M_PI;
 				angle = (angle > 90) ? 180 - angle : angle;
 
-				angleCSV->addEntry(3, angle, vec1->distance(), vec2->distance());
+				double dist1 = vec1->distance();
+				double dist2 = vec2->distance();
+
+				SpotVectorPtr minVec = (dist1 > dist2) ? vec2 : vec1;
+				SpotVectorPtr maxVec = (dist1 <= dist2) ? vec2 : vec1;
+
+				angleCSV->addEntry(3, angle, dist1, dist2);
 
 				goodVectorPairs.push_back(pair);
-				goodVectors.push_back(vec1);
-				goodVectors.push_back(vec2);
+				goodVectors.push_back(maxVec);
+				goodVectors.push_back(minVec);
 			}
 		}
 	}
@@ -425,7 +460,7 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 
 	// intra panel dealings
 
-	if (!isInterPanel && !vec1->hasCommonSpotWithVector(vec2) && activeDetector == Detector::getMaster())
+	if (!isInterPanel && !vec1->hasCommonSpotWithVector(vec2))
 	{
 		return PseudoScoreTypeInvalid;
 	}
@@ -439,7 +474,8 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 
 		return PseudoScoreTypeInvalid;
 	}
-	else if (!isInterPanel)
+
+	if (!isInterPanel)
 	{
 		return PseudoScoreTypeInvalid;
 	}
@@ -463,7 +499,7 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 
 	// now definitely specific interpanel
 
-	if (vec1->isIntraPanelVector() && vec2->isIntraPanelVector())
+	if (vec1->isIntraPanelVector() || vec2->isIntraPanelVector())
 	{
 		return PseudoScoreTypeInvalid;
 	}
@@ -501,12 +537,20 @@ double IndexManager::pseudoAngleScore(void *object)
 
 	double totalScore = 0;
 	double sumDistances = 0;
+/*
+	for (int i = 0; i < me->goodSpots.size(); i++)
+	{
+		me->goodSpots[i]->storeEstimatedVector();
+	}*/
+
+	for (int i = 0; i < me->goodVectors.size(); i++)
+	{
+		me->goodVectors[i]->calculateDistance();
+	}
 
 	for (int i = 1; i < me->goodVectorPairs.size(); i++)
 	{
 		SpotVectorPair pair = me->goodVectorPairs[i];
-		pair.vec1->calculateDistance();
-		pair.vec2->calculateDistance();
 
 		double aLength = pair.vec1->distance();
 		double bLength = pair.vec2->distance();

@@ -632,16 +632,17 @@ bool Detector::isAncestorOf(DetectorPtr detector)
     {
         return ancestorMap[detector];
     }
-    
-    for (int i = 0; i < childrenCount(); i++)
-    {
-        if (getChild(i)->isAncestorOf(detector))
-        {
-            ancestorMap[detector] = true;
-            return true;
-        }
-    }
-    
+
+	for (int i = 0; i < childrenCount(); i++)
+	{
+		if (getChild(i)->isAncestorOf(detector))
+		{
+			ancestorMap[detector] = true;
+			return true;
+		}
+	}
+
+	std::lock_guard<std::mutex> lg(threadMutex);
     ancestorMap[detector] = false;
     return false;
 }
