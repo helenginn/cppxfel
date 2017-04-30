@@ -565,9 +565,9 @@ bool GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 	else
 	{
 		strategy->setJobName(detector->getTag() + "_powder");
-		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge * 1.0, 0, "poke_x");
-		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge * 1.0, 0, "poke_y");
-		strategy->setGridLength(31);
+		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge * 12.0, 0, "poke_x");
+		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge * 12.0, 0, "poke_y");
+		strategy->setGridLength(9);
 	}
 
 	strategy->refine();
@@ -649,8 +649,6 @@ bool GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScore
 void GeometryRefiner::refineBeamCentre()
 {
     DetectorPtr detector = Detector::getMaster();
-
-	return;
 
     if (detector->millerCount() > 0)
     {
