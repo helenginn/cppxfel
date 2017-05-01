@@ -582,10 +582,6 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
-	nudgeStep /= 2;
-	nudgeTiltX /= 2;
-	nudgeTiltY /= 2;
-
 	double totalMovement = nudgeStep * 50;
 	int intervals = totalMovement / 0.25;
 
