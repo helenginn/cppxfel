@@ -583,7 +583,7 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
 	double totalMovement = nudgeStep * 50;
-	int intervals = totalMovement / 0.25;
+	int intervals = 2 * totalMovement / 0.25;
 
 	bool changeHappened = false;
 
@@ -598,16 +598,18 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 
 	changeHappened = (strategy->didChange() || changeHappened);
 
-    strategy->clearParameters();
-    detector->prepareInterNudges();
-    strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, nudgeTiltX, 0, "nudgetilt_x");
-    strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, nudgeTiltY, 0, "nudgetilt_y");
-    strategy->setJobName(detector->getTag() + "_miller_stdev_tilt");
-    strategy->refine();
-    
-    detector->prepareInterNudges();
+	{
+		RefinementStrategyPtr strategy = makeRefiner(detector, type);
+		strategy->clearParameters();
+		detector->prepareInterNudges();
+		strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, nudgeTiltX, 0, "nudgetilt_x");
+		strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, nudgeTiltY, 0, "nudgetilt_y");
+		strategy->setJobName(detector->getTag() + "_miller_stdev_tilt");
+		strategy->refine();
+		detector->prepareInterNudges();
 
-	return (strategy->didChange() || changeHappened);
+		return (strategy->didChange() || changeHappened);
+	}
 }
 
 bool GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type)
@@ -717,6 +719,11 @@ void GeometryRefiner::setImages(std::vector<ImagePtr> newImages)
 				newImages.erase(newImages.begin() + i);
 				i--;
 			}
+		}
+
+		if (cherryPick > newImages.size())
+		{
+			cherryPick = (int)newImages.size();
 		}
 
 		logged << "Cherry picking " << cherryPick << " images from " << newImages.size() << std::endl;
