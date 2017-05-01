@@ -35,9 +35,119 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
     *lMax = lengths[2] / resolution;
 }
 
+void UnitCellLattice::weightUnitCellThread(void *object, int offset)
+{
+	UnitCellLattice *me = static_cast<UnitCellLattice *>(object);
+
+	int maxThreads = FileParser::getMaxThreads();
+
+	double maxAngle = 90.;
+	double intervals = LOOKUP_INTERVALS;
+
+	int threadsPerInterval = intervals / (double)maxThreads + 1;
+	int start = threadsPerInterval * offset;
+	int end = threadsPerInterval * (offset + 1);
+
+	double lengthStep = me->maxAngleDistance / intervals;
+	double angleStep = maxAngle / intervals;
+
+	double angleTolerance = ANGLE_FUNNEL_START * 1.0;
+	double lengthTolerance = 1.01 * ANGLE_FUNNEL_START * me->maxAngleDistance / 90;
+
+	for (int dist1 = start; dist1 < intervals && dist1 < end; dist1++)
+	{
+		std::ostringstream logged;
+		logged << ".";
+		Logger::log(logged);
+
+		std::vector<std::vector<double> > dist1Filter;
+		double chosenDist1 = ((double)dist1 + 0.5) * lengthStep;
+
+		for (int l = 0; l < me->angleCSV->entryCount(); l++)
+		{
+			double paLength = me->angleCSV->valueForEntry(1, l);
+			double aLengthDiff = fabs(paLength - chosenDist1);
+			if (aLengthDiff > lengthTolerance)
+			{
+				continue;
+			}
+
+			dist1Filter.push_back(me->angleCSV->entry(l));
+		}
+
+		for (int dist2 = 0; dist2 < intervals; dist2++)
+		{
+			double chosenDist2 = ((double)dist2 + 0.5) * lengthStep;
+			std::vector<std::vector<double> > dist2Filter;
+
+			for (int l = 0; l < dist1Filter.size(); l++)
+			{
+				double pbLength = dist1Filter[l][2];
+
+				double bLengthDiff = fabs(pbLength - chosenDist2);
+				if (bLengthDiff > lengthTolerance)
+				{
+					continue;
+				}
+
+				dist2Filter.push_back(dist1Filter[l]);
+			}
+
+			for (int angles = 0; angles < intervals; angles++)
+			{
+				double bestDist = FLT_MAX;
+
+				double chosenAngle = ((double)angles + 0.5) * angleStep;
+
+				for (int l = 0; l < dist2Filter.size(); l++)
+				{
+					double pAngle = dist2Filter[l][0];
+					double paLength = dist2Filter[l][1];
+					double pbLength = dist2Filter[l][2];
+					double aLengthDiff = fabs(paLength - chosenDist1);
+					double bLengthDiff = fabs(pbLength - chosenDist2);
+
+					double angleDiff = fabs(pAngle - chosenAngle);
+					if (angleDiff > angleTolerance)
+					{
+						continue;
+					}
+
+					double scaleUp = 90. / me->maxAngleDistance;
+
+					aLengthDiff *= scaleUp;
+					bLengthDiff *= scaleUp;
+
+					double distSq = angleDiff * angleDiff +
+					aLengthDiff * aLengthDiff +
+					bLengthDiff * bLengthDiff;
+
+					if (distSq < bestDist)
+					{
+						bestDist = distSq;
+					}
+				}
+
+				int position = dist1 * intervals * intervals +
+				dist2 * intervals + angles;
+				bestDist = sqrt(bestDist);
+				double score = 0;
+
+				if (bestDist <= ANGLE_FUNNEL_START)
+				{
+					//	score = Detector::lookupCache(bestDist);
+					score = 1 - bestDist / ANGLE_FUNNEL_START;
+				}
+
+				me->lookupIntervals[position] = score;
+			}
+		}
+	}
+}
+
 void UnitCellLattice::weightUnitCell()
 {
-	CSVPtr angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
+	angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
 
     for (int i = 0; i < uniqueSymVectorCount(); i++)
     {
@@ -81,120 +191,28 @@ void UnitCellLattice::weightUnitCell()
     angleCSV->writeToFile("perfect_angles.csv");
     weightedAngles = angleCSV;
 
-	double maxAngle = 90.;
 	double intervals = LOOKUP_INTERVALS;
-	double lengthStep = maxAngleDistance / intervals;
-	double angleStep = maxAngle / intervals;
-
-	double angleTolerance = ANGLE_FUNNEL_START * 1.0;
-	double lengthTolerance = 1.01 * ANGLE_FUNNEL_START * maxAngleDistance / 90;
 	double total = pow(intervals, 3);
+
 	memset(lookupIntervals, 0, total * sizeof(float));
 	lookupIntervalPtr = &lookupIntervals[0];
+
+	int maxThreads = FileParser::getMaxThreads();
 
 	time_t startTime;
 	time(&startTime);
 	logged << "Calculating vector pair scores in advance..." << std::endl;
 	sendLog();
 
-	CSVPtr refAngles = CSVPtr(new CSV(3, "aLength", "bLength", "angle"));
+	boost::thread_group threads;
 
-	for (int dist1 = 0; dist1 < intervals; dist1++)
+	for (int i = 0; i < maxThreads; i++)
 	{
-		logged << ".";
-		sendLog();
-
-		std::vector<std::vector<double> > dist1Filter;
-		double chosenDist1 = ((double)dist1 + 0.5) * lengthStep;
-
-		for (int l = 0; l < angleCSV->entryCount(); l++)
-		{
-			double paLength = angleCSV->valueForEntry(1, l);
-			double aLengthDiff = fabs(paLength - chosenDist1);
-			if (aLengthDiff > lengthTolerance)
-			{
-				continue;
-			}
-
-			dist1Filter.push_back(angleCSV->entry(l));
-		}
-
-		for (int dist2 = 0; dist2 < intervals; dist2++)
-		{
-			double chosenDist2 = ((double)dist2 + 0.5) * lengthStep;
-			std::vector<std::vector<double> > dist2Filter;
-
-			for (int l = 0; l < dist1Filter.size(); l++)
-			{
-				double pbLength = dist1Filter[l][2];
-
-				double bLengthDiff = fabs(pbLength - chosenDist2);
-				if (bLengthDiff > lengthTolerance)
-				{
-					continue;
-				}
-
-				dist2Filter.push_back(dist1Filter[l]);
-			}
-
-			for (int angles = 0; angles < intervals; angles++)
-			{
-				double bestDist = FLT_MAX;
-
-				double chosenAngle = ((double)angles + 0.5) * angleStep;
-
-				for (int l = 0; l < dist2Filter.size(); l++)
-				{
-					double pAngle = dist2Filter[l][0];
-					double paLength = dist2Filter[l][1];
-					double pbLength = dist2Filter[l][2];
-					double aLengthDiff = fabs(paLength - chosenDist1);
-					double bLengthDiff = fabs(pbLength - chosenDist2);
-
-					double angleDiff = fabs(pAngle - chosenAngle);
-					if (angleDiff > angleTolerance)
-					{
-						continue;
-					}
-
-					double scaleUp = 90. / maxAngleDistance;
-
-					aLengthDiff *= scaleUp;
-					bLengthDiff *= scaleUp;
-
-					double distSq = angleDiff * angleDiff +
-					aLengthDiff * aLengthDiff +
-					bLengthDiff * bLengthDiff;
-
-					if (distSq < bestDist)
-					{
-						bestDist = distSq;
-					}
-				}
-
-				int position = dist1 * intervals * intervals +
-				dist2 * intervals + angles;
-				bestDist = sqrt(bestDist);
-				double score = 0;
-
-				if (bestDist <= ANGLE_FUNNEL_START)
-				{
-				//	score = Detector::lookupCache(bestDist);
-					score = 1 - bestDist / ANGLE_FUNNEL_START;
-				}
-
-				if (score > 0.8)
-				{
-					refAngles->addEntry(3, chosenDist1, chosenDist2, chosenAngle);
-				}
-
-				lookupIntervals[position] = score;
-			}
-		}
+		boost::thread *thr = new boost::thread(weightUnitCellThread, this, i);
+		threads.add_thread(thr);
 	}
 
-	refAngles->plotPDB("ref_angles.pdb", "aLength", "bLength", "angle");
-
+	threads.join_all();
 
 	time_t endTime;
 	time(&endTime);

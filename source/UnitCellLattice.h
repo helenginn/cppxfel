@@ -35,6 +35,7 @@ private:
     std::vector<SpotVectorPtr> uniqueSymVectors;
     CSVPtr weightedUnitCell;
     CSVPtr weightedAngles;
+	CSVPtr angleCSV;
     void updateUnitCellData();
     double distanceToAngleRatio;
     std::mutex setupLock;
@@ -48,7 +49,9 @@ private:
     double _alpha;
     double _beta;
     double _gamma;
-    
+
+	static void weightUnitCellThread(void *me, int offset);
+
 	UnitCellLattice() : FreeLattice()
     {
         setup();
