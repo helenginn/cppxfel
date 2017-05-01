@@ -497,9 +497,14 @@ PseudoScoreType IndexManager::checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec
 		return PseudoScoreTypeInvalid;
 	}
 
-	// now definitely specific interpanel
+	// now definitely specific interpanel (not all)
 
-	if (vec1->isIntraPanelVector() || vec2->isIntraPanelVector())
+	if (vec1->isIntraPanelVector() && vec2->isIntraPanelVector())
+	{
+		return PseudoScoreTypeInvalid;
+	}
+
+	if (!vec1->hasCommonSpotWithVector(vec2))
 	{
 		return PseudoScoreTypeInvalid;
 	}
