@@ -18,7 +18,7 @@
 #include "Miller.h"
 #include "RefinementStrategy.h"
 
-#define ANGLE_FUNNEL_START 2.5
+#define ANGLE_FUNNEL_START 2.0
 #define ANGLE_DISTANCE_BUFFER 0.005
 
 bool UnitCellLattice::setupLattice = false;
