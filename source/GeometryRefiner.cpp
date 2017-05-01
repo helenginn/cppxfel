@@ -318,6 +318,8 @@ void GeometryRefiner::refineGeometry()
         cycleNum++;
 		interPanelCycle();
     }
+
+	refineBeamCentre();
 /*
 	logged << "**** Geometry refinement complete ****" << std::endl;
 	logged << "**** Now setting METROLOGY_SEARCH_SIZE to 0 for convenience. ****" << std::endl;
