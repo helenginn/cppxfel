@@ -125,17 +125,14 @@ RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, Geometr
         case GeometryScoreTypeInterpanel:
             aManager->setPseudoScoreType(PseudoScoreTypeInterPanel);
             strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
-		//	strategy->setFinishFunction(IndexManager::staticPseudoAnglePDB);
             break;
         case GeometryScoreTypeBeamCentre:
             aManager->setPseudoScoreType(PseudoScoreTypeBeamCentre);
             strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
-		//	strategy->setFinishFunction(IndexManager::staticPseudoAnglePDB);
             break;
         case GeometryScoreTypeIntrapanel:
             aManager->setPseudoScoreType(PseudoScoreTypeIntraPanel);
             strategy->setEvaluationFunction(IndexManager::pseudoScore, &*aManager);
-		//	strategy->setFinishFunction(IndexManager::staticPseudoAnglePDB);
 			break;
         default:
             break;
@@ -409,6 +406,11 @@ void GeometryRefiner::addToQueue(std::vector<DetectorPtr> dets)
 
 	refineQueue.reserve(refineQueue.size() + dets.size());
 	refineQueue.insert(refineQueue.begin(), dets.begin(), dets.end());
+
+	for (int i = 0; i < dets.size(); i++)
+	{
+		dets[i]->setCycleNum(0);
+	}
 }
 
 void GeometryRefiner::addToQueue(DetectorPtr det)
@@ -416,6 +418,7 @@ void GeometryRefiner::addToQueue(DetectorPtr det)
 	std::lock_guard<std::mutex> lg(queueMutex);
 
 	refineQueue.push_back(det);
+	det->setCycleNum(det->getCycleNum() + 1);
 
 	logged << "Queue has " << refineQueue.size() << " detectors left." << std::endl;
 	sendLog();
@@ -479,6 +482,11 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, int offset, Geo
 		if (!finished)
 		{
 			me->addToQueue(det);
+		}
+		else
+		{
+			me->logged << "Finished detector " << det->getTag() << "!" << std::endl;
+			me->sendLog();
 		}
 	}
 }
@@ -551,13 +559,18 @@ bool GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 	detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 	interNudge /= 2;
 
+	if (detector->getCycleNum() > 0)
+	{
+		return false;
+	}
+
 	RefinementGridSearchPtr strategy = makeGridRefiner(detector, type);
 	detector->resetPoke();
 
 	if (type == GeometryScoreTypeInterMiller)
 	{
 		return false;
-		strategy->setJobName(detector->getTag() + "_miller");
+		strategy->setJobName(detector->getTag() + "_miller_" + i_to_str(rand() % 10000));
 		strategy->setEvaluationFunction(Detector::millerScoreWrapper, &*detector);
 		strategy->setFinishFunction(NULL);
 		strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge / nudgeStep * 3.0, 0, "internudge_x");
@@ -566,13 +579,20 @@ bool GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 	}
 	else
 	{
-		strategy->setJobName(detector->getTag() + "_powder");
-		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge * 6.0, 0, "poke_x");
-		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge * 6.0, 0, "poke_y");
-		strategy->setGridLength(9);
-	}
+		nudgeStep *= 50;
+		interNudge *= 50;
+		double proportion = 1.0 / nudgeStep;
+		double onePixRot = proportion * interNudge;
+		double totalMovements = 2 * nudgeStep + 1;
 
-	strategy->refine();
+		strategy->setJobName(detector->getTag() + "_powder");
+		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, onePixRot, 0, "poke_x");
+		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, onePixRot, 0, "poke_y");
+		strategy->setGridLength(totalMovements);
+		strategy->refine();
+		strategy->assignInterpanelMinimum();
+
+	}
 
 	detector->resetPoke();
 

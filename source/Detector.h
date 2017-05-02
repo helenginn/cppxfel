@@ -38,6 +38,7 @@ private:
     bool _refinable;
     std::mutex threadMutex;
 	bool _changed;
+	int _cycleNum;
 	std::map<GeometryScoreType, IndexManagerPtr> _managerMap;
 
     static bool enabledNudge;
@@ -228,8 +229,18 @@ public:
 
 	static double lookupCache(double distSq);
 
+	void setCycleNum(int num)
+	{
+		_cycleNum = num;
+	}
+
+	int getCycleNum()
+	{
+		return _cycleNum;
+	}
+
     static bool isActive()
-    {
+	{
         if (detectorActive == -1)
         {
             detectorActive = FileParser::hasKey("DETECTOR_LIST");

@@ -18,7 +18,7 @@
 #include "Miller.h"
 #include "RefinementStrategy.h"
 
-#define ANGLE_FUNNEL_START 2.0
+#define ANGLE_FUNNEL_START 1.5
 #define ANGLE_DISTANCE_BUFFER 0.005
 
 bool UnitCellLattice::setupLattice = false;
@@ -39,6 +39,7 @@ void UnitCellLattice::weightUnitCellThread(void *object, int offset)
 {
 	UnitCellLattice *me = static_cast<UnitCellLattice *>(object);
 
+	double indexingRlp = FileParser::getKey("INDEXING_RLP_SIZE", 0.001);
 	int maxThreads = FileParser::getMaxThreads();
 
 	double maxAngle = 90.;
@@ -52,7 +53,7 @@ void UnitCellLattice::weightUnitCellThread(void *object, int offset)
 	double angleStep = maxAngle / intervals;
 
 	double angleTolerance = ANGLE_FUNNEL_START * 1.0;
-	double lengthTolerance = 1.01 * ANGLE_FUNNEL_START * me->maxAngleDistance / 90;
+	double lengthTolerance = indexingRlp;
 
 	for (int dist1 = start; dist1 < intervals && dist1 < end; dist1++)
 	{
@@ -113,7 +114,7 @@ void UnitCellLattice::weightUnitCellThread(void *object, int offset)
 						continue;
 					}
 
-					double scaleUp = 90. / me->maxAngleDistance;
+					double scaleUp = ANGLE_FUNNEL_START / indexingRlp;
 
 					aLengthDiff *= scaleUp;
 					bLengthDiff *= scaleUp;

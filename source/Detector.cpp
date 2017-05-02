@@ -86,6 +86,7 @@ void Detector::initialiseZeros()
 {
     gain = 1;
 	_changed = true;
+	_cycleNum = 0;
     
     unarrangedTopLeftX = 0;
     unarrangedTopLeftY = 0;
@@ -1593,6 +1594,7 @@ double Detector::distanceFromSample()
 void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *nudgeStep, double *interNudge)
 {
     double expectedPixels = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.02);
+	*nudgeStep = expectedPixels;
 
     vec midpoint = midPointOffsetFromParent();
     double distance = length_of_vector(midpoint);
@@ -1641,8 +1643,6 @@ void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *
     {
         *interNudge = atan(expectedPixels / distance);
     }
-    
-    *nudgeStep = expectedPixels;
     
     this->nudgeTiltX = *nudgeTiltX;
     this->nudgeTiltY = *nudgeTiltY;

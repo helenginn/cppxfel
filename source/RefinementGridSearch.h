@@ -26,6 +26,7 @@ private:
 public:
     RefinementGridSearch() : RefinementStrategy()
     {
+		gridJumps = 8;
         gridLength = 15;
         cycleNum = 1;
     };
@@ -42,6 +43,7 @@ public:
     
     ResultMap results;
     void recursiveEvaluation(ParamList referenceList, ParamList workingList, ResultMap *results);
+	void assignInterpanelMinimum();
     virtual void clearParameters()
     {
         orderedResults.clear();
