@@ -85,8 +85,9 @@ RefinementGridSearchPtr GeometryRefiner::makeGridRefiner(DetectorPtr detector, G
 			aManager->setCycleNum(refinementEvent);
 			aManager->lockVectors();
 			aManager->setPseudoScoreType(pseudoScoreTypeForGeometryType(type));
-			strategy->setEvaluationFunction(IndexManager::pseudoAngleScore, &*aManager);
 		}
+
+		strategy->setEvaluationFunction(IndexManager::pseudoAngleScore, &*aManager);
 
 		return strategy;
 	}
