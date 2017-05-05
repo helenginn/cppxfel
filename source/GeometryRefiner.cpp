@@ -621,8 +621,8 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
 	double totalMovement = nudgeStep;
-	int intervals = 2 * totalMovement / 0.25;
-	interNudge /= nudgeStep;
+	int intervals = 2 * totalMovement / 0.1;
+	interNudge /= nudgeStep / 0.25;
 
 	bool changeHappened = false;
 
@@ -631,7 +631,7 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 
     detector->prepareInterNudges();
     strategy->setJobName(detector->getTag() + "_miller_stdev_z");
-    strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 0.25, 0, "nudge_z");
+    strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 0.1, 0, "nudge_z");
 	strategy->setGridLength(intervals);
     strategy->refine();
 
