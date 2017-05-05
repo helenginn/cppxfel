@@ -935,6 +935,11 @@ std::string Detector::writeGeometryFile(int fileCount, int indentCount, CSVPtr d
     
     for (int i = 0; i < 4; i++)
     {
+		if (hasChildren())
+		{
+			break;
+		}
+
         int xPix = (i < 2) ? unarrangedTopLeftX : unarrangedBottomRightX;
         int yPix = (i % 2 == 0) ? unarrangedTopLeftY : unarrangedBottomRightY;
         

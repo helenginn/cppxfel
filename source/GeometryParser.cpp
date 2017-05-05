@@ -741,7 +741,6 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
 
     Detector::getMaster()->updateCurrentRotation();
     Detector::getMaster()->fixMidpoints();
-    Detector::getMaster()->postInit();
 }
 
 void GeometryParser::parse()
@@ -802,7 +801,8 @@ void GeometryParser::parse()
         parsePanelListLines(lines);
     }
     
-    filename = "converted.cgeom";
+	Detector::getMaster()->postInit();
+	filename = "converted.cgeom";
     writeToFile(filename, 0);
 
     Detector::fullDescription();
