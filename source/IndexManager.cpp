@@ -38,21 +38,8 @@ IndexManager::IndexManager(std::vector<ImagePtr> newImages)
 
 	interPanelDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
 	intraPanelDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
-    
-    unitCell = FileParser::getKey("UNIT_CELL", std::vector<double>());
-    
-    if (unitCell.size() < 6)
-    {
-        std::cout << "Please supply target unit cell in keyword UNIT_CELL." << std::endl;
-        exit(1);
-    }
-    
-    unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
-    
+
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
-    
-    unitCellMatrix = MatrixPtr(new Matrix());
-    unitCellMatrix->setComplexMatrix(unitCellOnly, rotationMat);
     
     maxDistance = 0;
     lattice = UnitCellLattice::getMainLattice();
@@ -659,120 +646,6 @@ void IndexManager::powderPattern(std::string csvName, bool force)
     }
     
     lattice->powderPattern(false, "unitCellLatticePowder.csv");
-    
-  //  powderLog.close();
-    
-    /// angles
-    
-    std::vector<double> probeDistances = FileParser::getKey("PROBE_DISTANCES", std::vector<double>());
-    
-    if (probeDistances.size() < 2)
-        return;
-    
-    double distance1 = probeDistances[0]; double distance2 = probeDistances[1];
-    
-    double angleStep = FileParser::getKey("POWDER_PATTERN_STEP_ANGLE", 2.0) * M_PI / 180;
-    double distanceTolerance = FileParser::getKey("MINIMUM_TRUST_DISTANCE", 500.);
-    std::map<int, int> angleHistogram;
-    std::map<int, int> perfectAngleHistogram;
-    
-    for (double i = 0; i < M_PI; i += angleStep)
-    {
-        int angleCategory = i / angleStep;
-        angleHistogram[angleCategory] = 0;
-        perfectAngleHistogram[angleCategory] = 0;
-    }
-    
-    for (int i = 0; i < images.size(); i++)
-    {
-        std::vector<double> newAngles = images[i]->anglesBetweenVectorDistances(distance1, distance2, distanceTolerance);
-        
-        for (int j = 0; j < newAngles.size(); j++)
-        {
-            int angleCategory = newAngles[j] / angleStep;
-            angleHistogram[angleCategory]++;
-        }
-    }
-    
-    std::vector<VectorDistance> perfectProbe1, perfectProbe2;
-    
-    for (int i = 0; i < vectorDistances.size(); i++)
-    {
-        double distance = vectorDistances[i].second;
-        bool chosen = false;
-        
-        if (1 / fabs(probeDistances[0] - distance) > distanceTolerance)
-        {
-            perfectProbe1.push_back(vectorDistances[i]);
-            chosen = true;
-        }
-
-        if (1 / fabs(probeDistances[1] - distance) > distanceTolerance)
-        {
-            perfectProbe2.push_back(vectorDistances[i]);
-            chosen = true;
-        }
-        
-        if (chosen)
-        {
-            logged << "Matching vector: " << vectorDistances[i].first.h << "\t" << vectorDistances[i].first.k << "\t" << vectorDistances[i].first.l << std::endl;
-            sendLog();
-        }
-
-    }
-    
-    logged << "Comparing " << perfectProbe1.size() << " against " << perfectProbe2.size() << std::endl;
-    sendLog();
-    
-    for (int i = 0; i < perfectProbe1.size(); i++)
-    {
-        for (int j = 0; j < perfectProbe2.size(); j++)
-        {
-            vec probeTransformed1 = copy_vector(perfectProbe1[i].first);
-            vec probeTransformed2 = copy_vector(perfectProbe2[j].first);
-            
-            if (perfectProbe1[i].first.h == perfectProbe2[i].first.h &&
-                perfectProbe1[i].first.k == perfectProbe2[i].first.k &&
-                perfectProbe1[i].first.l == perfectProbe2[i].first.l)
-            {
-         //       continue;
-            }
-            
-            unitCellMatrix->multiplyVector(&probeTransformed1);
-            unitCellMatrix->multiplyVector(&probeTransformed2);
-            
-            double angle = angleBetweenVectors(probeTransformed1, probeTransformed2);
-            double mirror = M_PI - angle;
-            
-            int angleCategory = angle / angleStep;
-            perfectAngleHistogram[angleCategory]++;
-            
-            angleCategory = mirror / angleStep;
-            perfectAngleHistogram[angleCategory]++;
-        }
-    }
-    
-    
-    CSV csv(3, "Angle", "Frequency", "Perfect frequency");
-    
-    for (std::map<int, int>::iterator it = angleHistogram.begin(); it != angleHistogram.end(); it++)
-    {
-        double angle = it->first * angleStep * 180 / M_PI;
-        double freq = it->second;
-        double perfectFreq = 0;
-        
-        if (perfectAngleHistogram.count(it->first))
-            perfectFreq = perfectAngleHistogram[it->first];
-        
-        csv.addEntry(0, angle, freq, perfectFreq);
-        
- //       angleLog << angle << "," << freq << "," << perfectFreq << "," << std::endl;
-    }
-    
-    csv.writeToFile("angle.csv");
-    csv.plotColumns(0, 1);
-    
-   // angleLog.close();
 }
 
 ImagePtr IndexManager::getNextImage()

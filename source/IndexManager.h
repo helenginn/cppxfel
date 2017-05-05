@@ -35,12 +35,9 @@ protected:
     UnitCellLatticePtr lattice;
     std::vector<ImagePtr> images;
     std::vector<ImagePtr> mergeImages;
-    std::vector<double> unitCell;
 	std::vector<SpotPtr> goodSpots;
     std::vector<SpotVectorPtr> goodVectors;
 	std::vector<SpotVectorPair> goodVectorPairs;
-    MatrixPtr unitCellOnly;
-    MatrixPtr unitCellMatrix;
     DetectorWeakPtr _activeDetector;
     double interPanelDistance;
     double intraPanelDistance;
