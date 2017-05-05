@@ -64,7 +64,14 @@ RefinementGridSearchPtr GeometryRefiner::makeGridRefiner(DetectorPtr detector, G
     strategy->setGridLength(31);
     strategy->setVerbose(false);
 
-	if (type != GeometryScoreTypePeakSearch)
+	if (type == GeometryScoreTypePeakSearch)
+	{
+		strategy->setEvaluationFunction(Detector::peakScoreWrapper, &*detector);
+		return strategy;
+	}
+
+	if (type == GeometryScoreTypeInterpanel || type == GeometryScoreTypeIntrapanel
+		|| type == GeometryScoreTypeBeamCentre)
 	{
 		IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
 
@@ -77,17 +84,28 @@ RefinementGridSearchPtr GeometryRefiner::makeGridRefiner(DetectorPtr detector, G
 			aManager->setActiveDetector(detector, type);
 			aManager->setCycleNum(refinementEvent);
 			aManager->lockVectors();
+			aManager->setPseudoScoreType(pseudoScoreTypeForGeometryType(type));
+			strategy->setEvaluationFunction(IndexManager::pseudoAngleScore, &*aManager);
 		}
 
-		aManager->setPseudoScoreType(pseudoScoreTypeForGeometryType(type));
-		strategy->setEvaluationFunction(IndexManager::pseudoAngleScore, &*aManager);
+		return strategy;
 	}
 	else
 	{
-		strategy->setEvaluationFunction(Detector::peakScoreWrapper, &*detector);
-	}
+		switch (type)
+		{
+			case GeometryScoreTypeInterMiller:
+				strategy->setEvaluationFunction(Detector::millerScoreWrapper, &*detector);
+				break;
+			case GeometryScoreTypeIntraMiller:
+				strategy->setEvaluationFunction(Detector::millerStdevScoreWrapper, &*detector);
+				break;
+			default:
+				break;
+		}
 
-    return strategy;
+		return strategy;
+	}
 }
 
 RefinementStrategyPtr GeometryRefiner::makeRefiner(DetectorPtr detector, GeometryScoreType type)
@@ -298,7 +316,6 @@ void GeometryRefiner::refineGeometry()
 	bool hasMillers = Detector::getMaster()->millerCount() > 0;
 	std::vector<DetectorPtr> allDetectors;
 	Detector::getMaster()->getAllSubDetectors(allDetectors, true);
-	printHeader(allDetectors);
 	bool approximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", false);
 
 	if (hasMillers && approximate)
@@ -326,20 +343,28 @@ void GeometryRefiner::refineGeometry()
  */
 }
 
-void GeometryRefiner::printHeader(std::vector<DetectorPtr> detectors)
+void GeometryRefiner::printHeader(std::vector<DetectorPtr> detectors, GeometryScoreType type)
 {
 	std::ostringstream detectorList;
 
 	for (int j = 0; j < detectors.size(); j++)
 	{
+		if (!detectors[j]->isRefinable(type))
+		{
+			continue;
+		}
+
 		detectorList << detectors[j]->getTag() << " ";
 	}
 
-    logged << "***************************************************" << std::endl;
-    logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
-    logged << "  Refining detector" << (detectors.size() == 1 ? "" : "s") << ": " << detectorList.str() << std::endl;
-    logged << "***************************************************" << std::endl << std::endl;
-    sendLog();
+	if (detectorList.str().length())
+	{
+		logged << "***************************************************" << std::endl;
+		logged << "  Cycle " << cycleNum << ", event " << refinementEvent << std::endl;
+		logged << "  Refining detector" << (detectors.size() == 1 ? "" : "s") << ": " << detectorList.str() << std::endl;
+		logged << "***************************************************" << std::endl << std::endl;
+		sendLog();
+	}
 }
 
 void GeometryRefiner::intraPanelCycle()
@@ -347,7 +372,6 @@ void GeometryRefiner::intraPanelCycle()
 	bool hasMillers = Detector::getMaster()->millerCount() > 0;
 	std::vector<DetectorPtr> detectors;
 	Detector::getMaster()->getAllSubDetectors(detectors, true);
-	printHeader(detectors);
 
 	GeometryScoreType type = GeometryScoreTypeIntrapanel;
 
@@ -356,6 +380,7 @@ void GeometryRefiner::intraPanelCycle()
 		type = GeometryScoreTypeIntraMiller;
 	}
 
+	printHeader(detectors, type);
 	addToQueue(detectors);
 	refineDetectorStrategyWrapper(this, type, 0);
 }
@@ -369,33 +394,23 @@ void GeometryRefiner::interPanelCycle()
 	if (hasMillers)
 	{
 		type = GeometryScoreTypeInterMiller;
-		std::vector<DetectorPtr> detectors;
-		Detector::getMaster()->getAllSubDetectors(detectors, true);
-		printHeader(detectors);
-		refineDetectorStrategyWrapper(this, type, 1);
-
-		for (int i = 0; i < 4; i++)
-		{
-			refineDetectorStrategyWrapper(this, type, 0);
-		}
 	}
-	else
+
+	int i = 64;
+	while (i >= 0)
 	{
-		int i = 64;
-		while (i >= 0)
+		std::vector<DetectorPtr> detectors;
+		detectors = Detector::getMaster()->getSubDetectorsOnLevel(i);
+		printHeader(detectors, type);
+		i--;
+
+		if (detectors.size() == 0)
 		{
-			std::vector<DetectorPtr> detectors;
-			detectors = Detector::getMaster()->getSubDetectorsOnLevel(i);
-			i--;
-
-			if (detectors.size() == 0)
-			{
-				continue;
-			}
-
-			addToQueue(detectors);
-			refineDetectorStrategyWrapper(this, type, 0);
+			continue;
 		}
+
+		addToQueue(detectors);
+		refineDetectorStrategyWrapper(this, type, 0);
 	}
 
 }
@@ -483,7 +498,7 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, int offset, Geo
 		{
 			me->addToQueue(det);
 		}
-		else
+		else if (det->isRefinable(type))
 		{
 			me->logged << "Finished detector " << det->getTag() << "!" << std::endl;
 			me->sendLog();
@@ -659,6 +674,7 @@ bool GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScore
 		strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge, 0, "internudge_z");
 	}
 
+	_changed = true;
     strategy->refine();
     
     detector->resetPoke();

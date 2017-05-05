@@ -1253,7 +1253,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
         
         if (!stdev)
         {
-            edge = 10 * GOOD_GEOMETRY_RLP_SIZE;
+            edge = 5 * GOOD_GEOMETRY_RLP_SIZE;
         }
         
         if (number < 0)

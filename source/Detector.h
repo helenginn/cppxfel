@@ -781,7 +781,8 @@ public:
     {
         if (scoreType == GeometryScoreTypeInterMiller ||
             scoreType == GeometryScoreTypeIntraMiller ||
-			scoreType == GeometryScoreTypePeakSearch)
+			scoreType == GeometryScoreTypePeakSearch ||
+			scoreType == GeometryScoreTypeIntrapanel)
         {
             for (int i = 0; i < childrenCount(); i++)
             {
@@ -791,23 +792,11 @@ public:
                 }
             }
 
-			return true;
+			return _refinable;
         }
         
         if (scoreType == GeometryScoreTypeBeamCentre)
         {
-            return _refinable;
-        }
-        else if (scoreType == GeometryScoreTypeIntrapanel)
-        {
-            for (int i = 0; i < childrenCount(); i++)
-            {
-                if (getChild(i)->isRefinable(GeometryScoreTypeBeamCentre))
-                {
-                    return false;
-                }
-            }
-            
             return _refinable;
         }
         else if (scoreType == GeometryScoreTypeInterpanel)

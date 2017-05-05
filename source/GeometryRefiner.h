@@ -39,7 +39,7 @@ private:
 	std::vector<DetectorPtr> refineQueue;
 	std::mutex queueMutex;
 
-    void printHeader(std::vector<DetectorPtr> detectors);
+    void printHeader(std::vector<DetectorPtr> detectors, GeometryScoreType type);
     
     bool interPanelGridSearch(DetectorPtr detector, GeometryScoreType type);
     bool interPanelMillerSearch(DetectorPtr detector, GeometryScoreType type);
