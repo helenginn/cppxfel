@@ -133,11 +133,15 @@ void UnitCellLattice::weightUnitCellThread(void *object, int offset)
 				dist2 * intervals + angles;
 				bestDist = sqrt(bestDist);
 				double score = 0;
+				double minAngleFunnelRad = atan(indexingRlp / chosenDist1)
+				+ atan(indexingRlp / chosenDist2);
 
-				if (bestDist <= ANGLE_FUNNEL_START)
+				double minAngleFunnelDeg = minAngleFunnelRad * 180 / M_PI;
+
+				if (bestDist <= minAngleFunnelDeg)
 				{
 					//	score = Detector::lookupCache(bestDist);
-					score = 1 - bestDist / ANGLE_FUNNEL_START;
+					score = 1 - bestDist / minAngleFunnelDeg;
 				}
 
 				me->lookupIntervals[position] = score;
