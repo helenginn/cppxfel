@@ -595,11 +595,11 @@ bool GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 	}
 	else
 	{
-		nudgeStep *= 50;
-		interNudge *= 50;
 		double proportion = 1.0 / nudgeStep;
 		double onePixRot = proportion * interNudge;
 		double totalMovements = 2 * nudgeStep + 1;
+		onePixRot /= 4;
+		totalMovements *= 4;
 
 		strategy->setJobName(detector->getTag() + "_powder");
 		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, onePixRot, 0, "poke_x");
@@ -620,8 +620,9 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
-	double totalMovement = nudgeStep * 50;
+	double totalMovement = nudgeStep;
 	int intervals = 2 * totalMovement / 0.25;
+	interNudge /= nudgeStep;
 
 	bool changeHappened = false;
 
