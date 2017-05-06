@@ -674,11 +674,8 @@ double Detector::spotCoordToResolution(double unarrangedX, double unarrangedY, d
 void Detector::spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
                                       vec *arrangedPos)
 {
-    if (hasNoChildren())
-    {
-        *arrangedPos = midPointOffsetFromParent();
-        spotCoordToRelativeVec(unarrangedX, unarrangedY, arrangedPos);
-    }
+    *arrangedPos = midPointOffsetFromParent();
+    spotCoordToRelativeVec(unarrangedX, unarrangedY, arrangedPos);
 }
 
 DetectorPtr Detector::findDetectorPanelForSpotCoord(double xSpot, double ySpot)
