@@ -1292,6 +1292,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
             }
             plotMap["style0"] = "scatter";
             plotMap["colour0"] = "blue";
+			csv->writeToFile("csv_" + plotMap["filename"] + ".csv");
             csv->plotPNG(plotMap);
         }
     }
