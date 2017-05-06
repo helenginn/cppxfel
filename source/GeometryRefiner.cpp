@@ -639,7 +639,7 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 	changeHappened = (strategy->didChange() || changeHappened);
 
 	{
-		RefinementStrategyPtr strategy = makeGridRefiner(detector, type);
+		RefinementStrategyPtr strategy = makeRefiner(detector, type);
 		strategy->clearParameters();
 		detector->prepareInterNudges();
 		strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX / 5, 0, "nudgetilt_x");
