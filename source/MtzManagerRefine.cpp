@@ -97,6 +97,8 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, bool reset)
 {
     this->setActiveAmbiguity(ambiguity);
 	scoreType = defaultScoreType;
+
+	refineParameterScore(this);
     
 	RefinementStrategyPtr refinementMap = RefinementStrategy::userChosenStrategy();
 

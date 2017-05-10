@@ -422,8 +422,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         MatrixPtr unitCell;
         MatrixPtr newMatrix;
         double delay = 0;
-        std::string paramsLine = "";
-        
+		double rlpSize = -1;
+		double mosaicity = -1;
+
         ImagePtr newImage;
         
         if (readFromHdf5)
@@ -461,6 +462,16 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 				currentCrystal = atoi(components[1].c_str());
 			}
 
+			if (components[0] == "rlp_size")
+			{
+				rlpSize = atof(components[1].c_str());
+			}
+
+			if (components[0] == "mosaicity")
+			{
+				mosaicity = atof(components[1].c_str());
+			}
+
 			if (components[0] == "matrix")
 			{
 				// individual matrices
@@ -486,11 +497,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 
 				logged << "Setting wavelength for " << imgName << " to " << newWavelength << " Angstroms." << std::endl;
 				Logger::log(logged);
-			}
-
-			if (components[0] == "params" && newMtzs)
-			{
-				paramsLine = lines[i];
 			}
 
 			if (components[0] == "unitcell")
@@ -550,7 +556,15 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 						if (setSigmaToUnity)
 							newManager->setSigmaToUnity();
 
-						newManager->setParamLine(paramsLine);
+						if (rlpSize > 0)
+						{
+							newManager->setSpotSize(rlpSize);
+						}
+						if (mosaicity > 0)
+						{
+							newManager->setSpotSize(rlpSize);
+						}
+
 						newManager->setTimeDelay(delay);
 						newManager->setImage(newImage);
 						newManager->loadReflections();
@@ -603,7 +617,6 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             if (setSigmaToUnity)
                 newManager->setSigmaToUnity();
 
-            newManager->setParamLine(paramsLine);
             newManager->setTimeDelay(delay);
 
             if (newManager->reflectionCount() > 0 || lowMemoryMode)
@@ -1197,19 +1210,8 @@ void MtzRefiner::writeAllNewOrientations()
             MtzPtr mtz = images[i]->mtz(j);
             int crystalNum = j;
             
-            MatrixPtr matrix = mtz->getMatrix()->copy();
-            
-            if (includeRots)
-            {
-				double hRad = MtzManager::getHRot(&*mtz) * M_PI / 180;
-                double kRad = MtzManager::getKRot(&*mtz) * M_PI / 180;
-                
-                matrix->rotate(hRad, kRad, 0);
-            }
-            
-            allMats << "crystal " << crystalNum << std::endl;
-            std::string description = matrix->description(true);
-            allMats << description << std::endl;
+			allMats << "crystal " << crystalNum << std::endl;
+			allMats << mtz->getOrientationMatrixListScript();
         }
     }
     

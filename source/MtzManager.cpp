@@ -2068,3 +2068,17 @@ void MtzManager::fakeSpots()
 		}
 	}
 }
+
+std::string MtzManager::getOrientationMatrixListScript()
+{
+	std::ostringstream script;
+
+	script << "rlp_size " << spotSize << std::endl;
+	script << "mosaicity " << mosaicity << std::endl;
+
+	updateLatestMatrix();
+	std::string description = rotatedMatrix->description(true);
+	script << description << std::endl;
+
+	return script.str();
+}

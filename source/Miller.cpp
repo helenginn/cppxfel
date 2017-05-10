@@ -452,7 +452,9 @@ double Miller::calculatePartiality(double pB, double qB, double beamMean, double
 {
     beamSigma *= beamMean;
     beamSigma /= 2;
-    
+
+	predictedWavelength = getImage()->getWavelength();
+
     double correction_sigma = pow(M_PI, (2 / beamExp - 1));
     const double lnNum = 3.0;
     double limit = correction_sigma * pow(lnNum, 1 / beamExp);

@@ -777,6 +777,11 @@ public:
         gain = _gain;
     }
 
+	bool isSetRefinable()
+	{
+		return _refinable;
+	}
+
     bool isRefinable(GeometryScoreType scoreType)
     {
         if (scoreType == GeometryScoreTypeInterMiller ||
@@ -786,7 +791,7 @@ public:
         {
             for (int i = 0; i < childrenCount(); i++)
             {
-                if (getChild(i)->isRefinable(GeometryScoreTypeBeamCentre))
+                if (getChild(i)->isSetRefinable())
                 {
                     return false;
                 }
@@ -797,13 +802,13 @@ public:
         
         if (scoreType == GeometryScoreTypeBeamCentre)
         {
-            return _refinable;
+            return isLUCA();
         }
         else if (scoreType == GeometryScoreTypeInterpanel)
         {
             for (int i = 0; i < childrenCount(); i++)
             {
-                if (getChild(i)->isRefinable(GeometryScoreTypeBeamCentre))
+                if (getChild(i)->isSetRefinable())
                 {
                     return true;
                 }

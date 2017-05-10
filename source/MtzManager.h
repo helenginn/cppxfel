@@ -259,6 +259,7 @@ public:
 	std::vector<MillerPtr> strongMillers();
 // more grid search
 
+	std::string getOrientationMatrixListScript();
     void setParamLine(std::string line);
     std::string getParamLine();
     
