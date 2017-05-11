@@ -281,7 +281,7 @@ void GeometryRefiner::refineGeometry()
     
     int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
     
-    std::vector<double> sweepDetectorDistance = FileParser::getKey("SWEEP_DETECTOR_DISTANCE", std::vector<double>());
+	std::vector<double> sweepDetectorDistance = FileParser::getKey("SWEEP_DETECTOR_DISTANCE", std::vector<double>());
     
     if (sweepDetectorDistance.size() >= 2)
     {
@@ -325,6 +325,24 @@ void GeometryRefiner::refineGeometry()
 		addToQueue(allDetectors);
 		refineDetectorStrategyWrapper(this, GeometryScoreTypePeakSearch, 0);
 	}
+	else if (approximate)
+	{
+		// remove panels with too few spots
+		for (int i = 0; i < allDetectors.size(); i++)
+		{
+			int spotNum = allDetectors[i]->spotCountFromImages(images);
+
+			logged << "Spot count for " << allDetectors[i]->getTag() << " is " << spotNum << std::endl;
+
+			if (spotNum < 1000)
+			{
+				logged << "Spot count is too low - removing spots." << std::endl;
+				allDetectors[i]->spotCountFromImages(images, true);
+			}
+		}
+	}
+
+	sendLog();
 
 	intraPanelCycle();
 
@@ -573,7 +591,6 @@ bool GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 {
 	double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
 	detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
-	interNudge /= 2;
 
 	if (detector->getCycleNum() > 0)
 	{
@@ -606,8 +623,6 @@ bool GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, onePixRot, 0, "poke_y");
 		strategy->setGridLength(totalMovements);
 		strategy->refine();
-		strategy->assignInterpanelMinimum();
-
 	}
 
 	detector->resetPoke();
@@ -620,6 +635,7 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
+	bool solutionApproximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", false);
 	double totalMovement = nudgeStep;
 	int intervals = 2 * totalMovement / 0.1;
 	nudgeTiltX /= 5;
@@ -627,23 +643,40 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 
 	bool changeHappened = false;
 
+	{
+		RefinementGridSearchPtr strategy = makeGridRefiner(detector, type);
+		detector->prepareInterNudges();
+		strategy->setJobName(detector->getTag() + "_miller_stdev_z");
+		strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 0.2, 0, "nudge_z");
+		strategy->setGridLength(intervals);
+		strategy->refine();
+		detector->prepareInterNudges();
 
-    RefinementGridSearchPtr strategy = makeGridRefiner(detector, type);
+		changeHappened = (strategy->didChange() || changeHappened);
+	}
 
-    detector->prepareInterNudges();
-    strategy->setJobName(detector->getTag() + "_miller_stdev_z");
-    strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 0.1, 0, "nudge_z");
-	strategy->setGridLength(intervals);
-    strategy->refine();
+	if (solutionApproximate)
+	{
+		RefinementGridSearchPtr strategy = makeGridRefiner(detector, type);
+		detector->prepareInterNudges();
+		strategy->setJobName(detector->getTag() + "_smart_ratio");
+		//strategy->addParameter(&*detector, Detector::getSmartTiltRatio, Detector::setSmartTiltRatio, 0.005, 0, "tilt_ratio");
+		strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX / 2, 0, "nudgetilt_x");
+		strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setSmartTiltY, nudgeTiltY / 2, 0, "nudgetilt_y");
+		strategy->setGridLength(11);
+		strategy->refine();
+		detector->prepareInterNudges();
 
-	changeHappened = (strategy->didChange() || changeHappened);
+		changeHappened = (strategy->didChange() || changeHappened);
+	}
+
 
 	{
 		RefinementStrategyPtr strategy = makeRefiner(detector, type);
 		strategy->clearParameters();
 		detector->prepareInterNudges();
-		strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX / 5, 0, "nudgetilt_x");
-		strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setSmartTiltY, nudgeTiltY / 5, 0, "nudgetilt_y");
+		strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setNudgeTiltX, nudgeTiltX / 5, 0, "nudgetilt_x");
+		strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setNudgeTiltY, nudgeTiltY / 5, 0, "nudgetilt_y");
 		strategy->setJobName(detector->getTag() + "_miller_stdev_tilt");
 	//	strategy->setGridLength(31);
 		strategy->refine();
@@ -704,9 +737,9 @@ void GeometryRefiner::refineBeamCentre()
     logged << "***************************************************" << std::endl << std::endl;
     sendLog();
     
-    RefinementStrategyPtr gridSearch = makeRefiner(detector, GeometryScoreTypeBeamCentre);
+    RefinementGridSearchPtr gridSearch = makeGridRefiner(detector, GeometryScoreTypeBeamCentre);
     gridSearch->setJobName("grid_search_beam_centre_" + i_to_str(refinementEvent));
-    gridSearch->setCycles(99);
+    gridSearch->setGridLength(99);
     
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
@@ -730,7 +763,7 @@ void GeometryRefiner::gridSearchDetectorDistance(DetectorPtr detector, double st
     
     RefinementGridSearchPtr strategy = RefinementGridSearchPtr(new RefinementGridSearch());
     strategy->addParameter(&*detector, Detector::getArrangedMidPointZ, Detector::setArrangedMidPointZ, step, 0.1, "nudge_z");
-    
+
     strategy->setGridLength(confidence * 2 + 1);
     strategy->setVerbose(false);
     strategy->setJobName("Wide sweep detector " + detector->getTag());

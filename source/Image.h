@@ -229,6 +229,12 @@ public:
     {
         return (int)spots.size();
     }
+
+	void removeSpot(int i)
+	{
+		spots.erase(spots.begin() + i);
+	}
+
     SpotVectorPtr spotVector(int i)
     {
         return spotVectors[i];

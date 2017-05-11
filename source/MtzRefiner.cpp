@@ -112,7 +112,7 @@ void MtzRefiner::cycle()
     int maxThreads = FileParser::getMaxThreads();
     
     std::ostringstream logged;
-    logged << "Filename\tScore type\t\tCorrel\tRfactor\tPart correl\tRmerge\tB factor\tHits" << std::endl;
+    logged << "Filename\tScore type\t\tCorrel\tRfactor\tPart correl\tHits" << std::endl;
     Logger::mainLogger->addStream(&logged);
     
     for (int i = 0; i < maxThreads; i++)

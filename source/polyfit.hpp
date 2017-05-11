@@ -89,7 +89,10 @@ std::vector<T> polyfit( const std::vector<T>& oX, const std::vector<T>& oY, int 
 	permutation_matrix<int> pert(oXtXMatrix.size1());
 	const std::size_t singular = lu_factorize(oXtXMatrix, pert);
 	// must be singular
-	BOOST_ASSERT( singular == 0 );
+	if (singular != 0)
+	{
+		return std::vector<T>();
+	}
 
 	// backsubstitution
 	lu_substitute(oXtXMatrix, pert, oXtYMatrix);

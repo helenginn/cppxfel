@@ -23,6 +23,7 @@
 #include "Miller.h"
 #include "misc.h"
 #include "Detector.h"
+#include <set>
 
 int IndexManager::_cycleNum = 0;
 
@@ -330,36 +331,8 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 	logged << "Preparing vector pairs for " << myDet->getTag() << std::endl;
 	sendLog();
 
-	for (int i = 0; i < images.size(); i++)
+	for (int i = 0; i < images.size() && angleCSV->entryCount() < 100000; i++)
 	{
-		/*
-		for (int j = 0; j < images[i]->spotCount(); j++)
-		{
-			SpotPtr aSpot = images[i]->spot(j);
-
-			if (scoreType == PseudoScoreTypeIntraPanel)
-			{
-				if (aSpot->isBeamCentre())
-				{
-					continue;
-				}
-				else if (aSpot->hasDetector() && myDet->isAncestorOf(aSpot->getDetector()))
-				{
-					goodSpots.push_back(aSpot);
-				}
-				else if (!aSpot->hasDetector())
-				{
-					vec test = aSpot->estimatedVector();
-
-					if (aSpot->hasDetector() && myDet->isAncestorOf(aSpot->getDetector()))
-					{
-						goodSpots.push_back(aSpot);
-					}
-				}
-			}
-		}
-		 */
-
 		for (int j = 0; j < images[i]->spotVectorCount(); j++)
 		{
 			SpotVectorPtr vec1 = images[i]->spotVector(j);
@@ -370,7 +343,7 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 				continue;
 			}
 
-			if (!vec1->isOnlyFromDetector(myDet))
+			if (scoreType != PseudoScoreTypeBeamCentre && !vec1->isOnlyFromDetector(myDet))
 			{
 				continue;
 			}
@@ -384,12 +357,18 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 					continue;
 				}
 
-				SpotVectorPair pair;
-				pair.vec1 = vec1;
-				pair.vec2 = vec2;
-
 				vec2->calculateDistance();
-		//		double bLength = vec2->distance();
+
+				SpotVectorPtr vec3 = vec1->completeTriangleWith(vec2);
+				if (vec3->originalDistanceLessThan(angleDistance))
+				{
+					continue;
+				}
+
+				SpotVectorPair pair;
+				pair.vecs[0] = vec1;
+				pair.vecs[1] = vec2;
+				pair.vecs[2] = vec3;
 
 				double angle = vec1->angleWithVector(vec2);
 				angle *= 180 / M_PI;
@@ -406,6 +385,12 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 				goodVectorPairs.push_back(pair);
 				goodVectors.push_back(maxVec);
 				goodVectors.push_back(minVec);
+				goodVectors.push_back(vec3);
+
+				goodSpots.insert(vec1->getFirstSpot());
+				goodSpots.insert(vec1->getSecondSpot());
+				goodSpots.insert(vec2->getFirstSpot());
+				goodSpots.insert(vec2->getSecondSpot());
 			}
 		}
 	}
@@ -529,31 +514,42 @@ double IndexManager::pseudoAngleScore(void *object)
 
 	double totalScore = 0;
 	double sumDistances = 0;
-/*
-	for (int i = 0; i < me->goodSpots.size(); i++)
+
+	for (std::set<SpotPtr>::iterator it = me->goodSpots.begin(); it != me->goodSpots.end(); it++)
 	{
-		me->goodSpots[i]->storeEstimatedVector();
-	}*/
+		SpotPtr spot = *it;
+		spot->storeEstimatedVector();
+	}
 
 	for (int i = 0; i < me->goodVectors.size(); i++)
 	{
-		me->goodVectors[i]->calculateDistance();
+		me->goodVectors[i]->quickDistance();
 	}
 
 	for (int i = 1; i < me->goodVectorPairs.size(); i++)
 	{
 		SpotVectorPair pair = me->goodVectorPairs[i];
 
-		double aLength = pair.vec1->distance();
-		double bLength = pair.vec2->distance();
-		double angle = pair.vec1->angleWithVector(pair.vec2);
-		angle *= 180 / M_PI;
-		angle = (angle > 90) ? 180 - angle : angle;
-		sumDistances += aLength;
-		sumDistances += bLength;
+		double score = 1;
 
-		double score = me->getLattice()->weightForPair(aLength, bLength, angle);
-		totalScore += score;
+		for (int i = 0; i < 3; i++)
+		{
+			int j = (i + 1) % 3;
+
+			double aLength = pair.vecs[i]->distance();
+			double bLength = pair.vecs[j]->distance();
+			double angle = pair.vecs[i]->angleWithVector(pair.vecs[j]);
+
+			angle *= 180 / M_PI;
+			angle = (angle > 90) ? 180 - angle : angle;
+			sumDistances += aLength;
+			sumDistances += bLength;
+
+			score *= me->getLattice()->weightForPair(aLength, bLength, angle);
+			totalScore += score;
+
+		}
+
 	}
 
 	totalScore /= me->goodVectorPairs.size();

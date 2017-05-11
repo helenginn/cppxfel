@@ -119,6 +119,7 @@ void RefinementGridSearch::assignInterpanelMinimum()
 
 	// y first, then x! Think about it!
 
+	bool set = false;
 	double maxSteepness = 0;
 	int maxSteepnessValue = (int)(results.size() - 1) / 2;
 
@@ -158,7 +159,17 @@ void RefinementGridSearch::assignInterpanelMinimum()
 				increments.push_back(newGridPos);
 			}
 
+			if (increments.size() <= 1)
+			{
+				continue;
+			}
+
 			std::vector<double> polynomial = polyfit(increments, localRegion, 2);
+
+			if (polynomial.size() == 0)
+			{
+				continue;
+			}
 
 			double a = polynomial[2];
 
@@ -166,8 +177,14 @@ void RefinementGridSearch::assignInterpanelMinimum()
 			{
 				maxSteepness = a;
 				maxSteepnessValue = x * gridLength + lineMin;
+				set = true;
 			}
 		}
+	}
+
+	if (!set)
+	{
+		return;
 	}
 
 	ParamList minParams = orderedParams[maxSteepnessValue];

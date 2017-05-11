@@ -43,6 +43,8 @@ public:
     SpotVector(vec transformedHKL, vec normalHKL);
     
     bool hasCommonSpotWithVector(SpotVectorPtr spotVector2);
+	SpotVectorPtr completeTriangleWith(SpotVectorPtr spotVec2);
+	
     double distance();
     void calculateDistance();
 	void quickDistance();

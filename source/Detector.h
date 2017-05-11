@@ -154,6 +154,10 @@ private:
     double nudgeTiltX;
     double nudgeTiltY;
 
+	/* Smart tilt ratio used to navigat the diagonal using the above ratios */
+
+	double smartRatio;
+
 	/* Additional pixel offsets applied to all Miller indices before additional
 	 geometry search */
 
@@ -557,6 +561,18 @@ public:
         return static_cast<Detector *>(object)->nudgeTranslation.l;
     }
 
+	static double getSmartTiltRatio(void *object)
+	{
+		return static_cast<Detector *>(object)->smartRatio;
+	}
+
+	static void setSmartTiltRatio(void *object, double ratio)
+	{
+		static_cast<Detector *>(object)->smartRatio = ratio;
+		setSmartTiltX(object, ratio * static_cast<Detector *>(object)->nudgeTiltX);
+		setSmartTiltY(object, ratio * static_cast<Detector *>(object)->nudgeTiltY);
+	}
+
     static void setNudgeTiltX(void *object, double horizTilt)
     {
         static_cast<Detector *>(object)->nudgeRotation.h = horizTilt;
@@ -750,6 +766,7 @@ public:
     vec midPointOffsetFromParent(bool useParent = true, bool resetNudge = false);
     void getAllSubDetectors(std::vector<DetectorPtr> &array, bool childrenOnly = false);
 	std::vector<DetectorPtr> getSubDetectorsOnLevel(int level);
+	int spotCountFromImages(std::vector<ImagePtr> images, bool _delete = false);
     
     void reportMillerScores(int refinementNum = 0);
     

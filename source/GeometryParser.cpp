@@ -496,7 +496,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     
     DetectorPtr master = DetectorPtr(new Detector(detectorDistance, beamCentre[0], beamCentre[1]));
     Detector::setMaster(master);
-    master->setRefinable(refineGlobalGeometry);
+    master->setRefinable(refineQuadrantGeometry);
     
     logged << "Making the assumption that this detector is a " << (isSacla ? "MPCCD" : "CSPAD") << " detector." << std::endl;
     sendLog();

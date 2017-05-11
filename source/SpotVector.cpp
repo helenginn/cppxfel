@@ -169,6 +169,44 @@ bool SpotVector::hasCommonSpotWithVector(SpotVectorPtr spotVector2)
     return false;
 }
 
+SpotVectorPtr SpotVector::completeTriangleWith(SpotVectorPtr spotVec2)
+{
+	if (!hasCommonSpotWithVector(spotVec2))
+	{
+		return SpotVectorPtr();
+	}
+
+	std::vector<SpotPtr> allSpots;
+
+	allSpots.push_back(this->getFirstSpot());
+	allSpots.push_back(this->getSecondSpot());
+	allSpots.push_back(spotVec2->getFirstSpot());
+	allSpots.push_back(spotVec2->getSecondSpot());
+
+	for (int i = 0; i < allSpots.size() - 1; i++)
+	{
+		for (int j = i + 1; j < allSpots.size(); j++)
+		{
+			if (allSpots[i] == allSpots[j])
+			{
+				allSpots.erase(allSpots.begin() + j);
+				allSpots.erase(allSpots.begin() + i);
+
+				// FIGHT THE GOTO DOGMA.
+				goto break_out;
+			}
+		}
+	}
+
+break_out:
+
+	assert(allSpots.size() == 2);
+
+	SpotVectorPtr newVec = SpotVectorPtr(new SpotVector(allSpots[0], allSpots[1]));
+
+	return newVec;
+}
+
 std::string SpotVector::description()
 {
     return "(" + f_to_str(spotDiff.h) + ", " + f_to_str(spotDiff.k) + ", " + f_to_str(spotDiff.l) + ")";

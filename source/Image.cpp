@@ -2145,11 +2145,11 @@ void Image::findIndexingSolutions()
     
     while (lastWasSuccessful)
     {
-        for (int i = 1; i < spotVectors.size() && i < maxSearch && continuing && indexingFailureCount < 10; i++)
+        for (int i = 1; i < spotVectors.size() && i < maxSearch && continuing; i++)
         {
             SpotVectorPtr spotVector1 = spotVectors[i];
             
-            for (int j = 0; j < i && j < spotVectors.size() && continuing && indexingFailureCount < 10; j++)
+            for (int j = 0; j < i && j < spotVectors.size() && continuing; j++)
             {
                 SpotVectorPtr spotVector2 = spotVectors[j];
                 
@@ -2179,6 +2179,8 @@ void Image::findIndexingSolutions()
                     
                     if (successes >= maxSuccesses || mtzCount() >= maxLattices)
                     {
+						logged << "(" << getFilename() << ") - Reached maximum solution attempts." << std::endl;
+						sendLog();
                         continuing = false;
 						break;
                     }

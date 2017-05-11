@@ -12,6 +12,7 @@
 #include "cmtzlib.h"
 #include "csymlib.h"
 #include <stdio.h>
+#include <set>
 #include <vector>
 #include <map>
 #include "Image.h"
@@ -28,14 +29,13 @@ class IndexManager : LoggableObject, public boost::enable_shared_from_this<Index
 protected:
 	struct SpotVectorPair
 	{
-		SpotVectorPtr vec1;
-		SpotVectorPtr vec2;
+		SpotVectorPtr vecs[3];
 	};
 
     UnitCellLatticePtr lattice;
     std::vector<ImagePtr> images;
     std::vector<ImagePtr> mergeImages;
-	std::vector<SpotPtr> goodSpots;
+	std::set<SpotPtr> goodSpots;
     std::vector<SpotVectorPtr> goodVectors;
 	std::vector<SpotVectorPair> goodVectorPairs;
     DetectorWeakPtr _activeDetector;

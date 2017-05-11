@@ -140,7 +140,8 @@ void UnitCellLattice::weightUnitCellThread(void *object, int offset)
 
 				if (bestDist <= minAngleFunnelDeg)
 				{
-					//	score = Detector::lookupCache(bestDist);
+				//	bestDist /= minAngleFunnelDeg / 10;
+				//	score = Detector::lookupCache(bestDist);
 					score = 1 - bestDist / minAngleFunnelDeg;
 				}
 

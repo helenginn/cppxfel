@@ -520,7 +520,7 @@ double Miller::calculatePartiality(double pB, double qB, double beamMean, double
     }
     
     predictedWavelength /= integralAll;
-    
+
     integralAll /= integralBeam;
     
  //   logged <<  integralAll << std::endl;

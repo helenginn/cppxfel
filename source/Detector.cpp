@@ -378,7 +378,8 @@ void Detector::resetNudgeBasis()
     {
         originalNudgeMat->rotateRoundUnitVector(cross, angle);
     }
-    
+
+	smartRatio = 0;
 }
 
 void Detector::rotateAxisRecursive(bool fix)
@@ -1492,14 +1493,14 @@ void Detector::getAllSubDetectors(std::vector<DetectorPtr> &array, bool children
     
     if (childrenOnly)
     {
-		if (!childrenCount() && !isRefinable(GeometryScoreTypeBeamCentre))
+		if (!childrenCount() && !isSetRefinable())
 		{
 			return;
 		}
 
 		for (int i = 0; i < childrenCount(); i++)
 		{
-			if (getChild(i)->isRefinable(GeometryScoreTypeBeamCentre))
+			if (getChild(i)->isSetRefinable())
 			{
 				return;
 			}
@@ -1651,6 +1652,48 @@ void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *
     this->nudgeTiltY = *nudgeTiltY;
     this->nudgeStep = *nudgeStep;
 }
+
+int Detector::spotCountFromImages(std::vector<ImagePtr> images, bool _delete)
+{
+	int total = 0;
+
+	for (int i = 0; i < images.size(); i++)
+	{
+		bool modifiedImage = false;
+		int imageTotal = 0;
+
+		for (int j = 0; j < images[i]->spotCount(); j++)
+		{
+			SpotPtr spot = images[i]->spot(j);
+			spot->estimatedVector();
+
+			if (spot->hasDetector())
+			{
+				if (isAncestorOf(spot->getDetector()))
+				{
+					imageTotal++;
+
+					if (_delete)
+					{
+						modifiedImage = true;
+						images[i]->removeSpot(j);
+						j--;
+					}
+				}
+			}
+		}
+		// no point having one spot on an image
+		if (imageTotal > 2) total += imageTotal;
+
+		if (modifiedImage)
+		{
+			images[i]->compileDistancesFromSpots();
+		}
+	}
+
+	return total;
+}
+
 
 std::string Detector::writeCrystFELFile()
 {
