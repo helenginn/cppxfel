@@ -409,6 +409,7 @@ void GeometryRefiner::interPanelCycle()
 	bool hasMillers = Detector::getMaster()->millerCount() > 0;
 
 	GeometryScoreType type = GeometryScoreTypeInterpanel;
+	bool solutionApproximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", false);
 
 	if (hasMillers)
 	{
@@ -429,9 +430,17 @@ void GeometryRefiner::interPanelCycle()
 		}
 
 		addToQueue(detectors);
-		refineDetectorStrategyWrapper(this, type, 0);
-	}
 
+		if (i <= 1 && solutionApproximate && !hasMillers)
+		{
+			refineDetectorStrategyWrapper(this, GeometryScoreTypeBeamCentre, 0);
+		}
+		else
+		{
+			refineDetectorStrategyWrapper(this, type, 0);
+		}
+
+	}
 }
 
 void GeometryRefiner::addToQueue(std::vector<DetectorPtr> dets)
@@ -563,6 +572,10 @@ bool GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
 	{
 		modifiedDetector = intraPanelMillerSearch(detector, type);
 	}
+	else if (type == GeometryScoreTypeBeamCentre)
+	{
+		modifiedDetector = refineBeamCentre(detector);
+	}
 	else if (type == GeometryScoreTypePeakSearch)
 	{
 		peakSearchDetector(detector);
@@ -636,6 +649,7 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
 	bool solutionApproximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", false);
+
 	double totalMovement = nudgeStep;
 	int intervals = 2 * totalMovement / 0.1;
 	nudgeTiltX /= 5;
@@ -705,13 +719,16 @@ bool GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScore
 	}
 	else
 	{
+		bool solutionApproximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", false);
+		double twizzleMult = 5.0;
+
 		interNudge /= nudgeStep;
 		interNudge /= 5;
 
 		strategy->setJobName(detector->getTag() + "_powder");
 		strategy->addParameter(&*detector, Detector::getPokeX, Detector::setPokeX, interNudge, 0, "internudge_x");
 		strategy->addParameter(&*detector, Detector::getPokeY, Detector::setPokeY, interNudge, 0, "internudge_y");
-		strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge, 0, "internudge_z");
+		strategy->addParameter(&*detector, Detector::getPokeZ, Detector::setPokeZ, interNudge * twizzleMult, 0, "internudge_z");
 	}
 
 	_changed = true;
@@ -722,13 +739,16 @@ bool GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScore
 	return strategy->didChange();
 }
 
-void GeometryRefiner::refineBeamCentre()
+bool GeometryRefiner::refineBeamCentre(DetectorPtr detector)
 {
-    DetectorPtr detector = Detector::getMaster();
+	if (!detector)
+	{
+		detector = Detector::getMaster();
+	}
 
-    if (detector->millerCount() > 0)
+	if (detector->millerCount() > 0)
     {
-        return;
+        return true;
     }
     
     logged << "***************************************************" << std::endl;
@@ -744,13 +764,18 @@ void GeometryRefiner::refineBeamCentre()
     double nudgeStep, nudgeTiltX, nudgeTiltY, interNudge;
     detector->nudgeTiltAndStep(&nudgeTiltX, &nudgeTiltY, &nudgeStep, &interNudge);
 
-    gridSearch->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0.001, "poke_x");
-    gridSearch->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0.001, "poke_y");
+    gridSearch->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge / 5, 0.001, "poke_x");
+    gridSearch->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge / 5, 0.001, "poke_y");
 
-    gridSearch->refine();
+	if (!detector->isLUCA())
+	{
+	//	gridSearch->addParameter(&*detector, Detector::getInterNudgeZ, Detector::setInterNudgeY, interNudge, 0.001, "poke_y");
+	}
+
+	gridSearch->refine();
 	_changed = true;
-    
-    reportProgress();
+
+	return gridSearch->didChange();
 }
 
 

@@ -819,7 +819,7 @@ public:
         
         if (scoreType == GeometryScoreTypeBeamCentre)
         {
-            return isLUCA();
+			return true;
         }
         else if (scoreType == GeometryScoreTypeInterpanel)
         {

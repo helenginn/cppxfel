@@ -35,7 +35,7 @@ private:
     double lastInterAngleScore;
     bool _changed;
     
-    void refineBeamCentre();
+	bool refineBeamCentre(DetectorPtr detector = DetectorPtr());
 	std::vector<DetectorPtr> refineQueue;
 	std::mutex queueMutex;
 
