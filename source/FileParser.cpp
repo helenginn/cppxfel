@@ -1069,6 +1069,10 @@ void FileParser::generateFunctionList()
     
     parserMap["MILLER_INDEX"] = intVector;
 	parserMap["SPECIAL_PIXEL"] = intVector;
+
+	// jungfrau hacks
+
+	parserMap["IS_JUNGFRAU"] = simpleBool;
 }
 
 ParserFunction FileParser::splitLine(std::string line, std::string &command,

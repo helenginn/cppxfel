@@ -119,14 +119,6 @@ void Hdf5Image::loadImage()
 	logged << "Chosen manager " << manager->getFilename() << std::endl;
 	sendLog();
 
-/*
-	if (!manager->datasetExists(address) && !manager->groupExists(address))
-	{
-		logged << "Cannot find an image with data address " << getBasename() << ", nevermind." << std::endl;
-		sendLog();
-		return;
-	}*/
-
     useShortData = (manager->bytesPerTypeForImageAddress(address) == 2);
     
     char *buffer;
@@ -175,6 +167,25 @@ void Hdf5Image::loadImage()
             memcpy(&shortData[0], &buffer[0], size);
         }
 
+		bool isJungFrau = FileParser::getKey("IS_JUNGFRAU", false);
+		if (isJungFrau)
+		{
+			for (int i = 0; i < shortData.size(); i++)
+			{
+				// first two bits = 00 will be OK
+				short int bit1Mult = 16384;
+				short int bit2Mult = 32768;
+
+				bool firstBit = shortData[i] & bit1Mult;
+				bool secondBit = shortData[i] & bit2Mult;
+
+				if (firstBit || secondBit)
+				{
+					// we don't want anything else!
+					generalMask[i] = 0;
+				}
+			}
+		}
     }
     else
     {

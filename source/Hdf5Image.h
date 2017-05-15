@@ -25,6 +25,7 @@ private:
     Hdf5Table spotTable;
     void createSpotTable();
     void getWavelengthFromHdf5();
+
 protected:
     
 public:
