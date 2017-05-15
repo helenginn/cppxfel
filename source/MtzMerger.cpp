@@ -940,12 +940,21 @@ void MtzMerger::mergeFull(bool anomalous)
     anomalous ? firstMerge.mergeAnomalous() : firstMerge.merge();
     MtzPtr idxMerge = firstMerge.getMergedMtz();
 
+	bool doRsplit = true;
+
     MtzMerger secondMerge = MtzMerger();
     secondMerge.setAllMtzs(secondHalfMtzs);
     secondMerge.setFilename(makeFilename("half2Merge"));
     secondMerge.copyDetails(*this);
     anomalous ? secondMerge.mergeAnomalous() : secondMerge.merge();
     MtzPtr invMerge = secondMerge.getMergedMtz();
+
+	if (!idxMerge || !invMerge)
+	{
+		logged << "No images in half-data set or both, not doing R split / CC half calculations." << std::endl;
+		sendLog();
+		doRsplit = false;
+	}
 
     if (!filename.length())
     {
@@ -961,30 +970,30 @@ void MtzMerger::mergeFull(bool anomalous)
 		return;
 	}
 
-    double maxRes = 1 / maxResolution();
-    
-    logged << "N: === R split" << (freeOnly ? " (free)" : "") << " ===" << std::endl;
-    sendLog();
-    double rSplit = idxMerge->rSplitWithManager(&*invMerge, false, false, 0, maxRes, 20, NULL, true);
-    logged << "N: === CC half"  << (freeOnly ? " (free)" : "") << " ===" << std::endl;
-    sendLog();
-    double correlation = idxMerge->correlationWithManager(&*invMerge, false, false, 0, maxRes, 20, NULL, true);
-    
-    std::string set = "all";
-    
-    if (freeOnly)
-    {
-        set = "free";
-    }
-    
-    if (anomalous)
-    {
-        set = "anom";
-    }
-    
-    logged << "N: Final stats (" << set << "): " << rSplit << ", " << correlation << std::endl;
-    sendLog();
-    
+	std::string set = "all";
+
+	if (anomalous)
+	{
+		set = "anom";
+	}
+
+	if (doRsplit)
+	{
+
+		double maxRes = 1 / maxResolution();
+
+		logged << "N: === R split" << (freeOnly ? " (free)" : "") << " ===" << std::endl;
+		sendLog();
+		double rSplit = idxMerge->rSplitWithManager(&*invMerge, false, false, 0, maxRes, 20, NULL, true);
+		logged << "N: === CC half"  << (freeOnly ? " (free)" : "") << " ===" << std::endl;
+		sendLog();
+		double correlation = idxMerge->correlationWithManager(&*invMerge, false, false, 0, maxRes, 20, NULL, true);
+
+		logged << "N: Final stats (" << set << "): " << rSplit << ", " << correlation << std::endl;
+		sendLog();
+
+	}
+
     time_t endcputime;
     time(&endcputime);
     
