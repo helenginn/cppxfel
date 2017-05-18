@@ -822,5 +822,13 @@ void GeometryParser::writeToFile(std::string newName, int fileCount)
     file << geometry;
     
     file.close();
-    
+
+	std::string crystFELName = newName + ".crystfel";
+	std::string crystFELContents = Detector::getMaster()->writeCrystFELFile();
+
+	std::ofstream crystFile;
+	crystFile.open(FileReader::addOutputDirectory(crystFELName.c_str()));
+	crystFile << crystFELContents;
+	crystFile.close();
+
 }

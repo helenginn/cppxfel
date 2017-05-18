@@ -490,7 +490,8 @@ public:
     
     std::string writeGeometryFile(int fileCount, int indentCount = 0, CSVPtr differenceCSV = CSVPtr());
     std::string writeCrystFELFile();
-    
+	void addCrystFELInfo(std::ostringstream &geometry, double clen);
+
 	// MARK: Refinement getter/setters
     
     static void setArrangedMidPointX(void *object, double newX)

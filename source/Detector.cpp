@@ -1694,14 +1694,74 @@ int Detector::spotCountFromImages(std::vector<ImagePtr> images, bool _delete)
 	return total;
 }
 
+std::string toCrystFELAxis(vec axis)
+{
+	bool posH = (axis.h >= 0);
+	bool posK = (axis.k >= 0);
+	bool posL = (axis.l >= 0);
+
+	std::ostringstream aString;
+	aString << std::fixed << std::setprecision(10);
+	aString << (posH ? "+" : "") << axis.h << "x " << (posK ? "+" : "") << axis.k << "y " << (posL ? "+" : "") << axis.l << "z" << std::endl;
+
+	return aString.str();
+}
+
+void Detector::addCrystFELInfo(std::ostringstream &geometry, double clen)
+{
+	double pixSizeInMetres = 1000 / mmPerPixel;
+
+	vec intersection;
+	spotCoordToAbsoluteVec(unarrangedTopLeftX, unarrangedTopLeftY, &intersection);
+	double coffset = intersection.l / pixSizeInMetres - clen;
+
+	geometry << std::fixed << std::setprecision(10);
+	geometry << getTag() << "/min_fs = " << unarrangedTopLeftX << std::endl;
+	geometry << getTag() << "/min_ss = " << unarrangedTopLeftY << std::endl;
+	geometry << getTag() << "/max_fs = " << unarrangedBottomRightX << std::endl;
+	geometry << getTag() << "/max_ss = " << unarrangedBottomRightY << std::endl;
+	geometry << getTag() << "/res = " << pixSizeInMetres << std::endl;
+	geometry << getTag() << "/coffset = " << coffset << std::endl;
+
+	invWorkingBasisMat->printDescription();
+
+	vec slow = new_vector(workingBasisMat->components[1], workingBasisMat->components[5], workingBasisMat->components[9]);
+	vec fast = new_vector(workingBasisMat->components[0], workingBasisMat->components[4], workingBasisMat->components[8]);
+
+	geometry << getTag() << "/fs = " << toCrystFELAxis(fast);
+	geometry << getTag() << "/ss = " << toCrystFELAxis(slow);
+
+	geometry << getTag() << "/corner_x = " << intersection.h << std::endl;
+	geometry << getTag() << "/corner_y = " << intersection.k << std::endl;
+	geometry << std::endl;
+}
 
 std::string Detector::writeCrystFELFile()
 {
     std::ostringstream geometry;
-    geometry << "; CrystFEL geometry file spit out of cppxfel." << std::endl;
+
+	geometry << "; CrystFEL geometry file spit out of cppxfel." << std::endl;
     
- //   double pixSizeInMetres = 1000 / mmPerPixel;
-    
-    
-    return "";
+    double pixSizeInMetres = 1000 / mmPerPixel;
+	vec lucaMidpoint = midPointOffsetFromParent();
+
+	double detDist = lucaMidpoint.l / pixSizeInMetres;
+
+	geometry << "res = " << pixSizeInMetres << std::endl;
+	geometry << "clen = " << detDist << std::endl << std::endl;
+
+	geometry << "; You may insert some things here probably." << std::endl << std::endl;
+
+	std::vector<DetectorPtr> allDets;
+	getAllSubDetectors(allDets);
+
+	for (int i = 0; i < allDets.size(); i++)
+	{
+		if (allDets[i]->hasNoChildren())
+		{
+			allDets[i]->addCrystFELInfo(geometry, detDist);
+		}
+	}
+
+    return geometry.str();
 }
