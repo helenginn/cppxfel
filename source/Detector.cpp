@@ -875,6 +875,7 @@ void Detector::addMillerCarefully(MillerPtr miller)
 
 	if (miller->reachesThreshold())
 	{
+		miller->centrePeak();
 		millers.push_back(miller);
 	}
 
@@ -1722,8 +1723,6 @@ void Detector::addCrystFELInfo(std::ostringstream &geometry, double clen)
 	geometry << getTag() << "/max_ss = " << unarrangedBottomRightY << std::endl;
 	geometry << getTag() << "/res = " << pixSizeInMetres << std::endl;
 	geometry << getTag() << "/coffset = " << coffset << std::endl;
-
-	invWorkingBasisMat->printDescription();
 
 	vec slow = new_vector(workingBasisMat->components[1], workingBasisMat->components[5], workingBasisMat->components[9]);
 	vec fast = new_vector(workingBasisMat->components[0], workingBasisMat->components[4], workingBasisMat->components[8]);

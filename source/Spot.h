@@ -73,6 +73,8 @@ public:
     
     std::string spotLine();
 
+	static void recentreInWindow(ImagePtr thisImage, double *x, double *y, int windowPadding);
+
 	void storeEstimatedVector()
 	{
 		_estimatedVec = estimatedVector();

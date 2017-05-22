@@ -112,6 +112,7 @@ public:
 
 	bool crossesBeamRoughly(MatrixPtr rotatedMatrix, double mosaicity,
                             double spotSize, double wavelength, double bandwidth);
+	void centrePeak();
 
 	Miller(MtzManager *parent, int _h = 0, int _k = 0, int _l = 0, bool calcFree = true);
 	MillerPtr copy(void);

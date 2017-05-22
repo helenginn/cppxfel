@@ -306,21 +306,30 @@ Coord Spot::getRawXY()
 
 void Spot::recentreInWindow(int windowPadding)
 {
-    if (windowPadding == 0)
-    {
-        windowPadding = backgroundPadding + 4;
-    }
-    
+	if (windowPadding == 0)
+	{
+		windowPadding = backgroundPadding + 4;
+	}
+
+	ImagePtr thisImage = getParentImage();
+	double x = getRawX();
+	double y = getRawY();
+
+	recentreInWindow(thisImage, &x, &y, windowPadding);
+
+	setXY(x, y);
+}
+
+void Spot::recentreInWindow(ImagePtr thisImage, double *x, double *y, int windowPadding)
+{
     std::vector<double> xPositions, yPositions, weights;
-    Coord xy = this->getRawXY();
-    ImagePtr thisImage = getParentImage();
-    
+
     for (int i = -windowPadding; i < windowPadding + 1; i++)
     {
         for (int j = -windowPadding; j < windowPadding + 1; j++)
         {
-            int myX = xy.first + i;
-            int myY = xy.second + j;
+            int myX = *x + i;
+            int myY = *y + j;
             
             if (thisImage->accepted(myX, myY))
                 continue;
@@ -341,7 +350,8 @@ void Spot::recentreInWindow(int windowPadding)
     
     if (weights.size() > 0)
     {
-        setXY(newX, newY);
+		*x = newX;
+		*y = newY;
     }
 }
 

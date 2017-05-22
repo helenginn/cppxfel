@@ -690,6 +690,21 @@ double Miller::getPolarisationCorrection()
     return polarisationCorrection;
 }
 
+void Miller::centrePeak()
+{
+	return;
+	double x = correctedX;
+	double y = correctedY;
+
+	Spot::recentreInWindow(getImage(), &x, &y, 3);
+
+	correctedX = x;
+	correctedY = y;
+
+	positionOnDetector(NULL, NULL, false);
+}
+
+
 MillerPtr Miller::copy(void)
 {
     MillerPtr newMiller = MillerPtr(new Miller(mtzParent));
