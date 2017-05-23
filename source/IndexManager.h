@@ -60,10 +60,7 @@ protected:
     double minReciprocalDistance;
     PowderHistogram generatePowderHistogram(int intraPanel = -1, int perfectPadding = 0);
     std::vector<VectorDistance> vectorDistances;
-    std::vector<MtzPtr> consolidateOrientations(ImagePtr image1, ImagePtr image2, int *oneHand, int *otherHand, int *both);
     PseudoScoreType checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec2);
-    bool checkVector(SpotVectorPtr spotVector, bool permissive = false);
-    bool processVector(SpotVectorPtr vec, double *score, double *count, bool lock, bool skipCheck);
     
     DetectorPtr getActiveDetector()
     {
@@ -120,12 +117,9 @@ public:
     }
     
 	static double pseudoAngleScore(void *object);
-	static double pseudoDistanceScore(void *object, bool writeToCSV = false, std::string tag = "");
-    void combineLists();
-    static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
+	static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
 	bool writtenPDB;
-	static double staticPseudoAnglePDB(void *object);
 	CSVPtr pseudoAnglePDB(bool writePost = false);
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
     
@@ -162,7 +156,6 @@ public:
     
     void plotGoodVectors();
     static double pseudoScore(void *object);
-    static double debugPseudoScore(void *object);
     IndexManager(std::vector<ImagePtr>images);
 };
 

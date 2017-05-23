@@ -1118,15 +1118,21 @@ void MtzRefiner::integrationSummary()
     
     int imageCount = (int)images.size();
     int mtzCount = 0;
-    
+	int goodSpots = 0;
+
     refineSummary << MtzManager::parameterHeaders() << std::endl;
     
     for (int i = 0; i < images.size(); i++)
     {
+		if (images[i]->acceptableSpotCount())
+		{
+			goodSpots++;
+		}
+
         for (int j = 0; j < images[i]->mtzCount(); j++)
         {
             refineSummary << images[i]->mtz(j)->writeParameterSummary() << std::endl;
-            
+
             mtzCount++;
         }
     }
@@ -1141,8 +1147,10 @@ void MtzRefiner::integrationSummary()
     summaryCSV << summaryString;
     summaryCSV.close();
     
-    float percentage = (float)mtzCount / (float)imageCount * 100;
-    logged << "Indexed " << mtzCount << " crystals out of " << imageCount << " images (" << percentage << "%)." << std::endl;
+    float pctIndexed = (float)mtzCount / (float)imageCount * 100;
+	float pctPlausible = (float)goodSpots / (float)imageCount * 100;
+	logged << "N: Spot count plausible for " << goodSpots << " images out of " << imageCount << " images (" << pctPlausible << "%)." << std::endl;
+	logged << "N: Indexed " << mtzCount << " crystals out of " << imageCount << " images (" << pctIndexed << "%)." << std::endl;
     sendLog();
     
     Logger::mainLogger->addString("Written integration summary to integration.csv");
@@ -1367,30 +1375,6 @@ void MtzRefiner::index()
     writeNewOrientations(false, true);
     integrationSummary();
 }
-
-
-void MtzRefiner::combineLists()
-{
-    loadPanels();
-    this->readMatricesAndImages();
-    std::cout << "N: Total images loaded in file 1: " << images.size() << std::endl;
-    
-    std::string secondList = FileParser::getKey("SECOND_MATRIX_LIST", std::string(""));
-    std::vector<ImagePtr> secondImages;
-    
-    this->readMatricesAndImages(&secondList, true, &secondImages);
-    std::cout << "N: Total images loaded in file 2 (" << secondList << "): " << secondImages.size() << std::endl;
-    
-    if (!indexManager)
-        indexManager = new IndexManager(images);
-    
-    indexManager->setMergeImages(secondImages);
-    indexManager->combineLists();
-    
-    writeNewOrientations();
-    integrationSummary();
-}
-
 
 void MtzRefiner::powderPattern()
 {

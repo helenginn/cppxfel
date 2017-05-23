@@ -278,12 +278,6 @@ void InputFileParser::parse(bool fromPython)
                 refiner->powderPattern();
             }
             
-            if (line == "COMBINE_LISTS")
-            {
-                understood = true;
-                refiner->combineLists();
-            }
-            
             if (line == "WRITE_PNGS")
             {
                 understood = true;
