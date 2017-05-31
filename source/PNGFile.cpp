@@ -16,6 +16,7 @@
 #include <cmath>
 #include "TextManager.h"
 #include "Shoebox.h"
+#include "Matrix.h"
 
 int PNGFile::writeImage(std::string filename, int width, int height, std::string title)
 {
@@ -104,6 +105,66 @@ finalise:
     return code;
 }
 
+void PNGFile::RGB_to_HSB(float red, float green, float blue,
+						 float *brightness, float *saturation, float *hue)
+{
+	int cmax = (red > green) ? red : green;
+
+	if (blue > cmax)
+	{
+		cmax = blue;
+	}
+
+	int cmin = (red < green) ? red : green;
+
+	if (blue < cmin)
+	{
+		cmin = blue;
+	}
+
+	*brightness = ((float) cmax) / 255.0f;
+
+	if (cmax != 0)
+	{
+		*saturation = ((float) (cmax - cmin)) / ((float) cmax);
+	}
+	else
+	{
+		saturation = 0;
+	}
+	if (saturation == 0)
+	{
+		hue = 0;
+	}
+	else
+	{
+		float redc = ((float) (cmax - red)) / ((float) (cmax - cmin));
+		float greenc = ((float) (cmax - green)) / ((float) (cmax - cmin));
+		float bluec = ((float) (cmax - blue)) / ((float) (cmax - cmin));
+
+		if (red == cmax)
+		{
+			*hue = bluec - greenc;
+		}
+		else if (green == cmax)
+		{
+			*hue = 2.0f + redc - bluec;
+		}
+		else
+		{
+			*hue = 4.0f + greenc - redc;
+		}
+
+		*hue = *hue / 6.0f;
+
+		if (hue < 0)
+		{
+			*hue = *hue + 1.0f;
+		}
+
+		*hue *= 360;
+	}
+}
 
 // Hue should be between 0 and 360 degrees (rainbow)
 // Saturation between 0 and 1
@@ -242,6 +303,30 @@ void PNGFile::moveCoordRelative(int *x, int *y)
     *y += height / 2 - centreY;
 }
 
+void PNGFile::invertColourRelative(int x, int y)
+{
+	moveCoordRelative(&x, &y);
+
+//	setPixelColour(x, y, 255, 255, 255);
+
+	png_byte *bytes;
+	float saturation, brightness, hue;
+
+	pixelAt(x, y, &bytes);
+
+//	std::cout << (int)bytes[0] << " " << (int)bytes[1] << " " << (int)bytes[2] << " to ";
+
+	RGB_to_HSB(bytes[0], bytes[1], bytes[2], &brightness, &saturation, &hue);
+	double flat_hue = fmod(hue + 180, 360);
+	png_byte red, blue, green;
+
+	HSB_to_RGB(flat_hue, saturation, brightness, &red, &green, &blue);
+
+//	std::cout << (int)red << " " << (int)blue << " " << (int)green << std::endl;
+
+	setPixelColour(x, y, 0, 0, 0);
+}
+
 void PNGFile::setPixelColourRelative(int x, int y, png_byte red, png_byte green, png_byte blue)
 {
     moveCoordRelative(&x, &y);
@@ -329,6 +414,110 @@ void PNGFile::drawText(std::string text, int xCentre, int yCentre, png_byte red,
     }
     
     TextManager::text_free(&textPixels);
+}
+
+void PNGFile::drawArrow(float xDir, float yDir, float centreX, float centreY, float transparency, png_byte red, png_byte green, png_byte blue)
+{
+	vec points[7];
+	points[0] = new_vector(-20.5, +5.5, 0);
+	points[1] = new_vector(+10.0, +4.5, 0);
+	points[2] = new_vector(+10.5, +16.5, 0);
+	points[3] = new_vector(+28.5, + 0.5, 0);
+	points[4] = new_vector(+10.0, -16.5, 0);
+	points[5] = new_vector(+10.5, -4.5, 0);
+	points[6] = new_vector(-20.0, -5.5, 0);
+
+	double magnitude = cartesian_to_distance(xDir, yDir);
+
+	MatrixPtr rot = MatrixPtr(new Matrix());
+	rot->rotate(0, 0, cartesian_to_angle(xDir, yDir));
+
+	MatrixPtr scale = MatrixPtr(new Matrix());
+	scale->setIdentity();
+	scale->scale(magnitude);
+
+	MatrixPtr invScale = scale->inverse3DMatrix();
+	MatrixPtr invRot = rot->inverse3DMatrix();
+
+	if (magnitude <= 0)
+	{
+		return;
+	}
+
+	int boxWidth = magnitude * sqrt(40 * 40 + 33 * 33);
+
+	for (float i = -boxWidth; i < +boxWidth; i ++)
+	{
+		for (float j = -boxWidth; j < +boxWidth; j ++)
+		{
+			double originalX = i;
+			double originalY = j;
+
+			vec origPos = new_vector(originalX, originalY, 0);
+
+			invScale->multiplyVector(&origPos);
+			invRot->multiplyVector(&origPos);
+
+			int intersections = 0;
+
+			for (int first = 0; first < 7; first++)
+			{
+				int oneMore = first + 1;
+				int second = (oneMore % 7);
+
+				double m = points[second].k - points[first].k;
+				m /= points[second].h - points[first].h;
+
+				double c = points[first].k - m * points[first].h;
+
+				// does this intersect with
+				// x = i;
+
+				double xTest = (origPos.k - c) / m;
+
+				if (xTest < origPos.h)
+				{
+					continue;
+				}
+
+				if ((xTest < points[second].h &&
+						xTest > points[first].h) ||
+					(xTest < points[first].h &&
+						xTest > points[second].h))
+				{
+			//		std::cout << i << ", " << j << ", " << "passes between " << prettyDesc(points[first]) << " and " << prettyDesc(points[second]) << "." << std::endl;
+					intersections++;
+				}
+			}
+
+
+
+			if (intersections % 2 == 1)
+			{
+				// should draw.
+				vec aVec = new_vector(i, j, 0);
+			//	rot->multiplyVector(&aVec);
+		//		scale->multiplyVector(&aVec);
+
+				add_vector_to_vector(&aVec, new_vector(centreX, centreY, 0));
+
+				if (aVec.h != aVec.h || aVec.k != aVec.k)
+				{
+					continue;
+				}
+
+				setPixelColourRelative(aVec.h, aVec.k, red, green, blue);
+			}
+		}
+	}
+
+	for (int i = 0; i < 7; i++)
+	{
+		rot->multiplyVector(&points[i]);
+		scale->multiplyVector(&points[i]);
+	}
+
+
 }
 
 void PNGFile::drawLine(int x1, int y1, int x2, int y2, float transparency, png_byte red, png_byte green, png_byte blue)

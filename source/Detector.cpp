@@ -903,6 +903,18 @@ std::string indents(int indentCount)
     return indent;
 }
 
+vec Detector::getDifferenceFromOriginal(int corner)
+{
+	int xPix = (corner < 2) ? unarrangedTopLeftX : unarrangedBottomRightX;
+	int yPix = (corner % 2 == 0) ? unarrangedTopLeftY : unarrangedBottomRightY;
+
+	vec diff;
+	spotCoordToAbsoluteVec(xPix, yPix, &diff);
+
+	take_vector_away_from_vector(originalCorners[corner], &diff);
+
+	return diff;
+}
 
 std::string Detector::writeGeometryFile(int fileCount, int indentCount, CSVPtr differenceCSV)
 {
@@ -939,14 +951,8 @@ std::string Detector::writeGeometryFile(int fileCount, int indentCount, CSVPtr d
 			break;
 		}
 
-        int xPix = (i < 2) ? unarrangedTopLeftX : unarrangedBottomRightX;
-        int yPix = (i % 2 == 0) ? unarrangedTopLeftY : unarrangedBottomRightY;
-        
-        vec diff;
-        spotCoordToAbsoluteVec(xPix, yPix, &diff);
-
-        take_vector_away_from_vector(originalCorners[i], &diff);
-        differenceCSV->addEntry(3, diff.h, diff.k, diff.l);
+		vec diff = getDifferenceFromOriginal(i);
+		differenceCSV->addEntry(3, diff.h, diff.k, diff.l);
     }
     
     for (int i = 0; i < childrenCount(); i++)

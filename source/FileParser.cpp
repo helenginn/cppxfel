@@ -760,7 +760,7 @@ void FileParser::generateHelpList()
     helpMap["BEAM_CENTRE"] = "Coordinate position at which the beam hits the image in pixels. Default 0, 0 px to match CSPAD detector.";
     helpMap["MM_PER_PIXEL"] = "Height/width of a pixel on the detector in mm. Default 0.11 mm to match CSPAD detector. (MPCCD is 0.05 if you need this value.)";
     helpMap["DETECTOR_SIZE"] = "Int x, y – width and height of the detector. Default 1765, 1765 to match CSPAD detector. Can be overridden by values in HDF5 file.";
-    helpMap["OVER_PRED_BANDWIDTH"] = "Integration requires an over-estimated bandwidth to ‘catch’ all the reflections and more. This represents the % bandwidth to either side of the mean wavelength which should be used. Default 0.03.";
+    helpMap["OVER_PRED_BANDWIDTH"] = "Integration requires an over-estimated bandwidth to ‘catch’ all the reflections and more. This represents the % bandwidth to either side of the mean wavelength which should be used. Default 0.02.";
     helpMap["OVER_PRED_RLP_SIZE"] = "Reciprocal lattice point radius in Å-1 at the Miller index position (0, 0, 0) (i.e. without consideration of mosaicity). Default 2 × 10-4 Å-1. If you aren't picking up all your spots at low resolution, please use this.";
     helpMap["REFINE_ORIENTATIONS"] = "If set to ON, using the INTEGRATE command will also refine orientation matrices according to the protocol in Ginn et al Nat Comms 2015. Default ON.";
     helpMap["INDEXING_ORIENTATION_TOLERANCE"] = "Initial orientation matrix refinement will finish when the step search angle decreases below x degrees. Default 1 × 10-3º.";

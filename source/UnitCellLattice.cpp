@@ -286,6 +286,12 @@ void UnitCellLattice::setup()
 
 	std::vector<double> unitCell = getUnitCell();
 
+	if (unitCell.size() < 6)
+	{
+		logged << "Sorry, need unit cell dimensions specified by UNIT_CELL to do this." << std::endl;
+		sendLogAndExit();
+	}
+
 	_aDim = unitCell[0];
 	_bDim = unitCell[1];
 	_cDim = unitCell[2];

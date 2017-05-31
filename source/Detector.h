@@ -487,7 +487,9 @@ public:
     void removeMidPointRelativeToParent();
 
     /* Write geometry file */
-    
+
+	vec getDifferenceFromOriginal(int corner);
+	
     std::string writeGeometryFile(int fileCount, int indentCount = 0, CSVPtr differenceCSV = CSVPtr());
     std::string writeCrystFELFile();
 	void addCrystFELInfo(std::ostringstream &geometry, double clen);

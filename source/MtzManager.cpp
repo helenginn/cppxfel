@@ -1551,7 +1551,7 @@ void MtzManager::checkNearbyMillers()
 			continue;
 		}
 
-		miller->crossesBeamRoughly(rotatedMatrix, 0.0, testSpotSize * 2, wavelength, testBandwidth * 2);
+		miller->crossesBeamRoughly(rotatedMatrix, 0.0, testSpotSize * 2, wavelength, testBandwidth);
 
 		if (i == 0)
 		{

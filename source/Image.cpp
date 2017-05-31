@@ -1107,14 +1107,28 @@ vector<MtzPtr> Image::currentMtzs()
         mtz(i)->removeStrongSpots(&spots, true);
         mtz(i)->writeToFile("", true);
 
-        if (rejecting)
-            count += mtz(i)->rejectOverlaps();
-    }
+		for (int j = 0; j < mtzs[i]->reflectionCount(); j++)
+		{
+			ReflectionPtr ref = mtzs[i]->reflection(j);
+
+			for (int k = 0; k < ref->millerCount(); k++)
+			{
+				ref->miller(k)->incrementOverlapMask();
+			}
+		}
+	}
+
+
+	for (int i = 0; i < mtzCount(); i++)
+	{
+		if (rejecting)
+			count += mtz(i)->rejectOverlaps();
+	}
 
 	logged << "After integrating for " << getBasename() << ", spot count now " << spots.size() << std::endl;
 	sendLog();
 
-    logged << "Generated " << mtzs.size() << " mtzs with " << count << " rejected reflections." << std::endl;
+    logged << "Generated " << mtzs.size() << " mtzs with " << count << " rejected reflections due to overlaps." << std::endl;
     sendLog();
 
     return mtzs;
@@ -2380,11 +2394,16 @@ void Image::drawSpotsOnPNG(std::string filename, bool drawPanels)
     
     int height = FileParser::getKey("PNG_HEIGHT", 2400);
     PNGFilePtr file = PNGFilePtr(new PNGFile(filename, height, height));
-    writePNG(file);
+    writePNG(file, !drawPanels);
     
-    
-    for (int i = 0; i < spotCount(); i++)
-    {
+
+	for (int i = 0; i < spotCount(); i++)
+	{
+		if (drawPanels)
+		{
+			break;
+		}
+
         Coord coord = spot(i)->getXY();
         
         if (!spot(i)->isFake())
@@ -2411,7 +2430,7 @@ void Image::drawSpotsOnPNG(std::string filename, bool drawPanels)
             
             std::string text = spot(i)->getText();
             
-            file->drawText(text, coord.first, coord.second - 20);
+        //    file->drawText(text, coord.first, coord.second - 20);
             
             file->drawLine(xLeft, yTop, xRight, yBottom, 0.0, 0, 0, 0);
             file->drawLine(xLeft, yBottom, xRight, yTop, 0.0, 0, 0, 0);
@@ -2428,8 +2447,18 @@ void Image::drawSpotsOnPNG(std::string filename, bool drawPanels)
             vec xyz = detectors[i]->midPointOffsetFromParent();
             double x = xyz.h;
             double y = xyz.k;
-            
-            file->drawText(detectors[i]->getTag(), x, y);
+
+			for (int j = 0; j < 4; j++)
+			{
+				vec diff = detectors[i]->getDifferenceFromOriginal(j);
+
+				file->drawArrow(diff.h, diff.k, x, y, 0.5, 0, 0, 0);
+				multiply_vector(&diff, 0.96);
+				file->drawArrow(diff.h, diff.k, x, y, 0.5, 255, 255, 255);
+			}
+
+
+       //     file->drawText(detectors[i]->getTag(), x, y);
         }
     }
     
@@ -2528,7 +2557,7 @@ void Image::drawCrystalsOnPNG(int crystalNum)
     sendLog();
 }
 
-void Image::writePNG(PNGFilePtr file)
+void Image::writePNG(PNGFilePtr file, bool includeDiffraction)
 {
     file->setCentre(0, 0);
     
@@ -2571,7 +2600,12 @@ void Image::writePNG(PNGFilePtr file)
             }
             
             double value = valueAt(i, j);
-            
+
+			if (!includeDiffraction)
+			{
+				value = 0;
+			}
+
             if (value < 0)
                 value = 0;
             

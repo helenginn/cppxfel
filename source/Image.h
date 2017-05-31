@@ -114,7 +114,7 @@ protected:
     vector<int> data;
     bool useShortData;
     // end of should be a template
-    void writePNG(PNGFilePtr file);
+    void writePNG(PNGFilePtr file, bool includeDiffraction = true);
     double spotVectorWeight;
 
 public:

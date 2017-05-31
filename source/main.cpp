@@ -73,6 +73,8 @@ int main(int argc, char *argv[])
 
 void new_main(int argc, char *argv[])
 {
+	std::cout.sync_with_stdio(false);
+
     signal(SIGSEGV, handler);
     signal(SIGABRT, handler);
     

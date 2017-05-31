@@ -1530,6 +1530,8 @@ void MtzRefiner::refineUnitCell()
 {
 	std::vector<MtzPtr> mtzManagers = getAllMtzs();
 	UnitCellLattice::getMainLattice()->refineMtzs(mtzManagers);
+
+	FileParser::setKey("FIX_UNIT_CELL", false);
 }
 
 void MtzRefiner::refineMetrology(bool global)

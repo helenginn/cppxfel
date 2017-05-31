@@ -191,7 +191,7 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
             MillerPtr miller = imageRefl->miller(j);
             double wavelength = miller->getWavelength();
             
-            if (fabs(wavelength - meanWavelength) > meanWavelength * 0.025)
+            if (fabs(wavelength - meanWavelength) > meanWavelength * 0.05)
             {
                 continue;
             }
@@ -205,7 +205,7 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
     }
     
     std::ostringstream logged;
-    logged << csv->entryCount() << " reflections between " << minRes << " and " << maxRes << std::endl;
+    logged << csv->entryCount() << " reflections between " << minRes << " and " << maxRes << "(mean wavelength " << meanWavelength << ")" << std::endl;
     Logger::log(logged);
     
     std::string extendedFilename = filename + "_" + f_to_str(minRes, 3) + "_to_" + f_to_str(maxRes, 3) + "_partiality";
@@ -214,8 +214,8 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
     plotMap["filename"] = extendedFilename;
     plotMap["xHeader0"] = "wavelength";
     plotMap["yHeader0"] = "percentage";
-    plotMap["xMax0"] = f_to_str(meanWavelength * 0.975);
-    plotMap["xMin0"] = f_to_str(meanWavelength * 1.025);
+    plotMap["xMin0"] = f_to_str(meanWavelength * 0.95);
+    plotMap["xMax0"] = f_to_str(meanWavelength * 1.05);
     plotMap["yMax0"] = "250";
     plotMap["yMin0"] = "0";
     plotMap["xTitle0"] = "Ewald sphere wavelength (Ang)";
@@ -223,8 +223,8 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
     
     plotMap["xHeader1"] = "wavelength";
     plotMap["yHeader1"] = "partiality";
-    plotMap["xMax1"] = f_to_str(meanWavelength * 0.975);
-    plotMap["xMin1"] = f_to_str(meanWavelength * 1.025);
+	plotMap["xMin1"] = f_to_str(meanWavelength * 0.95);
+	plotMap["xMax1"] = f_to_str(meanWavelength * 1.05);
     plotMap["yMax1"] = "2.5";
     plotMap["yMin1"] = "0";
     plotMap["style1"] = "line";
@@ -236,6 +236,7 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
 
 void GraphDrawer::partialityPNG(MtzPtr mtz, double maxRes)
 {
+	FileParser::setKey("MEDIAN_WAVELENGTH", true);
     MtzManager *reference = MtzManager::getReferenceManager();
     double wavelength = mtz->bestWavelength();
     
