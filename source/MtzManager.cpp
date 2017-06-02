@@ -1917,15 +1917,17 @@ void MtzManager::refineOrientationMatrix(bool force)
 		lStrategy->setEvaluationFunction(lScoreWrapper, this);
 		lStrategy->setJobName("Refining in-detector-plane angle for " + getFilename());
 		lStrategy->addParameter(this, getLRot, setLRot, initialStep, orientationTolerance, "lRot");
+
+		if (refineOffset)
+		{
+			lStrategy->setJobName("Refining in-detector-plane angle & distance offset for " + getFilename());
+			lStrategy->addParameter(&*this->getImagePtr(), Image::getDistanceOffset, Image::setDistanceOffset, 1.0, 0.001, "distance_offset");
+		}
+
 		lStrategy->refine();
 
 		if (refineOffset)
 		{
-			lStrategy->clearParameters();
-			lStrategy->setJobName("Refining individual detector distance for " + getFilename());
-			lStrategy->addParameter(&*this->getImagePtr(), Image::getDistanceOffset, Image::setDistanceOffset, 1.0, 0.001, "distance_offset");
-			lStrategy->refine();
-
 			logged << "Detector distance offset for " << getBasename() << " is "
 			<< Image::getDistanceOffset(&*getImagePtr()) << " pixels." << std::endl;
 			sendLog();
