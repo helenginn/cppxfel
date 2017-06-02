@@ -673,9 +673,15 @@ double Detector::spotCoordToResolution(double unarrangedX, double unarrangedY, d
 }
 
 void Detector::spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
-                                      vec *arrangedPos)
+                                      vec *arrangedPos, ImagePtr image)
 {
     *arrangedPos = midPointOffsetFromParent();
+
+	if (image)
+	{
+		image->augmentMidpoint(arrangedPos);
+	}
+
     spotCoordToRelativeVec(unarrangedX, unarrangedY, arrangedPos);
 }
 
@@ -712,16 +718,25 @@ DetectorPtr Detector::findDetectorPanelForSpotCoord(double xSpot, double ySpot)
     }
 }
 
-DetectorPtr Detector::spotToAbsoluteVec(SpotPtr spot, vec *arrangedPos)
+DetectorPtr Detector::spotToAbsoluteVec(SpotPtr spot, vec *arrangedPos, ImagePtr image)
 {
-    if (spot->hasDetector())
-    {
-        spot->getDetector()->spotCoordToAbsoluteVec(spot->getRawX(), spot->getRawY(), arrangedPos);
-        return spot->getDetector();
-    }
-    
-    DetectorPtr detector = findDetectorAndSpotCoordToAbsoluteVec(spot->getRawX(), spot->getRawY(), arrangedPos);
-    spot->setDetector(detector);
+	double xSpot = spot->getRawX();
+	double ySpot = spot->getRawY();
+
+	if (spot->hasDetector())
+	{
+		spot->getDetector()->spotCoordToAbsoluteVec(spot->getRawX(), spot->getRawY(), arrangedPos, image);
+		return spot->getDetector();
+	}
+
+	DetectorPtr detector = findDetectorPanelForSpotCoord(xSpot, ySpot);
+
+	if (detector)
+	{
+		detector->spotCoordToAbsoluteVec(xSpot, ySpot, arrangedPos, image);
+	}
+
+	spot->setDetector(detector);
     
     return detector;
 }
@@ -741,13 +756,18 @@ DetectorPtr Detector::findDetectorAndSpotCoordToAbsoluteVec(double xSpot, double
 
 // MARK: ray trace to spot position
 
-void Detector::intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *ySpot)
+void Detector::intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *ySpot, ImagePtr image)
 {
     // make the assumption that absoluteVec is indeed in the plane of the detector
     
     /* Need the cumulative midpoint for this panel */
     
     vec cumulative = midPointOffsetFromParent();
+
+	if (image)
+	{
+		image->augmentMidpoint(&cumulative);
+	}
     
     /* Need offset from centre of the panel */
     take_vector_away_from_vector(cumulative, &absoluteVec);
@@ -765,11 +785,16 @@ void Detector::intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *y
     *ySpot = absoluteVec.k;
 }
 
-void Detector::intersectionWithRay(vec ray, vec *intersection)
+void Detector::intersectionWithRay(vec ray, vec *intersection, ImagePtr image)
 {
     vec cumulative = midPointOffsetFromParent();
-    
-    double t = cumulative.h * cross.h + cumulative.k * cross.k + cumulative.l * cross.l;
+
+	if (image)
+	{
+		image->augmentMidpoint(&cumulative);
+	}
+
+	double t = cumulative.h * cross.h + cumulative.k * cross.k + cumulative.l * cross.l;
     t /= (cross.h * ray.h + cross.k * ray.k + cross.l * ray.l);
     
     *intersection = new_vector(t * ray.h, t * ray.k, t * ray.l);
@@ -832,6 +857,7 @@ DetectorPtr Detector::detectorForRayIntersection(vec ray, vec *intersection)
 DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
 {
     vec hkl = miller->getRay();
+	ImagePtr image = miller->getImage();
     
     DetectorPtr probe;
     bool hasDetector = miller->hasDetector();
@@ -848,7 +874,7 @@ DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
     else
     {
         probe = miller->getDetector();
-        probe->intersectionWithRay(hkl, intersection);
+        probe->intersectionWithRay(hkl, intersection, image);
     }
     
     return probe;
@@ -856,12 +882,13 @@ DetectorPtr Detector::intersectionForMiller(MillerPtr miller, vec *intersection)
 
 DetectorPtr Detector::spotCoordForMiller(MillerPtr miller, double *xSpot, double *ySpot)
 {
-    vec intersection;
+	ImagePtr image = miller->getImage();
+	vec intersection;
     DetectorPtr probe = intersectionForMiller(miller, &intersection);
     
     if (probe)
     {
-        probe->intersectionToSpotCoord(intersection, xSpot, ySpot);
+        probe->intersectionToSpotCoord(intersection, xSpot, ySpot, image);
     }
     
     return probe;

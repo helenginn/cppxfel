@@ -62,10 +62,10 @@ private:
 	double mmPerPixel;
     double detectorGain;
     double averageZ;
+	double distanceOffset;
 
 	double detectorDistance; // mm
 	double wavelength;
-	bool pinPoint;
 
     int indexingFailureCount;
     
@@ -161,6 +161,8 @@ public:
         Logger::log(logged);
 		
     }
+
+	void augmentMidpoint(vec *arrangedPos);
     
     static ImagePtr getImageMask()
     {
@@ -322,16 +324,16 @@ public:
 		this->mmPerPixel = mmPerPixel;
 	}
 
-	bool isPinPoint() const
+	static double getDistanceOffset(void *object)
 	{
-		return pinPoint;
+		return static_cast<Image *>(object)->distanceOffset;
 	}
 
-	void setPinPoint(bool pinPoint)
+	static void setDistanceOffset(void *object, double z)
 	{
-		this->pinPoint = pinPoint;
+		static_cast<Image *>(object)->distanceOffset = z;
 	}
-   
+
     void setImageData(vector<int> newData);
     
     double getDetectorGain()

@@ -457,6 +457,12 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 				hasSpots = true;
 			}
 
+			if (components[0] == "distance_offset")
+			{
+				float offset = atof(components[1].c_str());
+				Image::setDistanceOffset(&*newImage, offset);
+			}
+
 			if (components[0] == "crystal")
 			{
 				currentCrystal = atoi(components[1].c_str());
@@ -1208,7 +1214,9 @@ void MtzRefiner::writeAllNewOrientations()
         std::string imageName = images[i]->getBasename();
         allMats << "image " << imageName << std::endl;
         
-        if (images[i]->getSpotsFile().length() > 0)
+		allMats << "distance_offset " << Image::getDistanceOffset(&*images[i]) << std::endl;
+
+		if (images[i]->getSpotsFile().length() > 0)
         {
             allMats << "spots " << images[i]->getSpotsFile() << std::endl;
         }

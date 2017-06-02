@@ -415,12 +415,13 @@ public:
     
     // MARK: Spot coord to absolute vec
     
-    DetectorPtr spotToAbsoluteVec(SpotPtr spot, vec *arrangedPos);
+    DetectorPtr spotToAbsoluteVec(SpotPtr spot, vec *arrangedPos,
+								  ImagePtr image = ImagePtr());
     
     /* If you know the detector panel,
      * you can call this to get the arranged position */
     void spotCoordToAbsoluteVec(double unarrangedX, double unarrangedY,
-                                vec *arrangedPos);
+                                vec *arrangedPos, ImagePtr image = ImagePtr());
     
     /* If you don't know the detector panel, find it using this function */
     DetectorPtr findDetectorPanelForSpotCoord(double xSpot, double ySpot);
@@ -435,12 +436,13 @@ public:
     // MARK: Absolute vec to spot coord
     
     /* If you know the detector panel, arranged position to unarranged */
-    void intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *ySpot);
+    void intersectionToSpotCoord(vec absoluteVec, double *xSpot, double *ySpot,
+								 ImagePtr image = ImagePtr());
     
     // MARK: ray trace to absolute vec
     
     DetectorPtr detectorForRayIntersection(vec ray, vec *intersection);
-    void intersectionWithRay(vec ray, vec *intersection);
+    void intersectionWithRay(vec ray, vec *intersection, ImagePtr image = ImagePtr());
     DetectorPtr spotCoordForMiller(MillerPtr miller, double *xSpot, double *ySpot);
     DetectorPtr intersectionForMiller(MillerPtr miller, vec *intersection);
 

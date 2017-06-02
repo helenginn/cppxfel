@@ -955,6 +955,7 @@ void FileParser::generateFunctionList()
 	parserMap["SPACE_GROUP"] = simpleInt;
 	parserMap["INTEGRATION_WAVELENGTH"] = simpleFloat;
 	parserMap["DETECTOR_DISTANCE"] = simpleFloat;
+	parserMap["REFINE_EACH_DETECTOR_DISTANCE"] = simpleBool;
     parserMap["BEAM_CENTRE"] = doubleVector;
     parserMap["MM_PER_PIXEL"] = simpleFloat;
     parserMap["DETECTOR_SIZE"] = doubleVector;

@@ -1904,6 +1904,7 @@ void MtzManager::refineOrientationMatrix(bool force)
 
 	int oldSearchSize = searchSize;
 	int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 3);
+	bool refineOffset = FileParser::getKey("REFINE_EACH_DETECTOR_DISTANCE", false);
 
 	// FIXME: read support for unit cell dimensions
 
@@ -1917,6 +1918,18 @@ void MtzManager::refineOrientationMatrix(bool force)
 		lStrategy->setJobName("Refining in-detector-plane angle for " + getFilename());
 		lStrategy->addParameter(this, getLRot, setLRot, initialStep, orientationTolerance, "lRot");
 		lStrategy->refine();
+
+		if (refineOffset)
+		{
+			lStrategy->clearParameters();
+			lStrategy->setJobName("Refining individual detector distance for " + getFilename());
+			lStrategy->addParameter(&*this->getImagePtr(), Image::getDistanceOffset, Image::setDistanceOffset, 1.0, 0.001, "distance_offset");
+			lStrategy->refine();
+
+			logged << "Detector distance offset for " << getBasename() << " is "
+			<< Image::getDistanceOffset(&*getImagePtr()) << " pixels." << std::endl;
+			sendLog();
+		}
 
 		searchSize = oldSearchSize;
 

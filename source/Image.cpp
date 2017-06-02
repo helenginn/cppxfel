@@ -80,6 +80,7 @@ Image::Image(std::string filename, double wavelength,
     
     maskedValue = 0;
     maskedUnderValue = 0;
+	distanceOffset = 0;
     useShortData = false;
     
     if (shouldMaskValue)
@@ -100,7 +101,6 @@ Image::Image(std::string filename, double wavelength,
 
     _hasSeeded = false;
 
-    pinPoint = true;
     int tempShoebox[7][7] =
     {
         { 1, 1, 1, 1, 1, 1, 1 },
@@ -2686,5 +2686,10 @@ void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
     }
     
     plotVectorsOnPNG(vecs);
+}
+
+void Image::augmentMidpoint(vec *arrangedPos)
+{
+	arrangedPos->l += distanceOffset;
 }
 

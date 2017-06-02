@@ -802,8 +802,8 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
     {
         detector = getDetector();
         vec intersection;
-        detector->intersectionWithRay(ray, &intersection);
-        detector->intersectionToSpotCoord(intersection, &xSpotPred, &ySpotPred);
+        detector->intersectionWithRay(ray, &intersection, getImage());
+        detector->intersectionToSpotCoord(intersection, &xSpotPred, &ySpotPred, getImage());
     }
     else
     {
