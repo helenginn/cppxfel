@@ -313,8 +313,13 @@ void InputFileParser::parse(bool fromPython)
                 understood = true;
                 refiner->takeTwoPNG();
             }
-            
-            
+
+			if (line == "FLATTEN_DETECTOR")
+			{
+				understood = true;
+				refiner->flattenDetector();
+			}
+
             if (!understood)
             {
                 log << "Skipping line " << line << std::endl;

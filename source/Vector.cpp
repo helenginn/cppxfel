@@ -180,6 +180,14 @@ vec copy_vector(vec old_vec)
 	return vec;
 }
 
+void closest_major_axis(vec &a_vec)
+{
+	a_vec.h = (int)((a_vec.h > 0) ? a_vec.h + 0.5 : a_vec.h - 0.5);
+	a_vec.k = (int)((a_vec.k > 0) ? a_vec.k + 0.5 : a_vec.k - 0.5);
+	a_vec.l = (int)((a_vec.l > 0) ? a_vec.l + 0.5 : a_vec.l - 0.5);
+
+}
+
 double cosineBetweenUnitVectors(vec vec1, vec vec2)
 {
     double dotProduct = vec1.h * vec2.h + vec1.k * vec2.k + vec1.l * vec2.l;

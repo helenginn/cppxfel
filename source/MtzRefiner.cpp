@@ -1542,6 +1542,15 @@ void MtzRefiner::refineUnitCell()
 	FileParser::setKey("FIX_UNIT_CELL", false);
 }
 
+// MARK: geometry
+
+void MtzRefiner::flattenDetector()
+{
+	loadImageFiles();
+
+	Detector::getMaster()->flattenDetector();
+}
+
 void MtzRefiner::refineMetrology(bool global)
 {
     loadImageFiles();

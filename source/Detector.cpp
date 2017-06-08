@@ -1728,6 +1728,38 @@ int Detector::spotCountFromImages(std::vector<ImagePtr> images, bool _delete)
 	return total;
 }
 
+void Detector::flattenDetector()
+{
+	for (int i = 0; i < childrenCount(); i++)
+	{
+		getChild(i)->flattenDetector();
+	}
+
+	if (!isLUCA())
+	{
+		arrangedMidPoint.l = 0;
+	}
+
+	closest_major_axis(slowDirection);
+	closest_major_axis(fastDirection);
+
+	changeOfBasisMat->setIdentity();
+	fixedBasis->setIdentity();
+
+	if (hasChildren())
+	{
+		workingBasisMat->setIdentity();
+		invWorkingBasisMat->setIdentity();
+	}
+
+	if (isLUCA())
+	{
+		rotateAxisRecursive(true);
+	}
+
+	mustUpdateMidPoint = true;
+}
+
 std::string toCrystFELAxis(vec axis)
 {
 	bool posH = (axis.h >= 0);

@@ -72,6 +72,7 @@ double bitty_deviation(vector<double> *values, vector<double> *weights);
 void printDesc(vec hkl);
 std::string desc(vec hkl);
 std::string prettyDesc(vec hkl);
+void closest_major_axis(vec &a_vec);
 
 double cartesian_to_distance(double x, double y);
 double cartesian_to_angle(double x, double y);

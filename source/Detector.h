@@ -446,6 +446,8 @@ public:
     DetectorPtr spotCoordForMiller(MillerPtr miller, double *xSpot, double *ySpot);
     DetectorPtr intersectionForMiller(MillerPtr miller, vec *intersection);
 
+	void flattenDetector();
+
 	/* Apply quick jump calculated by stdev miller score */
 
 	void quickJumpToOrigin();
