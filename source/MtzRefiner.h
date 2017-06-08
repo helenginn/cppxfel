@@ -79,7 +79,7 @@ public:
     void refreshCurrentPartialities();
     void maximumImage();
     static void maximumImageThread(MtzRefiner *me, ImagePtr maxImage, int offset);
-    
+
     static int getCycleNum()
     {
         return cycleNum;

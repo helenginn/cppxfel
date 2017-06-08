@@ -675,8 +675,8 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 		detector->prepareInterNudges();
 		strategy->setJobName(detector->getTag() + "_smart_ratio");
 		//strategy->addParameter(&*detector, Detector::getSmartTiltRatio, Detector::setSmartTiltRatio, 0.005, 0, "tilt_ratio");
-		strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX * 2, 0, "nudgetilt_x");
-		strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setSmartTiltY, nudgeTiltY * 2, 0, "nudgetilt_y");
+		strategy->addParameter(&*detector, Detector::getNudgeTiltX, Detector::setSmartTiltX, nudgeTiltX * 4, 0, "nudgetilt_x");
+		strategy->addParameter(&*detector, Detector::getNudgeTiltY, Detector::setSmartTiltY, nudgeTiltY * 4, 0, "nudgetilt_y");
 		strategy->setGridLength(11);
 		strategy->refine();
 		detector->prepareInterNudges();
