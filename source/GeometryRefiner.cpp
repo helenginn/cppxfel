@@ -319,7 +319,7 @@ void GeometryRefiner::refineGeometry()
 	Detector::getMaster()->getAllSubDetectors(allDetectors, true);
 	bool approximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", false);
 
-	if (hasMillers && approximate && false)
+	if (hasMillers && approximate)
 	{
 		// we need to search around for the peaks
 		addToQueue(allDetectors);
@@ -587,14 +587,14 @@ bool GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
 void GeometryRefiner::peakSearchDetector(DetectorPtr detector)
 {
 	int searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3);
-	int maxMovement = 50;
-	int gridLength = (double)maxMovement / (double)searchSize;
+	int maxMovement = 80;
+	int gridLength = 2 * (double)maxMovement / (double)searchSize;
 
 	RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypePeakSearch);
 	strategy->setGridLength(gridLength * 2);
 
-	strategy->addParameter(&*detector, Detector::getAddPixelOffsetX, Detector::setAddPixelOffsetX, searchSize, 0.1);
-	strategy->addParameter(&*detector, Detector::getAddPixelOffsetY, Detector::setAddPixelOffsetY, searchSize, 0.1);
+	strategy->addParameter(&*detector, Detector::getAddPixelOffsetX, Detector::setAddPixelOffsetX, searchSize / 2, 0.1);
+	strategy->addParameter(&*detector, Detector::getAddPixelOffsetY, Detector::setAddPixelOffsetY, searchSize / 2, 0.1);
 	strategy->setJobName(detector->getTag() + "_peaksearch");
 
 	strategy->refine();
