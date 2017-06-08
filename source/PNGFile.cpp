@@ -429,6 +429,11 @@ void PNGFile::drawArrow(float xDir, float yDir, float centreX, float centreY, fl
 
 	double magnitude = cartesian_to_distance(xDir, yDir);
 
+	if (magnitude > 5)
+	{
+		magnitude = 5;
+	}
+
 	MatrixPtr rot = MatrixPtr(new Matrix());
 	rot->rotate(0, 0, cartesian_to_angle(xDir, yDir));
 
