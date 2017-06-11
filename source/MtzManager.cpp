@@ -1914,9 +1914,9 @@ void MtzManager::refineOrientationMatrix(bool force)
 	bool refineUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
 	bool refineUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
 
-	int stepSizeUnitCellA = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.2);
-	int stepSizeUnitCellB = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.2);
-	int stepSizeUnitCellC = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.2);
+	double stepSizeUnitCellA = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.2);
+	double stepSizeUnitCellB = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.2);
+	double stepSizeUnitCellC = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.2);
 
 	bool refineCell = refineUnitCellA || refineUnitCellB || refineUnitCellC;
 
