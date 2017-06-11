@@ -822,9 +822,7 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
     
     if (refocus)
     {
-        int search = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3);
-        
-		search = getMtzParent()->getSearchSize();
+		int search = getMtzParent()->getSearchSize();
 
         if (search > 0)
         {
@@ -832,8 +830,16 @@ void Miller::positionOnDetector(double *x, double *y, bool shouldSearch)
 
 			if (!detector->spotCoordWithinBounds(xVal, yVal))
 			{
-				*x = -1;
-				*y = -1;
+				if (x != NULL)
+				{
+					*x = -1;
+				}
+
+				if (y != NULL)
+				{
+					*y = -1;
+				}
+				
 				return;
 			}
 
