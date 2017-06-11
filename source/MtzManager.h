@@ -529,6 +529,43 @@ public:
         static_cast<MtzManager *>(object)->setExponent(newExponent);
     }
 
+
+	static double getUnitCellAStatic(void *object)
+	{
+		MtzManager *mtz = static_cast<MtzManager *>(object);
+		double unitCellVal = mtz->getUnitCell()[0];
+		return unitCellVal;
+	}
+
+	static void setUnitCellAStatic(void *object, double newDim)
+	{
+		static_cast<MtzManager *>(object)->_unitCell[0] = newDim;
+	}
+
+	static double getUnitCellBStatic(void *object)
+	{
+		MtzManager *mtz = static_cast<MtzManager *>(object);
+		double unitCellVal = mtz->getUnitCell()[1];
+		return unitCellVal;
+	}
+
+	static void setUnitCellBStatic(void *object, double newDim)
+	{
+		static_cast<MtzManager *>(object)->_unitCell[1] = newDim;
+	}
+
+	static double getUnitCellCStatic(void *object)
+	{
+		MtzManager *mtz = static_cast<MtzManager *>(object);
+		double unitCellVal = mtz->getUnitCell()[2];
+		return unitCellVal;
+	}
+
+	static void setUnitCellCStatic(void *object, double newDim)
+	{
+		static_cast<MtzManager *>(object)->_unitCell[2] = newDim;
+	}
+
     ImagePtr getImagePtr()
     {
         return image.lock();

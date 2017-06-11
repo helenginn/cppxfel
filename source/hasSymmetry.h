@@ -11,11 +11,12 @@
 
 #include "csymlib.h"
 #include "FileParser.h"
+
 using namespace CSym;
 
 class hasSymmetry
 {
-private:
+protected:
 	std::vector<double> _unitCell;
 	CCP4SPG *_spaceGroup;
 
@@ -94,36 +95,6 @@ public:
 
 		logged << _unitCell[5] << ")";
 		return logged.str();
-	}
-
-	static double getUnitCellAStatic(void *object)
-	{
-		return static_cast<hasSymmetry *>(object)->_unitCell[0];
-	}
-
-	static void setUnitCellAStatic(void *object, double newDim)
-	{
-		static_cast<hasSymmetry *>(object)->_unitCell[0] = newDim;
-	}
-
-	static double getUnitCellBStatic(void *object)
-	{
-		return static_cast<hasSymmetry *>(object)->_unitCell[1];
-	}
-
-	static void setUnitCellBStatic(void *object, double newDim)
-	{
-		static_cast<hasSymmetry *>(object)->_unitCell[1] = newDim;
-	}
-
-	static double getUnitCellCStatic(void *object)
-	{
-		return static_cast<hasSymmetry *>(object)->_unitCell[2];
-	}
-
-	static void setUnitCellCStatic(void *object, double newDim)
-	{
-		static_cast<hasSymmetry *>(object)->_unitCell[2] = newDim;
 	}
 
 

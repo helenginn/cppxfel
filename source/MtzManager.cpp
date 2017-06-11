@@ -1589,6 +1589,10 @@ void MtzManager::checkNearbyMillers()
 
 void MtzManager::integrateChosenMillers(bool quick)
 {
+	std::vector<double> unitCell = this->getUnitCell();
+	MatrixPtr newMat = Matrix::matrixFromUnitCell(unitCell);
+	matrix->setUnitCell(newMat);
+
 	Miller::rotateMatrixHKL(hRot, kRot, lRot, matrix, &rotatedMatrix);
 
 	for (int i = 0; i < reflectionCount(); i++)
@@ -1906,6 +1910,12 @@ void MtzManager::refineOrientationMatrix(bool force)
 	int bigSize = FileParser::getKey("METROLOGY_SEARCH_SIZE_BIG", 3);
 	bool refineOffset = FileParser::getKey("REFINE_EACH_DETECTOR_DISTANCE", false);
 
+	bool refineUnitCellA = FileParser::getKey("OPTIMISING_UNIT_CELL_A", false);
+	bool refineUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
+	bool refineUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
+
+	bool refineCell = refineUnitCellA || refineUnitCellB || refineUnitCellC;
+
 	// FIXME: read support for unit cell dimensions
 
 	searchSize = oldSearchSize + bigSize;
@@ -1922,6 +1932,26 @@ void MtzManager::refineOrientationMatrix(bool force)
 		{
 			lStrategy->setJobName("Refining in-detector-plane angle & distance offset for " + getFilename());
 			lStrategy->addParameter(&*this->getImagePtr(), Image::getDistanceOffset, Image::setDistanceOffset, 1.0, 0.001, "distance_offset");
+		}
+
+		if (refineCell)
+		{
+			if (refineUnitCellA)
+			{
+				logged << "Adding unit cell A" << std::endl;
+				sendLog(LogLevelDebug);
+				lStrategy->addParameter(this, getUnitCellAStatic, setUnitCellAStatic, 0.2, 0.001, "unit_cell_a");
+			}
+
+			if (refineUnitCellB)
+			{
+				lStrategy->addParameter(this, getUnitCellBStatic, setUnitCellBStatic, 0.2, 0.001, "unit_cell_b");
+			}
+
+			if (refineUnitCellC)
+			{
+				lStrategy->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, 0.2, 0.001, "unit_cell_c");
+			}
 		}
 
 		lStrategy->refine();
