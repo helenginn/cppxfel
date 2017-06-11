@@ -168,7 +168,7 @@ bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVector
 
 					double degrees = expectedAngle * 180 / M_PI;
 
-					if (degrees < 2.5 || degrees > 180 - 2.5)
+					if (degrees < 5.0 || degrees > 180 - 5.0)
 					{
 						continue;
 					}
