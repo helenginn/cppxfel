@@ -1914,6 +1914,10 @@ void MtzManager::refineOrientationMatrix(bool force)
 	bool refineUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
 	bool refineUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
 
+	int stepSizeUnitCellA = FileParser::getKey("STEP_SIZE_UNIT_CELL_A", 0.2);
+	int stepSizeUnitCellB = FileParser::getKey("STEP_SIZE_UNIT_CELL_B", 0.2);
+	int stepSizeUnitCellC = FileParser::getKey("STEP_SIZE_UNIT_CELL_C", 0.2);
+
 	bool refineCell = refineUnitCellA || refineUnitCellB || refineUnitCellC;
 
 	// FIXME: read support for unit cell dimensions
@@ -1938,19 +1942,17 @@ void MtzManager::refineOrientationMatrix(bool force)
 		{
 			if (refineUnitCellA)
 			{
-				logged << "Adding unit cell A" << std::endl;
-				sendLog(LogLevelDebug);
-				lStrategy->addParameter(this, getUnitCellAStatic, setUnitCellAStatic, 0.2, 0.001, "unit_cell_a");
+				lStrategy->addParameter(this, getUnitCellAStatic, setUnitCellAStatic, stepSizeUnitCellA, 0.001, "unit_cell_a");
 			}
 
 			if (refineUnitCellB)
 			{
-				lStrategy->addParameter(this, getUnitCellBStatic, setUnitCellBStatic, 0.2, 0.001, "unit_cell_b");
+				lStrategy->addParameter(this, getUnitCellBStatic, setUnitCellBStatic, stepSizeUnitCellB, 0.001, "unit_cell_b");
 			}
 
 			if (refineUnitCellC)
 			{
-				lStrategy->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, 0.2, 0.001, "unit_cell_c");
+				lStrategy->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, stepSizeUnitCellC, 0.001, "unit_cell_c");
 			}
 		}
 
