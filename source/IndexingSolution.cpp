@@ -166,7 +166,7 @@ bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVector
                 {
                     double expectedAngle = uniqueSymVector(i)->angleWithVector(standardVector(j));
 
-					if (expectedAngle < 2.0 * M_PI / 180)
+					if (expectedAngle < 5.0 * M_PI / 180)
 					{
 						continue;
 					}
