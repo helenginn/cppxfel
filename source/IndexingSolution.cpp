@@ -165,7 +165,12 @@ bool IndexingSolution::vectorMatchesVector(SpotVectorPtr firstVector, SpotVector
                 if (secondVectorTrust > secondTolerance)
                 {
                     double expectedAngle = uniqueSymVector(i)->angleWithVector(standardVector(j));
-                    
+
+					if (expectedAngle < 2.0 * M_PI / 180)
+					{
+						continue;
+					}
+
                     double difference = fabs(realAngle - expectedAngle);
                     
                     if (difference < angleTolerance)
