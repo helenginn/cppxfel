@@ -2662,7 +2662,7 @@ void Image::plotVectorsOnPNG(std::vector<SpotVectorPtr> vectors, std::string aFi
 
 void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
 {
-    std::vector<SpotVectorPtr> vecs;
+    std::vector<SpotVectorPtr> vecs, badVecs;
     
     for (int i = 0; i < images.size(); i++)
     {
@@ -2684,8 +2684,24 @@ void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
             }
         }
     }
-    
+
+	for (int i = 0; i < badSolutions.size(); i++)
+	{
+		SpotVectorMap::iterator it = badSolutions[i]->spotVectors.begin();
+
+		for (int k = 0; k < badSolutions[i]->spotVectorCount(); k++)
+		{
+			SpotVectorPtr spotVec = it->first;
+			badVecs.push_back(spotVec);
+			it++;
+		}
+	}
+
     plotVectorsOnPNG(vecs);
+
+	std::string badFile = getBasename() + "_badvec.png";
+
+	plotVectorsOnPNG(badVecs, badFile);
 }
 
 void Image::augmentMidpoint(vec *arrangedPos)
