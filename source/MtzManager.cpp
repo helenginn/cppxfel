@@ -1774,9 +1774,9 @@ double MtzManager::lScore(bool silent)
 			if (miller->reachesThreshold())
 			{
 				std::pair<double, double> shift = miller->getShift();
-				double shiftDistance = sqrt(pow(shift.first, 2) + pow(shift.second, 2));
+				double shiftDistance = pow(shift.first, 2) + pow(shift.second, 2);
 
-				averageShift += shiftDistance;
+				averageShift -= Detector::lookupCache(shiftDistance);
 				count++;
 			}
 		}
