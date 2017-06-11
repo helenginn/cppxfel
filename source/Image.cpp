@@ -1798,6 +1798,7 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
 	if (similar)
 	{
 		removeCrystal(lastMtz);
+		solutionPtr->removeSpotVectors(&spotVectors);
 
 		badSolutions.push_back(solutionPtr);
 		logged << "Indexing solution too similar to previous solution after refinement. Continuing..." << std::endl;
@@ -1852,6 +1853,8 @@ IndexingSolutionStatus Image::tryIndexingSolution(IndexingSolutionPtr solutionPt
     if (status != IndexingSolutionTrialSuccess && modStatus != IndexingSolutionTrialSuccess && !acceptAllSolutions)
     {
         badSolutions.push_back(solutionPtr);
+		logged << "Bad solution for " << getBasename() << std::endl;
+		sendLog();
         indexingFailureCount++;
         return status;
     }
@@ -2682,20 +2685,21 @@ void Image::plotTakeTwoVectors(std::vector<ImagePtr> images)
                 vecs.push_back(spotVec);
                 it++;
             }
+
+			for (int j = 0; j < images[i]->badSolutions.size(); j++)
+			{
+				SpotVectorMap::iterator it = images[i]->badSolutions[j]->spotVectors.begin();
+
+				for (int k = 0; k < images[i]->badSolutions[j]->spotVectorCount(); k++)
+				{
+					SpotVectorPtr spotVec = it->first;
+					badVecs.push_back(spotVec);
+					it++;
+				}
+			}
         }
     }
 
-	for (int i = 0; i < badSolutions.size(); i++)
-	{
-		SpotVectorMap::iterator it = badSolutions[i]->spotVectors.begin();
-
-		for (int k = 0; k < badSolutions[i]->spotVectorCount(); k++)
-		{
-			SpotVectorPtr spotVec = it->first;
-			badVecs.push_back(spotVec);
-			it++;
-		}
-	}
 
     plotVectorsOnPNG(vecs);
 
