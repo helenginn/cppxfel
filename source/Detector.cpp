@@ -1286,13 +1286,21 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
         
     if (ascii)
     {
+		bool approximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", true);
+
         double edge = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3) + 0.5;
         
         if (!stdev)
         {
             edge = 5 * GOOD_GEOMETRY_RLP_SIZE;
-        }
-        
+		}
+
+		if (approximate)
+		{
+			edge *= 3;
+		}
+
+
         if (number < 0)
         {
             logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;
