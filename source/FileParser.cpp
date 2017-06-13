@@ -452,7 +452,7 @@ void FileParser::generateCodeList()
         CodeMap codeMap;
         codeMap["rfactor"] = 0;
         codeMap["correl"] = 1;
-        codeMap["part"] = 2;
+        codeMap["reward"] = 2;
         codeMap["r+int"] = 11;
         codeMaps["DEFAULT_TARGET_FUNCTION"] = codeMap;
     }

@@ -204,15 +204,8 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 				&& reflections1[i]->getResolution() < invHigh))
 			continue;
         
-        double weight =
-        useSigmaOne ?
-        1 / reflections1[i]->meanSigma() :
-        reflections1[i]->meanPartiality();
-        
-        weight *=
-        useSigmaTwo ?
-        1 / reflections2[i]->meanSigma() :
-        reflections2[i]->meanPartiality();
+        double weight = reflections1[i]->meanPartiality();
+        weight *= reflections2[i]->meanPartiality();
 
         if (weight < 0)
             continue;
@@ -249,14 +242,8 @@ double StatisticsManager::cc_pearson(MtzManager *shot1, MtzManager *shot2,
 		double amp_x = reflections1[i]->meanIntensity();
 		double amp_y = reflections2[i]->meanIntensity();
 
-		double weight =
-				useSigmaOne ?
-						1 / reflections1[i]->meanSigma() :
-						reflections1[i]->meanPartiality();
-		weight *=
-				useSigmaTwo ?
-						1 / reflections2[i]->meanSigma() :
-						reflections2[i]->meanPartiality();
+		double weight = reflections1[i]->meanPartiality();
+		weight *= reflections2[i]->meanPartiality();
 
         if (weight < 0)
             continue;
@@ -341,7 +328,7 @@ double StatisticsManager::r_factor(RFactorType rFactor, MtzManager *shot1, int *
 				continue;
 
 			double mean_i = reflection->meanIntensity();
-			double weight = reflection->meanPartiality() / reflection->meanSigma();
+			double weight = reflection->meanPartiality();
 
             weight = 1;
             

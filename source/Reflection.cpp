@@ -563,7 +563,7 @@ double Reflection::meanSigma()
         
         if (miller->accepted())
         {
-            total_sigi += miller->getSigma();
+            total_sigi += miller->getCountingSigma();
             count++;
         }
     }
@@ -571,6 +571,11 @@ double Reflection::meanSigma()
     total_sigi /= count;
     
     return total_sigi;
+}
+
+double Reflection::signalToNoise()
+{
+	return meanIntensity() / meanSigma();
 }
 
 void Reflection::calculateResolution(MtzManager *mtz)

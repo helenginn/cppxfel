@@ -1379,6 +1379,8 @@ void MtzRefiner::index()
         indexManager = new IndexManager(images);
     
     indexManager->index();
+
+	takeTwoPNG();
     
     writeNewOrientations(false, true);
     integrationSummary();

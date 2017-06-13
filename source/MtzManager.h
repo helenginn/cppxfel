@@ -22,8 +22,8 @@ typedef enum
 {
 	ScoreTypeMinimizeRSplit = 0,
 	ScoreTypeCorrelation = 1,
+	ScoreTypeReward = 2,
     ScoreTypeSymmetry = 8,
-    ScoreTypeMinimizeRMeas = 10,
     ScoreTypeRSplitIntensity = 11,
 } ScoreType;
 
@@ -245,6 +245,7 @@ public:
     double leastSquaresPartiality(double low = 0, double high = 0);
     double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
 	double rSplit(double low, double high);
+	double rewardAgreement(double low, double high);
 	std::string describeScoreType();
     double refinePartialitiesOrientation(int ambiguity, bool reset = true);
     
@@ -468,7 +469,17 @@ public:
         rotatedMatrix = matrix->copy();
         rotatedMatrix->rotate(hRot * M_PI / 180, kRot * M_PI / 180, 0);
     }
-    
+
+	static double getScaleStatic(void *object)
+	{
+		return static_cast<MtzManager *>(object)->scale;
+	}
+
+	static void setScaleStatic(void *object, double newScale)
+	{
+		static_cast<MtzManager *>(object)->setScale(newScale);
+	}
+
     static double getHRot(void *object)
     {
         return static_cast<MtzManager *>(object)->hRot;

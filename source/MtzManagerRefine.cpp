@@ -42,6 +42,8 @@ void MtzManager::addParameters(RefinementStrategyPtr refiner)
 	bool optimisingUnitCellB = FileParser::getKey("OPTIMISING_UNIT_CELL_B", false);
 	bool optimisingUnitCellC = FileParser::getKey("OPTIMISING_UNIT_CELL_C", false);
 
+	int function = FileParser::getKey("DEFAULT_TARGET_FUNCTION", 0);
+	ScoreType scoreFunc = (ScoreType)function;
 
     if (optimisingOrientation)
     {
@@ -74,6 +76,11 @@ void MtzManager::addParameters(RefinementStrategyPtr refiner)
 		refiner->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, stepSizeUnitCellC, 0, "unitCellC");
 	}
 
+	if (scoreFunc == ScoreTypeReward)
+	{
+		double scale = getScale();
+	//	refiner->addParameter(this, getScaleStatic, setScaleStatic, scale * 0.25, 0.01, "scale");
+	}
 
     // delete me later
 
@@ -98,9 +105,15 @@ double MtzManager::refinePartialitiesOrientation(int ambiguity, bool reset)
     this->setActiveAmbiguity(ambiguity);
 	scoreType = defaultScoreType;
 
+	if (defaultScoreType == ScoreTypeReward)
+	{
+		scaleToMtz(&*referenceManager);
+	}
+
 	refineParameterScore(this);
     
 	RefinementStrategyPtr refinementMap = RefinementStrategy::userChosenStrategy();
+	//refinementMap->setVerbose(true);
 
 	if (wavelength == 0)
 	{
@@ -237,9 +250,9 @@ void MtzManager::refreshPartialities(double hRot, double kRot, double mosaicity,
 		}
 	}
     
-    logged << "Refreshed partialities with wavelength " << wavelength << ", spot size " << spotSize << " to generate " << accepted() << " accepted reflections." << std::endl;
+  //  logged << "Refreshed partialities with wavelength " << wavelength << ", spot size " << spotSize << " to generate " << accepted() << " accepted reflections." << std::endl;
 
-    sendLog(LogLevelDebug);
+   // sendLog(LogLevelDebug);
 }
 
 static bool greaterThan(double num1, double num2)
@@ -544,15 +557,93 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
 
 		return rSplit / logIntensity;
 	}
-	else if (scoreType == ScoreTypeMinimizeRMeas)
+	else if (scoreType == ScoreTypeReward)
 	{
-		double rSplit = mtz->rSplit(lowRes, highRes);
-		return rSplit;
+		double reward = mtz->rewardAgreement(lowRes, highRes);
+		return reward;
 	}
 	else
 	{
 		return mtz->rSplit(lowRes, highRes);
 	}
+}
+
+double MtzManager::rewardAgreement(double low, double high)
+{
+	double reward = 0;
+
+	if (referenceManager == NULL)
+	{
+		return 0;
+	}
+
+	scaleToMtz(&*referenceManager);
+
+	vector<ReflectionPtr> referenceRefs;
+	vector<ReflectionPtr> imageRefs;
+
+	this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true, true);
+
+	for (int i = 0; i < referenceRefs.size(); i++)
+	{
+		ReflectionPtr referenceRef = referenceRefs[i];
+		ReflectionPtr imageRef = imageRefs[i];
+
+		if (imageRef->acceptedCount() == 0)
+			continue;
+
+		if (referenceRef->millerCount() == 0)
+			continue;
+
+		if (imageRef->miller(0)->isFree())
+			continue;
+
+		if (!referenceRef->betweenResolutions(low, high))
+			continue;
+
+		for (int j = 0; j < imageRef->millerCount(); j++)
+		{
+			if (!imageRef->miller(j)->accepted())
+			{
+				continue;
+			}
+
+			double myInt = 0;
+			double refInt = 0;
+			double refSigma = 0;
+			double weight = 0;
+
+			myInt = imageRef->miller(j)->getRawIntensity();
+			refInt = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
+			refSigma = referenceRef->meanSigma() / imageRef->miller(j)->getPartiality();
+			weight = referenceRef->meanIntensity() * imageRef->meanPartiality();
+
+			if (myInt == 0 || refInt == 0 || weight != weight || refSigma != refSigma)
+			{
+				continue;
+			}
+
+			if (myInt != myInt || refInt != refInt)
+				continue;
+
+			double val = normal_distribution(myInt, refInt, refSigma);
+			val /= normal_distribution(refInt, refInt, refSigma);
+/*
+			if (weight > 0.1)
+			{
+				logged << myInt << ", " << refInt << ", " << refSigma << ", " << " = " << val << std::endl;
+			}
+*/
+			double contribution = val;// / maxVal;
+			contribution *= weight;
+
+		//	logged << contribution << ", ";
+
+			reward += contribution;
+		}
+	}
+
+	return -reward;
 }
 
 double MtzManager::rSplit(double low, double high)

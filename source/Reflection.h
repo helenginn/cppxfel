@@ -74,6 +74,7 @@ public:
 
 	double meanIntensityWithExclusion(std::string *filename, int start = 0, int end = 0);
 	double meanIntensity(bool withCutoff = true, int start = 0, int end = 0);
+	double signalToNoise();
 	double meanSigma();
 	double meanSigma(bool friedel);
 	double meanPartiality(bool withCutoff = true);

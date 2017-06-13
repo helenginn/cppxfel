@@ -49,8 +49,8 @@ std::string MtzManager::describeScoreType()
             return std::string("correl");
         case ScoreTypeMinimizeRSplit:
             return std::string("rfactor");
-        case ScoreTypeMinimizeRMeas:
-            return std::string("rmeas");
+        case ScoreTypeReward:
+            return std::string("reward");
         case ScoreTypeRSplitIntensity:
             return std::string("r+int");
         default:
@@ -202,7 +202,9 @@ MtzManager::MtzManager()
     exponent = INITIAL_EXPONENT;
     scoreType = ScoreTypeCorrelation;
     trust = TrustLevelBad;
-    maxResolutionAll = MAX_OPTIMISATION_RESOLUTION;
+	maxResolutionAll = FileParser::getKey("MAX_REFINED_RESOLUTION",
+										  MAX_OPTIMISATION_RESOLUTION);
+	minResolutionAll = FileParser::getKey("MIN_REFINED_RESOLUTION", 0.);
     defaultScoreType = DEFAULT_SCORE_TYPE;
     rejected = false;
     scale = 1;
@@ -1421,7 +1423,7 @@ void MtzManager::calculateNearbyMillers()
 	rotatedMatrix->maxMillers(maxMillers, maxResolutionAll);
 
 	logged << "Integrating to maximum Miller indices: (" << maxMillers[0]
-	<< ", " << maxMillers[1] << ", " << maxMillers[2] << ")" << std::endl;
+	<< ", " << maxMillers[1] << ", " << maxMillers[2] << ") to resolution " << maxResolutionAll << " Å." << std::endl;
 
 	int overRes = 0;
 	int underRes = 0;
