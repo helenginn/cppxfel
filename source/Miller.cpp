@@ -1099,7 +1099,7 @@ bool Miller::reachesThreshold()
 	}
 
     double iSigI = getRawIntensity() / getCountingSigma();
-    
+
     return (iSigI > intensityThreshold);
 }
 

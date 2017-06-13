@@ -1000,9 +1000,9 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
 
     double backgroundInForeground = aveBackground * (double) foreNum;
     
-    double totalSigmaForForeground = sqrt(foreground);
-    double backgroundSigmaInForeground = averageSigmaForBackground * (double)foreNum;
-    *error = backgroundSigmaInForeground + totalSigmaForForeground;
+    double totalSigmaForForeground = sqrt(fabs(foreground));
+   // double backgroundSigmaInForeground = averageSigmaForBackground * (double)foreNum;
+    *error = totalSigmaForForeground;
     
     double intensity = (foreground - backgroundInForeground);
     
