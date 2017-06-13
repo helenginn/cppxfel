@@ -587,14 +587,14 @@ bool GeometryRefiner::refineDetectorStrategy(DetectorPtr detector, GeometryScore
 void GeometryRefiner::peakSearchDetector(DetectorPtr detector)
 {
 	int searchSize = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3);
-	int maxMovement = 80;
-	int gridLength = 2 * (double)maxMovement / (double)searchSize;
+	int maxMovement = 50;
+	int gridLength = 3 * (double)maxMovement / (double)searchSize;
 
 	RefinementGridSearchPtr strategy = makeGridRefiner(detector, GeometryScoreTypePeakSearch);
 	strategy->setGridLength(gridLength * 2);
 
-	strategy->addParameter(&*detector, Detector::getAddPixelOffsetX, Detector::setAddPixelOffsetX, searchSize / 2, 0.1);
-	strategy->addParameter(&*detector, Detector::getAddPixelOffsetY, Detector::setAddPixelOffsetY, searchSize / 2, 0.1);
+	strategy->addParameter(&*detector, Detector::getAddPixelOffsetX, Detector::setAddPixelOffsetX, searchSize / 3, 0.1);
+	strategy->addParameter(&*detector, Detector::getAddPixelOffsetY, Detector::setAddPixelOffsetY, searchSize / 3, 0.1);
 	strategy->setJobName(detector->getTag() + "_peaksearch");
 
 	strategy->refine();
@@ -619,8 +619,8 @@ bool GeometryRefiner::interPanelGridSearch(DetectorPtr detector, GeometryScoreTy
 		strategy->setJobName(detector->getTag() + "_miller_" + i_to_str(rand() % 10000));
 		strategy->setEvaluationFunction(Detector::millerScoreWrapper, &*detector);
 		strategy->setFinishFunction(NULL);
-		strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge / nudgeStep * 3.0, 0, "internudge_x");
-		strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge / nudgeStep * 3.0, 0, "internudge_y");
+		strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge / nudgeStep * 5.0, 0, "internudge_x");
+		strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge / nudgeStep * 5.0, 0, "internudge_y");
 		strategy->setGridLength(101);
 	}
 	else
@@ -669,7 +669,7 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 		changeHappened = (strategy->didChange() || changeHappened);
 	}
 
-	if (solutionApproximate)
+	if (false && solutionApproximate)
 	{
 		RefinementGridSearchPtr strategy = makeGridRefiner(detector, type);
 		detector->prepareInterNudges();
