@@ -1300,7 +1300,6 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
 			edge *= 3;
 		}
 
-
         if (number < 0)
         {
             logged << std::endl << "ASCII plot of coordinates for " << getTag() << std::endl;

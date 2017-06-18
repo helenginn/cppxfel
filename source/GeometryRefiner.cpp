@@ -458,6 +458,7 @@ void GeometryRefiner::addToQueue(DetectorPtr det)
 	refineQueue.push_back(det);
 	det->setCycleNum(det->getCycleNum() + 1);
 
+	logged << "Adding " << det->getTag() << " back to the queue for cycle " << det->getCycleNum() << "." << std::endl;
 	logged << "Queue has " << refineQueue.size() << " detectors left." << std::endl;
 	sendLog();
 }
@@ -506,7 +507,7 @@ void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, Geometr
 
 void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, int offset, GeometryScoreType type, int strategyType)
 {
-	int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 24);
+	int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 0);
 
 	while (true)
 	{
@@ -521,15 +522,15 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, int offset, Geo
 
 		if (!finished)
 		{
-			det->setCycleNum(det->getCycleNum() + 1);
-
-			if (det->getCycleNum() < maxCycles && maxCycles != 0)
+			if ((det->getCycleNum() < maxCycles && maxCycles != 0 &&
+				type == GeometryScoreTypeIntraMiller) ||
+				(type != GeometryScoreTypeIntraMiller))
 			{
 				me->addToQueue(det);
 			}
 			else
 			{
-				me->logged << "Reached MAXIMUM_CYCLES for detector " << det->getTag() << "!" << std::endl;
+				me->logged << "Finished detector (reached MAXIMUM_CYCLES) for " << det->getTag() << "!" << std::endl;
 				me->sendLog();
 
 				det->setCycleNum(0);
@@ -537,7 +538,7 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, int offset, Geo
 		}
 		else if (det->isRefinable(type))
 		{
-			me->logged << "Finished detector " << det->getTag() << "!" << std::endl;
+			me->logged << "Finished detector (natural ending) " << det->getTag() << "!" << std::endl;
 			me->sendLog();
 			det->setCycleNum(0);
 		}
@@ -723,9 +724,9 @@ bool GeometryRefiner::interPanelMillerSearch(DetectorPtr detector, GeometryScore
 	{
 	//	detector->quickJumpToOrigin();
 
-		strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge, 0, "internudge_x");
-		strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge, 0, "internudge_y");
-		strategy->addParameter(&*detector, Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge, 0, "internudge_z");
+		strategy->addParameter(&*detector, Detector::getInterNudgeX, Detector::setInterNudgeX, interNudge * 2, 0, "internudge_x");
+		strategy->addParameter(&*detector, Detector::getInterNudgeY, Detector::setInterNudgeY, interNudge * 2, 0, "internudge_y");
+		strategy->addParameter(&*detector, Detector::getInterNudgeZ, Detector::setInterNudgeZ, interNudge * 2, 0, "internudge_z");
 	}
 	else
 	{
