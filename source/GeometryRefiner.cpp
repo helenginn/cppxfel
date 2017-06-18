@@ -279,8 +279,6 @@ void GeometryRefiner::refineGeometry()
     std::vector<DetectorPtr> detectors;
     detectors.push_back(Detector::getMaster());
     
-    int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
-    
 	std::vector<double> sweepDetectorDistance = FileParser::getKey("SWEEP_DETECTOR_DISTANCE", std::vector<double>());
     
     if (sweepDetectorDistance.size() >= 2)
@@ -346,11 +344,8 @@ void GeometryRefiner::refineGeometry()
 
 	intraPanelCycle();
 
-	for (int i = 0; i < maxCycles; i++)
-    {
-        cycleNum++;
-		interPanelCycle();
-    }
+	cycleNum++;
+	interPanelCycle();
 
 	refineBeamCentre();
 /*
@@ -511,6 +506,8 @@ void GeometryRefiner::refineDetectorStrategyWrapper(GeometryRefiner *me, Geometr
 
 void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, int offset, GeometryScoreType type, int strategyType)
 {
+	int maxCycles = FileParser::getKey("MAXIMUM_CYCLES", 24);
+
 	while (true)
 	{
 		DetectorPtr det = me->getNextDetector();
@@ -524,12 +521,25 @@ void GeometryRefiner::refineDetectorWrapper(GeometryRefiner *me, int offset, Geo
 
 		if (!finished)
 		{
-			me->addToQueue(det);
+			det->setCycleNum(det->getCycleNum() + 1);
+
+			if (det->getCycleNum() < maxCycles && maxCycles != 0)
+			{
+				me->addToQueue(det);
+			}
+			else
+			{
+				me->logged << "Reached MAXIMUM_CYCLES for detector " << det->getTag() << "!" << std::endl;
+				me->sendLog();
+
+				det->setCycleNum(0);
+			}
 		}
 		else if (det->isRefinable(type))
 		{
 			me->logged << "Finished detector " << det->getTag() << "!" << std::endl;
 			me->sendLog();
+			det->setCycleNum(0);
 		}
 	}
 }
