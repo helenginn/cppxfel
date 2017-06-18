@@ -1211,7 +1211,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
 
     if (!stdev)
     {
-        maxSqr = 5 * GOOD_GEOMETRY_RLP_SIZE;
+        maxSqr = 5.0 * GOOD_GEOMETRY_RLP_SIZE;
         maxSqr *= maxSqr;
     }
     
@@ -1286,7 +1286,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
         
     if (ascii)
     {
-		bool approximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", true);
+		bool approximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", false);
 
         double edge = FileParser::getKey("METROLOGY_SEARCH_SIZE", 3) + 0.5;
         
