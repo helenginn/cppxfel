@@ -615,7 +615,7 @@ double MtzManager::rewardAgreement(double low, double high)
 
 			myInt = imageRef->miller(j)->getRawIntensity();
 			refInt = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
-			refSigma = referenceRef->meanSigma() / imageRef->miller(j)->getPartiality();
+			refSigma = referenceRef->meanSigma();
 			weight = referenceRef->meanIntensity() * imageRef->meanPartiality();
 
 			if (myInt == 0 || refInt == 0 || weight != weight || refSigma != refSigma)

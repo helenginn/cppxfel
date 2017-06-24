@@ -847,7 +847,7 @@ public:
     void setRefinable(bool refinable)
     {
         _refinable = refinable;
-        logged << "Setting " << getTag() << " panel to " << (refinable ? "refineable" : "fixed") << std::endl;
+        logged << "Setting " << getTag() << " panel to " << (refinable ? "refinable" : "fixed") << std::endl;
         sendLog();
     }
 };

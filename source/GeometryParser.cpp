@@ -212,7 +212,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
                     if (Detector::getMaster())
                     {
                         parent = detectorStack[detectorStack.size() - 1];
-                        parent->setRefinable(true);
+                        //parent->setRefinable(true);
                     }
                     
                     std::string tag = panelStack[panelStack.size() - 1];

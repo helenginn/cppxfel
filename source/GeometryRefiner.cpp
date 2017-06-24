@@ -786,6 +786,8 @@ bool GeometryRefiner::refineBeamCentre(DetectorPtr detector)
 	gridSearch->refine();
 	_changed = true;
 
+	reportProgress();
+
 	return gridSearch->didChange();
 }
 

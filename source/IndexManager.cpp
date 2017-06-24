@@ -126,6 +126,11 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 				continue;
 			}
 
+			if (scoreType == PseudoScoreTypeBeamCentre && !vec1->usesBeamCentre())
+			{
+				continue;
+			}
+
 			for (int k = 0; k < j; k++)
 			{
 				SpotVectorPtr vec2 = images[i]->spotVector(k);
@@ -138,7 +143,8 @@ CSVPtr IndexManager::pseudoAnglePDB(bool writePost)
 				vec2->calculateDistance();
 
 				SpotVectorPtr vec3 = vec1->completeTriangleWith(vec2);
-				if (vec3->originalDistanceLessThan(angleDistance))
+				if (scoreType != PseudoScoreTypeBeamCentre &&
+					vec3->originalDistanceLessThan(angleDistance))
 				{
 					continue;
 				}

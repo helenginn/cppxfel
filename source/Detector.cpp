@@ -1539,12 +1539,20 @@ void Detector::getAllSubDetectors(std::vector<DetectorPtr> &array, bool children
 			return;
 		}
 
+		bool anyRefinable = false;
+
 		for (int i = 0; i < childrenCount(); i++)
 		{
 			if (getChild(i)->isSetRefinable())
 			{
-				return;
+				anyRefinable = true;
 			}
+		}
+
+		if ((!isSetRefinable() && !anyRefinable) ||
+			(isSetRefinable() && anyRefinable))
+		{
+			return;
 		}
     }
     
