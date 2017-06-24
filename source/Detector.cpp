@@ -29,8 +29,6 @@ std::mutex Detector::setupMutex;
 double Detector::cacheStep = 0;
 std::vector<double> Detector::millerTargetTable;
 
-#define GOOD_GEOMETRY_RLP_SIZE 0.0020
-
 // MARK: initialisation and constructors
 
 void Detector::setupCache()
@@ -1196,6 +1194,8 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
 		return 0;
 	}
 
+	double geometryRlpSize = FileParser::getKey("INDEXING_RLP_SIZE", 0.0020);
+
 	calculateMillerShifts(stdev);
 
     std::vector<double> distances;
@@ -1207,11 +1207,11 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
 	Coord bestPix;
 
     int count = 0;
-    double maxSqr = 16;
+    double maxSqr = 9;
 
     if (!stdev)
     {
-        maxSqr = 5.0 * GOOD_GEOMETRY_RLP_SIZE;
+        maxSqr = 5.0 * geometryRlpSize;
         maxSqr *= maxSqr;
     }
     
@@ -1292,7 +1292,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
         
         if (!stdev)
         {
-            edge = 5 * GOOD_GEOMETRY_RLP_SIZE;
+            edge = 5 * geometryRlpSize;
 		}
 
 		if (approximate)
