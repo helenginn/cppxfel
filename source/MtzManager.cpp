@@ -188,7 +188,7 @@ MtzManager::MtzManager()
 	orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE",
 											  INDEXING_ORIENTATION_TOLERANCE);
 
-	wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0);
+	wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.);
 
     lastReference = NULL;
     reflections.resize(0);
