@@ -552,7 +552,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 					newMatrix = MatrixPtr(new Matrix);
 					newMatrix->setComplexMatrix(unitCell, rotation);
 
-					if (v3)
+				//	if (v3)
 					{
 						MtzPtr newManager = MtzPtr(new MtzManager());
 						std::string prefix = (me->readRefinedMtzs ? "ref-" : "");
