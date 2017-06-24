@@ -188,7 +188,6 @@ MtzManager::MtzManager()
 	orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE",
 											  INDEXING_ORIENTATION_TOLERANCE);
 
-	wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.);
 
     lastReference = NULL;
     reflections.resize(0);
@@ -198,8 +197,8 @@ MtzManager::MtzManager()
 	lRot = 0;
     mosaicity = INITIAL_MOSAICITY;
     spotSize = INITIAL_SPOT_SIZE;
-    wavelength = 0;
-    refCorrelation = 0;
+	wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0.);
+	refCorrelation = 0;
     exponent = INITIAL_EXPONENT;
     scoreType = ScoreTypeCorrelation;
     trust = TrustLevelBad;
