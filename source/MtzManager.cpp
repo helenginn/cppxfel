@@ -188,6 +188,7 @@ MtzManager::MtzManager()
 	orientationTolerance = FileParser::getKey("INDEXING_ORIENTATION_TOLERANCE",
 											  INDEXING_ORIENTATION_TOLERANCE);
 
+	wavelength = FileParser::getKey("INTEGRATION_WAVELENGTH", 0);
 
     lastReference = NULL;
     reflections.resize(0);
@@ -2046,13 +2047,13 @@ bool MtzManager::isGoodSolution()
 		details << "(" << getFilename() << ") Sum ratio is sufficiently high (" << highSum << " vs " << stdevLow << ")" << std::endl;
 	}
 
-	if (frequencies[0] > goodSolutionHighestPeak)
+	if (frequencies.size() && frequencies[0] > goodSolutionHighestPeak)
 	{
 		details << "(" << getFilename() << ") Highest peak is high enough (" << frequencies[0] << " vs " << goodSolutionHighestPeak << ")" << std::endl;
 		good = true;
 	}
 
-	if (frequencies[0] < badSolutionHighestPeak)
+	if (frequencies.size() && frequencies[0] < badSolutionHighestPeak)
 	{
 		details << "(" << getFilename() << ") Highest peak is too low (" << frequencies[0] << " vs " << badSolutionHighestPeak << ")" << std::endl;
 		good = false;
