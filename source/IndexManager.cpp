@@ -574,7 +574,7 @@ void IndexManager::powderPattern(std::string csvName, bool force)
 	plotMap["xTitle2"] = "Reciprocal distance between vectors (Ang)";
 	plotMap["yHeader2"] = "Perfect frequency";
 	plotMap["style2"] = "line";
-	plotMap["colour2"] = "blue";
+	plotMap["colour2"] = "red";
 
 	powder.plotPNG(plotMap);
 	logged << "Written to " << csvName << std::endl;
