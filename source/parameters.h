@@ -145,6 +145,7 @@ typedef enum
 {
     MinimizationMethodStepSearch = 0,
     MinimizationMethodNelderMead = 1,
+	MinimizationMethodGridSearch = 2,
 } MinimizationMethod;
 
 typedef enum

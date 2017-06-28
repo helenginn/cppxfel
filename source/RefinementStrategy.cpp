@@ -17,6 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "RefinementGridSearch.h"
 #include "RefinementStepSearch.h"
 #include "NelderMead.h"
 #include "RefinementStrategy.h"
@@ -37,6 +38,9 @@ RefinementStrategyPtr RefinementStrategy::userChosenStrategy()
         case MinimizationMethodNelderMead:
             strategy = boost::static_pointer_cast<RefinementStrategy>(NelderMeadPtr(new NelderMead()));
             break;
+		case MinimizationMethodGridSearch:
+			strategy = boost::static_pointer_cast<RefinementStrategy>(RefinementGridSearchPtr(new RefinementGridSearch()));
+			break;
         default:
             break;
     }

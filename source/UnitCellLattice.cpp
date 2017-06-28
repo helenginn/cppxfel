@@ -439,7 +439,7 @@ double UnitCellLattice::refineUnitCellScore(void *object)
 		double mean = miller->getMtzParent()->getWavelength();
 
 		double diff = fabs(mean - wave);
-		diff *= 1 / 0.005;
+		diff *= 1 / 0.001;
 
 		double contrib = Detector::lookupCache(diff);
 
@@ -471,11 +471,26 @@ void UnitCellLattice::refineMtzs(std::vector<MtzPtr> newMtzs)
 
 	RefinementStrategyPtr strategy = RefinementStrategy::userChosenStrategy();
 	strategy->setEvaluationFunction(refineUnitCellScore, this);
-	strategy->addParameter(this, getUnitCellA, setUnitCellA, 0.1, 0.0001);
-	strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.1, 0.0001);
-	strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.1, 0.0001);
-	strategy->refine();
 	strategy->setVerbose(true);
+
+	strategy->addParameter(this, getUnitCellA, setUnitCellA, 0.4, 0.0001, "uc_a");
+
+	if (getSpaceGroupNum() < 195)
+	{
+		strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.4, 0.0001, "uc_b");
+	}
+
+	if (getSpaceGroupNum() < 75)
+	{
+		strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.4, 0.0001, "uc_c");
+	}
+
+	if (getSpaceGroupNum() < 16)
+	{
+		strategy->addParameter(this, getUnitCellBeta, setUnitCellBeta, 0.1, 0.0001, "uc_beta");
+	}
+
+	strategy->refine();
 
 	logged << "Unit cell dimension after: " << printUnitCell() << std::endl;
 	sendLog();
