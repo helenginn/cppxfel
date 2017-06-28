@@ -661,8 +661,14 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 
 	bool solutionApproximate = FileParser::getKey("GEOMETRY_IS_APPROXIMATE", false);
 
+	double nudgeVal = 0.1;
+	if (nudgeStep < 0.2)
+	{
+		nudgeVal = nudgeStep / 2;
+	}
+
 	double totalMovement = nudgeStep;
-	int intervals = 2 * totalMovement / 0.1;
+	int intervals = 8 * totalMovement / nudgeVal;
 	nudgeTiltX /= 5;
 	nudgeTiltY /= 5;
 
@@ -672,7 +678,7 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 		RefinementGridSearchPtr strategy = makeGridRefiner(detector, type);
 		detector->prepareInterNudges();
 		strategy->setJobName(detector->getTag() + "_miller_stdev_z");
-		strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, 0.2, 0, "nudge_z");
+		strategy->addParameter(&*detector, Detector::getNudgeZ, Detector::setNudgeZ, nudgeVal, 0, "nudge_z");
 		strategy->setGridLength(intervals);
 		strategy->refine();
 		detector->prepareInterNudges();
