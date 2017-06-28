@@ -1313,7 +1313,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
             std::map<std::string, std::string> plotMap;
             plotMap["filename"] = getTag() + "_miller_" + (stdev ? "pix_" : "recip_") + i_to_str(number);
             plotMap["height"] = "1000";
-            plotMap["width"] = "1000";
+            plotMap["width"] = "900";
             plotMap["xHeader0"] = "x";
             plotMap["yHeader0"] = "y";
      
