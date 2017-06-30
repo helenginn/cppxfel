@@ -308,7 +308,9 @@ void GeometryRefiner::refineGeometry()
         logged << "**** Grid search done ****" << std::endl;
         logged << "**** New detector distance: " << newDistance * mmPerPixel << " mm. ****" << std::endl;
         sendLog();
-        
+
+		_changed = true;
+
         reportProgress();
     }
 
@@ -664,7 +666,7 @@ bool GeometryRefiner::intraPanelMillerSearch(DetectorPtr detector, GeometryScore
 	double nudgeVal = 0.1;
 	if (nudgeStep < 0.2)
 	{
-		nudgeVal = nudgeStep / 2;
+		nudgeVal = nudgeStep / 8;
 	}
 
 	double totalMovement = nudgeStep;
@@ -809,7 +811,7 @@ void GeometryRefiner::gridSearchDetectorDistance(DetectorPtr detector, double st
     strategy->addParameter(&*detector, Detector::getArrangedMidPointZ, Detector::setArrangedMidPointZ, step, 0.1, "nudge_z");
 
     strategy->setGridLength(confidence * 2 + 1);
-    strategy->setVerbose(false);
+    strategy->setVerbose(true);
     strategy->setJobName("Wide sweep detector " + detector->getTag());
     
     IndexManagerPtr aManager = IndexManagerPtr(new IndexManager(images));
