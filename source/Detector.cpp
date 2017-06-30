@@ -963,6 +963,7 @@ std::string Detector::writeGeometryFile(int fileCount, int indentCount, CSVPtr d
     output << indents(indentCount + 1) << "midpoint_z = " << arrangedMidPoint.l << std::endl;
     output << indents(indentCount + 1) << "ghost = " << (hasChildren() ? "true" : "false") << std::endl;
 	output << indents(indentCount + 1) << "refine = " << (_refinable ? "true" : "false") << std::endl;
+	output << indents(indentCount + 1) << "gain = " << gain << std::endl;
 
     if (!differenceCSV)
     {

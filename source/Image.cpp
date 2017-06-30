@@ -537,8 +537,6 @@ int Image::valueAt(int x, int y)
 
     double rawValue = rawValueAt(x, y);
 
-	return rawValue;
-    
     DetectorPtr det = perPixelDetectors[pos];
     
     if (!det)
@@ -547,8 +545,8 @@ int Image::valueAt(int x, int y)
     }
     
     double panelGain = det->getGain();
-    
-    return rawValue * panelGain;
+
+    return rawValue / panelGain;
 }
 
 void Image::focusOnAverageMax(double *x, double *y, int tolerance1, int tolerance2, bool even)

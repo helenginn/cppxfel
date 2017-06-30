@@ -26,7 +26,8 @@ DetectorPtr GeometryParser::makeDetector(DetectorPtr parent, int min_fs, int min
                                          double ss_x, double ss_y, double ss_z,
                                          double fs_x, double fs_y, double fs_z,
                                          double midpoint_x, double midpoint_y, double midpoint_z,
-                                         double alpha, double beta, double gamma, bool ghost, bool refinable)
+                                         double alpha, double beta, double gamma, bool ghost, bool refinable,
+										 double gain)
 {
     Coord topLeft = std::make_pair(min_fs, min_ss);
     Coord bottomRight = std::make_pair(max_fs, max_ss);
@@ -45,6 +46,7 @@ DetectorPtr GeometryParser::makeDetector(DetectorPtr parent, int min_fs, int min
     
     segment->prepareRotationAngles(alpha, beta, gamma);
 	segment->setRefinable(refinable);
+	segment->setGain(gain);
     
     return segment;
 }
@@ -164,6 +166,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
     double gamma = 0;
     bool ghost = false;
     bool refinable = false;
+	double gain = 1;
     
     for (int i = 0; i < lines.size(); i++)
     {
@@ -219,7 +222,7 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
                     DetectorPtr segment = makeDetector(parent, min_fs, min_ss, max_fs, max_ss,
                                                        ss_x, ss_y, ss_z, fs_x, fs_y, fs_z,
                                                        midpoint_x, midpoint_y, midpoint_z,
-                                                       alpha, beta, gamma, ghost, refinable);
+                                                       alpha, beta, gamma, ghost, refinable, gain);
                     segment->setTag(tag);
                     
                     if (!Detector::getMaster())
@@ -297,8 +300,10 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
             ghost = (strcmp(components[2].c_str(), "true") == 0);
         if (components[0] == "refine")
             refinable = (strcmp(components[2].c_str(), "true") == 0);
+		if (components[0] == "gain")
+			gain = atof(components[2].c_str());
     }
-    
+
     if (!Detector::getMaster())
     {
         throw std::exception();
