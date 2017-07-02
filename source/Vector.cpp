@@ -658,7 +658,7 @@ double standard_deviation(vector<double> *values, vector<double> *weights)
     return standard_deviation(values, weights, mean);
 }
 
-double bitty_deviation(vector<double> *values, vector<double> *weights)
+double bitty_deviation(vector<double> *values, vector<double> *weights, double centre)
 {
 	double bittyDevTotal = 0;
 
@@ -675,6 +675,8 @@ double bitty_deviation(vector<double> *values, vector<double> *weights)
 
 			double second = values->at(j);
 
+			if (centre < FLT_MAX) second = centre;
+
 			double diff = fabs(second - first);
 
 			if (diff > 0.2)
@@ -686,6 +688,8 @@ double bitty_deviation(vector<double> *values, vector<double> *weights)
 //			diff *= diff;
 
 			bittyDevTotal -=Detector::lookupCache(diff);
+
+			if (centre < FLT_MAX) break;
 		}
 	}
 

@@ -1669,13 +1669,17 @@ double MtzManager::getReflectionWavelengthStdev()
 		}
 	}
 
-	if (!unbalanced)
-	{
-		mean = weighted_mean(&values);
-	}
+	double stdev = 0;
 
-//	double stdev = standard_deviation(&values, NULL, mean);
-	double stdev = bitty_deviation(&values, NULL);
+	if (unbalanced)
+	{
+		double mean = getImagePtr()->getWavelength();
+		stdev = bitty_deviation(&values, NULL, mean);
+	}
+	else
+	{
+		stdev = bitty_deviation(&values, NULL);
+	}
 
 	return stdev;
 }
