@@ -810,7 +810,7 @@ void MtzManager::findCommonReflections(MtzManager *other,
     }
 }
 
-std::vector<double> MtzManager::getDifferencesWith(MtzPtr other, std::vector<double> refls)
+std::vector<double> MtzManager::getDifferencesWith(MtzPtr other, std::vector<double> &refls)
 {
 	std::vector<ReflectionPtr> myRefls, yourRefls;
 	findCommonReflections(&*other, myRefls, yourRefls, NULL);
