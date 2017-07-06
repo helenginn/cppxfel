@@ -202,6 +202,8 @@ public:
 	void setSigmaToUnity();
 	void replaceBeamWithSpectrum();
 
+	std::vector<double> getDifferencesWith(MtzPtr other, std::vector<double> refls);
+	
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 

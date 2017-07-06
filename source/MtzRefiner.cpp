@@ -1517,6 +1517,14 @@ void MtzRefiner::plotIntegrationWindows()
 
 }
 
+void MtzRefiner::differenceCorrelation()
+{
+	std::vector<MtzPtr> mtzs = getAllMtzs();
+	AmbiguityBreaker breaker = AmbiguityBreaker(mtzs);
+	breaker.plotDifferences();
+
+}
+
 void MtzRefiner::plotIntensities()
 {
     int h, k, l;

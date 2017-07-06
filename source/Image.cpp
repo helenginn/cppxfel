@@ -612,7 +612,7 @@ void Image::makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults
     {
         return;
     }
-    
+
     images[0]->loadImage();
     
     xDim = images[0]->getXDim();

@@ -62,7 +62,8 @@ public:
     void applyUnrefinedPartiality();
     void loadImageFiles();
     void findSpots();
-    
+	void differenceCorrelation();
+
     void loadPanels(bool mustFail = true);
 	void integrate();
     static void fakeSpotsThread(std::vector<ImagePtr> *images, int offset);

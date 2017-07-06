@@ -46,10 +46,11 @@ private:
     double gradientCloudCluster(int centre, int axis);
     
     double dotProduct(int imageNumI, int imageNumJ);
-    
+
+	static void plotDifferenceThread(AmbiguityBreaker *me, int offset);
     void assignPartialities();
     void breakAmbiguity();
-    static void calculateCorrelations(AmbiguityBreaker *me, int offset);
+	static void calculateCorrelations(AmbiguityBreaker *me, int offset);
     void makeCorrelationGrid();
     void printResults();
     void merge();
@@ -62,7 +63,8 @@ public:
     AmbiguityBreaker(vector<MtzPtr> newMtzs);
     void run();
     void overrideAmbiguity(int newAmbiguity);
-    
+	void plotDifferences();
+
     MtzPtr getMergedMtz()
     {
         return merged;

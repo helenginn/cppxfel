@@ -22,7 +22,9 @@
 #include "AmbiguityBreaker.h"
 #include "StatisticsManager.h"
 #include "FileParser.h"
+#include "MtzManager.h"
 #include <vector>
+#include "PNGFile.h"
 
 /*
 double AmbiguityBreaker::dotProduct(int imageNumI, int imageNumJ)
@@ -99,6 +101,53 @@ double AmbiguityBreaker::gridCorrelation(int imageNumI, int imageNumJ)
 {
     return statsManager->gridCorrelation(imageNumI, imageNumJ);
 }*/
+
+void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset)
+{
+	int maxThreads = 1;//FileParser::getMaxThreads();
+	std::ostringstream logged;
+
+	int count = (int)me->mtzs.size();
+	PNGFile png = PNGFile("diffs.png", count, count);
+	
+
+	for (int i = offset; i < me->mtzs.size(); i += maxThreads)
+	{
+		MtzPtr iMtz = me->mtzs[i];
+
+		for (int j = 0; j < i; j++)
+		{
+			MtzPtr jMtz = me->mtzs[j];
+
+			std::vector<double> refs;
+			std::vector<double> diffs = iMtz->getDifferencesWith(jMtz, refs);
+
+			double cc = correlation_between_vectors(&refs, &diffs);
+			double hue = cc * 120 + 180;
+			png_byte red, green, blue;
+			PNGFile::HSB_to_RGB(hue, 0.8, 1, &red, &green, &blue);
+
+			png.setPixelColour(i, j, red, green, blue);
+			png.setPixelColour(j, i, red, green, blue);
+		}
+	}
+
+	png.writeImageOutput();
+}
+
+void AmbiguityBreaker::plotDifferences()
+{
+	int maxThreads = 1;//FileParser::getMaxThreads();
+	boost::thread_group threads;
+
+	for (int i = 0; i < maxThreads; i++)
+	{
+		boost::thread *thr = new boost::thread(plotDifferenceThread, this, i);
+		threads.add_thread(thr);
+	}
+
+	threads.join_all();
+}
 
 void AmbiguityBreaker::calculateCorrelations(AmbiguityBreaker *me, int offset)
 {

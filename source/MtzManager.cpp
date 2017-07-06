@@ -810,6 +810,34 @@ void MtzManager::findCommonReflections(MtzManager *other,
     }
 }
 
+std::vector<double> MtzManager::getDifferencesWith(MtzPtr other, std::vector<double> refls)
+{
+	std::vector<ReflectionPtr> myRefls, yourRefls;
+	findCommonReflections(&*other, myRefls, yourRefls, NULL);
+
+	std::vector<double> millerDiffs;
+
+	for (int i = 0; i < myRefls.size(); i++)
+	{
+		double myInt = myRefls[i]->meanIntensity();
+		double yourInt = yourRefls[i]->meanIntensity();
+
+		double diff = yourInt - myInt;
+
+		ReflectionPtr refRefl = getReferenceManager()->findReflectionWithId(myRefls[i]);
+
+		if (!refRefl)
+		{
+			continue;
+		}
+
+		millerDiffs.push_back(diff);
+		refls.push_back(refRefl->meanIntensity());
+	}
+
+	return millerDiffs;
+}
+
 void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent)
 {
 	applyScaleFactor(1, 0, 0, true);
