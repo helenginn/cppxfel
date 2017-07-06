@@ -67,7 +67,7 @@ double median(vector<double> *means);
 void histogram_gaussian(vector<double> *means, vector<int> *freq, double &mean, double &stdev);
 double standard_deviation(vector<double> *values, vector<double> *weights = NULL);
 double r_factor_between_vectors(vector<double> *vec1,
-		vector<double> *vec2, vector<double> *weights, double scale);
+		vector<double> *vec2, vector<double> *weights = NULL, double scale = 1);
 double standard_deviation(vector<double> *values, vector<double> *weights, double mean);
 double bitty_deviation(vector<double> *values, vector<double> *weights, double centre = FLT_MAX);
 void printDesc(vec hkl);

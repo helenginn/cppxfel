@@ -832,7 +832,7 @@ MtzPtr MtzManager::getDifferenceManager()
 std::vector<double> MtzManager::getDifferencesWith(MtzPtr other, std::vector<double> &refls)
 {
 	std::vector<ReflectionPtr> myRefls, yourRefls;
-	findCommonReflections(&*other, myRefls, yourRefls, NULL);
+	findCommonReflections(&*other, myRefls, yourRefls, NULL, true);
 
 	std::vector<double> millerDiffs;
 
@@ -842,6 +842,11 @@ std::vector<double> MtzManager::getDifferencesWith(MtzPtr other, std::vector<dou
 		double yourInt = yourRefls[i]->meanIntensity();
 
 		double diff = yourInt - myInt;
+
+		if (diff != diff)
+		{
+			continue;
+		}
 
 		ReflectionPtr refRefl = getDifferenceManager()->findReflectionWithId(myRefls[i]);
 

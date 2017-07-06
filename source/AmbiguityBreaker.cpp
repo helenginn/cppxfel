@@ -25,6 +25,7 @@
 #include "MtzManager.h"
 #include <vector>
 #include "PNGFile.h"
+#include <algorithm>
 
 /*
 double AmbiguityBreaker::dotProduct(int imageNumI, int imageNumJ)
@@ -102,6 +103,10 @@ double AmbiguityBreaker::gridCorrelation(int imageNumI, int imageNumJ)
     return statsManager->gridCorrelation(imageNumI, imageNumJ);
 }*/
 
+bool compare(MtzPtr a, MtzPtr b) {
+	return (a->getFilename() > b->getFilename());
+}
+
 void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset)
 {
 	int maxThreads = 1;//FileParser::getMaxThreads();
@@ -109,7 +114,8 @@ void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset)
 
 	int count = (int)me->mtzs.size();
 	PNGFile png = PNGFile("diffs.png", count, count);
-	
+
+	std::sort(me->mtzs.begin(), me->mtzs.end(), compare);
 
 	for (int i = offset; i < me->mtzs.size(); i += maxThreads)
 	{
@@ -122,15 +128,19 @@ void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset)
 			std::vector<double> refs;
 			std::vector<double> diffs = iMtz->getDifferencesWith(jMtz, refs);
 
-			double cc = correlation_between_vectors(&refs, &diffs);
-			double hue = cc * 120 + 180;
-			png_byte red, green, blue;
-			PNGFile::HSB_to_RGB(hue, 0.8, 1, &red, &green, &blue);
+			double cc = r_factor_between_vectors(&refs, &diffs);
 
-			png.setPixelColour(i, j, red, green, blue);
-			png.setPixelColour(j, i, red, green, blue);
+			if (cc != cc) cc = 0;
+
+			png_byte grey = ((cc + 1) / 2) * 255;
+			png.setPixelColour(i, j, grey, grey, grey);
+			png.setPixelColour(j, i, grey, grey, grey);
 		}
+
+		std::cout << "." << std::flush;
 	}
+
+	std::cout << std::endl;
 
 	png.writeImageOutput();
 }
@@ -140,11 +150,14 @@ void AmbiguityBreaker::plotDifferences()
 	int maxThreads = 1;//FileParser::getMaxThreads();
 	boost::thread_group threads;
 
-	for (int i = 0; i < mtzs.size(); i += maxThreads)
+	if (MtzManager::getReferenceManager())
 	{
-		mtzs[i]->scaleToMtz(MtzManager::getReferenceManager());
+		for (int i = 0; i < mtzs.size(); i++)
+		{
+			mtzs[i]->scaleToMtz(MtzManager::getReferenceManager());
+		}
 	}
-
+	
 	for (int i = 0; i < maxThreads; i++)
 	{
 		boost::thread *thr = new boost::thread(plotDifferenceThread, this, i);

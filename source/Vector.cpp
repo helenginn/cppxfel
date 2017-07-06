@@ -428,6 +428,11 @@ double correlation_between_vectors(vector<double> *vec1,
 	double sum_y = 0;
 	double num = 0;
 
+	if (!vec1->size() || !vec2->size())
+	{
+		return 0;
+	}
+
 	for (int i = 0; i < vec1->size(); i++)
 	{
 		if (i == exclude)
@@ -552,7 +557,7 @@ double r_factor_between_vectors(vector<double> *vec1,
 
 	for (int i = 0; i < vec1->size(); i++)
 	{
-		double weight = (*weights)[i];
+		double weight = (weights == NULL ? 1 : (*weights)[i]);
 		double int1 = (*vec1)[i] * scale;
 		double int2 = (*vec2)[i];
 
