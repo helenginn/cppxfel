@@ -936,6 +936,7 @@ void FileParser::generateFunctionList()
     parserMap["OUTPUT_INDIVIDUAL_CYCLES"] = simpleBool;
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;
 	parserMap["INITIAL_MTZ"] = simpleString;
+	parserMap["DIFFERENCE_MTZ"] = simpleString;
     parserMap["IMAGE_LIMIT"] = simpleInt;
 	parserMap["CHERRY_PICK"] = simpleInt;
     parserMap["IMAGE_SKIP"] = simpleInt;

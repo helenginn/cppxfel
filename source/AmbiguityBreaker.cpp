@@ -140,6 +140,11 @@ void AmbiguityBreaker::plotDifferences()
 	int maxThreads = 1;//FileParser::getMaxThreads();
 	boost::thread_group threads;
 
+	for (int i = 0; i < mtzs.size(); i += maxThreads)
+	{
+		mtzs[i]->scaleToMtz(MtzManager::getReferenceManager());
+	}
+
 	for (int i = 0; i < maxThreads; i++)
 	{
 		boost::thread *thr = new boost::thread(plotDifferenceThread, this, i);

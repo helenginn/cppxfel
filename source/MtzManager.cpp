@@ -39,7 +39,8 @@ bool MtzManager::setupSuperGaussian = false;
 std::mutex MtzManager::tableMutex;
 double MtzManager::superGaussianScale = 0;
 
-MtzManager *MtzManager::referenceManager;
+MtzManager *MtzManager::referenceManager = NULL;
+MtzPtr MtzManager::differenceManager;
 
 std::string MtzManager::describeScoreType()
 {
@@ -808,6 +809,17 @@ void MtzManager::findCommonReflections(MtzManager *other,
     {
         *num = (int)reflectionVector1.size();
     }
+}
+
+MtzPtr MtzManager::getDifferenceManager()
+{
+	if (differenceManager) return differenceManager;
+
+	differenceManager = MtzPtr(new MtzManager());
+	differenceManager->setFilename(FileParser::getKey("DIFFERENCE_MTZ", std::string("")));
+	differenceManager->loadReflections();
+
+	return differenceManager;
 }
 
 std::vector<double> MtzManager::getDifferencesWith(MtzPtr other, std::vector<double> &refls)
