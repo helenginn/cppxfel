@@ -142,6 +142,7 @@ protected:
     MatrixPtr baseMatrix;
     MatrixPtr rotatedMatrix;
 	static MtzManager *referenceManager;
+	static MtzPtr differenceManager;
 	MtzManager *lastReference;
 
 public:
@@ -412,6 +413,8 @@ public:
 	{
         return referenceManager;
 	}
+
+	static MtzPtr getDifferenceManager();
 
 	bool isRejected()
 	{

@@ -819,6 +819,13 @@ MtzPtr MtzManager::getDifferenceManager()
 	differenceManager->setFilename(FileParser::getKey("DIFFERENCE_MTZ", std::string("")));
 	differenceManager->loadReflections();
 
+	if (differenceManager->reflectionCount() <= 0)
+	{
+		std::ostringstream logged;
+		logged << "Difference MTZ required, please specify with DIFFERENCE_MTZ." << std::endl;
+		staticLogAndExit(&logged);
+	}
+
 	return differenceManager;
 }
 
@@ -836,7 +843,7 @@ std::vector<double> MtzManager::getDifferencesWith(MtzPtr other, std::vector<dou
 
 		double diff = yourInt - myInt;
 
-		ReflectionPtr refRefl = getReferenceManager()->findReflectionWithId(myRefls[i]);
+		ReflectionPtr refRefl = getDifferenceManager()->findReflectionWithId(myRefls[i]);
 
 		if (!refRefl)
 		{
