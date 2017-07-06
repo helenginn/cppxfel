@@ -823,7 +823,7 @@ MtzPtr MtzManager::getDifferenceManager()
 	{
 		std::ostringstream logged;
 		logged << "Difference MTZ required, please specify with DIFFERENCE_MTZ." << std::endl;
-		staticLogAndExit(&logged);
+		staticLogAndExit(logged);
 	}
 
 	return differenceManager;
