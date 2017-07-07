@@ -217,7 +217,7 @@ void NelderMead::refine()
         std::vector<double> centroid = calculateCentroid();
         count++;
         
-        if (count % skip == 0)
+      //  if (count % skip == 0)
         {
             reportProgress(testPoints[0].second);
         }
