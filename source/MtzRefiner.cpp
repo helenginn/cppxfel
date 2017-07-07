@@ -590,6 +590,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 								newMtzs->push_back(newManager);
 							}
 						}
+						else if (v3) {
+							newImage->addMtz(newManager);
+						}
 					}
 				}
 			}
