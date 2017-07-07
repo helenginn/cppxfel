@@ -581,7 +581,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 						newManager->loadReflections();
 						newManager->setWavelength(newImage->getWavelength());
 
-						if (newManager->reflectionCount() > 0)
+						if (newManager->reflectionCount() > 0 && !v3)
 						{
 							newImage->addMtz(newManager);
 
