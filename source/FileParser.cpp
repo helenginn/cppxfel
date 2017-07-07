@@ -1050,8 +1050,8 @@ void FileParser::generateFunctionList()
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     parserMap["FROM_TIFFS"] = simpleBool;
     
-//    parserMap["RANDOM_SEED"] = simpleInt;
-    
+	parserMap["THROWAWAY_UNACCEPTED"] = simpleBool;
+
     parserMap["PNG_TOTAL"] = simpleInt;
     parserMap["PNG_THRESHOLD"] = simpleFloat;
     parserMap["PNG_SHOEBOX"] = simpleBool;

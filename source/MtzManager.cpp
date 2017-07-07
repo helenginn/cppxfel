@@ -415,7 +415,9 @@ void MtzManager::loadReflections()
     int fromMtzNum = MtzSpacegroupNumber(mtz);
     
     int spgnum = FileParser::getKey("SPACE_GROUP", fromMtzNum);
-    
+
+	bool throwaway = FileParser::getKey("THROWAWAY_UNACCEPTED", false);
+
     setSpaceGroupNum(spgnum);
     
     if (getSpaceGroup() == NULL)
@@ -586,6 +588,10 @@ void MtzManager::loadReflections()
             wavelength = adata[col_wave->source - 1];
             partiality = adata[col_partials->source - 1];
         }
+
+		if (partiality < 0.05 && throwaway) {
+			continue;
+		}
         
         if (col_shiftx != NULL && col_shifty != NULL)
         {
