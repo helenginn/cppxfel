@@ -477,12 +477,12 @@ void UnitCellLattice::refineMtzs(std::vector<MtzPtr> newMtzs)
 
 	if (getSpaceGroupNum() < 195)
 	{
-		strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.4, 0.0001, "uc_b");
+		strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.4, 0.0001, "uc_c");
 	}
 
 	if (getSpaceGroupNum() < 75)
 	{
-		strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.4, 0.0001, "uc_c");
+		strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.4, 0.0001, "uc_b");
 	}
 
 	if (getSpaceGroupNum() < 16)
