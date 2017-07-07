@@ -133,7 +133,7 @@ void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset, PN
 
 			png_byte grey = normalised * 255;
 			png->setPixelColour(i, j, grey, grey, grey);
-			png->setPixelColour(j, i, -grey, -grey, -grey);
+			png->setPixelColour(j, i, 255 - grey, 255 - grey, 255 - grey);
 		}
 
 		std::cout << "." << std::flush;
