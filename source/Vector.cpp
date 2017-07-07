@@ -576,7 +576,7 @@ double r_factor_between_vectors(vector<double> *vec1,
 
 	return (grad > 0 ? 1. : -1.) * ((double)vec1->size() / 4);
 
-	return r_split * (grad > 0 ? 1 : -1);
+	//return r_split * (grad > 0 ? 1 : -1);
 }
 
 double weighted_mean(vector<double> *means, vector<double> *weights)
