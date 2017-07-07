@@ -552,34 +552,31 @@ double r_factor_between_vectors(vector<double> *vec1,
 {
 	double sum_numerator = 0;
 	double sum_denominator = 0;
-	double absolute = 0;
-	double allWeights = 0;
+	double prod_numerator = 0;
+	double prod_denominator = 0;
 
 	for (int i = 0; i < vec1->size(); i++)
 	{
-		double weight = (weights == NULL ? 1 : (*weights)[i]);
 		double int1 = (*vec1)[i] * scale;
 		double int2 = (*vec2)[i];
 
-		if (weight != weight || int1 != int1 || int2 != int2)
+		if (int1 != int1 || int2 != int2)
 			continue;
 
-		allWeights += weight;
+		prod_numerator += int1 * int2;
+		prod_denominator += int2 * int2;
 
-		double sqrtD = 1;
-
-		double absAddition = fabs(int1 - int2) * sqrtD;
-		absAddition /= (int1 + int2) * sqrtD / 2;
-
-		absolute += fabs(absAddition) * weight;
-
-		sum_numerator += fabs(int1 - int2) * weight;
-		sum_denominator += (int1 + int2) * weight / 2;
+		sum_numerator += fabs(int1 - int2);
+		sum_denominator += fabs(int2);
 	}
 
-	double r_split = sum_numerator / (sum_denominator * sqrt(2));
+	double grad = prod_numerator / prod_denominator;
 
-	return r_split;
+	double r_split = sum_numerator / sum_denominator;
+
+	return (grad > 0 ? 1. : -1.) * ((double)vec1->size() / 4);
+
+	return r_split * (grad > 0 ? 1 : -1);
 }
 
 double weighted_mean(vector<double> *means, vector<double> *weights)

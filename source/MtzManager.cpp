@@ -40,7 +40,7 @@ std::mutex MtzManager::tableMutex;
 double MtzManager::superGaussianScale = 0;
 
 MtzManager *MtzManager::referenceManager = NULL;
-MtzPtr MtzManager::differenceManager;
+MtzPtr MtzManager::differenceManager = MtzPtr();
 
 std::string MtzManager::describeScoreType()
 {
@@ -181,6 +181,7 @@ MtzManager::MtzManager()
 
 	lastTotal = 0;
 	lastStdev = 0;
+	fullyLoaded = false;
 
 	initialStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
 
@@ -644,6 +645,8 @@ void MtzManager::loadReflections()
     MtzFree(mtz);
 
     getWavelengthFromHDF5();
+
+	fullyLoaded = true;
     
 }
 
@@ -762,25 +765,6 @@ void MtzManager::findCommonReflections(MtzManager *other,
                                        vector<ReflectionPtr> &reflectionVector1, vector<ReflectionPtr> &reflectionVector2,
                                        int *num, bool acceptableOnly, bool preserve)
 {
-    if (matchReflections.size() > 0)
-    {
-        reflectionVector1 = matchReflections;
-        reflectionVector2 = refReflections;
-        
-        if (num != NULL)
-        {
-            *num = (int)reflectionVector1.size();
-        }
-        
-        return;
-    }
-    
-    matchReflections.clear();
-    refReflections.clear();
-    
-    previousReference = other;
-    previousAmbiguity = activeAmbiguity;
-    
     for (int i = 0; i < reflectionCount(); i++)
     {
 		ReflectionPtr myRef = reflection(i);
@@ -793,17 +777,10 @@ void MtzManager::findCommonReflections(MtzManager *other,
         
         if (otherReflection && otherReflection->millerCount() > 0)
         {
-            matchReflections.push_back(myRef);
-            refReflections.push_back(otherReflection);
+            reflectionVector1.push_back(myRef);
+            reflectionVector2.push_back(otherReflection);
         }
     }
-    
-    reflectionVector1 = matchReflections;
-    reflectionVector2 = refReflections;
-    
-    matchReflections.clear();
-    refReflections.clear();
-
     
     if (num != NULL)
     {
@@ -813,7 +790,18 @@ void MtzManager::findCommonReflections(MtzManager *other,
 
 MtzPtr MtzManager::getDifferenceManager()
 {
-	if (differenceManager) return differenceManager;
+	if (differenceManager && differenceManager->isFullyLoaded())
+	{
+		return differenceManager;
+	}
+
+	tableMutex.lock();
+
+	if (differenceManager)
+	{
+		tableMutex.unlock();
+		return differenceManager;
+	}
 
 	differenceManager = MtzPtr(new MtzManager());
 	differenceManager->setFilename(FileParser::getKey("DIFFERENCE_MTZ", std::string("")));
@@ -825,6 +813,8 @@ MtzPtr MtzManager::getDifferenceManager()
 		logged << "Difference MTZ required, please specify with DIFFERENCE_MTZ." << std::endl;
 		staticLogAndExit(logged);
 	}
+
+	tableMutex.unlock();
 
 	return differenceManager;
 }
@@ -848,7 +838,9 @@ std::vector<double> MtzManager::getDifferencesWith(MtzPtr other, std::vector<dou
 			continue;
 		}
 
-		ReflectionPtr refRefl = getDifferenceManager()->findReflectionWithId(myRefls[i]);
+		MtzPtr diffMtz = getDifferenceManager();
+		ReflectionPtr refRefl = ReflectionPtr();
+		diffMtz->findReflectionWithId(myRefls[i]->getReflId(), &refRefl);
 
 		if (!refRefl)
 		{

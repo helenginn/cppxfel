@@ -107,15 +107,10 @@ bool compare(MtzPtr a, MtzPtr b) {
 	return (a->getFilename() > b->getFilename());
 }
 
-void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset)
+void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset, PNGFilePtr png)
 {
-	int maxThreads = 1;//FileParser::getMaxThreads();
+	int maxThreads = FileParser::getMaxThreads();
 	std::ostringstream logged;
-
-	int count = (int)me->mtzs.size();
-	PNGFile png = PNGFile("diffs.png", count, count);
-
-	std::sort(me->mtzs.begin(), me->mtzs.end(), compare);
 
 	for (int i = offset; i < me->mtzs.size(); i += maxThreads)
 	{
@@ -128,43 +123,57 @@ void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset)
 			std::vector<double> refs;
 			std::vector<double> diffs = iMtz->getDifferencesWith(jMtz, refs);
 
-			double cc = r_factor_between_vectors(&refs, &diffs);
+			double rsplit = r_factor_between_vectors(&diffs, &refs);
 
-			if (cc != cc) cc = 0;
 
-			png_byte grey = ((cc + 1) / 2) * 255;
-			png.setPixelColour(i, j, grey, grey, grey);
-			png.setPixelColour(j, i, grey, grey, grey);
+			if (rsplit != rsplit) rsplit = 0;
+
+			double normalised = ((rsplit + 1) / 2);
+			if (normalised > 1) normalised = 1;
+			if (normalised < 0) normalised = 0;
+
+			png_byte grey = normalised * 255;
+			png->setPixelColour(i, j, grey, grey, grey);
+			png->setPixelColour(j, i, grey, grey, grey);
 		}
 
 		std::cout << "." << std::flush;
 	}
 
 	std::cout << std::endl;
-
-	png.writeImageOutput();
 }
 
 void AmbiguityBreaker::plotDifferences()
 {
-	int maxThreads = 1;//FileParser::getMaxThreads();
-	boost::thread_group threads;
+	int maxThreads = FileParser::getMaxThreads();
 
-	if (MtzManager::getReferenceManager())
+	int count = (int)mtzs.size();
+	PNGFilePtr png = PNGFilePtr(new PNGFile("diffs.png", count, count));
+
+	std::sort(mtzs.begin(), mtzs.end(), compare);
+
+	for (int i = 0; i < mtzs.size(); i++)
 	{
-		for (int i = 0; i < mtzs.size(); i++)
+		if (MtzManager::getReferenceManager())
 		{
 			mtzs[i]->scaleToMtz(MtzManager::getReferenceManager());
 		}
+
+		logged << mtzs[i]->getFilename() << std::endl;
+		sendLog();
 	}
-	
+
+	boost::thread_group threads;
+
 	for (int i = 0; i < maxThreads; i++)
 	{
-		boost::thread *thr = new boost::thread(plotDifferenceThread, this, i);
+		boost::thread *thr = new boost::thread(plotDifferenceThread, this, i, png);
 		threads.add_thread(thr);
 	}
 
 	threads.join_all();
+
+	png->writeImageOutput();
 }
 
 void AmbiguityBreaker::calculateCorrelations(AmbiguityBreaker *me, int offset)

@@ -145,6 +145,7 @@ protected:
 	static MtzPtr differenceManager;
 	MtzManager *lastReference;
 
+	bool fullyLoaded;
 public:
 /* From IOMRefiner */
 	void dropMillers();
@@ -625,6 +626,11 @@ public:
 	void setRefineOrientations(bool newValue)
 	{
 		refineOrientations = newValue;
+	}
+
+	bool isFullyLoaded()
+	{
+		return fullyLoaded;
 	}
 };
 

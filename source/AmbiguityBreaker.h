@@ -47,7 +47,7 @@ private:
     
     double dotProduct(int imageNumI, int imageNumJ);
 
-	static void plotDifferenceThread(AmbiguityBreaker *me, int offset);
+	static void plotDifferenceThread(AmbiguityBreaker *me, int offset, PNGFilePtr png);
     void assignPartialities();
     void breakAmbiguity();
 	static void calculateCorrelations(AmbiguityBreaker *me, int offset);
