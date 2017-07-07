@@ -1570,7 +1570,7 @@ void MtzManager::checkNearbyMillers()
 	if (maxResolutionAll == 0)
 		maxD = FLT_MAX;
 
-	logged << "Testing " << nearbyMillers.size()
+	logged << "(" << getBasename() << ") testing " << nearbyMillers.size()
 	<< " reflections close to the Ewald sphere with wavelength "
 	<< wavelength << std::endl;
 
