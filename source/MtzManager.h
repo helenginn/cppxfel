@@ -347,6 +347,7 @@ public:
 		{
 			getWavelengthFromHDF5();
 		}
+		
 		return wavelength;
 	}
 
