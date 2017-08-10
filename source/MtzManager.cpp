@@ -1066,7 +1066,8 @@ void MtzManager::applyPolarisation(void)
 }
 
 
-void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAmbiguity)
+void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAmbiguity,
+							 bool withScale)
 {
     int columns = 11;
     
@@ -1143,6 +1144,11 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
             MillerPtr miller = reflection(i)->miller(j);
             
             double intensity = reflections[i]->miller(j)->getRawestIntensity();
+
+			if (withScale)
+			{
+				intensity = reflections[i]->miller(j)->intensity();
+			}
             double sigma = reflections[i]->miller(j)->getRawSigma();
             double partiality = reflections[i]->miller(j)->getPartiality();
             double bFactor = reflections[i]->miller(j)->getBFactorScale();

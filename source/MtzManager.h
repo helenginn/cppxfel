@@ -209,7 +209,8 @@ public:
 	void copySymmetryInformationFromManager(MtzPtr toCopy);
 	void applyPolarisation(void);
 
-	virtual void writeToFile(std::string newFilename, bool announce = false, bool plusAmbiguity = false);
+	virtual void writeToFile(std::string newFilename, bool announce = false, bool plusAmbiguity = false,
+							 bool withScale = false);
     void writeToHdf5();
     
 	double correlationWithManager(MtzManager *otherManager, bool printHits = false,
