@@ -47,6 +47,7 @@ private:
     
     double dotProduct(int imageNumI, int imageNumJ);
 
+	static void plotDiffOneChipThread(AmbiguityBreaker *me, int offset, PNGFilePtr png);
 	static void plotDifferenceThread(AmbiguityBreaker *me, int offset, PNGFilePtr png);
     void assignPartialities();
     void breakAmbiguity();
@@ -63,7 +64,7 @@ public:
     AmbiguityBreaker(vector<MtzPtr> newMtzs);
     void run();
     void overrideAmbiguity(int newAmbiguity);
-	void plotDifferences();
+	void plotDifferences(bool oneChip = false);
 
     MtzPtr getMergedMtz()
     {

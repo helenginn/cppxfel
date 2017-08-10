@@ -21,9 +21,11 @@
 #include "AmbiguityBreaker.h"
 #include "StatisticsManager.h"
 #include "FileParser.h"
+#include "Image.h"
 #include "MtzManager.h"
 #include <vector>
 #include "PNGFile.h"
+#include <boost/make_shared.hpp>
 #include <algorithm>
 
 /*
@@ -142,12 +144,62 @@ void AmbiguityBreaker::plotDifferenceThread(AmbiguityBreaker *me, int offset, PN
 	std::cout << std::endl;
 }
 
-void AmbiguityBreaker::plotDifferences()
+void AmbiguityBreaker::plotDiffOneChipThread(AmbiguityBreaker *me, int offset, PNGFilePtr png)
+{
+	int maxThreads = FileParser::getMaxThreads();
+	std::ostringstream logged;
+	MtzManager *ref = MtzManager::getReferenceManager();
+	MtzPtr reference = boost::make_shared<MtzManager>(*ref);
+
+	for (int i = offset; i < me->mtzs.size(); i += maxThreads)
+	{
+		MtzPtr iMtz = me->mtzs[i];
+		int x = 0; int y = 0;
+		iMtz->getPosXY(&x, &y);
+
+		MtzPtr jMtz = reference;
+
+			std::vector<double> refs;
+		std::vector<double> diffs = iMtz->getDifferencesWith(jMtz, refs);
+
+		double rsplit = r_factor_between_vectors(&diffs, &refs);
+
+
+		if (rsplit != rsplit) rsplit = 0;
+
+		double normalised = ((rsplit + 1) / 2);
+		if (normalised > 1) normalised = 1;
+		if (normalised < 0) normalised = 0;
+
+		png_byte grey = normalised * 255;
+		png->setPixelColour(x + 5, y + 5, grey, grey, grey);
+
+		std::cout << "." << std::flush;
+	}
+
+	std::cout << std::endl;
+}
+
+void AmbiguityBreaker::plotDifferences(bool oneChip)
 {
 	int maxThreads = FileParser::getMaxThreads();
 
-	int count = (int)mtzs.size();
-	PNGFilePtr png = PNGFilePtr(new PNGFile("diffs.png", count, count));
+	int frameMax = 0;
+
+	for (int i = 0; i < mtzs.size(); i++)
+	{
+		int frame = mtzs[i]->getImagePtr()->getFrameNumber();
+		if (frame > frameMax)
+		{
+			frameMax = frame;
+		}
+	}
+
+	int imageWidth = FileParser::getKey("FRAMES_PER_ROW", 0);
+	PNGFilePtr png = PNGFilePtr(new PNGFile("diffs.png", imageWidth + 10,
+											(double)frameMax / (double)imageWidth + 10));
+
+	bool hasFrames = (imageWidth > 0);
 
 	std::sort(mtzs.begin(), mtzs.end(), compare);
 
@@ -166,7 +218,17 @@ void AmbiguityBreaker::plotDifferences()
 
 	for (int i = 0; i < maxThreads; i++)
 	{
-		boost::thread *thr = new boost::thread(plotDifferenceThread, this, i, png);
+		boost::thread *thr = NULL;
+
+		if (!hasFrames)
+		{
+			thr = new boost::thread(plotDifferenceThread, this, i, png);
+		}
+		else
+		{
+			thr = new boost::thread(plotDiffOneChipThread, this, i, png);
+		}
+
 		threads.add_thread(thr);
 	}
 

@@ -220,6 +220,8 @@ MtzManager::MtzManager()
     dropped = false;
     lastRSplit = 0;
     timeDelay = 0;
+	_xPos = 0;
+	_yPos = 0;
     
     loadParametersMap();
     
@@ -2244,11 +2246,10 @@ void MtzManager::applyScaleFactorsForBins(int binCount)
 	}
 }
 
-
 void MtzManager::calcXYOffset()
 {
 	int frameOffset = FileParser::getKey("FRAMES_OFFSET", 0);
-	int frameRepeat = FileParser::getKey("FRAME_REPEAT", -1);
+	int frameRepeat = FileParser::getKey("FRAMES_PER_ROW", -1);
 
 	if (frameRepeat < 0)
 	{
@@ -2257,5 +2258,20 @@ void MtzManager::calcXYOffset()
 
 	int frameNumber = getImagePtr()->getFrameNumber();
 
-	
+	int minusOffset = frameNumber - frameOffset;
+	double yRowFrac = (double)minusOffset / (double)frameRepeat;
+	int yRow = yRowFrac;
+	int restOfX = (minusOffset % frameRepeat);
+
+	bool odd = (yRow % 2 ? false : true);
+
+	if (odd)
+	{
+		restOfX = frameOffset - restOfX;
+	}
+
+	_xPos = restOfX;
+	_yPos = yRow;
 }
+
+

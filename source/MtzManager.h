@@ -145,6 +145,9 @@ protected:
 	static MtzPtr differenceManager;
 	MtzManager *lastReference;
 
+	int _xPos;
+	int _yPos;
+
 	bool fullyLoaded;
 public:
 /* From IOMRefiner */
@@ -636,6 +639,12 @@ public:
 	bool isFullyLoaded()
 	{
 		return fullyLoaded;
+	}
+
+	void getPosXY(int *x, int *y)
+	{
+		*x = _xPos;
+		*y = _yPos;
 	}
 };
 

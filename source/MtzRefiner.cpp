@@ -578,6 +578,8 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 
 						newManager->setTimeDelay(delay);
 						newManager->setImage(newImage);
+						newManager->calcXYOffset();
+
 						newManager->loadReflections();
 						newManager->setWavelength(newImage->getWavelength());
 
