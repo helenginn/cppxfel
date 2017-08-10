@@ -2191,3 +2191,56 @@ std::string MtzManager::getOrientationMatrixListScript()
 
 	return script.str();
 }
+
+void MtzManager::applyScaleFactorsForBins(int binCount)
+{
+	double highRes = maxResolution();
+	double lowRes = 0;
+
+	vector<double> bins;
+	StatisticsManager::generateResolutionBins(lowRes, highRes, binCount, &bins);
+
+	for (int shell = 0; shell < bins.size() - 1; shell++)
+	{
+		double low = bins[shell];
+		double high = bins[shell + 1];
+
+		vector<ReflectionPtr> refReflections, imgReflections;
+
+		this->findCommonReflections(referenceManager, imgReflections, refReflections,
+									NULL);
+
+		double weights = 0;
+		double refMean = 0;
+		double imgMean = 0;
+		int count = 0;
+
+		for (int i = 0; i < imgReflections.size(); i++)
+		{
+			if (!imgReflections[i]->anyAccepted())
+				continue;
+
+			if (imgReflections[i]->betweenResolutions(low, high))
+			{
+				weights++;
+				double refIntensity = refReflections[i]->meanIntensity();
+				double imgIntensity = imgReflections[i]->meanIntensity();
+
+				if (refIntensity != refIntensity || imgIntensity != imgIntensity)
+					continue;
+
+				refMean += refIntensity;
+				imgMean += imgIntensity;
+				count++;
+			}
+		}
+
+		refMean /= weights;
+		imgMean /= weights;
+
+		double ratio = refMean / imgMean;
+
+		applyScaleFactor(ratio, low, high, 1);
+	}
+}
+

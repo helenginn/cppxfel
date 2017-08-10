@@ -20,7 +20,6 @@
 #include "RefinementGridSearch.h"
 #include <float.h>
 #include "CSV.h"
-#include "FileParser.h"
 #include "polyfit.hpp"
 #include <iomanip>
 

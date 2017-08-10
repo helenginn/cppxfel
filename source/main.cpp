@@ -196,7 +196,6 @@ void new_main(int argc, char *argv[])
         mtz1->applyBFactor(bFactor);
         
         mtz1->writeToFile("b-" + std::string(argv[3]));
-
     }
     
 	if (strcmp(argv[1], "-rmerge") == 0 || strcmp(argv[1], "-rpim") == 0
@@ -388,7 +387,26 @@ void new_main(int argc, char *argv[])
         
 		delete reference;
 	}
-    
+
+	if (strcmp(argv[1], "-shellscale") == 0)
+	{
+		MtzManager *reference = new MtzManager();
+		reference->setFilename(argv[2]);
+		reference->loadReflections();
+		MtzManager::setReference(reference);
+
+		MtzManager *change = new MtzManager();
+		change->setFilename(argv[3]);
+		change->loadReflections();
+		change->description();
+
+		change->applyScaleFactorsForBins(40);
+		change->description();
+
+		change->writeToFile("shsc-" + change->getFilename(), true, false, true);
+
+	}
+
     if (strcmp(argv[1], "-bfac") == 0)
     {
         MtzManager *reference = new MtzManager();

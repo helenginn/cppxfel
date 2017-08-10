@@ -200,6 +200,7 @@ public:
 	void bFactorAndScale(double *scale, double *bFactor, double exponent = 1);
 	void applyBFactor(double bFactor);
 	void applyScaleFactor(double scaleFactor, double lowRes = 0, double highRes = 0, bool absolute = false);
+	void applyScaleFactorsForBins(int binCount);
 	double averageIntensity();
 	void setSigmaToUnity();
 	void replaceBeamWithSpectrum();
@@ -279,6 +280,8 @@ public:
     int ambiguityCount();
     void flipToActiveAmbiguity();
     void resetFlip();
+
+	void calcXYOffset();
     
     float getLastRSplit()
     {
