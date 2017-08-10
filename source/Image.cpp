@@ -2607,21 +2607,23 @@ void Image::writePNG(PNGFilePtr file, bool includeDiffraction)
 				value = 0;
 			}
 
+			unsigned char pixelValue = std::min(value, threshold) * 255 / threshold;
+			pixelValue = 255 - pixelValue;
+			float brightness = 1 - std::min(value, threshold) / threshold;
+			int pos = xDim * j + i;
+
+			DetectorPtr det = perPixelDetectors[pos];
+
+			vec arranged;
+			det->spotCoordToAbsoluteVec(i, j, &arranged);
+			double proportion_distance = (arranged.l - minZ) / (maxZ - minZ);
+
             if (value < 0)
-                value = 0;
-            
-            unsigned char pixelValue = std::min(value, threshold) * 255 / threshold;
-            pixelValue = 255 - pixelValue;
-            float brightness = 1 - std::min(value, threshold) / threshold;
-            
-            int pos = xDim * j + i;
-            
-            DetectorPtr det = perPixelDetectors[pos];
-            
-            vec arranged;
-            det->spotCoordToAbsoluteVec(i, j, &arranged);
-            double proportion_distance = (arranged.l - minZ) / (maxZ - minZ);
-            
+			{
+				value = 0;
+			}
+
+
             
             proportion_distance *= 360;
             
