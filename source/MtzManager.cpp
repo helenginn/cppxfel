@@ -2244,3 +2244,18 @@ void MtzManager::applyScaleFactorsForBins(int binCount)
 	}
 }
 
+
+void MtzManager::calcXYOffset()
+{
+	int frameOffset = FileParser::getKey("FRAMES_OFFSET", 0);
+	int frameRepeat = FileParser::getKey("FRAME_REPEAT", -1);
+
+	if (frameRepeat < 0)
+	{
+		return;
+	}
+
+	int frameNumber = getImagePtr()->getFrameNumber();
+
+	
+}
