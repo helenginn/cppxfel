@@ -395,9 +395,9 @@ void Hdf5Image::getWavelengthFromHdf5()
     }
 }
 
-int Hdf5Image::getFiducial()
+int Hdf5Image::getFrameNumber()
 {
-	std::string address = "LCLS/fiducial";
+	std::string address = "/cheetah/event_data/frameNumber";
 	int fiducial = 0;
 	int *fidPtr = &fiducial;
 

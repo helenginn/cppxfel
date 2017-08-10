@@ -69,7 +69,7 @@ public:
     void writeSpotsList(std::string spotFile);
     void processSpotList();
     void loadCrystals();
-	virtual int getFiducial();
+	virtual int getFrameNumber();
 
     virtual ImageClass getClass()
     {

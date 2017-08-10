@@ -122,7 +122,7 @@ public:
     void incrementOverlapMask(int x, int y);
     virtual void processSpotList();
     virtual void writeSpotsList(std::string spotFile = "");
-	virtual int getFiducial() { return -1; };
+	virtual int getFrameNumber() { return -1; };
 
     signed char maskValueAt(int x, int y);
     unsigned char maximumOverlapMask(int x, int y, ShoeboxPtr shoebox);

@@ -1071,6 +1071,12 @@ void FileParser::generateFunctionList()
     
     parserMap["MILLER_INDEX"] = intVector;
 	parserMap["SPECIAL_PIXEL"] = intVector;
+
+	/* UV-RIP specific commands */
+
+	parserMap["FRAMES_OFFSET"] = simpleInt;
+	parserMap["FRAMES_PER_ROW"] = simpleInt;
+
 }
 
 ParserFunction FileParser::splitLine(std::string line, std::string &command,

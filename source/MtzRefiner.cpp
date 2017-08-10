@@ -1469,7 +1469,7 @@ void MtzRefiner::plotPixelValueVsFiducial()
 		ImagePtr image = images[i];
 
 		double value = image->valueAt(x, y);
-		double fiducial = image->getFiducial();
+		double fiducial = image->getFrameNumber();
 
 		if (fiducial < 0)
 		{
