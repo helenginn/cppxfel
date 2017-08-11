@@ -162,12 +162,12 @@ void AmbiguityBreaker::plotDiffOneChipThread(AmbiguityBreaker *me, int offset, P
 			std::vector<double> refs;
 		std::vector<double> diffs = iMtz->getDifferencesWith(jMtz, refs);
 
-		double rsplit = r_factor_between_vectors(&diffs, &refs);
+		double cc = correlation_between_vectors(&diffs, &refs);
 
 
-		if (rsplit != rsplit) rsplit = 0;
+		if (cc != cc) cc = 0;
 
-		double normalised = ((rsplit + 1) / 2);
+		double normalised = ((cc + 1) / 2);
 		if (normalised > 1) normalised = 1;
 		if (normalised < 0) normalised = 0;
 
@@ -195,9 +195,18 @@ void AmbiguityBreaker::plotDifferences(bool oneChip)
 		}
 	}
 
-	int imageWidth = FileParser::getKey("FRAMES_PER_ROW", 0);
-	PNGFilePtr png = PNGFilePtr(new PNGFile("diffs.png", imageWidth + 10,
-											(double)frameMax / (double)imageWidth + 10));
+	int imageWidth = FileParser::getKey("FRAMES_PER_ROW", 0) + 10;
+	int imageHeight = (double)frameMax / (double)imageWidth + 10;
+	PNGFilePtr png = PNGFilePtr(new PNGFile("diffs.png", imageWidth,
+											imageHeight));
+
+	for (int j = 0; j < imageHeight; j++)
+	{
+		for (int i = 0; i < imageWidth; i++)
+		{
+			png->setPixelColour(i, j, 128, 128, 128);
+		}
+	}
 
 	bool hasFrames = (imageWidth > 0);
 
