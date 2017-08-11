@@ -2267,7 +2267,7 @@ void MtzManager::calcXYOffset()
 
 	if (odd)
 	{
-		restOfX = frameOffset - restOfX;
+		restOfX = frameRepeat - restOfX;
 	}
 
 	_xPos = restOfX;
