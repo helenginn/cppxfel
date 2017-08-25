@@ -512,6 +512,9 @@ double gradient_between_vectors(vector<double> *vec1,
 
 	for (int i = 0; i < vec1->size(); i++)
 	{
+		if ((*vec1)[i] != (*vec1)[i]) continue;
+		if ((*vec2)[i] != (*vec2)[i]) continue;
+
 		sum_x_y += (*vec1)[i] * (*vec2)[i];
 		sum_x_squared += std::pow((*vec1)[i], 2);
 	}
