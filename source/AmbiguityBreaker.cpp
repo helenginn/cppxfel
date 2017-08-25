@@ -171,8 +171,10 @@ void AmbiguityBreaker::plotDiffOneChipThread(AmbiguityBreaker *me, int offset, P
 		if (normalised > 1) normalised = 1;
 		if (normalised < 0) normalised = 0;
 
-		png_byte grey = normalised * 255;
-		png->setPixelColour(x + 5, y + 5, grey, grey, grey);
+		png_byte right_way = normalised * 255;
+		png_byte opposite = (1 - normalised) * 255;
+
+		png->setPixelColour(x + 5, y + 5, right_way, right_way, opposite);
 
 		std::cout << "." << std::flush;
 	}
