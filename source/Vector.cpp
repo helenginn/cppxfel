@@ -690,9 +690,8 @@ double bitty_deviation(vector<double> *values, vector<double> *weights, double c
 			}
 
 			diff /= 0.01;
-//			diff *= diff;
 
-			bittyDevTotal -=Detector::lookupCache(diff);
+			bittyDevTotal -= Detector::lookupCache(diff);
 
 			if (centre < FLT_MAX) break;
 		}

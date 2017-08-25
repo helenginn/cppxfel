@@ -359,6 +359,7 @@ void PNGFile::setPixelColour(int x, int y, png_byte red, png_byte green, png_byt
     data[offset + 2] = blue;
 }
 
+
 void PNGFile::setPixelForChannel(int x, int y, int channel, png_byte value)
 {
     int offset = y * bytesPerPixel * pixelsPerRow +  x * bytesPerPixel + channel;

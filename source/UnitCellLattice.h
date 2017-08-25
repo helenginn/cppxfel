@@ -42,6 +42,7 @@ private:
     static bool setupLattice;
 	float lookupIntervals[LOOKUP_INTERVALS * LOOKUP_INTERVALS * LOOKUP_INTERVALS];
 	float *lookupIntervalPtr;
+	int counter;
 
     double _aDim;
     double _bDim;

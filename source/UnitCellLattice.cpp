@@ -17,6 +17,7 @@
 #include <algorithm>
 #include "Miller.h"
 #include "RefinementStrategy.h"
+#include "misc.h"
 
 #define ANGLE_FUNNEL_START 1.5
 #define ANGLE_DISTANCE_BUFFER 0.005
@@ -263,7 +264,6 @@ void UnitCellLattice::updateUnitCellData()
     }
     
     std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
-  //  weightUnitCell();
 }
 
 void UnitCellLattice::setup()
@@ -292,6 +292,7 @@ void UnitCellLattice::setup()
 		sendLogAndExit();
 	}
 
+	counter = 0;
 	_aDim = unitCell[0];
 	_bDim = unitCell[1];
 	_cDim = unitCell[2];
@@ -429,6 +430,9 @@ double UnitCellLattice::refineUnitCellScore(void *object)
 	UnitCellLattice *lat = static_cast<UnitCellLattice *>(object);
 	double score = 0;
 
+	CSVPtr csv = CSVPtr(new CSV());
+	csv->setupHistogram(-0.25, 0.25, 0.005, "wavelength", 1, "frequency");
+
 	for (int i = 0; i < lat->allMillers.size(); i++)
 	{
 		MillerPtr miller = lat->allMillers[i];
@@ -438,13 +442,35 @@ double UnitCellLattice::refineUnitCellScore(void *object)
 		double wave = miller->getWavelength();
 		double mean = miller->getMtzParent()->getWavelength();
 
-		double diff = fabs(mean - wave);
-		diff *= 1 / 0.001;
+		double diff = (wave - mean);
+		csv->addOneToFrequency(diff, "frequency");
+		diff /= 0.01;
 
-		double contrib = Detector::lookupCache(diff);
-
+		double contrib = Detector::lookupCache(fabs(diff));
+	//	std::cout << diff << " " << contrib << std::endl;
 		score -= contrib;
 	}
+
+	std::map<std::string, std::string> plotMap;
+	plotMap["filename"] = "unit_cell_" + i_to_str(lat->counter) + ".png";
+	plotMap["height"] = "900";
+	plotMap["width"] = "900";
+	plotMap["xHeader0"] = "wavelength";
+	plotMap["yHeader0"] = "frequency";
+
+	plotMap["xMin0"] = "-0.25";
+	plotMap["xMax0"] = "0.25";
+	plotMap["yMin0"] = "0";
+	plotMap["yMax0"] = "50";
+
+	plotMap["xTitle0"] = "Wavelength deviation (Ang)";
+	plotMap["yTitle0"] = "Frequency";
+
+	plotMap["style0"] = "line";
+	plotMap["colour0"] = "blue";
+	csv->plotPNG(plotMap);
+
+	lat->counter++;
 
 	return score;
 }
@@ -473,16 +499,16 @@ void UnitCellLattice::refineMtzs(std::vector<MtzPtr> newMtzs)
 	strategy->setEvaluationFunction(refineUnitCellScore, this);
 	strategy->setVerbose(true);
 
-	strategy->addParameter(this, getUnitCellA, setUnitCellA, 0.4, 0.0001, "uc_a");
+	strategy->addParameter(this, getUnitCellA, setUnitCellA, 0.1, 0.0001, "uc_a");
 
 	if (getSpaceGroupNum() < 195)
 	{
-		strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.4, 0.0001, "uc_c");
+		strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.1, 0.0001, "uc_c");
 	}
 
 	if (getSpaceGroupNum() < 75)
 	{
-		strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.4, 0.0001, "uc_b");
+		strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.1, 0.0001, "uc_b");
 	}
 
 	if (getSpaceGroupNum() < 16)
@@ -493,7 +519,12 @@ void UnitCellLattice::refineMtzs(std::vector<MtzPtr> newMtzs)
 	strategy->refine();
 
 	logged << "Unit cell dimension after: " << printUnitCell() << std::endl;
+
+	
+	FileParser::setKey("UNIT_CELL", getUnitCell());
+
 	sendLog();
 
-
+	mainLattice = UnitCellLatticePtr();
+	getMainLattice();
 }

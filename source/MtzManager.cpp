@@ -1964,6 +1964,14 @@ void MtzManager::getWavelengthHistogram(vector<double> *wavelengths,
 
 void MtzManager::refineOrientationMatrix(bool force)
 {
+	bool fixUnitCell = FileParser::getKey("FIX_UNIT_CELL", true);
+
+	if (fixUnitCell)
+	{
+		vector<double> unitCell = FileParser::getKey("UNIT_CELL", vector<double>());
+		setUnitCell(unitCell);
+	}
+
 	this->calculateNearbyMillers();
 	checkNearbyMillers();
 
