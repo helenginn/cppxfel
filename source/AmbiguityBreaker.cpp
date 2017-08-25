@@ -163,11 +163,12 @@ void AmbiguityBreaker::plotDiffOneChipThread(AmbiguityBreaker *me, int offset, P
 		std::vector<double> diffs = iMtz->getDifferencesWith(jMtz, refs);
 
 		double cc = correlation_between_vectors(&diffs, &refs);
-
+		double scale = gradient_between_vectors(&diffs, &refs);
 
 		if (cc != cc) cc = 0;
 
-		double normalised = ((cc + 1) / 2);
+//		double normalised = ((cc + 1) / 2);
+		double normalised = ((scale + 2) / 4);
 		if (normalised > 1) normalised = 1;
 		if (normalised < 0) normalised = 0;
 
