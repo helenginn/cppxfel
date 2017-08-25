@@ -168,7 +168,7 @@ void AmbiguityBreaker::plotDiffOneChipThread(AmbiguityBreaker *me, int offset, P
 		if (cc != cc) cc = 0;
 
 //		double normalised = ((cc + 1) / 2);
-		double normalised = ((scale + 2) / 4);
+		double normalised = ((scale + 1.5) / 3);
 		if (normalised > 1) normalised = 1;
 		if (normalised < 0) normalised = 0;
 
