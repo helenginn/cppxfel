@@ -147,6 +147,7 @@ protected:
 
 	int _xPos;
 	int _yPos;
+	int _bin;
 
 	bool fullyLoaded;
 public:
@@ -382,6 +383,16 @@ public:
     {
         this->refPartCorrel = refPartCorrel;
     }
+
+	int getBin()
+	{
+		return _bin;
+	}
+
+	void setBin(int bin)
+	{
+		_bin = bin;
+	}
 
 	double getExponent() const
 	{

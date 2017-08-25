@@ -11,6 +11,9 @@
 #include "parameters.h"
 #include "MtzManager.h"
 #include "LoggableObject.h"
+#include <map>
+
+typedef std::map<int, std::vector<MtzPtr> > BinList;
 
 class IndexManager;
 
@@ -37,6 +40,9 @@ private:
     static void integrateSpotsThread(MtzRefiner *me, int offset);
     Hdf5ManagerProcessingPtr hdf5ProcessingPtr;
     void readDataFromOrientationMatrixList(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages);
+	void redumpBins();
+	
+	BinList binList;
 public:
 	MtzRefiner();
 	virtual ~MtzRefiner();
@@ -75,7 +81,7 @@ public:
 	void refineUnitCell();
     
 	static void readMatrix(double (&matrix)[9], std::string line);
-	void merge(bool mergeOnly = false);
+	void merge(int cycle = -2);
     void correlationAndInverse(bool shouldFlip = false);
     void refreshCurrentPartialities();
     void maximumImage();

@@ -190,7 +190,7 @@ void InputFileParser::parse(bool fromPython)
 			if (line == "MERGE")
 			{
                 understood = true;
-                refiner->merge(true);
+                refiner->merge();
 			}
             
             if (line == "DISPLAY_INDEXING_HANDS")

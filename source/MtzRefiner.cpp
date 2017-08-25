@@ -150,6 +150,28 @@ void MtzRefiner::initialMerge()
     reference->writeToFile("initialMerge.mtz");
 }
 
+void MtzRefiner::redumpBins()
+{
+	for (BinList::iterator it = binList.begin(); it != binList.end(); it++)
+	{
+		it->second.clear();
+	}
+
+	std::vector<MtzPtr> mtzs = getAllMtzs();
+
+	for (int i = 0; i < mtzs.size(); i++)
+	{
+		int bin = mtzs[i]->getBin();
+
+		if (!binList.count(bin))
+		{
+			binList[bin] = std::vector<MtzPtr>();
+		}
+
+		binList[bin].push_back(mtzs[i]);
+	}
+}
+
 std::vector<MtzPtr> MtzRefiner::getAllMtzs()
 {
 	std::vector<MtzPtr> allMtzs;
@@ -196,15 +218,8 @@ void MtzRefiner::refineCycle(bool once)
     int i = 0;
     bool finished = false;
     
-    bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
-	int maximumCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
+    int maximumCycles = FileParser::getKey("MAXIMUM_CYCLES", 6);
 	bool stop = FileParser::getKey("STOP_REFINEMENT", true);
-
-    int scalingInt = FileParser::getKey("SCALING_STRATEGY",
-                                        (int) SCALING_STRATEGY);
-    ScalingType scaling = (ScalingType) scalingInt;
-    
-    bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
     bool outputIndividualCycles = FileParser::getKey("OUTPUT_INDIVIDUAL_CYCLES", false);
 
 	while (!finished)
@@ -216,35 +231,8 @@ void MtzRefiner::refineCycle(bool once)
         
         cycleNum = i;
         cycle();
-        
-        // *************************
-        // ***** NORMAL MERGE ******
-        // *************************
-        
-		MtzPtr mergedMtz;
-		std::string filename = "allMerge" + i_to_str(i) + ".mtz";
 
-		MtzManager::setReference(&*reference);
-
-		MtzMerger merger;
-		merger.setAllMtzs(mtzManagers);
-		merger.setCycle(cycleNum);
-		merger.setScalingType(scaling);
-		merger.mergeFull();
-		mergedMtz = merger.getMergedMtz();
-
-		referencePtr = mergedMtz;
-
-		if (anomalousMerge)
-		{
-			merger.mergeFull(true);
-		}
-
-		if (replaceReference && mergedMtz)
-		{
-			reference = mergedMtz;
-			MtzManager::setReference(&*reference);
-		}
+		merge(i);
 
 		if (once)
 			finished = true;
@@ -442,6 +430,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
         bool hasSpots = false;
         std::string parentImage = "";
 		int currentCrystal = -1;
+		int bin = 0;
 
 		for (int i = 1; i < lines.size(); i++)
 		{
@@ -455,6 +444,12 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 				std::string spotsFile = components[1];
 				newImage->setSpotsFile(spotsFile);
 				hasSpots = true;
+			}
+
+			if (components[0] == "bin")
+			{
+				std::string binString = components[1];
+				bin = atoi(binString.c_str());
 			}
 
 			if (components[0] == "distance_offset")
@@ -592,8 +587,17 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
 								newMtzs->push_back(newManager);
 							}
 						}
-						else if (v3) {
+						else if (v3)
+						{
 							newImage->addMtz(newManager);
+
+							if (!me->binList.count(bin))
+							{
+								me->binList[bin] = std::vector<MtzPtr>();
+							}
+
+							me->binList[bin].push_back(newManager);
+							newManager->setBin(bin);
 						}
 					}
 				}
@@ -939,9 +943,6 @@ void MtzRefiner::correlationAndInverse(bool shouldFlip)
         }
         double newCorrel = mtzManagers[i]->correlation(true);
         mtzManagers[i]->setRefCorrelation(newCorrel);
-        
-        std::cout << mtzManagers[i]->getFilename() << "\t" << correl << "\t"
-        << invCorrel << std::endl;
     }
 }
 
@@ -961,46 +962,71 @@ void MtzRefiner::linearScaling()
     referencePtr = merger.getMergedMtz();
 }
 
-void MtzRefiner::merge(bool mergeOnly)
+void MtzRefiner::merge(int cycle)
 {
-    loadInitialMtz();
-    MtzManager::setReference(&*reference);
-    readRefinedMtzs = true;
-    readMatricesAndMtzs();
+	loadImageFiles();
+	loadInitialMtz();
 
 	std::vector<MtzPtr> mtzManagers = getAllMtzs();
-	correlationAndInverse(true);
 
-    vector<MtzPtr> idxOnly;
-    
-    for (int i = 0; i < mtzManagers.size(); i++)
-    {
-        if ((mtzManagers[i]->getActiveAmbiguity() == 0))
-            idxOnly.push_back(mtzManagers[i]);
-    }
-    
-    bool mergeAnomalous = FileParser::getKey("MERGE_ANOMALOUS", false);
-    
+	if (cycle < -1)
+	{
+		correlationAndInverse();
+	}
+
+    bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
 	int scalingInt = FileParser::getKey("SCALING_STRATEGY",
 										(int) SCALING_STRATEGY);
 	ScalingType scaling = (ScalingType) scalingInt;
+	bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
+
+	MtzPtr mergedMtz;
+	std::string filename = "allMerge" + i_to_str(cycle) + ".mtz";
+
+	MtzManager::setReference(&*reference);
 
 	MtzMerger merger;
 	merger.setAllMtzs(mtzManagers);
-	merger.setCycle(-1);
+	merger.setCycle(cycleNum);
 	merger.setScalingType(scaling);
-	merger.setFilename("remerged.mtz");
 	merger.mergeFull();
+	mergedMtz = merger.getMergedMtz();
 
-	if (mergeAnomalous)
+	referencePtr = mergedMtz;
+
+	if (anomalousMerge)
 	{
 		merger.mergeFull(true);
 	}
 
-	merger.setFreeOnly(true);
-	merger.mergeFull();
+	// *************************
+	// ***** BINNED MERGE ******
+	// *************************
 
-	referencePtr = merger.getMergedMtz();
+	redumpBins();
+
+	for (int i = 0; i < binList.size(); i++)
+	{
+		if (binList.size() <= 1)
+		{
+			break;
+		}
+
+		MtzMerger merger;
+		merger.setAllMtzs(binList[i]);
+		merger.setCycle(cycleNum);
+		merger.setScalingType(scaling);
+		merger.setFilename("allBin" + i_to_str(i) +
+						   "_" + i_to_str(cycleNum) + ".mtz");
+		merger.mergeFull();
+		mergedMtz = merger.getMergedMtz();
+	}
+
+	if (replaceReference && mergedMtz)
+	{
+		reference = mergedMtz;
+		MtzManager::setReference(&*reference);
+	}
 }
 
 // MARK: Integrating images

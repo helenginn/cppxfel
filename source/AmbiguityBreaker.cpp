@@ -27,6 +27,8 @@
 #include "PNGFile.h"
 #include <boost/make_shared.hpp>
 #include <algorithm>
+#include "CSV.h"
+#include "misc.h"
 
 /*
 double AmbiguityBreaker::dotProduct(int imageNumI, int imageNumJ)
@@ -150,6 +152,7 @@ void AmbiguityBreaker::plotDiffOneChipThread(AmbiguityBreaker *me, int offset, P
 	std::ostringstream logged;
 	MtzManager *ref = MtzManager::getReferenceManager();
 	MtzPtr reference = boost::make_shared<MtzManager>(*ref);
+	CSVPtr csv = CSVPtr(new CSV(5, "x", "y", "cc", "scale", "num"));
 
 	for (int i = offset; i < me->mtzs.size(); i += maxThreads)
 	{
@@ -159,15 +162,21 @@ void AmbiguityBreaker::plotDiffOneChipThread(AmbiguityBreaker *me, int offset, P
 
 		MtzPtr jMtz = reference;
 
-			std::vector<double> refs;
+		std::vector<double> refs;
 		std::vector<double> diffs = iMtz->getDifferencesWith(jMtz, refs);
 
 		double cc = correlation_between_vectors(&diffs, &refs);
 		double scale = gradient_between_vectors(&diffs, &refs);
 
+		if (cc > 0.2)
+		{
+			iMtz->setBin(1);
+		}
+
+		csv->addEntry(5, (double)x, (double)y, cc, scale, (double)diffs.size());
+
 		if (cc != cc) cc = 0;
 
-//		double normalised = ((cc + 1) / 2);
 		double normalised = ((scale + 1.5) / 3);
 		if (normalised > 1) normalised = 1;
 		if (normalised < 0) normalised = 0;
@@ -179,6 +188,8 @@ void AmbiguityBreaker::plotDiffOneChipThread(AmbiguityBreaker *me, int offset, P
 
 		std::cout << "." << std::flush;
 	}
+
+	csv->writeToFile("diffs_" + i_to_str(offset) + ".csv");
 
 	std::cout << std::endl;
 }

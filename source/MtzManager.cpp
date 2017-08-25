@@ -2186,6 +2186,7 @@ std::string MtzManager::getOrientationMatrixListScript()
 
 	script << "rlp_size " << spotSize << std::endl;
 	script << "mosaicity " << mosaicity << std::endl;
+	script << "bin " << _bin << std::endl;
 
 	updateLatestMatrix();
 	std::string description = rotatedMatrix->description(true);
