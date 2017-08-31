@@ -182,6 +182,7 @@ MtzManager::MtzManager()
 	lastTotal = 0;
 	lastStdev = 0;
 	fullyLoaded = false;
+	_bin = 0;
 
 	initialStep = FileParser::getKey("INITIAL_ORIENTATION_STEP", INITIAL_ORIENTATION_STEP);
 
