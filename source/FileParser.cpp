@@ -278,7 +278,16 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
         for (int i = 0; i < rest.length(); i++)
             lowerCaseStream << std::tolower(rest[i], loc);
         std::string lowered = lowerCaseStream.str();
-        
+		trim(lowered);
+
+		size_t pos = lowered.find("#");
+
+		if (pos != std::string::npos)
+		{
+			lowered = lowered.substr(0, pos);
+			trim(lowered);
+		}
+
         if (!codeMap.count(lowered))
         {
             std::ostringstream logged;
