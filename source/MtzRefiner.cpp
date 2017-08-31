@@ -1003,7 +1003,7 @@ void MtzRefiner::merge(int cycle)
 	// ***** BINNED MERGE ******
 	// *************************
 
-	redumpBins();
+//	redumpBins();
 
 	for (int i = 0; i < binList.size(); i++)
 	{
