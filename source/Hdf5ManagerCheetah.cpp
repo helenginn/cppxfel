@@ -57,6 +57,9 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
                 case FreeElectronLaserTypeLCLS:
                     cheetahPtr = Hdf5ManagerCheetahLCLS::makeManager(aFilename);
                     break;
+				case FreeElectronLaserTypeEuropeanXFEL:
+					cheetahPtr = Hdf5ManagerCheetahLCLS::makeManager(aFilename);
+					break;
                 case FreeElectronLaserTypeSACLA:
                     cheetahPtr = Hdf5ManagerCheetahSacla::makeManager(aFilename);
                     break;

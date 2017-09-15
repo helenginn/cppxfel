@@ -19,6 +19,7 @@ typedef enum
 {
     DetectorTypeCSPAD,
     DetectorTypeMPCCD,
+	DetectorTypeAGIPD,
 } DetectorType;
 
 typedef std::map<DetectorPtr, bool> AncestorMap;

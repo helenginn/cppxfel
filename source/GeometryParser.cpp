@@ -13,7 +13,7 @@
 #include "Detector.h"
 #include "Vector.h"
 #include <fstream>
-
+#include "Hdf5ManagerCheetah.h"
 
 GeometryParser::GeometryParser(std::string aFilename, GeometryFormat aFormat)
 {
@@ -397,6 +397,9 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     std::map<std::string, std::string> panelMap;
     bool isSacla = false;
 
+	int laserTypeInt = FileParser::getKey("FREE_ELECTRON_LASER", 0);
+	FreeElectronLaserType laserType = (FreeElectronLaserType)laserTypeInt;
+
 	if (FileParser::getKey("DETECTOR_DISTANCE", 0.) <= 0)
 	{
 		logged << "Detector distance not set or set to zero/negative." << std::endl;
@@ -439,8 +442,11 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
             panelMap["name"] = forwardSlashes[0];
             lastPanel = forwardSlashes[0];
             
-            if (!isSacla)
-                isSacla = (forwardSlashes[0].length() == 2 && forwardSlashes[0][0] == 'q');
+            if (laserType == FreeElectronLaserTypeLCLS)
+			{
+                laserType = (forwardSlashes[0].length() == 2 && forwardSlashes[0][0] == 'q')
+				? FreeElectronLaserTypeSACLA : FreeElectronLaserTypeLCLS;
+			}
         }
         
         
@@ -506,7 +512,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
     logged << "Making the assumption that this detector is a " << (isSacla ? "MPCCD" : "CSPAD") << " detector." << std::endl;
     sendLog();
     
-    if (isSacla)
+    if (laserType == FreeElectronLaserTypeSACLA)
     {
         Detector::setDetectorType(DetectorTypeMPCCD);
         
@@ -557,9 +563,26 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
         
         DetectorPtr q8 = makeDetectorFromPanelMap(panelMaps, "q8", q78);
         q8->setRefinable(refineLocalGeometry);
-
     }
-	else if (!isSacla)
+	else if (laserType == FreeElectronLaserTypeEuropeanXFEL)
+	{
+		Detector::setDetectorType(DetectorTypeAGIPD);
+
+		for (int i = 0; i < 16; i++)
+		{
+			std::string overallPanelName = "p" + i_to_str(i);
+			DetectorPtr agipdModule = makeDetectorFromPanelMap(panelMaps, overallPanelName, master);
+			agipdModule->setRefinable(refineLocalGeometry);
+
+			for (int j = 0; j < 8; j++)
+			{
+				std::string panelName = "p" + i_to_str(i) + "a" + i_to_str(j);
+				DetectorPtr next = makeDetectorFromPanelMap(panelMaps, panelName, agipdModule);
+				next->setRefinable(false);
+			}
+		}
+	}
+	else if (laserType == FreeElectronLaserTypeLCLS)
 	{
 		Detector::setDetectorType(DetectorTypeCSPAD);
 
@@ -666,7 +689,6 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
 			qXa14_15->setRefinable(refineLocalGeometry);
 			qXa12_15->addChild(qXa14_15);
 			pairs[i].push_back(qXa14_15);
-
 		}
 
 		for (int i = 0; i < panelMaps.size(); i++)
@@ -688,60 +710,6 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
 			DetectorPtr segment = makeDetectorFromPanelMap(panelMaps[i], pairs[qNum][pairNum]);
 			segment->setRefinable(false);
 		}
-		
-		/*
-		std::vector<DetectorPtr> pairs;
-
-		for (int i = 0; i < 4; i++)
-		{
-			for (int j = 0; j < 16; j += 2)
-			{
-				std::string qaCombo;
-				qaCombo = "q" + i_to_str(i) + "a" + i_to_str(j) + "_" + i_to_str(j + 1);
-				DetectorPtr asicPair = DetectorPtr(new Detector(master, new_vector(0, 0, 0), qaCombo));
-				asicPair->setRefinable(true);
-				pairs.push_back(asicPair);
-			}
-		}
-
-		for (int i = 0; i < panelMaps.size(); i++)
-		{
-			PanelMap map = panelMaps[i];
-			std::string name = map["name"];
-			if (name.length() < 4)
-			{
-				logged << "I'm struggling..." << std::endl;
-				sendLog();
-			}
-
-			int aLength = (int)name.length() - 3;
-			int qNum = atoi(name.substr(1, 1).c_str());
-			int aNum = atoi(name.substr(3, aLength).c_str());
-			int pairNum = qNum * 8 + aNum / 2;
-
-			DetectorPtr myParent;
-			DetectorPtr segment = makeDetectorFromPanelMap(panelMaps[i], pairs[pairNum]);
-			segment->setRefinable(false);
-		}
-
-		std::sort(pairs.begin(), pairs.end(), detectorFurtherThan);
-		DetectorPtr lastParent = Detector::getMaster();
-
-		for (int i = 0; i < pairs.size(); i++)
-		{
-			std::string setName = "panel_set_" + i_to_str(i);
-			DetectorPtr theRest = DetectorPtr(new Detector(DetectorPtr(), new_vector(0, 0, 0), setName));
-			theRest->setRefinable(true);
-
-			lastParent->addChild(pairs[i]);
-
-			if (i < pairs.size() - 1)
-			{
-				lastParent->addChild(theRest);
-			}
-
-			lastParent = theRest;
-		}*/
 	}
 
     Detector::getMaster()->updateCurrentRotation();
