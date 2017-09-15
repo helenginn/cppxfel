@@ -571,7 +571,7 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
 		for (int i = 0; i < 16; i++)
 		{
 			std::string overallPanelName = "p" + i_to_str(i);
-			DetectorPtr agipdModule = makeDetectorFromPanelMap(panelMaps, overallPanelName, master);
+			DetectorPtr agipdModule = DetectorPtr(new Detector(master, new_vector(0, 0, 0), overallPanelName));
 			agipdModule->setRefinable(refineLocalGeometry);
 
 			for (int j = 0; j < 8; j++)
