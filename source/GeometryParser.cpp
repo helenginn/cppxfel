@@ -579,7 +579,6 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
 			{
 				std::string panelName = "p" + i_to_str(i) + "a" + i_to_str(j);
 				DetectorPtr next = makeDetectorFromPanelMap(panelMaps, panelName, agipdModule);
-				agipdModule->addChild(next);
 				next->setRefinable(false);
 			}
 		}
@@ -711,6 +710,15 @@ void GeometryParser::parseCrystFELLines(std::vector<std::string> lines)
 			DetectorPtr myParent;
 			DetectorPtr segment = makeDetectorFromPanelMap(panelMaps[i], pairs[qNum][pairNum]);
 			segment->setRefinable(false);
+		}
+	}
+	else
+	{
+		// just add whatever
+		for (int i = 0; i < panelMaps.size(); i++)
+		{
+			DetectorPtr panel = makeDetectorFromPanelMap(panelMaps[i], master);
+			panel->setRefinable(refineLocalGeometry);
 		}
 	}
 

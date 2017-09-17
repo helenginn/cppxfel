@@ -477,6 +477,7 @@ void FileParser::generateCodeList()
         codeMap["sacla"] = 1;
         codeMap["european_xfel"] = 2;
         codeMap["swissfel"] = 3;
+		codeMap["other"] = 4;
         codeMaps["FREE_ELECTRON_LASER"] = codeMap;
     }
     {

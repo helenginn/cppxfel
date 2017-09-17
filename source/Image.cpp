@@ -2459,7 +2459,7 @@ void Image::drawSpotsOnPNG(std::string filename, bool drawPanels)
 			}
 
 
-       //     file->drawText(detectors[i]->getTag(), x, y);
+            file->drawText(detectors[i]->getTag(), x, y);
         }
     }
     
@@ -2623,8 +2623,6 @@ void Image::writePNG(PNGFilePtr file, bool includeDiffraction)
 				value = 0;
 			}
 
-
-            
             proportion_distance *= 360;
             
             png_byte red, green, blue;
