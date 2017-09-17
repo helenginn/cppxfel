@@ -392,6 +392,7 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             
             if (!manager)
             {
+				std::cout << "Could not find " << imgNameOnly << std::endl;
                 continue;
             }
         }
