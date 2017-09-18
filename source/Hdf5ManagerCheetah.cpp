@@ -101,7 +101,6 @@ Hdf5ManagerCheetahPtr Hdf5ManagerCheetah::hdf5ManagerForImage(std::string imageN
         
         std::string address = cheetahManager->addressForImage(imageName);
 
-
         if (address.length() > 0)
         {
             return cheetahManager;
@@ -122,13 +121,18 @@ void Hdf5ManagerCheetah::closeHdf5Files()
 std::string Hdf5ManagerCheetah::addressForImage(std::string imageName)
 {
     // maybe imageName has .img extension, so let's get rid of it
-    std::string baseName = getBaseFilename(imageName);
-    
+	unsigned long h5Pos = imageName.find(".h5");
+	if (h5Pos != std::string::npos)
+	{
+		imageName[h5Pos] = '_';
+	}
+	std::string baseName = getBaseFilename(imageName);
+
     if (!imagePathMap.count(baseName))
     {
         return "";
     }
-    
+
     int index = imagePathMap[baseName];
     return imagePaths[index];
 }

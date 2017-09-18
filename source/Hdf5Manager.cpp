@@ -21,6 +21,7 @@
 #include "FileReader.h"
 #include "Logger.h"
 #include "Hdf5Table.h"
+#include "misc.h"
 
 #define MAX_NAME 100
 std::mutex Hdf5Manager::readingHdf5;
@@ -578,11 +579,19 @@ void Hdf5Manager::identifiersFromAddress(std::map<std::string, int> *map, std::v
         {
             std::string anId = std::string(&buffer[lastStart]);
             lastStart = i + 1;
-            
-            if (anId.size() > 0)
+
+			/* Remove anything after a path to get base name only */
+			std::string stripped = lastComponent(anId);
+			unsigned long h5Pos = stripped.find(".h5");
+			if (h5Pos != std::string::npos)
+			{
+				stripped[h5Pos] = '_';
+			}
+
+            if (stripped.size() > 0)
             {
-                list->push_back(anId);
-                (*map)[lastComponent(anId)] = count;
+                list->push_back(stripped);
+                (*map)[stripped] = count;
                 count++;
             }
         }
