@@ -322,8 +322,8 @@ void InputFileParser::parse(bool fromPython)
 
 			if (line == "FLATTEN_DETECTOR")
 			{
-				understood = true;
-				refiner->flattenDetector();
+		//		understood = true;
+		//		refiner->flattenDetector();
 			}
 
             if (!understood)
