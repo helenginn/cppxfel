@@ -266,8 +266,15 @@ void Reflection::generateReflectionIds()
         int _l = roundToInt(miller.l);
         int h2, k2, l2;
         
-        CSym::ccp4spg_put_in_asu(ccp4_space_group, _h, _k, _l, &h2, &k2, &l2);
-        
+        int success = CSym::ccp4spg_put_in_asu(ccp4_space_group, _h, _k, _l, &h2, &k2, &l2);
+
+		if (success == 0)
+		{
+			std::cout << "Major problem: cannot put " << h << " " << k << " " << l
+			<< " into the asymmetric unit for space group " << ccp4_space_group->symbol_Hall << std::endl;
+			exit(0);
+		}
+
         int newId = reflectionIdForCoordinates(h2, k2, l2);
         
         reflectionIds.push_back(newId);
