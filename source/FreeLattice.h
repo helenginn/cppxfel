@@ -31,7 +31,7 @@ protected:
     std::vector<SpotVectorPtr> spotVectors;
     std::vector<SpotVectorPtr> expandedSpotVectors;
     std::vector<double> orderedDistances;
-    
+
     void calculateExpandedVectors(bool originOnly);
     void startingAngles(double a, double b, double c, double alpha, double beta, double gamma);
 public:
@@ -41,12 +41,12 @@ public:
     void addExpanded();
     void powderPattern(bool originOnly = false, std::string filename = "latticePowder.csv");
     void anglePattern(bool originOnly = false);
-    
+
     size_t orderedDistanceCount()
     {
         return orderedDistances.size();
     }
-    
+
     double orderedDistance(int i)
     {
         return orderedDistances[i];

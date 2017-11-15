@@ -24,7 +24,7 @@ def find_new_value_as_line(line, panel_num):
     backslash_split = line.split("/")
     equal_split = backslash_split[1].split("=")
     variable = equal_split[0].strip()
-    
+
     if variable == "min_fs" or variable == "min_ss" or variable == "max_fs" or variable == "max_ss":
         if variable == "min_fs":
             min_fs = float(equal_split[1].strip(" "))
@@ -34,11 +34,11 @@ def find_new_value_as_line(line, panel_num):
             max_fs = float(equal_split[1].strip(" "))
         if variable == "max_ss":
             max_ss = float(equal_split[1].strip(" "))
-   
+
         return line
-    
+
     line_beginning = backslash_split[0] + "/" + variable + " = "
-    
+
     #         rotation = - math.atan2(axisXY, axisXX) / math.pi * 180.0
     if variable == "fs" or variable == "ss":
         # get this information from the rotational component
@@ -49,33 +49,33 @@ def find_new_value_as_line(line, panel_num):
         theta = math.radians(rotation)
         dx = math.cos(theta)
         dy = math.sin(theta)
-        
+
         if variable == "ss":
             axisYX = dx
-            axisYY = dy      
+            axisYY = dy
         elif variable == "fs":
             axisXX = dx
             axisXY = dy
-    
+
         sign_x = ""
         if dx > 0: sign_x = "+"
         sign_y = ""
         if dy > 0: sign_y = "+"
-        
+
         line_beginning += sign_x + '{0:.10f}'.format(dx) + "x " + sign_y + '{0:.10f}'.format(dy) + "y"
         return line_beginning
-    
+
     imageWidth = max_fs - min_fs
     imageHeight = max_ss - min_ss
-    
+
     if variable == "corner_x" or variable == "corner_y":
         cpp_values = cpp_panels_lines[panel_num].split(" ")
-        
+
         minRotatedX = float(cpp_values[1])
         maxRotatedX = float(cpp_values[3])
         minRotatedY = float(cpp_values[2])
         maxRotatedY = float(cpp_values[4])
-        
+
         midX = (maxRotatedX + minRotatedX) / 2
         midY = (maxRotatedY + minRotatedY) / 2
         vecX = -(axisYX * imageHeight + axisXX * imageWidth) / 2
@@ -88,16 +88,16 @@ def find_new_value_as_line(line, panel_num):
         midX += vecX
         midY += vecY
         newValue = 0
- 
+
         if variable == "corner_x":
             newValue = midX - beamX
         elif variable == "corner_y":
             newValue = midY - beamY
-  
+
         return line_beginning + str(newValue)
-    
+
     cppline = cpp_panels_lines[panel_num]
-    
+
     return line
 
 template_name = ""
@@ -132,7 +132,7 @@ panel_number = -1
 
 for tmpline in template_lines:
     backslash_split = tmpline.split("/")
-    
+
     if len(backslash_split) > 0 and backslash_split[0] == current_panel:
         new_line = find_new_value_as_line(tmpline, panel_number)
         print new_line
@@ -144,4 +144,3 @@ for tmpline in template_lines:
             print new_line
     else:
         print tmpline
-    

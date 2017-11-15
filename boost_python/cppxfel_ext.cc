@@ -24,40 +24,40 @@
 
 namespace cppxfel { namespace boost_python {
 
-	using namespace boost::python;
+        using namespace boost::python;
 
-	template<class T>
-	boost::python::list vector_to_py_list(const vector<T>& v)
-	{
-		boost::python::object get_iter = boost::python::iterator<vector<T> >();
-		boost::python::object iter = get_iter(v);
-		boost::python::list l(iter);
-		return l;
-	}
-	
-	template<class T>
-	std::vector<T> py_list_to_vector(boost::python::list theList)
-	{
-		std::vector<T> vec;
-		
-		for (int i = 0; i < len(theList); ++i)
+        template<class T>
+        boost::python::list vector_to_py_list(const vector<T>& v)
+        {
+                boost::python::object get_iter = boost::python::iterator<vector<T> >();
+                boost::python::object iter = get_iter(v);
+                boost::python::list l(iter);
+                return l;
+        }
+
+        template<class T>
+        std::vector<T> py_list_to_vector(boost::python::list theList)
+        {
+                std::vector<T> vec;
+
+                for (int i = 0; i < len(theList); ++i)
     {
         vec.push_back(boost::python::extract<T>(theList[i]));
     }
-		
-		return vec;
-	}
-	
-	void cppxfelScript(std::string scriptFile)
-	{
-		runScriptFromPython(scriptFile);
-	}
-	
-	BOOST_PYTHON_MODULE(cppxfel_ext)
-	{
- 		def ("run", &cppxfelScript);
- 		def ("runCommandLineArgs", &runCommandLine);
- 	}
+
+                return vec;
+        }
+
+        void cppxfelScript(std::string scriptFile)
+        {
+                runScriptFromPython(scriptFile);
+        }
+
+        BOOST_PYTHON_MODULE(cppxfel_ext)
+        {
+                def ("run", &cppxfelScript);
+                def ("runCommandLineArgs", &runCommandLine);
+        }
 }
 
 }

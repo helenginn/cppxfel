@@ -17,8 +17,8 @@
 class Spot : LoggableObject, public boost::enable_shared_from_this<Spot>
 {
 private:
-	static vector<vector<double> > probe;
-	ImageWeakPtr parentImage;
+        static vector<vector<double> > probe;
+        ImageWeakPtr parentImage;
     DetectorWeakPtr lastDetector;
     double angleDetectorPlane;
     bool setAngle;
@@ -36,24 +36,24 @@ private:
     int length;
     int background;
     int backgroundPadding;
-	vec _estimatedVec;
+        vec _estimatedVec;
     static double maxResolution;
     static double minIntensity;
     static double minCorrelation;
     static bool checkRes;
     static int useNewDetectorFormat;
     std::mutex probeMutex;
-    
+
 public:
-	Spot(ImagePtr image);
-	virtual ~Spot();
+        Spot(ImagePtr image);
+        virtual ~Spot();
 
     static void spotsAndVectorsToResolution(double lowRes, double highRes, std::vector<SpotPtr> spots, std::vector<SpotVectorPtr> spotVectors, std::vector<SpotPtr> *lowResSpots, std::vector<SpotVectorPtr> *lowResSpotVectors);
     void makeProbe(int height, int background, int size, int backPadding = 0);
     void addToMask(int *mask, int width, int height);
-	void setXY(double x, double y);
+        void setXY(double x, double y);
     bool isAcceptable(ImagePtr image);
-	double angleFromSpotToCentre(double centreX, double centreY);
+        double angleFromSpotToCentre(double centreX, double centreY);
     double angleInPlaneOfDetector(double centreX = 0, double centreY = 0, vec upBeam = new_vector(0, 1, 0));
     double resolution();
     bool isOnSameLineAsSpot(SpotPtr otherSpot, double toleranceDegrees);
@@ -70,116 +70,116 @@ public:
     vec estimatedVector();
     void setUpdate();
     double focusOnNearbySpot(double maxShift, double trialX, double trialY, int round = 0);
-    
+
     std::string spotLine();
 
-	static void recentreInWindow(ImagePtr thisImage, double *x, double *y, int windowPadding);
+        static void recentreInWindow(ImagePtr thisImage, double *x, double *y, int windowPadding);
 
-	void storeEstimatedVector()
-	{
-		_estimatedVec = estimatedVector();
-	}
+        void storeEstimatedVector()
+        {
+                _estimatedVec = estimatedVector();
+        }
 
-	vec storedVector()
-	{
-		return _estimatedVec;
-	}
+        vec storedVector()
+        {
+                return _estimatedVec;
+        }
 
     void setRejected(bool isRejected = true)
     {
         rejected = isRejected;
     }
-    
+
     bool isRejected()
     {
         return rejected;
     }
-    
+
     int successfulLineCount()
     {
         return successfulCommonLines;
     }
-    
+
     void addSuccessfulCommonLineCount()
     {
         successfulCommonLines++;
     }
-    
+
     void deleteSuccessfulCommonLineCount()
     {
         successfulCommonLines--;
     }
-    
+
     bool isChecked()
     {
         return checked;
     }
-    
+
     void setChecked(bool newCheck = true)
     {
         checked = newCheck;
     }
-    
-    ImagePtr getParentImage()
-	{
-		return parentImage.lock();
-	}
 
-	void setParentImage(ImagePtr parentImage)
-	{
-		this->parentImage = parentImage;
-	}
-    
+    ImagePtr getParentImage()
+        {
+                return parentImage.lock();
+        }
+
+        void setParentImage(ImagePtr parentImage)
+        {
+                this->parentImage = parentImage;
+        }
+
     DetectorPtr getDetector()
     {
         return lastDetector.lock();
     }
-    
+
     bool hasDetector()
     {
         return !(lastDetector.expired());
     }
-    
+
     void setDetector(DetectorPtr newD)
     {
         lastDetector = newD;
     }
-    
+
     double getIntensity()
     {
         return intensity;
     }
-    
+
     void setToBeamCentre()
     {
         _isBeamCentre = true;
     }
-    
+
     bool isBeamCentre()
     {
         return _isBeamCentre;
     }
-    
+
     void setFake(bool fake = true)
     {
         _isFake = fake;
     }
-    
+
     bool isFake()
     {
         return _isFake;
     }
-    
+
     void setText(std::string text)
     {
         _text = text;
     }
-    
+
     std::string getText()
     {
         return _text;
     }
-    
+
     double getRawX()
     {
         return x;

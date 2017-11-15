@@ -16,15 +16,15 @@
 class SpotFinderCorrelation : public SpotFinder
 {
 private:
-    
+
     void focusOnMax(int *x, int *y);
 
 public:
     SpotFinderCorrelation(ImagePtr image) : SpotFinder(image)
     {
-        
+
     }
-    
+
     virtual void findSpecificSpots(std::vector<SpotPtr> *spots);
 };
 

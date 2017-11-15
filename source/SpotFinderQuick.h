@@ -22,9 +22,9 @@ private:
     int maxHits;
     int minSeparation;
     float signalToNoiseThreshold;
-    
+
     std::vector<int> backgroundShifts;
-    
+
     template<class Value>
     void findSignalToNoise(Value *data, size_t position, int xDim, int yDim, float *signalToNoiseRatio, float *background, float *backgroundVariance);
     void calculateBackgroundShifts();
@@ -32,21 +32,21 @@ public:
     SpotFinderQuick(ImagePtr image) : SpotFinder(image)
     {
         // this has not been calibrated
-        
+
         minRadius = 6;
         maxRadius = 8;
         minPixels = FileParser::getKey("SPOT_FINDING_MIN_PIXELS", 2);
         minSeparation = 3;
         maxPixels = FileParser::getKey("SPOT_FINDING_MAX_PIXELS", 40);
         maxHits = 500;
-        
+
         // For cheetah, Takanori Nakane says:
         // "In LCLS, 4. For SACLA, 4 leads to many false positives"
         signalToNoiseThreshold = FileParser::getKey("SPOT_FINDING_SIGNAL_TO_NOISE", 5.);
-        
+
         calculateBackgroundShifts();
     }
-    
+
     virtual void findSpecificSpots(std::vector<SpotPtr> *spots);
 };
 

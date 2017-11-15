@@ -51,23 +51,23 @@ double minimizeParameter(double &step, double *param, double (*score)(void *obje
 double sum(vector<double> values);
 void regression_line(vector<boost::tuple<double, double, double> > values, double &intercept, double &gradient);
 double correlation_between_vectors(vector<double> *vec1,
-		vector<double> *vec2, vector<double> *weights, int exclude);
+                vector<double> *vec2, vector<double> *weights, int exclude);
 double correlation_between_vectors(vector<double> *vec1,
-		vector<double> *vec2, vector<double> *weights);
+                vector<double> *vec2, vector<double> *weights);
 double correlation_between_vectors(vector<double> *vec1,
-		vector<double> *vec2);
+                vector<double> *vec2);
 double correlation_through_origin(vector<double> *vec1,
-		vector<double> *vec2, vector<double> *weights = NULL);
+                vector<double> *vec2, vector<double> *weights = NULL);
 double least_squares_between_vectors(vector<double> *vec1,
-		vector<double> *vec2, double slope);
+                vector<double> *vec2, double slope);
 double gradient_between_vectors(vector<double> *vec1,
-		vector<double> *vec2);
+                vector<double> *vec2);
 double weighted_mean(vector<double> *means, vector<double> *weights = NULL);
 double median(vector<double> *means);
 void histogram_gaussian(vector<double> *means, vector<int> *freq, double &mean, double &stdev);
 double standard_deviation(vector<double> *values, vector<double> *weights = NULL);
 double r_factor_between_vectors(vector<double> *vec1,
-		vector<double> *vec2, vector<double> *weights = NULL, double scale = 1);
+                vector<double> *vec2, vector<double> *weights = NULL, double scale = 1);
 double standard_deviation(vector<double> *values, vector<double> *weights, double mean);
 double bitty_deviation(vector<double> *values, vector<double> *weights, double centre = FLT_MAX);
 void printDesc(vec hkl);

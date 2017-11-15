@@ -25,13 +25,13 @@ Hdf5ManagerProcessingPtr Hdf5ManagerProcessing::processingManager = Hdf5ManagerP
 void Hdf5ManagerProcessing::setupProcessingManager()
 {
     std::string filename = FileParser::getKey("HDF5_OUTPUT_FILE", std::string(""));
-    
+
     if (filename == "")
     {
         processingManager = Hdf5ManagerProcessingPtr();
         return;
     }
-    
+
     processingManager = Hdf5ManagerProcessingPtr(new Hdf5ManagerProcessing(filename));
 }
 

@@ -48,7 +48,7 @@ private:
     bool freeOnly;
     bool needToScale;
     bool preventRejections;
-    
+
     void splitAllMtzs(std::vector<MtzPtr> &firstHalfMtzs, std::vector<MtzPtr> &secondHalfMtzs);
     MtzRejectionReason isMtzAccepted(MtzPtr mtz);
     std::map<MtzRejectionReason, int> rejectNums;
@@ -63,7 +63,7 @@ private:
     double maxResolution();
     static void groupMillerThreadWrapper(MtzMerger *object, int offset);
     std::string makeFilename(std::string prefix);
-    
+
     void scaleIndividual(MtzPtr mtz);
     void fixSigmas();
     void removeReflections();
@@ -75,41 +75,41 @@ private:
     void createAnomalousDiffMtz(MtzPtr negative, MtzPtr positive);
     void createUnmergedMtz();
     void copyDetails(MtzMerger &second);
-    
+
     void incrementRejectedReflections();
-    
+
 protected:
 
-    
+
 public:
     MtzMerger();
     void merge();
     void mergeFull(bool anomalous = false);
     void mergeAnomalous();
     void scale();
-    
+
     void setCycle(int num);
-    
+
     void setScalingType(ScalingType type)
     {
         scalingType = type;
     }
-    
+
     void setAllMtzs(std::vector<MtzPtr> mtzs)
     {
         allMtzs = mtzs;
     }
-    
+
     void setSomeMtzs(std::vector<MtzPtr> mtzs)
     {
         someMtzs = mtzs;
     }
-    
+
     void setExcludeWorst(bool worst)
     {
         excludeWorst = worst;
     }
-    
+
     void setPreventRejections(bool prevent)
     {
         preventRejections = prevent;
@@ -119,32 +119,32 @@ public:
     {
         filename = newName;
     }
-    
+
     std::string getFilename()
     {
         return filename;
     }
-    
+
     MtzPtr getMergedMtz()
     {
         return mergedMtz;
     }
-    
+
     void setSilent(bool newSilent)
     {
         silent = newSilent;
     }
-    
+
     void setFriedel(int newFriedel)
     {
         friedel = newFriedel;
     }
-    
+
     void setFreeOnly(bool free)
     {
         freeOnly = free;
     }
-    
+
     void setNeedToScale(bool need)
     {
         needToScale = need;

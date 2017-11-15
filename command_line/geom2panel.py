@@ -43,11 +43,11 @@ for panel in panels:
             key_value = line.split("=")
             key = key_value[0].strip()
             value = key_value[1].strip()
-    
+
             id_property = key.split("/")
             id = id_property[0]
             property = id_property[1]
-    
+
             if len(value.split(" ")) > 1:
                 subProperties = value.split(" ")
                 for i in range(len(subProperties)):
@@ -56,7 +56,7 @@ for panel in panels:
                 value = subProperties
             else:
                 value = float(value)
-    
+
 #            print "Found value", value, "for panel", panel, ", property", property
             orderedPanels[-1][property] = value
 
@@ -73,10 +73,10 @@ for panel in orderedPanels:
         axisXY = panel['fs'][1]
         axisYX = panel['ss'][0]
         axisYY = panel['ss'][1]
-        
+
         # generate panels.txt
 
-        imageWidth = origBottomRightX - origTopLeftX 
+        imageWidth = origBottomRightX - origTopLeftX
         imageHeight = origBottomRightY - origTopLeftY
         relativeNewOtherCornerX = relativeNewX + imageWidth * axisXX + imageHeight * axisYX
         relativeNewOtherCornerY = relativeNewY + imageWidth * axisXY + imageHeight * axisYY
@@ -90,6 +90,5 @@ for panel in orderedPanels:
 
 #        print "#", panel
         print "PANEL %f %f %f %f %f %f 0 0 %f 1" % (min(relativeNewX, relativeNewOtherCornerX), min(relativeNewY, relativeNewOtherCornerY),
-                                                    max(relativeNewX, relativeNewOtherCornerX), max(relativeNewY, relativeNewOtherCornerY),    
+                                                    max(relativeNewX, relativeNewOtherCornerX), max(relativeNewY, relativeNewOtherCornerY),
                                                     offsetX, offsetY, rotation)
-

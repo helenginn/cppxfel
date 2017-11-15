@@ -65,37 +65,37 @@ std::vector<double> NelderMead::calculateCentroid()
     std::vector<double> centroid;
     centroid.resize(tags.size());
     orderTestPoints();
-    
+
     for (int i = 0; i < tags.size(); i++)
     {
         double total = 0;
-        
+
         for (int j = 0; j < testPoints.size() - 1; j++)
         {
             total += testPoints[j].first[i];
         }
-        
+
         total /= testPoints.size() - 1;
-        
+
         centroid[i] = total;
     }
-    
+
     return centroid;
 }
 
 TestPoint NelderMead::reflectOrExpand(std::vector<double> centroid, double scale)
 {
     TestPoint *maxPoint = worstTestPoint();
-    
+
     std::vector<double> diffVec = centroid;
     subtractPoints(&diffVec, maxPoint->first);
     scalePoint(&diffVec, scale);
     std::vector<double> reflectedVec = centroid;
     addPoints(&reflectedVec, diffVec);
-    
+
     TestPoint reflection = std::make_pair(reflectedVec, 0);
     evaluateTestPoint(&reflection);
-    
+
     return reflection;
 }
 
@@ -117,20 +117,20 @@ TestPoint NelderMead::contractedPoint(std::vector<double> centroid)
 void NelderMead::reduction()
 {
     TestPoint bestPoint = testPoints[0];
-    
+
     for (int i = 1; i < testPoints.size(); i++)
     {
         TestPoint point = testPoints[i];
-        
+
         std::vector<double> diffVec = point.first;
         subtractPoints(&diffVec, bestPoint.first);
         scalePoint(&diffVec, sigma);
         std::vector<double> finalVec = bestPoint.first;
         addPoints(&finalVec, diffVec);
-        
+
         TestPoint contractPoint = std::make_pair(finalVec, 0);
         evaluateTestPoint(&contractPoint);
-        
+
         testPoints[i] = contractPoint;
     }
 }
@@ -168,80 +168,80 @@ void NelderMead::setTestPointParameters(TestPoint *testPoint)
 void NelderMead::clearParameters()
 {
     RefinementStrategy::clearParameters();
-    
+
     testPoints.clear();
 }
 
 void NelderMead::refine()
 {
     RefinementStrategy::refine();
-    
+
     int testPointCount = (int)tags.size() + 1;
     testPoints.resize(testPointCount);
-    
+
     if (tags.size() == 0)
         return;
-    
+
     for (int i = 0; i < testPoints.size(); i++)
     {
         testPoints[i].second = 0;
         testPoints[i].first.resize(tags.size());
-        
+
         for (int j = 0; j < tags.size(); j++)
         {
             if (i == 0)
             {
                 testPoints[i].first[j] = (*getters[j])(objects[j]);
             }
-            
+
             if (i > 0)
             {
                 int minJ = i - 1;
                 double scale = 2;
-                
+
                 testPoints[i].first[j] = testPoints[0].first[j] + (j == minJ) * scale * stepSizes[j];
             }
         }
     }
-    
+
     for (int i = 0; i < testPoints.size(); i++)
     {
         evaluateTestPoint(i);
     }
-    
+
     int count = 0;
     int skip = maxCycles / 6 + 1;
-    
+
     while ((!converged() && count < maxCycles))
     {
         std::vector<double> centroid = calculateCentroid();
         count++;
-        
+
       //  if (count % skip == 0)
         {
             reportProgress(testPoints[0].second);
         }
 
         TestPoint reflected = reflectedPoint(centroid);
-        
+
         if (reflected.second < testPoints[1].second)
         {
             setWorstTestPoint(reflected);
             continue;
         }
-        
+
         if (reflected.second < testPoints[0].second)
         {
             TestPoint expanded = expandedPoint(centroid);
             bool expandedBetter = (expanded.second < reflected.second);
             setWorstTestPoint(expandedBetter ? expanded : reflected);
-            
+
             continue;
         }
-        
+
         TestPoint contracted = contractedPoint(centroid);
         TestPoint *worstPoint = worstTestPoint();
-        
+
         if (contracted.second < worstPoint->second)
         {
             setWorstTestPoint(contracted);
@@ -252,11 +252,11 @@ void NelderMead::refine()
             reduction();
         }
     }
-    
+
     orderTestPoints();
     reportProgress(testPoints[0].second);
     setTestPointParameters(&testPoints[0]);
-    
+
     finish();
 }
 
@@ -267,5 +267,3 @@ void NelderMead::init()
     rho = -0.5;
     sigma = 0.5;
 }
-
-

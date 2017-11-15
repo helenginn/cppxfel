@@ -35,7 +35,7 @@ private:
     std::string wavelengthAddress;
     std::vector<double> wavelengths;
 
-    
+
 public:
     Hdf5ManagerCheetahLCLS(std::string newName) : Hdf5ManagerCheetah(newName)
     {
@@ -46,13 +46,13 @@ public:
         identifiersFromAddress(&imagePathMap, &imagePaths, idAddress);
         prepareWavelengths();
     }
-    
+
     static Hdf5ManagerCheetahPtr makeManager(std::string filename);
-    
+
     void prepareWavelengths();
     virtual double wavelengthForImage(std::string address, void **buffer);
     virtual bool dataForImage(std::string address, void **buffer, bool rawAddress = false);
-    
+
     virtual int hdf5MallocBytesForImage(std::string address, void **buffer);
     virtual size_t bytesPerTypeForImageAddress(std::string address);
     virtual bool getImageSize(std::string address, int *dims);

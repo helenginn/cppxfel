@@ -32,34 +32,34 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
 {
     if (cheetahManagers.size() > 0)
         return;
-    
+
     std::vector<std::string> hdf5FileGlobs = FileParser::getKey("HDF5_SOURCE_FILES", std::vector<std::string>());
     std::ostringstream logged;
-    
+
     for (int i = 0; i < hdf5FileGlobs.size(); i++)
     {
         std::vector<std::string> hdf5Files = glob(hdf5FileGlobs[i]);
-        
+
         logged << "HDF5_SOURCE_FILES entry (no. " << i << ") matches: " << std::endl;
-        
+
         for (int j = 0; j < hdf5Files.size(); j++)
         {
             std::string aFilename = hdf5Files[j];
             Hdf5ManagerCheetahPtr cheetahPtr;
-            
+
             int guessLCLS = (aFilename.find("cxi") != std::string::npos);
             int guessLaser = (guessLCLS) ? 0 : 1;
-            
+
             int laserInt = FileParser::getKey("FREE_ELECTRON_LASER", guessLaser);
             FreeElectronLaserType laser = (FreeElectronLaserType)laserInt;
-            
+
             switch (laser) {
                 case FreeElectronLaserTypeLCLS:
                     cheetahPtr = Hdf5ManagerCheetahLCLS::makeManager(aFilename);
                     break;
-				case FreeElectronLaserTypeEuropeanXFEL:
-					cheetahPtr = Hdf5ManagerCheetahLCLS::makeManager(aFilename);
-					break;
+                                case FreeElectronLaserTypeEuropeanXFEL:
+                                        cheetahPtr = Hdf5ManagerCheetahLCLS::makeManager(aFilename);
+                                        break;
                 case FreeElectronLaserTypeSACLA:
                     cheetahPtr = Hdf5ManagerCheetahSacla::makeManager(aFilename);
                     break;
@@ -67,15 +67,15 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
                     cheetahPtr = Hdf5ManagerCheetahSacla::makeManager(aFilename);
                     break;
             }
-            
+
             cheetahManagers.push_back(cheetahPtr);
-            
+
             logged << hdf5Files[j] << ", ";
         }
-        
+
         logged << std::endl;
     }
-    
+
     if (cheetahManagers.size())
     {
         logged << "... now managing " << cheetahManagers.size() << " hdf5 image source files." << std::endl;
@@ -88,7 +88,7 @@ void Hdf5ManagerCheetah::initialiseCheetahManagers()
             LoggableObject::staticLogAndExit(logged);
         }
     }
-    
+
     Logger::mainLogger->addStream(&logged);
 }
 
@@ -98,7 +98,7 @@ Hdf5ManagerCheetahPtr Hdf5ManagerCheetah::hdf5ManagerForImage(std::string imageN
     for (int i = 0; i < cheetahManagers.size(); i++)
     {
         Hdf5ManagerCheetahPtr cheetahManager = cheetahManagers[i];
-        
+
         std::string address = cheetahManager->addressForImage(imageName);
 
         if (address.length() > 0)
@@ -106,7 +106,7 @@ Hdf5ManagerCheetahPtr Hdf5ManagerCheetah::hdf5ManagerForImage(std::string imageN
             return cheetahManager;
         }
     }
-    
+
     return Hdf5ManagerCheetahSaclaPtr();
 }
 
@@ -121,12 +121,12 @@ void Hdf5ManagerCheetah::closeHdf5Files()
 std::string Hdf5ManagerCheetah::addressForImage(std::string imageName)
 {
     // maybe imageName has .img extension, so let's get rid of it
-	unsigned long h5Pos = imageName.find(".h5");
-	if (h5Pos != std::string::npos)
-	{
-		imageName[h5Pos] = '_';
-	}
-	std::string baseName = getBaseFilename(imageName);
+        unsigned long h5Pos = imageName.find(".h5");
+        if (h5Pos != std::string::npos)
+        {
+                imageName[h5Pos] = '_';
+        }
+        std::string baseName = getBaseFilename(imageName);
 
     if (!imagePathMap.count(baseName))
     {

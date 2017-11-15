@@ -30,7 +30,7 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
 {
     double lengths[3];
     unitCellMatrix->unitCellLengths(lengths);
-    
+
     *hMax = lengths[0] / resolution;
     *kMax = lengths[1] / resolution;
     *lMax = lengths[2] / resolution;
@@ -38,130 +38,130 @@ void UnitCellLattice::getMaxMillerIndicesForResolution(double resolution, int *h
 
 void UnitCellLattice::weightUnitCellThread(void *object, int offset)
 {
-	UnitCellLattice *me = static_cast<UnitCellLattice *>(object);
+        UnitCellLattice *me = static_cast<UnitCellLattice *>(object);
 
-	double indexingRlp = FileParser::getKey("INDEXING_RLP_SIZE", 0.001);
-	int maxThreads = FileParser::getMaxThreads();
+        double indexingRlp = FileParser::getKey("INDEXING_RLP_SIZE", 0.001);
+        int maxThreads = FileParser::getMaxThreads();
 
-	double maxAngle = 90.;
-	double intervals = LOOKUP_INTERVALS;
+        double maxAngle = 90.;
+        double intervals = LOOKUP_INTERVALS;
 
-	int threadsPerInterval = intervals / (double)maxThreads + 1;
-	int start = threadsPerInterval * offset;
-	int end = threadsPerInterval * (offset + 1);
+        int threadsPerInterval = intervals / (double)maxThreads + 1;
+        int start = threadsPerInterval * offset;
+        int end = threadsPerInterval * (offset + 1);
 
-	double lengthStep = me->maxAngleDistance / intervals;
-	double angleStep = maxAngle / intervals;
+        double lengthStep = me->maxAngleDistance / intervals;
+        double angleStep = maxAngle / intervals;
 
-	double angleTolerance = ANGLE_FUNNEL_START * 1.0;
-	double lengthTolerance = indexingRlp;
+        double angleTolerance = ANGLE_FUNNEL_START * 1.0;
+        double lengthTolerance = indexingRlp;
 
-	for (int dist1 = start; dist1 < intervals && dist1 < end; dist1++)
-	{
-		std::ostringstream logged;
-		logged << ".";
-		Logger::log(logged);
+        for (int dist1 = start; dist1 < intervals && dist1 < end; dist1++)
+        {
+                std::ostringstream logged;
+                logged << ".";
+                Logger::log(logged);
 
-		std::vector<std::vector<double> > dist1Filter;
-		double chosenDist1 = ((double)dist1 + 0.5) * lengthStep;
+                std::vector<std::vector<double> > dist1Filter;
+                double chosenDist1 = ((double)dist1 + 0.5) * lengthStep;
 
-		for (int l = 0; l < me->angleCSV->entryCount(); l++)
-		{
-			double paLength = me->angleCSV->valueForEntry(1, l);
-			double aLengthDiff = fabs(paLength - chosenDist1);
-			if (aLengthDiff > lengthTolerance)
-			{
-				continue;
-			}
+                for (int l = 0; l < me->angleCSV->entryCount(); l++)
+                {
+                        double paLength = me->angleCSV->valueForEntry(1, l);
+                        double aLengthDiff = fabs(paLength - chosenDist1);
+                        if (aLengthDiff > lengthTolerance)
+                        {
+                                continue;
+                        }
 
-			dist1Filter.push_back(me->angleCSV->entry(l));
-		}
+                        dist1Filter.push_back(me->angleCSV->entry(l));
+                }
 
-		for (int dist2 = 0; dist2 < intervals; dist2++)
-		{
-			double chosenDist2 = ((double)dist2 + 0.5) * lengthStep;
-			std::vector<std::vector<double> > dist2Filter;
+                for (int dist2 = 0; dist2 < intervals; dist2++)
+                {
+                        double chosenDist2 = ((double)dist2 + 0.5) * lengthStep;
+                        std::vector<std::vector<double> > dist2Filter;
 
-			for (int l = 0; l < dist1Filter.size(); l++)
-			{
-				double pbLength = dist1Filter[l][2];
+                        for (int l = 0; l < dist1Filter.size(); l++)
+                        {
+                                double pbLength = dist1Filter[l][2];
 
-				double bLengthDiff = fabs(pbLength - chosenDist2);
-				if (bLengthDiff > lengthTolerance)
-				{
-					continue;
-				}
+                                double bLengthDiff = fabs(pbLength - chosenDist2);
+                                if (bLengthDiff > lengthTolerance)
+                                {
+                                        continue;
+                                }
 
-				dist2Filter.push_back(dist1Filter[l]);
-			}
+                                dist2Filter.push_back(dist1Filter[l]);
+                        }
 
-			for (int angles = 0; angles < intervals; angles++)
-			{
-				double bestDist = FLT_MAX;
+                        for (int angles = 0; angles < intervals; angles++)
+                        {
+                                double bestDist = FLT_MAX;
 
-				double chosenAngle = ((double)angles + 0.5) * angleStep;
+                                double chosenAngle = ((double)angles + 0.5) * angleStep;
 
-				for (int l = 0; l < dist2Filter.size(); l++)
-				{
-					double pAngle = dist2Filter[l][0];
-					double paLength = dist2Filter[l][1];
-					double pbLength = dist2Filter[l][2];
-					double aLengthDiff = fabs(paLength - chosenDist1);
-					double bLengthDiff = fabs(pbLength - chosenDist2);
+                                for (int l = 0; l < dist2Filter.size(); l++)
+                                {
+                                        double pAngle = dist2Filter[l][0];
+                                        double paLength = dist2Filter[l][1];
+                                        double pbLength = dist2Filter[l][2];
+                                        double aLengthDiff = fabs(paLength - chosenDist1);
+                                        double bLengthDiff = fabs(pbLength - chosenDist2);
 
-					double angleDiff = fabs(pAngle - chosenAngle);
-					if (angleDiff > angleTolerance)
-					{
-						continue;
-					}
+                                        double angleDiff = fabs(pAngle - chosenAngle);
+                                        if (angleDiff > angleTolerance)
+                                        {
+                                                continue;
+                                        }
 
-					double scaleUp = ANGLE_FUNNEL_START / indexingRlp;
+                                        double scaleUp = ANGLE_FUNNEL_START / indexingRlp;
 
-					aLengthDiff *= scaleUp;
-					bLengthDiff *= scaleUp;
+                                        aLengthDiff *= scaleUp;
+                                        bLengthDiff *= scaleUp;
 
-					double distSq = angleDiff * angleDiff +
-					aLengthDiff * aLengthDiff +
-					bLengthDiff * bLengthDiff;
+                                        double distSq = angleDiff * angleDiff +
+                                        aLengthDiff * aLengthDiff +
+                                        bLengthDiff * bLengthDiff;
 
-					if (distSq < bestDist)
-					{
-						bestDist = distSq;
-					}
-				}
+                                        if (distSq < bestDist)
+                                        {
+                                                bestDist = distSq;
+                                        }
+                                }
 
-				int position = dist1 * intervals * intervals +
-				dist2 * intervals + angles;
-				bestDist = sqrt(bestDist);
-				double score = 0;
-				double minAngleFunnelRad = atan(indexingRlp / chosenDist1)
-				+ atan(indexingRlp / chosenDist2);
+                                int position = dist1 * intervals * intervals +
+                                dist2 * intervals + angles;
+                                bestDist = sqrt(bestDist);
+                                double score = 0;
+                                double minAngleFunnelRad = atan(indexingRlp / chosenDist1)
+                                + atan(indexingRlp / chosenDist2);
 
-				double minAngleFunnelDeg = minAngleFunnelRad * 180 / M_PI;
+                                double minAngleFunnelDeg = minAngleFunnelRad * 180 / M_PI;
 
-				if (bestDist <= minAngleFunnelDeg)
-				{
-				//	bestDist /= minAngleFunnelDeg / 10;
-				//	score = Detector::lookupCache(bestDist);
-					score = 1 - bestDist / minAngleFunnelDeg;
-				}
+                                if (bestDist <= minAngleFunnelDeg)
+                                {
+                                //      bestDist /= minAngleFunnelDeg / 10;
+                                //      score = Detector::lookupCache(bestDist);
+                                        score = 1 - bestDist / minAngleFunnelDeg;
+                                }
 
-				me->lookupIntervals[position] = score;
-			}
-		}
-	}
+                                me->lookupIntervals[position] = score;
+                        }
+                }
+        }
 }
 
 void UnitCellLattice::weightUnitCell()
 {
-	angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
+        angleCSV = CSVPtr(new CSV(3, "angle", "aLength", "bLength"));
 
     for (int i = 0; i < uniqueSymVectorCount(); i++)
     {
         double distance = uniqueSymVector(i)->distance();
 
-		if (distance <= 0)
-			continue;
+                if (distance <= 0)
+                        continue;
 
         if (distance > maxAngleDistance)
             continue;
@@ -170,81 +170,81 @@ void UnitCellLattice::weightUnitCell()
         {
             double jDistance = standardVector(j)->distance();
 
-		//	if (jDistance > distance)
-		//		continue;
+                //      if (jDistance > distance)
+                //              continue;
 
             if (jDistance > maxAngleDistance)
                 continue;
 
-			double minDistance = (distance > jDistance) ? jDistance : distance;
-			double maxDistance = (distance <= jDistance) ? jDistance : distance;
+                        double minDistance = (distance > jDistance) ? jDistance : distance;
+                        double maxDistance = (distance <= jDistance) ? jDistance : distance;
 
             double angle = standardVector(j)->angleWithVector(standardVector(i));
 
             angle *= 180 / M_PI;
             angle = (angle > 90) ? 180 - angle : angle;
 
-			if (angle != angle)
-			{
-				continue;
-			}
+                        if (angle != angle)
+                        {
+                                continue;
+                        }
 
-			angleCSV->addEntry(3, angle, maxDistance, minDistance);
+                        angleCSV->addEntry(3, angle, maxDistance, minDistance);
         }
     }
 
-	angleCSV->plotPDB("perfect_angles.pdb", "aLength", "bLength", "angle");
+        angleCSV->plotPDB("perfect_angles.pdb", "aLength", "bLength", "angle");
 
     angleCSV->writeToFile("perfect_angles.csv");
     weightedAngles = angleCSV;
 
-	double intervals = LOOKUP_INTERVALS;
-	double total = pow(intervals, 3);
+        double intervals = LOOKUP_INTERVALS;
+        double total = pow(intervals, 3);
 
-	memset(lookupIntervals, 0, total * sizeof(float));
-	lookupIntervalPtr = &lookupIntervals[0];
+        memset(lookupIntervals, 0, total * sizeof(float));
+        lookupIntervalPtr = &lookupIntervals[0];
 
-	int maxThreads = FileParser::getMaxThreads();
+        int maxThreads = FileParser::getMaxThreads();
 
-	time_t startTime;
-	time(&startTime);
-	logged << "Calculating vector pair scores in advance..." << std::endl;
-	sendLog();
+        time_t startTime;
+        time(&startTime);
+        logged << "Calculating vector pair scores in advance..." << std::endl;
+        sendLog();
 
-	boost::thread_group threads;
+        boost::thread_group threads;
 
-	for (int i = 0; i < maxThreads; i++)
-	{
-		boost::thread *thr = new boost::thread(weightUnitCellThread, this, i);
-		threads.add_thread(thr);
-	}
+        for (int i = 0; i < maxThreads; i++)
+        {
+                boost::thread *thr = new boost::thread(weightUnitCellThread, this, i);
+                threads.add_thread(thr);
+        }
 
-	threads.join_all();
+        threads.join_all();
 
-	time_t endTime;
-	time(&endTime);
+        time_t endTime;
+        time(&endTime);
 
-	double seconds = endTime - startTime;
-	logged << "Pre-calculation took " << seconds << " seconds." << std::endl;
-	sendLog();
+        double seconds = endTime - startTime;
+        logged << "Pre-calculation took " << seconds << " seconds." << std::endl;
+        sendLog();
 }
 
 void UnitCellLattice::updateUnitCellData()
 {
     std::vector<double> newUnitCell;
-	newUnitCell.push_back(_aDim);
-	newUnitCell.push_back(_bDim);
-	newUnitCell.push_back(_cDim);
-	newUnitCell.push_back(_alpha);
-	newUnitCell.push_back(_beta);
-	newUnitCell.push_back(_gamma);
-	setUnitCell(newUnitCell);
-	lockUnitCellDimensions();
-	newUnitCell = getUnitCell();
+        newUnitCell.push_back(_aDim);
+        newUnitCell.push_back(_bDim);
+        newUnitCell.push_back(_cDim);
+        newUnitCell.push_back(_alpha);
+        newUnitCell.push_back(_beta);
+        newUnitCell.push_back(_gamma);
+        setUnitCell(newUnitCell);
+        lockUnitCellDimensions();
+        newUnitCell = getUnitCell();
 
     MatrixPtr newUnitCellOnly = Matrix::matrixFromUnitCell(newUnitCell);
 
-	unitCellOnly->copyComponents(newUnitCellOnly);
+        unitCellOnly->copyComponents(newUnitCellOnly);
 
     for (int i = 0; i < standardVectorCount(); i++)
     {
@@ -254,7 +254,7 @@ void UnitCellLattice::updateUnitCellData()
         spotVec->setSpotDiff(hkl);
         spotVec->setUpdate();
     }
-    
+
     orderedDistances.clear();
 
     for (int i = 0; i < uniqueSymVectorCount(); i++)
@@ -262,69 +262,69 @@ void UnitCellLattice::updateUnitCellData()
         SpotVectorPtr uniqueVector = uniqueSymVector(i);
         orderedDistances.push_back(uniqueVector->distance());
     }
-    
+
     std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
 }
 
 void UnitCellLattice::setup()
 {
     setupLock.lock();
-    
+
     if (setupLattice)
     {
         setupLock.unlock();
         return;
     }
-    
+
     powderStep = FileParser::getKey("POWDER_PATTERN_STEP", 0.00005);
-	maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
+        maxAngleDistance = FileParser::getKey("MAXIMUM_ANGLE_DISTANCE", 0.0);
 
-	if (maxAngleDistance > 0)
-	{
-		maxAngleDistance += ANGLE_DISTANCE_BUFFER;
-	}
+        if (maxAngleDistance > 0)
+        {
+                maxAngleDistance += ANGLE_DISTANCE_BUFFER;
+        }
 
-	std::vector<double> unitCell = getUnitCell();
+        std::vector<double> unitCell = getUnitCell();
 
-	if (unitCell.size() < 6)
-	{
-		logged << "Sorry, need unit cell dimensions specified by UNIT_CELL to do this." << std::endl;
-		sendLogAndExit();
-	}
+        if (unitCell.size() < 6)
+        {
+                logged << "Sorry, need unit cell dimensions specified by UNIT_CELL to do this." << std::endl;
+                sendLogAndExit();
+        }
 
-	counter = 0;
-	_aDim = unitCell[0];
-	_bDim = unitCell[1];
-	_cDim = unitCell[2];
-	_alpha = unitCell[3];
-	_beta = unitCell[4];
-	_gamma = unitCell[5];
+        counter = 0;
+        _aDim = unitCell[0];
+        _bDim = unitCell[1];
+        _cDim = unitCell[2];
+        _alpha = unitCell[3];
+        _beta = unitCell[4];
+        _gamma = unitCell[5];
 
-	if (!symOperators.size())
+        if (!symOperators.size())
     {
         Matrix::symmetryOperatorsForSpaceGroup(&symOperators, getSpaceGroup(), unitCell);
     }
 
-	unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
-    
+        unitCellOnly = Matrix::matrixFromUnitCell(unitCell);
+
     MatrixPtr rotationMat = MatrixPtr(new Matrix());
-    
+
     unitCellMatrix = MatrixPtr(new Matrix());
     unitCellMatrix->setComplexMatrix(unitCellOnly, rotationMat);
-    
+
     unitCellMatrixInverse = unitCellMatrix->inverse3DMatrix();
-    
+
     maxDistance = 0;
-    
+
     int maxMillerIndexTrialH, maxMillerIndexTrialK, maxMillerIndexTrialL;
-	double resolution = 1 / (FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER);
+        double resolution = 1 / (FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15) + DISTANCE_BUFFER);
 
     getMaxMillerIndicesForResolution(resolution, &maxMillerIndexTrialH, &maxMillerIndexTrialK, &maxMillerIndexTrialL);
-    
+
     int count = 0;
-    
+
     orderedDistances.push_back(0);
-    
+
     for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
     {
         for (int j = -maxMillerIndexTrialK; j <= maxMillerIndexTrialK; j++)
@@ -335,84 +335,84 @@ void UnitCellLattice::setup()
                 {
                     continue;
                 }
-                
+
                 vec hkl = new_vector(i, j, k);
                 vec hkl_transformed = copy_vector(hkl);
-                
+
                 unitCellMatrix->multiplyVector(&hkl_transformed);
-                
+
                 double distance = length_of_vector(hkl_transformed);
-                
+
                 if (distance > 1 / resolution)
                     continue;
-                
+
                 if (distance > maxDistance)
                     maxDistance = distance;
-                
+
                 SpotVectorPtr newStandardVector = SpotVectorPtr(new SpotVector(hkl_transformed, hkl));
-                
+
                 int asym = CSym::ccp4spg_is_in_asu(getSpaceGroup(), i, j, k);
-                
+
                 spotVectors.push_back(newStandardVector);
                 orderedDistances.push_back(newStandardVector->distance());
-                
+
                 if (asym)
                 {
                     uniqueSymVectors.push_back(newStandardVector);
                 }
-                
+
                 count++;
             }
         }
     }
-    
+
     std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
 
     minDistance = FLT_MAX;
-    
+
     for (int i = 0; i < 3; i++)
     {
         vec hkl = new_vector((i == 0), (i == 1), (i == 2));
         unitCellMatrix->multiplyVector(&hkl);
-        
+
         if (length_of_vector(hkl) < minDistance)
             minDistance = length_of_vector(hkl);
     }
-    
+
     setupLock.unlock();
     setupLattice = true;
 }
 
 double UnitCellLattice::weightForPair(double dist1, double dist2, double angle)
 {
-	if (!weightedAngles)
-	{
-		std::lock_guard<std::mutex> lg(setupLock);
+        if (!weightedAngles)
+        {
+                std::lock_guard<std::mutex> lg(setupLock);
 
-		if (!weightedAngles)
-		{
-			weightUnitCell();
-		}
-	}
+                if (!weightedAngles)
+                {
+                        weightUnitCell();
+                }
+        }
 
-	if (dist1 > maxAngleDistance || dist2 > maxAngleDistance)
-	{
-		return 0;
-	}
+        if (dist1 > maxAngleDistance || dist2 > maxAngleDistance)
+        {
+                return 0;
+        }
 
-	if (dist1 != dist1 || dist2 != dist2 || angle != angle)
-	{
-		return 0;
-	}
+        if (dist1 != dist1 || dist2 != dist2 || angle != angle)
+        {
+                return 0;
+        }
 
-	int dist1Step = dist1 * LOOKUP_INTERVALS / (maxAngleDistance);
-	int dist2Step = dist2 * LOOKUP_INTERVALS / (maxAngleDistance);
-	int angleStep = angle * LOOKUP_INTERVALS / 90.;
+        int dist1Step = dist1 * LOOKUP_INTERVALS / (maxAngleDistance);
+        int dist2Step = dist2 * LOOKUP_INTERVALS / (maxAngleDistance);
+        int angleStep = angle * LOOKUP_INTERVALS / 90.;
 
-	int position = dist1Step * LOOKUP_INTERVALS * LOOKUP_INTERVALS +
-	dist2Step * LOOKUP_INTERVALS + angleStep;
+        int position = dist1Step * LOOKUP_INTERVALS * LOOKUP_INTERVALS +
+        dist2Step * LOOKUP_INTERVALS + angleStep;
 
-	return lookupIntervalPtr[position];
+        return lookupIntervalPtr[position];
 }
 
 UnitCellLatticePtr UnitCellLattice::getMainLattice()
@@ -421,110 +421,110 @@ UnitCellLatticePtr UnitCellLattice::getMainLattice()
     {
         mainLattice = UnitCellLatticePtr(new UnitCellLattice());
     }
-    
+
     return mainLattice;
 }
 
 double UnitCellLattice::refineUnitCellScore(void *object)
 {
-	UnitCellLattice *lat = static_cast<UnitCellLattice *>(object);
-	double score = 0;
+        UnitCellLattice *lat = static_cast<UnitCellLattice *>(object);
+        double score = 0;
 
-	CSVPtr csv = CSVPtr(new CSV());
-	csv->setupHistogram(-0.25, 0.25, 0.005, "wavelength", 1, "frequency");
+        CSVPtr csv = CSVPtr(new CSV());
+        csv->setupHistogram(-0.25, 0.25, 0.005, "wavelength", 1, "frequency");
 
-	for (int i = 0; i < lat->allMillers.size(); i++)
-	{
-		MillerPtr miller = lat->allMillers[i];
-		miller->getMatrix()->recalculateOrientationMatrix();
-		miller->recalculateWavelength();
+        for (int i = 0; i < lat->allMillers.size(); i++)
+        {
+                MillerPtr miller = lat->allMillers[i];
+                miller->getMatrix()->recalculateOrientationMatrix();
+                miller->recalculateWavelength();
 
-		double wave = miller->getWavelength();
-		double mean = miller->getMtzParent()->getWavelength();
+                double wave = miller->getWavelength();
+                double mean = miller->getMtzParent()->getWavelength();
 
-		double diff = (wave - mean);
-		csv->addOneToFrequency(diff, "frequency");
-		diff /= 0.01;
+                double diff = (wave - mean);
+                csv->addOneToFrequency(diff, "frequency");
+                diff /= 0.01;
 
-		double contrib = Detector::lookupCache(fabs(diff));
-	//	std::cout << diff << " " << contrib << std::endl;
-		score -= contrib;
-	}
+                double contrib = Detector::lookupCache(fabs(diff));
+        //      std::cout << diff << " " << contrib << std::endl;
+                score -= contrib;
+        }
 
-	std::map<std::string, std::string> plotMap;
-	plotMap["filename"] = "unit_cell_" + i_to_str(lat->counter) + ".png";
-	plotMap["height"] = "900";
-	plotMap["width"] = "900";
-	plotMap["xHeader0"] = "wavelength";
-	plotMap["yHeader0"] = "frequency";
+        std::map<std::string, std::string> plotMap;
+        plotMap["filename"] = "unit_cell_" + i_to_str(lat->counter) + ".png";
+        plotMap["height"] = "900";
+        plotMap["width"] = "900";
+        plotMap["xHeader0"] = "wavelength";
+        plotMap["yHeader0"] = "frequency";
 
-	plotMap["xMin0"] = "-0.25";
-	plotMap["xMax0"] = "0.25";
-	plotMap["yMin0"] = "0";
-	plotMap["yMax0"] = "50";
+        plotMap["xMin0"] = "-0.25";
+        plotMap["xMax0"] = "0.25";
+        plotMap["yMin0"] = "0";
+        plotMap["yMax0"] = "50";
 
-	plotMap["xTitle0"] = "Wavelength deviation (Ang)";
-	plotMap["yTitle0"] = "Frequency";
+        plotMap["xTitle0"] = "Wavelength deviation (Ang)";
+        plotMap["yTitle0"] = "Frequency";
 
-	plotMap["style0"] = "line";
-	plotMap["colour0"] = "blue";
-	csv->plotPNG(plotMap);
+        plotMap["style0"] = "line";
+        plotMap["colour0"] = "blue";
+        csv->plotPNG(plotMap);
 
-	lat->counter++;
+        lat->counter++;
 
-	return score;
+        return score;
 }
 
 void UnitCellLattice::refineMtzs(std::vector<MtzPtr> newMtzs)
 {
-	for (int i = 0; i < newMtzs.size(); i++)
-	{
-		// collect Millers
-		std::vector<MillerPtr> millers = newMtzs[i]->strongMillers();
-		newMtzs[i]->getMatrix()->setUnitCell(unitCellOnly);
+        for (int i = 0; i < newMtzs.size(); i++)
+        {
+                // collect Millers
+                std::vector<MillerPtr> millers = newMtzs[i]->strongMillers();
+                newMtzs[i]->getMatrix()->setUnitCell(unitCellOnly);
 
-		for (int j = 0; j < millers.size(); j++)
-		{
-			millers[j]->getMatrix()->setUnitCell(unitCellOnly);
-		}
+                for (int j = 0; j < millers.size(); j++)
+                {
+                        millers[j]->getMatrix()->setUnitCell(unitCellOnly);
+                }
 
-		allMillers.reserve(allMillers.size() + millers.size());
-		allMillers.insert(allMillers.end(), millers.begin(), millers.end());
-	}
+                allMillers.reserve(allMillers.size() + millers.size());
+                allMillers.insert(allMillers.end(), millers.begin(), millers.end());
+        }
 
-	logged << "Unit cell dimension before: " << printUnitCell() << std::endl;
-	sendLog();
+        logged << "Unit cell dimension before: " << printUnitCell() << std::endl;
+        sendLog();
 
-	RefinementStrategyPtr strategy = RefinementStrategy::userChosenStrategy();
-	strategy->setEvaluationFunction(refineUnitCellScore, this);
-	strategy->setVerbose(true);
+        RefinementStrategyPtr strategy = RefinementStrategy::userChosenStrategy();
+        strategy->setEvaluationFunction(refineUnitCellScore, this);
+        strategy->setVerbose(true);
 
-	strategy->addParameter(this, getUnitCellA, setUnitCellA, 0.1, 0.0001, "uc_a");
+        strategy->addParameter(this, getUnitCellA, setUnitCellA, 0.1, 0.0001, "uc_a");
 
-	if (getSpaceGroupNum() < 195)
-	{
-		strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.1, 0.0001, "uc_c");
-	}
+        if (getSpaceGroupNum() < 195)
+        {
+                strategy->addParameter(this, getUnitCellC, setUnitCellC, 0.1, 0.0001, "uc_c");
+        }
 
-	if (getSpaceGroupNum() < 75)
-	{
-		strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.1, 0.0001, "uc_b");
-	}
+        if (getSpaceGroupNum() < 75)
+        {
+                strategy->addParameter(this, getUnitCellB, setUnitCellB, 0.1, 0.0001, "uc_b");
+        }
 
-	if (getSpaceGroupNum() < 16)
-	{
-		strategy->addParameter(this, getUnitCellBeta, setUnitCellBeta, 0.1, 0.0001, "uc_beta");
-	}
+        if (getSpaceGroupNum() < 16)
+        {
+                strategy->addParameter(this, getUnitCellBeta, setUnitCellBeta, 0.1, 0.0001, "uc_beta");
+        }
 
-	strategy->refine();
+        strategy->refine();
 
-	logged << "Unit cell dimension after: " << printUnitCell() << std::endl;
+        logged << "Unit cell dimension after: " << printUnitCell() << std::endl;
 
-	
-	FileParser::setKey("UNIT_CELL", getUnitCell());
 
-	sendLog();
+        FileParser::setKey("UNIT_CELL", getUnitCell());
 
-	mainLattice = UnitCellLatticePtr();
-	getMainLattice();
+        sendLog();
+
+        mainLattice = UnitCellLatticePtr();
+        getMainLattice();
 }

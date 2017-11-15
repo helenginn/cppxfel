@@ -30,7 +30,7 @@ RefinementStrategyPtr RefinementStrategy::userChosenStrategy()
     int miniMethod = FileParser::getKey("MINIMIZATION_METHOD", 1);
     MinimizationMethod method = (MinimizationMethod)miniMethod;
     RefinementStrategyPtr strategy;
-    
+
     switch (method) {
         case MinimizationMethodStepSearch:
             strategy = boost::static_pointer_cast<RefinementStrategy>(RefinementStepSearchPtr(new RefinementStepSearch()));
@@ -38,16 +38,16 @@ RefinementStrategyPtr RefinementStrategy::userChosenStrategy()
         case MinimizationMethodNelderMead:
             strategy = boost::static_pointer_cast<RefinementStrategy>(NelderMeadPtr(new NelderMead()));
             break;
-		case MinimizationMethodGridSearch:
-			strategy = boost::static_pointer_cast<RefinementStrategy>(RefinementGridSearchPtr(new RefinementGridSearch()));
-			break;
+                case MinimizationMethodGridSearch:
+                        strategy = boost::static_pointer_cast<RefinementStrategy>(RefinementGridSearchPtr(new RefinementGridSearch()));
+                        break;
         default:
             break;
     }
-    
+
     int cycles = FileParser::getKey("NELDER_MEAD_CYCLES", 30);
     strategy->setCycles(cycles);
-    
+
     return strategy;
 }
 
@@ -58,12 +58,12 @@ void RefinementStrategy::addParameter(void *object, Getter getter, Setter setter
     setters.push_back(setter);
     stepSizes.push_back(stepSize);
     stepConvergences.push_back(stepConvergence);
-    
+
     if (!tag.length())
     {
         tag = "object" + i_to_str((int)objects.size());
     }
-    
+
     tags.push_back(tag);
     couplings.push_back(1);
 }
@@ -81,27 +81,27 @@ void RefinementStrategy::refine()
     {
         jobName = "Refinement procedure for " + i_to_str((int)objects.size()) + " objects";
     }
-    
+
     logged << "--- " << jobName << " ---";
-    
+
     if (tags.size() == 0)
     {
         logged << " No parameters to refine! Exiting." << std::endl;
         sendLog();
         return;
     }
-    
+
     logged << " Refining ";
-    
+
     for (int i = 0; i < tags.size() - 1; i++)
     {
         logged << tags[i] << ", ";
     }
-    
+
     logged << tags[tags.size() - 1] << " --- " << std::endl;
-    
+
     startingScore = (*evaluationFunction)(evaluateObject);
-    
+
     for (int i = 0; i < objects.size(); i++)
     {
         double objectValue = (*getters[i])(objects[i]);
@@ -115,9 +115,9 @@ void RefinementStrategy::reportProgress(double score)
 {
     if (!(priority <= LogLevelNormal))
         return;
-    
+
     logged << "Cycle " << cycleNum << "\t";
-    
+
     for (int i = 0; i < objects.size(); i++)
     {
         double objectValue = (*getters[i])(objects[i]);
@@ -134,55 +134,55 @@ void RefinementStrategy::finish()
 {
     double endScore = (*evaluationFunction)(evaluateObject);
 
-	sendLog(priority);
+        sendLog(priority);
 
     if (endScore >= startingScore || endScore != endScore)
     {
         logged << "No change for " << jobName << " (" << startingScore << ")" << std::endl;
         sendLog(LogLevelDetailed);
-        
-		resetToInitialParameters();
-		_changed = 0;
+
+                resetToInitialParameters();
+                _changed = 0;
     }
     else
     {
         double reduction = (startingScore - endScore) / startingScore;
-        
+
         logged << "Reduction ";
-        
+
         if (reduction == reduction)
         {
             logged << "by " << std::fixed << std::setprecision(4) <<
             reduction * 100 << "% ";
         }
-        
+
         logged << "for " << jobName << ": ";
-        
+
         for (int i = 0; i < objects.size(); i++)
         {
             double objectValue = (*getters[i])(objects[i]);
             logged << tags[i] << "=" << objectValue << ", ";
         }
 
-		logged << "(" << startingScore << " to " << endScore << ")" << std::endl;
+                logged << "(" << startingScore << " to " << endScore << ")" << std::endl;
         sendLog(LogLevelDetailed);
 
-		_changed = 1;
+                _changed = 1;
     }
-    
+
     cycleNum = 0;
 
-	if (finishFunction != NULL)
-	{
-		(*finishFunction)(evaluateObject);
-	}
+        if (finishFunction != NULL)
+        {
+                (*finishFunction)(evaluateObject);
+        }
 }
 
 void RefinementStrategy::resetToInitialParameters()
 {
-	for (int i = 0; i < objects.size(); i++)
-	{
-		double objectValue = startingValues[i];
-		(*setters[i])(objects[i], objectValue);
-	}
+        for (int i = 0; i < objects.size(); i++)
+        {
+                double objectValue = startingValues[i];
+                (*setters[i])(objects[i], objectValue);
+        }
 }

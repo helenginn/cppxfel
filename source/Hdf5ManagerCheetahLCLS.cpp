@@ -24,7 +24,7 @@
 Hdf5ManagerCheetahPtr Hdf5ManagerCheetahLCLS::makeManager(std::string filename)
 {
     Hdf5ManagerCheetahLCLSPtr cheetahPtr = Hdf5ManagerCheetahLCLSPtr(new Hdf5ManagerCheetahLCLS(filename));
-    
+
     return std::static_pointer_cast<Hdf5ManagerCheetah>(cheetahPtr);
 }
 
@@ -38,24 +38,24 @@ bool Hdf5ManagerCheetahLCLS::dataForImage(std::string address, void **buffer, bo
     // need to find the index of the correct image
 
     // lazy as.
-    
+
     if (rawAddress)
     {
         return Hdf5Manager::dataForAddress(address, buffer, true);
     }
-    
+
     std::vector<std::string>::iterator it = std::find(imagePaths.begin(),
                                                 imagePaths.end(),
                                                 address);
-    
+
     if (it != imagePaths.end() && *it == address)
     {
         // am a terrible caster. sorry.
         int index = (int)(it - imagePaths.begin());
-        
+
         return Hdf5Manager::dataForAddress(dataAddress, buffer, index);
     }
-    
+
     return false;
 }
 
@@ -74,14 +74,14 @@ double Hdf5ManagerCheetahLCLS::wavelengthForImage(std::string address, void **bu
     std::vector<std::string>::iterator it = std::find(imagePaths.begin(),
                                                       imagePaths.end(),
                                                       address);
-    
+
     if (it != imagePaths.end() && *it == address)
     {
         size_t index = it - imagePaths.begin();
         memcpy(*buffer, &wavelengths[index], sizeof(double));
         return wavelengths[index];
     }
-    
+
     return 0;
 }
 

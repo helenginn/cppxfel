@@ -20,17 +20,17 @@ class GeometryParser : public LoggableObject
 private:
     std::string filename;
     GeometryFormat format;
-    
+
     bool refineGlobalGeometry;
     bool refineQuadrantGeometry;
     bool refineLocalGeometry;
-    
+
     DetectorPtr makeDetectorFromPanelMap(std::vector<PanelMap> panelMaps, std::string tag, DetectorPtr parent);
     DetectorPtr makeDetectorFromPanelMap(PanelMap map, DetectorPtr parent);
     void parseCrystFELLines(std::vector<std::string> lines);
     void parseCppxfelLines(std::vector<std::string> lines);
     void parsePanelListLines(std::vector<std::string> lines);
-    
+
     DetectorPtr makeDetector(DetectorPtr parent, int min_fs, int min_ss, int max_fs, int max_ss,
                              double ss_x, double ss_y, double ss_z,
                              double fs_x, double fs_y, double fs_z,
@@ -38,7 +38,7 @@ private:
                              double alpha, double beta, double gamma, bool ghost, bool refinable, double gain);
 public:
     GeometryParser(std::string aFilename, GeometryFormat aFormat = GeometryFormatCrystFEL);
-    
+
     void parse();
     void writeToFile(std::string newName, int fileCount);
 };

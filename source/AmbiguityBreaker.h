@@ -39,32 +39,32 @@ private:
     double gridCorrelation(int imageNumI, int imageNumJ);
     double evaluation();
     double gradientForImage(int imageNum, int axis);
-    
+
     double distance(int vectorNum, int centreNum);
     double toggleValue(int slowCloud, int fastCloud);
     double evaluationCloudCluster();
     double gradientCloudCluster(int centre, int axis);
-    
+
     double dotProduct(int imageNumI, int imageNumJ);
 
-	static void plotDiffOneChipThread(AmbiguityBreaker *me, int offset, PNGFilePtr png);
-	static void plotDifferenceThread(AmbiguityBreaker *me, int offset, PNGFilePtr png);
+        static void plotDiffOneChipThread(AmbiguityBreaker *me, int offset, PNGFilePtr png);
+        static void plotDifferenceThread(AmbiguityBreaker *me, int offset, PNGFilePtr png);
     void assignPartialities();
     void breakAmbiguity();
-	static void calculateCorrelations(AmbiguityBreaker *me, int offset);
+        static void calculateCorrelations(AmbiguityBreaker *me, int offset);
     void makeCorrelationGrid();
     void printResults();
     void merge();
     MtzPtr merged;
-    
-    
+
+
 public:
     void setMtzs(vector<MtzPtr> newMtzs);
-    
+
     AmbiguityBreaker(vector<MtzPtr> newMtzs);
     void run();
     void overrideAmbiguity(int newAmbiguity);
-	void plotDifferences(bool oneChip = false);
+        void plotDifferences(bool oneChip = false);
 
     MtzPtr getMergedMtz()
     {

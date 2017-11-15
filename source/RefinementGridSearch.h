@@ -37,24 +37,24 @@ private:
 public:
     RefinementGridSearch() : RefinementStrategy()
     {
-		gridJumps = 8;
+                gridJumps = 8;
         gridLength = 15;
         cycleNum = 1;
     };
-    
+
     void setGridLength(int length)
     {
         gridLength = length;
     }
-    
+
     void setCheckGridNum(int _jumps)
     {
         gridJumps = _jumps;
     }
-    
+
     ResultMap results;
     void recursiveEvaluation(ParamList referenceList, ParamList workingList, ResultMap *results);
-	void assignInterpanelMinimum();
+        void assignInterpanelMinimum();
     virtual void clearParameters()
     {
         orderedResults.clear();

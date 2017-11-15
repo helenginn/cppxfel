@@ -25,10 +25,9 @@ void LoggableObject::staticLogAndExit(std::ostringstream &otherLog, std::string 
     std::ostringstream errorStart;
     errorStart << "**************** " << header << " *****************" << std::endl;
     Logger::mainLogger->addStream(&errorStart, LogLevelNormal, false);
-    
+
     otherLog << "**************** " << header << " *****************" << std::endl;
     Logger::mainLogger->addStream(&otherLog, LogLevelNormal, true);
-    
+
     boost::this_thread::sleep(boost::posix_time::seconds(1));
 }
-

@@ -50,23 +50,23 @@ int FileParser::getMaxThreads()
 {
     if (threadsFound != 0)
         return threadsFound;
-    
+
     std::ostringstream logged;
-    
+
     char *nslots;
     nslots = getenv("NSLOTS");
     int maxThreads = 0;
-    
+
     if (nslots != NULL)
     {
         maxThreads = atoi(nslots);
         logged << "Using environment variable NSLOTS: " << maxThreads << " threads." << std::endl;
     }
-    
+
     if (maxThreads == 0)
     {
         maxThreads = getKey("MAX_THREADS", MAX_THREADS);
-        
+
         if (hasKey("MAX_THREADS"))
         {
             logged << "Getting number of threads from user input: " << maxThreads << " threads." << std::endl;
@@ -76,48 +76,48 @@ int FileParser::getMaxThreads()
             logged << "Using default number of threads: " << maxThreads << " threads." << std::endl;
         }
     }
-    
+
     Logger::mainLogger->addStream(&logged);
-    
+
     threadsFound = maxThreads;
-    
+
     return maxThreads;
 }
 
 bool FileParser::hasKey(std::string key)
 {
-	return (parameters.count(key) > 0);
+        return (parameters.count(key) > 0);
 }
 
 
 void FileParser::simpleFloat(ParametersMap *map, std::string command,
-		std::string rest)
+                std::string rest)
 {
-	double theFloat = atof(rest.c_str());
-    
-	log << "Setting double " << command << " to " << theFloat << std::endl;
+        double theFloat = atof(rest.c_str());
 
-	(*map)[command] = theFloat;
+        log << "Setting double " << command << " to " << theFloat << std::endl;
+
+        (*map)[command] = theFloat;
 }
 
 void FileParser::simpleBool(ParametersMap *map, std::string command,
-		std::string rest)
+                std::string rest)
 {
-	bool on = (rest == "ON" || rest == "on" ? 1 : 0);
+        bool on = (rest == "ON" || rest == "on" ? 1 : 0);
 
-	log << "Setting bool " << command << " to " << on << std::endl;
+        log << "Setting bool " << command << " to " << on << std::endl;
 
-	(*map)[command] = on;
+        (*map)[command] = on;
 }
 
 void FileParser::simpleString(ParametersMap *map, std::string command,
-		std::string rest)
+                std::string rest)
 {
     trim(rest);
-    
-	(*map)[command] = rest;
 
-	log << "Setting string " << command << " to " << rest << std::endl;
+        (*map)[command] = rest;
+
+        log << "Setting string " << command << " to " << rest << std::endl;
 
 }
 
@@ -127,60 +127,60 @@ void FileParser::printAllCommands()
     logged << "------------------------------------" << std::endl;
     logged << "--- List of all cppxfel commands ---" << std::endl;
     logged << "------------------------------------" << std::endl << std::endl;
-    
+
     std::vector<std::string> categorised;
-    
+
     for (CategoryTree::iterator treeit = categoryTree.begin(); treeit != categoryTree.end(); treeit++)
     {
         std::string treeString = treeit->first;
-        
+
         logged << treeString << std::endl << std::endl;
-        
+
         for (CategoryMap::iterator mapit = treeit->second.begin(); mapit != treeit->second.end(); mapit++)
         {
             std::string mapString = mapit->first;
-            
+
             logged << "    " << mapString << std::endl << std::endl;
-            
+
             for (int i = 0; i < mapit->second.size(); i++)
             {
                 std::string command = mapit->second[i];
-                
+
                 if (!parserMap.count(command))
                 {
                     logged << "(!! cannot find " << command << " in parameter list!)" << std::endl;
                 }
-                
+
                 logged << "        ";
-                
+
                 bool helpExists = helpMap.count(command);
                 logged << std::setw(35) << command << (helpExists ? " --help exists." : "") << std::endl;
 
                 categorised.push_back(command);
             }
-            
+
             logged << std::endl;
         }
     }
 
-	Logger::log(logged);
-    
+        Logger::log(logged);
+
     logged << std::endl << "Uncategorised commands below:" << std::endl << std::endl;
-    
+
     for (ParserMap::iterator it = parserMap.begin(); it != parserMap.end(); it++)
     {
         std::vector<std::string>::iterator done_it;
         done_it = std::find(categorised.begin(), categorised.end(), it->first);
-        
+
         if (done_it != categorised.end())
         {
             continue;
         }
-        
+
         bool helpExists = helpMap.count(it->first);
         logged << std::setw(35) << it->first << (helpExists ? " --help exists." : "") << std::endl;
     }
-    
+
     Logger::log(logged);
 }
 
@@ -193,9 +193,9 @@ void FileParser::printCommandInfo(std::string unsanitisedCommand)
         commandStr << std::toupper(unsanitisedCommand[i], loc);
     }
     std::string command = commandStr.str();
-    
+
     std::ostringstream logged;
-    
+
     if (helpMap.count(command)) {
         logged << "There is a help statement for this command." << std::endl << std::endl;
         logged << command << ": " << helpMap[command] << std::endl << std::endl;
@@ -214,24 +214,24 @@ void FileParser::printCommandInfo(std::string unsanitisedCommand)
         }
 
     }
-    
+
     if (codeMaps.count(command))
     {
         logged << "Allowed options for " << command << ":" << std::endl;
         CodeMap map = codeMaps[command];
-        
+
         for (CodeMap::iterator it = map.begin(); it != map.end(); it++)
         {
             logged << "   - " << it->first << std::endl;
         }
-        
+
         logged << std::endl;
-        
+
     }
     else
     {
         std::string expectation = "[unknown]";
-        
+
         if (parserMap[command] == simpleBool)
         {
             expectation = "a boolean (\"ON\" or \"OFF\")";
@@ -260,15 +260,15 @@ void FileParser::printCommandInfo(std::string unsanitisedCommand)
         {
             expectation = "one or more strings (text) separated by spaces.";
         }
-        
+
         logged << "Command " << command << " is expecting " << expectation << std::endl << std::endl;
     }
-    
+
     Logger::log(logged);
 }
 
 void FileParser::simpleInt(ParametersMap *map, std::string command,
-		std::string rest)
+                std::string rest)
 {
     if (codeMaps.count(command) && codeMaps[command].size() > 0)
     {
@@ -278,15 +278,15 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
         for (int i = 0; i < rest.length(); i++)
             lowerCaseStream << std::tolower(rest[i], loc);
         std::string lowered = lowerCaseStream.str();
-		trim(lowered);
+                trim(lowered);
 
-		size_t pos = lowered.find("#");
+                size_t pos = lowered.find("#");
 
-		if (pos != std::string::npos)
-		{
-			lowered = lowered.substr(0, pos);
-			trim(lowered);
-		}
+                if (pos != std::string::npos)
+                {
+                        lowered = lowered.substr(0, pos);
+                        trim(lowered);
+                }
 
         if (!codeMap.count(lowered))
         {
@@ -303,68 +303,68 @@ void FileParser::simpleInt(ParametersMap *map, std::string command,
 
         int theInt = codeMap[lowered];
         (*map)[command] = theInt;
-        
+
         return;
     }
-    
-	int theInt = atoi(rest.c_str());
 
-	log << "Setting int " << command << " to " << theInt << std::endl;
+        int theInt = atoi(rest.c_str());
 
-	(*map)[command] = theInt;
+        log << "Setting int " << command << " to " << theInt << std::endl;
+
+        (*map)[command] = theInt;
 }
 
 void FileParser::stringVector(ParametersMap *map, std::string command,
                               std::string rest)
 {
     trim(rest);
-    
+
     vector<std::string> stringVector = FileReader::split(rest, splitCharMinor);
-    
+
     log << "Setting " << command << " to ";
-    
+
     for (int i = 0; i < stringVector.size(); i++)
     {
         log << stringVector[i] << " ";
     }
-    
+
     log << std::endl;
-    
+
     (*map)[command] = stringVector;
 }
 
 void FileParser::doubleVector(ParametersMap *map, std::string command,
                               std::string rest)
 {
-	vector<std::string> components = FileReader::split(rest, splitCharMinor);
-	vector<double> doubleVector;
+        vector<std::string> components = FileReader::split(rest, splitCharMinor);
+        vector<double> doubleVector;
 
-	log << "Setting " << command << " to ";
+        log << "Setting " << command << " to ";
 
-	for (int i = 0; i < components.size(); i++)
-	{
+        for (int i = 0; i < components.size(); i++)
+        {
         if (components[i].length())
         {
             double theFloat = atof(components[i].c_str());
             log << theFloat << " ";
             doubleVector.push_back(theFloat);
         }
-	}
+        }
 
-	log << std::endl;
+        log << std::endl;
 
-	(*map)[command] = doubleVector;
+        (*map)[command] = doubleVector;
 }
 
 void FileParser::intVector(ParametersMap *map, std::string command,
-		std::string rest)
+                std::string rest)
 {
-	vector<std::string> components = FileReader::split(rest, splitCharMinor);
-	vector<int> intVector;
+        vector<std::string> components = FileReader::split(rest, splitCharMinor);
+        vector<int> intVector;
 
-	log << "Setting " << command << " to ";
+        log << "Setting " << command << " to ";
 
-	for (int i = 0; i < components.size(); i++)
+        for (int i = 0; i < components.size(); i++)
     {
         if (components[i].length())
         {
@@ -372,11 +372,11 @@ void FileParser::intVector(ParametersMap *map, std::string command,
             log << theInt << " ";
             intVector.push_back(theInt);
         }
-	}
+        }
 
-	log << std::endl;
+        log << std::endl;
 
-	(*map)[command] = intVector;
+        (*map)[command] = intVector;
 }
 
 void FileParser::generateDeprecatedList()
@@ -410,21 +410,21 @@ void FileParser::generateDeprecatedList()
     deprecatedList["PANEL_LIST"] = "This option has been deprecated as the panels definitions were too basic. This can now be specified under DETECTOR_LIST and using GEOMETRY_FORMAT panel_list. However it is highly recommended that you switch to CrystFEL or ideally cppxfel format.";
     deprecatedList["FREE_MILLER_LIST"] = "This option never worked properly and has been disabled for the time being.";
     deprecatedList["RECALCULATE_SIGMA"] = "This option has been removed. The sigmas are recalculated automatically and stored in the CSIGI column of the MTZ file.";
-    
+
     deprecatedList["PARTIALITY_SLICES"] = "The slicing of reciprocal lattice points is now determined automatically on a resolution-independent basis and so this option has been removed.";
     deprecatedList["MAX_SLICES"] = "The slicing of reciprocal lattice points is now determined automatically on a resolution-independent basis and so this option has been removed.";
     deprecatedList["CAREFUL_RESOLUTION"] = "The slicing of reciprocal lattice points is now determined automatically on a resolution-independent basis and so this option has been removed.";
     deprecatedList["RLP_MODEL"] = "This parameter made little to no difference and so has been removed.";
     deprecatedList["OLD_MERGE"] = "The old merging system has been removed as the new merging system is now identical in nature.";
-	deprecatedList["THOROUGH_SOLUTION_SEARCHING"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
-	deprecatedList["MAX_SEARCH_NUMBER_MATCHES"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
-	deprecatedList["MAX_SEARCH_NUMBER_SOLUTIONS"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
-	deprecatedList["NEW_INDEXING_METHOD"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
-	deprecatedList["MINIMUM_NEIGHBOURS"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+        deprecatedList["THOROUGH_SOLUTION_SEARCHING"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+        deprecatedList["MAX_SEARCH_NUMBER_MATCHES"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+        deprecatedList["MAX_SEARCH_NUMBER_SOLUTIONS"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+        deprecatedList["NEW_INDEXING_METHOD"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
+        deprecatedList["MINIMUM_NEIGHBOURS"] = "This option has been removed because the network method is better than the cluster method, so the latter has been removed.";
 
-	deprecatedList["BAD_SOLUTION_ST_DEV"] = "Basing goodness of indexing solutions on standard deviations has been disabled due to too high false positive/negative rates. Please rely on the other methods.";
-	deprecatedList["GOOD_SOLUTION_ST_DEV"] = "Basing goodness of indexing solutions on standard deviations has been disabled due to too high false positive/negative rates. Please rely on the other methods.";
-	deprecatedList["ABSOLUTE_INTENSITY"] = "This option provided no benefit unless in the default position, and so has been removed (default OFF).";
+        deprecatedList["BAD_SOLUTION_ST_DEV"] = "Basing goodness of indexing solutions on standard deviations has been disabled due to too high false positive/negative rates. Please rely on the other methods.";
+        deprecatedList["GOOD_SOLUTION_ST_DEV"] = "Basing goodness of indexing solutions on standard deviations has been disabled due to too high false positive/negative rates. Please rely on the other methods.";
+        deprecatedList["ABSOLUTE_INTENSITY"] = "This option provided no benefit unless in the default position, and so has been removed (default OFF).";
 }
 
 void FileParser::generateCodeList()
@@ -477,14 +477,14 @@ void FileParser::generateCodeList()
         codeMap["sacla"] = 1;
         codeMap["european_xfel"] = 2;
         codeMap["swissfel"] = 3;
-		codeMap["other"] = 4;
+                codeMap["other"] = 4;
         codeMaps["FREE_ELECTRON_LASER"] = codeMap;
     }
     {
         CodeMap codeMap;
         codeMap["blob"] = 0;
         codeMap["peakfinder6"] = 1;
-		codeMap["none"] = 2;
+                codeMap["none"] = 2;
         codeMaps["SPOT_FINDING_ALGORITHM"] = codeMap;
     }
 }
@@ -501,23 +501,23 @@ void FileParser::generateCategories()
     easySpotFindings.push_back("REJECT_CLOSE_SPOTS");
     easySpotFindings.push_back("SPOT_FINDING_ALGORITHM");
     spotFinding["Basic parameters"] = easySpotFindings;
-    
+
     std::vector<std::string> hardSpotFindings;
     hardSpotFindings.push_back("IMAGE_SPOT_PROBE_BACKGROUND");
     hardSpotFindings.push_back("IMAGE_SPOT_PROBE_HEIGHT");
     hardSpotFindings.push_back("EXCLUDE_WEAKEST_SPOT_FRACTION");
     hardSpotFindings.push_back("IMAGE_ACCEPTABLE_COMBO");
     spotFinding["Expert parameters"] = hardSpotFindings;
-    
+
     categoryTree["Spot finding"] = spotFinding;
-    
+
     CategoryMap indexing;
     std::vector<std::string> indexingSolutionChecks;
     indexingSolutionChecks.push_back("GOOD_SOLUTION_HIGHEST_PEAK");
     indexingSolutionChecks.push_back("GOOD_SOLUTION_SUM_RATIO");
     indexingSolutionChecks.push_back("BAD_SOLUTION_HIGHEST_PEAK");
     indexingSolutionChecks.push_back("MINIMUM_SPOTS_EXPLAINED");
-    
+
     std::vector<std::string> easyIndexingParameters;
     easyIndexingParameters.push_back("INDEXING_RLP_SIZE");
     easyIndexingParameters.push_back("MAX_RECIPROCAL_DISTANCE");
@@ -529,24 +529,24 @@ void FileParser::generateCategories()
     hardIndexingParameters.push_back("MINIMUM_TRUST_ANGLE");
     hardIndexingParameters.push_back("MINIMUM_SOLUTION_NETWORK_COUNT");
     hardIndexingParameters.push_back("ACCEPT_ALL_SOLUTIONS");
-	hardIndexingParameters.push_back("MAX_LATTICES_PER_IMAGE");
+        hardIndexingParameters.push_back("MAX_LATTICES_PER_IMAGE");
     hardIndexingParameters.push_back("CHECKING_COMMON_SPOTS");
     hardIndexingParameters.push_back("NETWORK_TRIAL_LIMIT");
 
-	std::vector<std::string> powderPatternSpecific;
-	powderPatternSpecific.push_back("ALWAYS_FILTER_SPOTS");
-	powderPatternSpecific.push_back("SPOTS_PER_LATTICE");
-	powderPatternSpecific.push_back("POWDER_PATTERN_STEP");
-	powderPatternSpecific.push_back("REJECT_OVER_SPOT_COUNT");
-	powderPatternSpecific.push_back("REJECT_UNDER_SPOT_COUNT");
+        std::vector<std::string> powderPatternSpecific;
+        powderPatternSpecific.push_back("ALWAYS_FILTER_SPOTS");
+        powderPatternSpecific.push_back("SPOTS_PER_LATTICE");
+        powderPatternSpecific.push_back("POWDER_PATTERN_STEP");
+        powderPatternSpecific.push_back("REJECT_OVER_SPOT_COUNT");
+        powderPatternSpecific.push_back("REJECT_UNDER_SPOT_COUNT");
 
     indexing["Indexing solution checks"] = indexingSolutionChecks;
     indexing["Basic indexing parameters"] = easyIndexingParameters;
     indexing["Expert indexing parameters"] = hardIndexingParameters;
-	indexing["Powder pattern specific"] = powderPatternSpecific;
+        indexing["Powder pattern specific"] = powderPatternSpecific;
 
     categoryTree["Indexing"] = indexing;
-    
+
     CategoryMap hdf5Imports;
     std::vector<std::string> easyHdf5Imports;
     easyHdf5Imports.push_back("HDF5_SOURCE_FILES");
@@ -562,11 +562,11 @@ void FileParser::generateCategories()
     hardHdf5Imports.push_back("BITS_PER_PIXEL");
     hardHdf5Imports.push_back("MATRIX_LIST_VERSION");
     hardHdf5Imports.push_back("FREE_ELECTRON_LASER");
-	hardHdf5Imports.push_back("USE_HDF5_WAVELENGTH");
+        hardHdf5Imports.push_back("USE_HDF5_WAVELENGTH");
 
     hdf5Imports["Basic image import parameters"] = easyHdf5Imports;
     hdf5Imports["Expert image import parameters"] = hardHdf5Imports;
-    
+
     categoryTree["Importing images and metadata"] = hdf5Imports;
 
     CategoryMap pngOutput;
@@ -576,14 +576,14 @@ void FileParser::generateCategories()
     easyPNG.push_back("PNG_TOTAL");
     easyPNG.push_back("PNG_HEIGHT");
     easyPNG.push_back("DRAW_GEOMETRY_PNGS");
-    
+
     std::vector<std::string> hardPNG;
     hardPNG.push_back("PNG_THRESHOLD");
     hardPNG.push_back("PNG_ALL_LATTICES");
 
     pngOutput["Basic PNG parameters"] = easyPNG;
     pngOutput["Expert PNG parameters"] = hardPNG;
-    
+
     categoryTree["Output PNG files"] = pngOutput;
 
     CategoryMap integration;
@@ -592,13 +592,13 @@ void FileParser::generateCategories()
     easyShoeboxes.push_back("SHOEBOX_FOREGROUND_PADDING");
     easyShoeboxes.push_back("SHOEBOX_NEITHER_PADDING");
     easyShoeboxes.push_back("METROLOGY_SEARCH_SIZE");
-    
+
     std::vector<std::string> hardShoeboxes;
     hardShoeboxes.push_back("SHOEBOX_MAKE_EVEN");
     hardShoeboxes.push_back("COMPLEX_SHOEBOX");
     hardShoeboxes.push_back("PIXEL_LEAK");
     hardShoeboxes.push_back("SHOEBOX_BANDWIDTH_MULTIPLIER");
-    
+
     std::vector<std::string> generalIntegration;
     generalIntegration.push_back("MIN_INTEGRATED_RESOLUTION");
     generalIntegration.push_back("MAX_INTEGRATED_RESOLUTION");
@@ -617,12 +617,12 @@ void FileParser::generateCategories()
     hardIntegration.push_back("SPHERE_THICKNESS");
     hardIntegration.push_back("UNBALANCED_REFLECTIONS");
     hardIntegration.push_back("IGNORE_MISSING_IMAGES");
-    
+
     integration["Basic integration window parameters"] = easyShoeboxes;
     integration["Expert integration window parameters"] = hardShoeboxes;
     integration["General integration parameters"] = generalIntegration;
     integration["Expert integration parameters"] = hardIntegration;
-    
+
     categoryTree["Integration parameters"] = integration;
 
     CategoryMap postRefinement;
@@ -632,27 +632,27 @@ void FileParser::generateCategories()
     postRefOptimisers.push_back("OPTIMISING_ORIENTATION");
     postRefOptimisers.push_back("OPTIMISING_RLP_SIZE");
     postRefOptimisers.push_back("OPTIMISING_WAVELENGTH");
-    
+
     std::vector<std::string> postRefStepSizes;
     postRefStepSizes.push_back("STEP_SIZE_BANDWIDTH");
     postRefStepSizes.push_back("STEP_SIZE_EXPONENT");
     postRefStepSizes.push_back("STEP_SIZE_ORIENTATION");
     postRefStepSizes.push_back("STEP_SIZE_RLP_SIZE");
     postRefStepSizes.push_back("STEP_SIZE_WAVELENGTH");
-    
+
     std::vector<std::string> postRefTolerances;
     postRefTolerances.push_back("TOLERANCE_BANDWIDTH");
     postRefTolerances.push_back("TOLERANCE_EXPONENT");
     postRefTolerances.push_back("TOLERANCE_ORIENTATION");
     postRefTolerances.push_back("TOLERANCE_RLP_SIZE");
     postRefTolerances.push_back("TOLERANCE_WAVELENGTH");
-    
+
     std::vector<std::string> initialValues;
     postRefTolerances.push_back("INITIAL_BANDWIDTH");
     postRefTolerances.push_back("INITIAL_EXPONENT");
     postRefTolerances.push_back("INITIAL_RLP_SIZE");
     postRefTolerances.push_back("INITIAL_WAVELENGTH");
-    
+
     std::vector<std::string> postRefGeneral;
     postRefGeneral.push_back("REFINEMENT_INTENSITY_THRESHOLD");
     postRefGeneral.push_back("PARTIALITY_CUTOFF");
@@ -660,15 +660,15 @@ void FileParser::generateCategories()
     postRefGeneral.push_back("DEFAULT_TARGET_FUNCTION");
     postRefGeneral.push_back("BINARY_PARTIALITY");
     postRefGeneral.push_back("INITIAL_MTZ");
-    
+
     postRefinement["On/off optimisation switches"] = postRefOptimisers;
     postRefinement["Step sizes for parameters"] = postRefStepSizes;
     postRefinement["Post-refinement tolerance values"] = postRefTolerances;
     postRefinement["Post-refinement initial values"] = initialValues;
     postRefinement["General options"] = postRefGeneral;
-    
+
     categoryTree["Post-refinement"] = postRefinement;
-    
+
     CategoryMap others;
     std::vector<std::string> generalOptions;
     generalOptions.push_back("MAX_THREADS");
@@ -696,7 +696,7 @@ void FileParser::generateCategories()
     nonOperational.push_back("FREE_MILLER_PROPORTION");
     others["Non-operational but upcoming, or not entirely abandoned"] = nonOperational;
 
-    
+
     categoryTree["Other"] = others;
 
 }
@@ -711,10 +711,10 @@ void FileParser::generateHelpList()
     helpMap["IMAGE_LIMIT"] = "Only attempt to load x images from the list of images specified in ORIENTATION_MATRIX_LIST or number of images found in HDF5_SOURCE_FILES. Default 0 (no limit).";
     helpMap["NEW_MATRIX_LIST"] = "Filename for the set of matrix lists (all-x) which may be produced from a round of integration or post-refinement. No default. At the moment other forms (refine-x, integrate-x and merge-x) are supported for back compatibility.";
     helpMap["SPACE_GROUP"] = "Space group used for indexing or integration (will update existing files if changed). Note for indexing, it is best to use the point group symmetry with no screw axes.";
-    
+
     helpMap["MINIMUM_CYCLES"] = "Minimum number of cycles of post-refinement to exceed before finishing (but may perform more cycles if not converged). Default 6.";
     helpMap["MAXIMUM_CYCLES"] = "Integer x – maximum number of cycles of post-refinement to execute even if not converged. Default 0 (no maximum).";
-    
+
     helpMap["STOP_REFINEMENT"] = "If set to OFF, post-refinement will continue indefinitely. Default ON.";
     helpMap["MINIMIZATION_METHOD"] = "Minimization method used for various minimization events throughout the software. Grid search NOT recommended for normal use but for debugging purposes.";
     helpMap["NELDER_MEAD_CYCLES"] = "If using Nelder Mead, specify how many cycles are carried out (convergence criteria not implemented).";
@@ -764,7 +764,7 @@ void FileParser::generateHelpList()
     helpMap["OPTIMISING_EXPONENT"] = "Sets whether exponent is a refined parameter. Default OFF.";
     helpMap["OPTIMISING_ORIENTATION"] = "Sets whether horizontal/vertical orientation displacement is a refined parameter. Default ON";
     helpMap["OPTIMISING_RLP_SIZE"] = "Sets whether rlp size is a refined parameter. Default ON.";
-    
+
     helpMap["INTEGRATION_WAVELENGTH"] = "Wavelength of X-ray beam in Å. No default. Can be overridden by value in HDF5 file.";
     helpMap["DETECTOR_DISTANCE"] = "Detector distance from crystal in mm. No default. Can be overridden by value in cppxfel-geometry file.";
     helpMap["BEAM_CENTRE"] = "Coordinate position at which the beam hits the image in pixels. Default 0, 0 px to match CSPAD detector.";
@@ -805,7 +805,7 @@ void FileParser::generateHelpList()
     helpMap["REFINE_IN_PLANE_OF_DETECTOR"] = "In some cases, the rotation of the orientation matrix around the beam axis is not exact. Setting this value to ON will refine the orientation matrix around this axis. Default ON. Unlikely to want to change this.";
     helpMap["FIT_BACKGROUND_AS_PLANE"] = "To fit the background pixels as a plane rather than simple summation, switch this to ON. Individual pixels may also be rejected as outliers. Default OFF. Not sure if currently functional.";
     helpMap["ROUGH_CALCULATION"] = "If switched to ON, some recalculations are skipped during integration, which vastly increases the speed of integration. Comes with a mild warning that the integration solutions may be compromised - in practice this appears to be fine in most cases, but may be preferable to switch off (will slow down significantly). Default ON.";
-    
+
     helpMap["READ_REFINED_MTZS"] = "If reading from matrix version 3.0, READ_REFINED_MTZS set to ON can be used to force the refined images to be read in. Default OFF.";
     helpMap["IGNORE_MISSING_IMAGES"] = "If image data happens to be unavailable, but you have spot-finding results or other metadata, this will try to continue to run regardless. If it tries to load image data, this is horrendous. Default OFF.";
     helpMap["BINARY_PARTIALITY"] = "If a varying partiality between 0 and 1 is not working for you, maybe a BINARY_PARTIALITY would work better.";
@@ -814,10 +814,10 @@ void FileParser::generateHelpList()
     helpMap["HDF5_SOURCE_FILES"] = "HDF5 files from which image data should be found. Supports glob strings (e.g. run*.h5 for SACLA HDF5 files from cheetah-dispatcher).";
     helpMap["USE_HDF5_WAVELENGTH"] = "Use the wavelengths stored within HDF5 files. If you do not trust these values, disable this in order to default to the value of INTEGRATION_WAVELENGTH.";
     helpMap["HDF5_AS_FLOAT"] = "HDF5 file image data should be interpreted as float (rudimentary conversion to ints!)";
-    
+
     helpMap["FREE_ELECTRON_LASER"] = "Which free electron laser did this data come from? This is used for interpreting HDF5 files. Only LCLS and SACLA currently supported.";
     helpMap["OUTPUT_DIRECTORY"] = "Path to a directory into which almost all processing files will be deposited, except for spot-finding results.";
-    
+
     helpMap["SPOT_FINDING_ALGORITHM"] = "Choose which algorithm is used for spot-finding. Blob-finding is highly recommended.";
     helpMap["IMAGE_MIN_SPOT_INTENSITY"] = "Do not attempt to perform spot-finding calculation on a pixel intensity below this value.";
     helpMap["IMAGE_MIN_CORRELATION"] = "Minimum correlation between 'model' spot and 'real' spot below which a spot will be rejected.";
@@ -836,28 +836,28 @@ void FileParser::generateHelpList()
     helpMap["PNG_SHOEBOX"] = "If writing PNGs when WRITE_PNGS is called, whether to draw the integration shoeboxes (currently might be buggy for complex/non-symmetrical shoeboxes).";
     helpMap["IMAGE_IGNORE_UNDER_VALUE"] = "If a value on an image goes below this value, it is masked out.";
 
-    
+
     helpMap["SWEEP_DETECTOR_DISTANCE"] = "If you wish to refine geometry, specifying two distances in mm for this parameter will perform a sweep of intervening detector distances before continuing with geometry refinement. At the moment it will refine against the pseudo-powder pattern. Not completely tested, default is not to be set.";
     helpMap["EXPECTED_GEOMETRY_MOVEMENT"] = "Default increment for geometry refinement. The default is 0.02, but if you suspect convergence is too slow or you are driving into a local minimum too quickly, try increasing or decreasing this value respectively. Helen is not yet aware if it is worth changing this value.";
-    
-    
+
+
 }
 
 void FileParser::generateFunctionList()
 {
-	parserMap = ParserMap();
+        parserMap = ParserMap();
 
     parserMap["VERBOSITY_LEVEL"] = simpleInt;
-    
+
     parserMap["MAX_THREADS"] = simpleInt;
-    
-	// Refinement parameters
+
+        // Refinement parameters
     parserMap["MINIMUM_CYCLES"] = simpleInt;
     parserMap["MAXIMUM_CYCLES"] = simpleInt;
     parserMap["STOP_REFINEMENT"] = simpleBool;
     //parserMap["MERGE_MEDIAN"] = simpleBool;
     parserMap["READ_REFINED_MTZS"] = simpleBool;
-    
+
     parserMap["SET_SIGMA_TO_UNITY"] = simpleBool;
     parserMap["APPLY_UNREFINED_PARTIALITY"] = simpleBool;
     parserMap["BINARY_PARTIALITY"] = simpleBool;
@@ -867,20 +867,20 @@ void FileParser::generateFunctionList()
     parserMap["WAVELENGTH_RANGE"] = doubleVector;
     parserMap["ALLOW_TRUST"] = simpleBool;
     parserMap["PARTIALITY_CUTOFF"] = simpleFloat;
-	parserMap["DEFAULT_TARGET_FUNCTION"] = simpleInt;
+        parserMap["DEFAULT_TARGET_FUNCTION"] = simpleInt;
     parserMap["TARGET_FUNCTIONS"] = intVector;
    // parserMap["RLP_MODEL"] = simpleInt;
-	parserMap["CORRELATION_THRESHOLD"] = simpleFloat;
+        parserMap["CORRELATION_THRESHOLD"] = simpleFloat;
     parserMap["PARTIALITY_CORRELATION_THRESHOLD"] = simpleFloat;
-	parserMap["MAX_REFINED_RESOLUTION"] = simpleFloat;
+        parserMap["MAX_REFINED_RESOLUTION"] = simpleFloat;
     parserMap["MERGE_TO_RESOLUTION"] = simpleFloat;
     parserMap["MIN_REFINED_RESOLUTION"] = simpleFloat; // simplify all these resolutions?
     parserMap["INITIAL_CORRELATION_THRESHOLD"] = simpleFloat;
-	parserMap["THRESHOLD_SWAP"] = simpleInt;
-	parserMap["OUTLIER_REJECTION_SIGMA"] = simpleFloat;
-	parserMap["OUTLIER_REJECTION"] = simpleBool;
-	parserMap["CORRELATION_REJECTION"] = simpleBool;
-	parserMap["PARTIALITY_REJECTION"] = simpleBool;
+        parserMap["THRESHOLD_SWAP"] = simpleInt;
+        parserMap["OUTLIER_REJECTION_SIGMA"] = simpleFloat;
+        parserMap["OUTLIER_REJECTION"] = simpleBool;
+        parserMap["CORRELATION_REJECTION"] = simpleBool;
+        parserMap["PARTIALITY_REJECTION"] = simpleBool;
     parserMap["POLARISATION_CORRECTION"] = simpleBool;
     parserMap["POLARISATION_FACTOR"] = simpleFloat;
     parserMap["REFINEMENT_INTENSITY_THRESHOLD"] = simpleFloat; // merge with intensity threshold?
@@ -899,37 +899,37 @@ void FileParser::generateFunctionList()
     parserMap["CHEETAH_ID_ADDRESSES"] = simpleString;
     parserMap["HDF5_MASK_ADDRESS"] = simpleString;
     parserMap["HDF5_AS_FLOAT"] = simpleBool;
-    
-	parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
-	parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
-	parserMap["INITIAL_MOSAICITY"] = simpleFloat;
-	parserMap["INITIAL_EXPONENT"] = simpleFloat;
-	parserMap["INITIAL_RLP_SIZE"] = simpleFloat;
 
-	parserMap["STEP_SIZE_WAVELENGTH"] = simpleFloat;
-	parserMap["STEP_SIZE_BANDWIDTH"] = simpleFloat;
-	parserMap["STEP_SIZE_MOSAICITY"] = simpleFloat;
-	parserMap["STEP_SIZE_EXPONENT"] = simpleFloat;
-	parserMap["STEP_SIZE_ORIENTATION"] = simpleFloat;
+        parserMap["INITIAL_WAVELENGTH"] = simpleFloat;
+        parserMap["INITIAL_BANDWIDTH"] = simpleFloat;
+        parserMap["INITIAL_MOSAICITY"] = simpleFloat;
+        parserMap["INITIAL_EXPONENT"] = simpleFloat;
+        parserMap["INITIAL_RLP_SIZE"] = simpleFloat;
+
+        parserMap["STEP_SIZE_WAVELENGTH"] = simpleFloat;
+        parserMap["STEP_SIZE_BANDWIDTH"] = simpleFloat;
+        parserMap["STEP_SIZE_MOSAICITY"] = simpleFloat;
+        parserMap["STEP_SIZE_EXPONENT"] = simpleFloat;
+        parserMap["STEP_SIZE_ORIENTATION"] = simpleFloat;
     parserMap["STEP_SIZE_RLP_SIZE"] = simpleFloat;
     parserMap["STEP_SIZE_UNIT_CELL_A"] = simpleFloat;
     parserMap["STEP_SIZE_UNIT_CELL_B"] = simpleFloat;
     parserMap["STEP_SIZE_UNIT_CELL_C"] = simpleFloat;
 
-	parserMap["TOLERANCE_WAVELENGTH"] = simpleFloat;
-	parserMap["TOLERANCE_BANDWIDTH"] = simpleFloat;
-	parserMap["TOLERANCE_MOSAICITY"] = simpleFloat;
-	parserMap["TOLERANCE_EXPONENT"] = simpleFloat;
-	parserMap["TOLERANCE_ORIENTATION"] = simpleFloat;
-	parserMap["TOLERANCE_RLP_SIZE"] = simpleFloat;
+        parserMap["TOLERANCE_WAVELENGTH"] = simpleFloat;
+        parserMap["TOLERANCE_BANDWIDTH"] = simpleFloat;
+        parserMap["TOLERANCE_MOSAICITY"] = simpleFloat;
+        parserMap["TOLERANCE_EXPONENT"] = simpleFloat;
+        parserMap["TOLERANCE_ORIENTATION"] = simpleFloat;
+        parserMap["TOLERANCE_RLP_SIZE"] = simpleFloat;
 
-	parserMap["OPTIMISING_WAVELENGTH"] = simpleBool;
-	parserMap["OPTIMISING_BANDWIDTH"] = simpleBool;
-	parserMap["OPTIMISING_MOSAICITY"] = simpleBool;
-	parserMap["OPTIMISING_EXPONENT"] = simpleBool;
-	parserMap["OPTIMISING_ORIENTATION"] = simpleBool;
-	parserMap["OPTIMISING_RLP_SIZE"] = simpleBool;
-    
+        parserMap["OPTIMISING_WAVELENGTH"] = simpleBool;
+        parserMap["OPTIMISING_BANDWIDTH"] = simpleBool;
+        parserMap["OPTIMISING_MOSAICITY"] = simpleBool;
+        parserMap["OPTIMISING_EXPONENT"] = simpleBool;
+        parserMap["OPTIMISING_ORIENTATION"] = simpleBool;
+        parserMap["OPTIMISING_RLP_SIZE"] = simpleBool;
+
     parserMap["OPTIMISING_UNIT_CELL_A"] = simpleBool;
     parserMap["OPTIMISING_UNIT_CELL_B"] = simpleBool;
     parserMap["OPTIMISING_UNIT_CELL_C"] = simpleBool;
@@ -940,50 +940,50 @@ void FileParser::generateFunctionList()
     parserMap["HDF5_SOURCE_FILES"] = stringVector;
  //   parserMap["HDF5_OUTPUT_FILE"] = simpleString;
     parserMap["DUMP_IMAGES"] = simpleBool;
-    
+
     parserMap["ORIENTATION_MATRIX_LIST"] = simpleString;
     parserMap["OUTPUT_DIRECTORY"] = simpleString;
     parserMap["OUTPUT_INDIVIDUAL_CYCLES"] = simpleBool;
     parserMap["MATRIX_LIST_VERSION"] = simpleFloat;
-	parserMap["INITIAL_MTZ"] = simpleString;
-	parserMap["DIFFERENCE_MTZ"] = simpleString;
+        parserMap["INITIAL_MTZ"] = simpleString;
+        parserMap["DIFFERENCE_MTZ"] = simpleString;
     parserMap["IMAGE_LIMIT"] = simpleInt;
-	parserMap["CHERRY_PICK"] = simpleInt;
+        parserMap["CHERRY_PICK"] = simpleInt;
     parserMap["IMAGE_SKIP"] = simpleInt;
     parserMap["NEW_MATRIX_LIST"] = simpleString;
-    
+
     parserMap["RECALCULATE_WAVELENGTHS"] = simpleBool;
     parserMap["MERGE_ANOMALOUS"] = simpleBool;
     parserMap["SCALING_STRATEGY"] = simpleInt;
-	parserMap["MINIMUM_REFLECTION_CUTOFF"] = simpleInt;
+        parserMap["MINIMUM_REFLECTION_CUTOFF"] = simpleInt;
     parserMap["MINIMUM_MULTIPLICITY"] = simpleInt;
     parserMap["REJECT_BELOW_SCALE"] = simpleFloat;
 
-	// Indexing parameters
+        // Indexing parameters
 
  //   parserMap["DETECTOR_GAIN"] = simpleFloat;
     parserMap["BITS_PER_PIXEL"] = simpleInt;
-	parserMap["SPACE_GROUP"] = simpleInt;
-	parserMap["INTEGRATION_WAVELENGTH"] = simpleFloat;
-	parserMap["DETECTOR_DISTANCE"] = simpleFloat;
-	parserMap["REFINE_EACH_DETECTOR_DISTANCE"] = simpleBool;
+        parserMap["SPACE_GROUP"] = simpleInt;
+        parserMap["INTEGRATION_WAVELENGTH"] = simpleFloat;
+        parserMap["DETECTOR_DISTANCE"] = simpleFloat;
+        parserMap["REFINE_EACH_DETECTOR_DISTANCE"] = simpleBool;
     parserMap["BEAM_CENTRE"] = doubleVector;
     parserMap["MM_PER_PIXEL"] = simpleFloat;
     parserMap["DETECTOR_SIZE"] = doubleVector;
-	parserMap["OVER_PRED_BANDWIDTH"] = simpleFloat;
-	parserMap["OVER_PRED_RLP_SIZE"] = simpleFloat;
+        parserMap["OVER_PRED_BANDWIDTH"] = simpleFloat;
+        parserMap["OVER_PRED_RLP_SIZE"] = simpleFloat;
     parserMap["REFINE_ORIENTATIONS"] = simpleBool;
     parserMap["INDEXING_ORIENTATION_TOLERANCE"] = simpleFloat;
-  	parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
+        parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;
     parserMap["METROLOGY_SEARCH_SIZE_BIG"] = simpleInt;
     parserMap["SHOEBOX_FOREGROUND_PADDING"] = simpleInt;
-	parserMap["SHOEBOX_NEITHER_PADDING"] = simpleInt;
-	parserMap["SHOEBOX_BACKGROUND_PADDING"] = simpleInt;
+        parserMap["SHOEBOX_NEITHER_PADDING"] = simpleInt;
+        parserMap["SHOEBOX_BACKGROUND_PADDING"] = simpleInt;
     parserMap["SHOEBOX_MAKE_EVEN"] = simpleBool;
     parserMap["MIN_INTEGRATED_RESOLUTION"] = simpleFloat;
     parserMap["MAX_INTEGRATED_RESOLUTION"] = simpleFloat;
-	parserMap["UNIT_CELL"] = doubleVector;
+        parserMap["UNIT_CELL"] = doubleVector;
     parserMap["FIX_UNIT_CELL"] = simpleBool;
     parserMap["INITIAL_ORIENTATION_STEP"] = simpleFloat;
     parserMap["COMPLEX_SHOEBOX"] = simpleBool;
@@ -1009,7 +1009,7 @@ void FileParser::generateFunctionList()
     parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
     parserMap["ROUGH_CALCULATION"] = simpleBool;
 
-	parserMap["INDEXING_RLP_SIZE"] = simpleFloat;
+        parserMap["INDEXING_RLP_SIZE"] = simpleFloat;
     parserMap["MINIMUM_SPOTS_EXPLAINED"] = simpleInt;
     parserMap["MINIMUM_TRUST_ANGLE"] = simpleFloat;
     parserMap["SOLUTION_ANGLE_SPREAD"] = simpleFloat;
@@ -1019,8 +1019,8 @@ void FileParser::generateFunctionList()
     parserMap["SPOTS_PER_LATTICE"] = simpleInt;
     parserMap["GOOD_SOLUTION_SUM_RATIO"] = simpleFloat;
     parserMap["GOOD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
-	parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
-	parserMap["SOLUTION_ATTEMPTS"] = simpleInt;
+        parserMap["BAD_SOLUTION_HIGHEST_PEAK"] = simpleInt;
+        parserMap["SOLUTION_ATTEMPTS"] = simpleInt;
     parserMap["MAX_RECIPROCAL_DISTANCE"] = simpleFloat;
     parserMap["MAXIMUM_ANGLE_DISTANCE"] = simpleFloat;
     parserMap["ALWAYS_FILTER_SPOTS"] = simpleBool;
@@ -1036,10 +1036,10 @@ void FileParser::generateFunctionList()
     parserMap["POWDER_PATTERN_STEP_ANGLE"] = simpleFloat;
     parserMap["LOW_MEMORY_MODE"] = simpleBool;
     parserMap["GEOMETRY_FORMAT"] = simpleInt;
-	parserMap["GEOMETRY_IS_APPROXIMATE"] = simpleBool;
-    
+        parserMap["GEOMETRY_IS_APPROXIMATE"] = simpleBool;
+
     // force spot finding
-    
+
     parserMap["IMAGE_MIN_SPOT_INTENSITY"] = simpleFloat;
     parserMap["IMAGE_MIN_CORRELATION"] = simpleFloat;
     parserMap["IMAGE_ACCEPTABLE_COMBO"] = doubleVector;
@@ -1056,11 +1056,11 @@ void FileParser::generateFunctionList()
     parserMap["SPOT_FINDING_MAX_PIXELS"] = simpleInt;
     parserMap["SPOT_FINDING_ALGORITHM"] = simpleInt;
  //   parserMap["SPOTS_ARE_RECIPROCAL_COORDINATES"] = simpleBool;
-    
+
     parserMap["IGNORE_MISSING_IMAGES"] = simpleBool;
     parserMap["FROM_TIFFS"] = simpleBool;
-    
-	parserMap["THROWAWAY_UNACCEPTED"] = simpleBool;
+
+        parserMap["THROWAWAY_UNACCEPTED"] = simpleBool;
 
     parserMap["PNG_TOTAL"] = simpleInt;
     parserMap["PNG_THRESHOLD"] = simpleFloat;
@@ -1071,46 +1071,46 @@ void FileParser::generateFunctionList()
     parserMap["DRAW_GEOMETRY_PNGS"] = simpleBool;
     parserMap["SWEEP_DETECTOR_DISTANCE"] = doubleVector;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
-    
+
     parserMap["TRUST_GLOBAL_GEOMETRY"] = simpleBool;
     parserMap["TRUST_QUADRANT_GEOMETRY"] = simpleBool;
     parserMap["TRUST_LOCAL_GEOMETRY"] = simpleBool;
     parserMap["EXPECTED_GEOMETRY_MOVEMENT"] = simpleFloat;
-    
+
     parserMap["DETECTOR_LIST"] = simpleString;
-    
+
     parserMap["MILLER_INDEX"] = intVector;
-	parserMap["SPECIAL_PIXEL"] = intVector;
+        parserMap["SPECIAL_PIXEL"] = intVector;
 
-	/* UV-RIP specific commands */
+        /* UV-RIP specific commands */
 
-	parserMap["FRAMES_OFFSET"] = simpleInt;
-	parserMap["FRAMES_PER_ROW"] = simpleInt;
+        parserMap["FRAMES_OFFSET"] = simpleInt;
+        parserMap["FRAMES_PER_ROW"] = simpleInt;
 
 }
 
 ParserFunction FileParser::splitLine(std::string line, std::string &command,
-		std::string &rest)
+                std::string &rest)
 {
     int space_index = (int)line.find_first_of(splitCharMajor);
-    
+
     if (space_index == std::string::npos)
     {
         command = "NULL";
         return NULL;
     }
-    
-	command = line.substr(0, space_index);
 
-	std::ostringstream stream;
+        command = line.substr(0, space_index);
 
-	std::locale theLocale;
-	for (std::string::size_type j = 0; j < command.length(); ++j)
-		stream << std::toupper(command[j], theLocale);
+        std::ostringstream stream;
 
-	std::string upperCommand = stream.str();
+        std::locale theLocale;
+        for (std::string::size_type j = 0; j < command.length(); ++j)
+                stream << std::toupper(command[j], theLocale);
 
-	rest = line.substr(space_index + 1, std::string::npos);
+        std::string upperCommand = stream.str();
+
+        rest = line.substr(space_index + 1, std::string::npos);
 
     if (deprecatedList.count(upperCommand) > 0)
     {
@@ -1119,32 +1119,32 @@ ParserFunction FileParser::splitLine(std::string line, std::string &command,
         sendLogAndExit();
         return NULL;
     }
-    
+
     // make a list of permitted words soon
     else if (parserMap.count(upperCommand) == 0 && upperCommand != "PANEL" && upperCommand != "MASK" && upperCommand != "SOLVENT_MASK")
     {
         logged << "Error: do not understand command " << upperCommand << std::endl;
         sendLogAndExit();
     }
-    
-    ParserFunction function = parserMap[upperCommand];
-	command = upperCommand;
 
-	return function;
+    ParserFunction function = parserMap[upperCommand];
+        command = upperCommand;
+
+        return function;
 }
 
 bool FileParser::checkSpaces(std::string line)
 {
     int space_index = (int)line.find_first_of(splitCharMajor);
 
-	if (space_index == std::string::npos)
-	{
-		logged << "Warning: " << line << " has no assignment" << std::endl;
+        if (space_index == std::string::npos)
+        {
+                logged << "Warning: " << line << " has no assignment" << std::endl;
         sendLog();
-		return false;
-	}
+                return false;
+        }
 
-	return true;
+        return true;
 }
 
 FileParser::FileParser(void)
@@ -1158,16 +1158,15 @@ FileParser::FileParser(void)
 
 FileParser::FileParser(std::string name, std::vector<std::string> someExtras)
 {
-	this->filename = name;
-	generateFunctionList();
+        this->filename = name;
+        generateFunctionList();
     generateCodeList();
     generateDeprecatedList();
-    
+
     extras = someExtras;
 }
 
 FileParser::~FileParser()
 {
-	// TODO Auto-generated destructor stub
+        // TODO Auto-generated destructor stub
 }
-

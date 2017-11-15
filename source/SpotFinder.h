@@ -38,7 +38,7 @@ public:
         peaks = NULL;
         totalPeaks = 0;
     }
-    
+
     virtual void findSpecificSpots(std::vector<SpotPtr> *spots = NULL) {};
     std::vector<SpotPtr> findSpots();
 };

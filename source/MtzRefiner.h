@@ -20,17 +20,17 @@ class IndexManager;
 class MtzRefiner : public LoggableObject
 {
 private:
-	MtzPtr reference;
+        MtzPtr reference;
     MtzPtr referencePtr;
-	vector<ImagePtr> images;
+        vector<ImagePtr> images;
     static int imageLimit;
     static int imageMax(size_t lineCount);
     static void readSingleImageV2(std::string *filename, vector<ImagePtr> *newImages, vector<MtzPtr> *newMtzs, int offset, bool v3 = false, MtzRefiner *me = NULL);
     static void findSpotsThread(MtzRefiner *me, int offset);
     void readFromHdf5(std::vector<ImagePtr> *newImages);
     bool readRefinedMtzs;
-	std::vector<MtzPtr> getAllMtzs();
-	IndexManager *indexManager;
+        std::vector<MtzPtr> getAllMtzs();
+        IndexManager *indexManager;
     static int cycleNum;
     bool hasRefined;
     int maxThreads;
@@ -40,48 +40,48 @@ private:
     static void integrateSpotsThread(MtzRefiner *me, int offset);
     Hdf5ManagerProcessingPtr hdf5ProcessingPtr;
     void readDataFromOrientationMatrixList(std::string *filename, bool areImages, std::vector<ImagePtr> *targetImages);
-	void redumpBins();
-	
-	BinList binList;
+        void redumpBins();
+
+        BinList binList;
 public:
-	MtzRefiner();
-	virtual ~MtzRefiner();
+        MtzRefiner();
+        virtual ~MtzRefiner();
 
     void index();
     void powderPattern();
-	bool loadInitialMtz(bool force = false);
-    
-	void cycle();
-	void cycleThread(int offset);
-	static void cycleThreadWrapper(MtzRefiner *object, int offset);
+        bool loadInitialMtz(bool force = false);
+
+        void cycle();
+        void cycleThread(int offset);
+        static void cycleThreadWrapper(MtzRefiner *object, int offset);
 
     void refine();
-	void refineCycle(bool once = false);
-	void readMatricesAndMtzs();
+        void refineCycle(bool once = false);
+        void readMatricesAndMtzs();
 
-	void refineMetrology(bool global);
+        void refineMetrology(bool global);
     void reportMetrology();
-	void flattenDetector();
+        void flattenDetector();
 
     void initialMerge();
     void orientationPlot();
     void applyUnrefinedPartiality();
     void loadImageFiles();
     void findSpots();
-	void differenceCorrelation();
+        void differenceCorrelation();
 
     void loadPanels(bool mustFail = true);
-	void integrate();
+        void integrate();
     static void fakeSpotsThread(std::vector<ImagePtr> *images, int offset);
     void fakeSpots();
     void integrationSummary();
-	static void integrateImagesWrapper(MtzRefiner *object, vector<MtzPtr> *&mtzSubset, int offset);
-	void integrateImages(vector<MtzPtr> *&mtzSubset, int offset);
-	void readMatricesAndImages(std::string *filename = NULL, bool areImages = true, std::vector<ImagePtr> *targetImages = NULL);
-	void refineUnitCell();
-    
-	static void readMatrix(double (&matrix)[9], std::string line);
-	void merge(int cycle = -2);
+        static void integrateImagesWrapper(MtzRefiner *object, vector<MtzPtr> *&mtzSubset, int offset);
+        void integrateImages(vector<MtzPtr> *&mtzSubset, int offset);
+        void readMatricesAndImages(std::string *filename = NULL, bool areImages = true, std::vector<ImagePtr> *targetImages = NULL);
+        void refineUnitCell();
+
+        static void readMatrix(double (&matrix)[9], std::string line);
+        void merge(int cycle = -2);
     void correlationAndInverse(bool shouldFlip = false);
     void refreshCurrentPartialities();
     void maximumImage();
@@ -96,24 +96,24 @@ public:
     {
         return isPython;
     }
-    
+
     void setFromPython(bool newValue)
     {
         isPython = newValue;
     }
-    
+
     void polarisationGraph();
     void displayIndexingHands();
-	void plotPixelValueVsFiducial();
-    
+        void plotPixelValueVsFiducial();
+
     void writeAllNewOrientations();
     void writeNewOrientations(bool includeRots = false, bool detailed = false);
     void integrateSpots();
     void linearScaling();
-    
+
     void plotIntensities();
     void plotIntegrationWindows();
-    
+
     void imageToDetectorMap();
     void writePNGs(int total = 0);
     void takeTwoPNG();
