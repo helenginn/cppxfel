@@ -33,9 +33,9 @@ private:
     double gamma;
     double rho;
     double sigma;
-    
+
     std::vector<TestPoint> testPoints;
-    
+
     void setWorstTestPoint(TestPoint &newPoint);
     TestPoint *worstTestPoint();
     void orderTestPoints();
@@ -43,13 +43,13 @@ private:
     void evaluateTestPoint(TestPoint *testPoint);
     void setTestPointParameters(TestPoint *testPoint);
     std::vector<double> calculateCentroid();
-    
+
     TestPoint reflectOrExpand(std::vector<double> centroid, double scale);
     TestPoint reflectedPoint(std::vector<double> centroid);
     TestPoint expandedPoint(std::vector<double> centroid);
     TestPoint contractedPoint(std::vector<double> centroid);
     void reduction();
-    
+
     void addPoints(std::vector<double> *point, std::vector<double> pointToAdd);
     void scalePoint(std::vector<double> *point, double scale);
     void subtractPoints(std::vector<double> *point, std::vector<double> pointToSubtract);
@@ -57,7 +57,7 @@ public:
     void init();
     NelderMead() : RefinementStrategy() { init(); };
     virtual void refine();
-    
+
     virtual void clearParameters();
 };
 

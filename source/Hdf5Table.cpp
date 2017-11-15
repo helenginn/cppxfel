@@ -40,11 +40,11 @@ Hdf5Table::~Hdf5Table()
     if (fieldOffsets != NULL)
         free(fieldOffsets);
     fieldOffsets = NULL;
-    
+
     if (fieldSizes != NULL)
         free(fieldSizes);
     fieldSizes = NULL;
-    
+
     if (fieldTypes != NULL)
         free(fieldTypes);
     fieldTypes = NULL;

@@ -28,17 +28,17 @@ class Hdf5ManagerProcessing  : public Hdf5ManagerCheetah
 {
 private:
     static Hdf5ManagerProcessingPtr processingManager;
-    
+
 public:
     Hdf5ManagerProcessing(std::string filename) : Hdf5ManagerCheetah(filename, Hdf5AccessTypeReadWrite)
     {
-        
+
     }
-    
+
     static void setupProcessingManager();
-    
+
     static Hdf5ManagerProcessingPtr getProcessingManager();
-    
+
 };
 
 #endif /* defined(__cppxfel__Hdf5ManagerProcessing__) */

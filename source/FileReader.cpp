@@ -42,33 +42,33 @@ vector<std::string> FileReader::split(const std::string s, const std::string &de
 {
     vector<std::string> elems;
     std::string rest = s;
-    
+
     int count = 0;
     bool finished = false;
-    
+
     if (s.length() == 0)
         return elems;
-    
+
     while (!finished)
     {
         count++;
         size_t index = rest.substr(1, rest.length() - 1).find(delim);
-        
+
         if (index == std::string::npos)
         {
             index = rest.length() - 1;
             finished = true;
         }
-        
+
         std::string cutout = rest.substr(1, index + 1);
         elems.push_back(cutout);
-        
+
         rest = rest.substr(index + 1, s.length() - index - 1);
-        
+
         if (index == 0)
             break;
     }
-    
+
     return elems;
 }
 
@@ -79,32 +79,32 @@ vector<std::string> FileReader::split(const std::string &s, char delim) {
 }
 
 int FileReader::splitAtIndices(const std::string &s, vector<int> &positions, vector<std::string> &elems) {
-    
+
     for (int i = 0; i < positions.size() - 1; i++)
     {
         int start = positions[i];
         int length = positions[i + 1] - start;
-        
+
         if (s.size() < positions[i + 1])
             return 0;
-        
+
         std::string segment = s.substr(start, length);
         elems.push_back(segment);
     }
-    
+
     return 1;
 }
 
 bool FileReader::exists(const std::string& name)
 {
-	struct stat buffer;
-	return (stat(name.c_str(), &buffer) == 0);
+        struct stat buffer;
+        return (stat(name.c_str(), &buffer) == 0);
 }
 
 std::string FileReader::get_file_contents(const char *filename)
 {
     std::ifstream in(filename, std::ios::in | std::ios::binary);
-    
+
     if (in)
     {
         std::string contents;
@@ -115,11 +115,11 @@ std::string FileReader::get_file_contents(const char *filename)
         in.close();
         return(contents);
     }
-    
+
     std::string errString = "Could not get file contents for file " + std::string(filename);
     Logger::mainLogger->addString(errString);
     Logger::mainLogger->addString(strerror(errno));
-    
+
     throw(errno);
 }
 
@@ -136,7 +136,7 @@ std::string FileReader::addOutputDirectory(std::string filename)
     else
     {
     DIR *dir = opendir(directory.c_str());
-        
+
         if (dir)
         {
             closedir(dir);
@@ -146,12 +146,12 @@ std::string FileReader::addOutputDirectory(std::string filename)
             mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         }
     }
-    
+
     if (outputIndividualCycles)
     {
         int cycleNum = FileParser::getKey("CYCLE_NUMBER", 0);
         std::string combinedDir;
-        
+
         if (directory.length())
         {
             combinedDir = directory + "/cycle_" + i_to_str(cycleNum);
@@ -160,9 +160,9 @@ std::string FileReader::addOutputDirectory(std::string filename)
         {
             combinedDir = "cycle_" + i_to_str(cycleNum);
         }
-        
+
         DIR *dir2 = opendir(combinedDir.c_str());
-        
+
         if (dir2)
         {
             closedir(dir2);
@@ -171,7 +171,7 @@ std::string FileReader::addOutputDirectory(std::string filename)
         {
             mkdir(combinedDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         }
-        
+
         return combinedDir + "/" + filename;
     }
     else

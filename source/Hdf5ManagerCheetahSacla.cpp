@@ -23,7 +23,7 @@
 Hdf5ManagerCheetahPtr Hdf5ManagerCheetahSacla::makeManager(std::string filename)
 {
     Hdf5ManagerCheetahSaclaPtr cheetahPtr = Hdf5ManagerCheetahSaclaPtr(new Hdf5ManagerCheetahSacla(filename));
-    
+
     return std::static_pointer_cast<Hdf5ManagerCheetah>(cheetahPtr);
 }
 
@@ -42,7 +42,7 @@ bool Hdf5ManagerCheetahSacla::dataForImage(std::string address, void **buffer, b
     //    dataAddress = address;
     }
 
-	return Hdf5Manager::dataForAddress(dataAddress, buffer);
+        return Hdf5Manager::dataForAddress(dataAddress, buffer);
 }
 
 double Hdf5ManagerCheetahSacla::wavelengthForImage(std::string address, void **buffer)

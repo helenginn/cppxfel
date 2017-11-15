@@ -27,17 +27,17 @@
 class IndexManager : LoggableObject, public boost::enable_shared_from_this<IndexManager>
 {
 protected:
-	struct SpotVectorPair
-	{
-		SpotVectorPtr vecs[3];
-	};
+        struct SpotVectorPair
+        {
+                SpotVectorPtr vecs[3];
+        };
 
     UnitCellLatticePtr lattice;
     std::vector<ImagePtr> images;
     std::vector<ImagePtr> mergeImages;
-	std::set<SpotPtr> goodSpots;
+        std::set<SpotPtr> goodSpots;
     std::vector<SpotVectorPtr> goodVectors;
-	std::vector<SpotVectorPair> goodVectorPairs;
+        std::vector<SpotVectorPair> goodVectorPairs;
     DetectorWeakPtr _activeDetector;
     double interPanelDistance;
     double intraPanelDistance;
@@ -53,7 +53,7 @@ protected:
     bool _canLockVectors;
     static int _cycleNum;
     PseudoScoreWeightingAxis _axisWeighting;
-    
+
     double maxMillerIndexTrial;
     double maxDistance;
     double smallestDistance;
@@ -61,7 +61,7 @@ protected:
     PowderHistogram generatePowderHistogram(int intraPanel = -1, int perfectPadding = 0);
     std::vector<VectorDistance> vectorDistances;
     PseudoScoreType checkVectors(SpotVectorPtr vec1, SpotVectorPtr vec2);
-    
+
     DetectorPtr getActiveDetector()
     {
         DetectorPtr det = _activeDetector.lock();
@@ -69,91 +69,91 @@ protected:
         {
             det = Detector::getMaster();
         }
-        
+
         return det;
     }
-    
+
 public:
     ImagePtr getImage(int i)
     {
         return images[i];
     }
-    
+
     std::vector<MtzPtr> getMtzs()
     {
         return mtzs;
     }
-    
+
     void setMergeImages(std::vector<ImagePtr> otherImages)
     {
         mergeImages = otherImages;
     }
-    
+
     void setActiveDetector(DetectorPtr detector, GeometryScoreType type)
     {
         _activeDetector = detector;
         detector->setIndexManager(shared_from_this(), type);
-		goodVectorPairs.clear();
+                goodVectorPairs.clear();
     }
-    
+
     void setPseudoScoreType(PseudoScoreType type)
     {
         scoreType = type;
     }
-    
+
     PseudoScoreType getPseudoScoreType()
     {
         return scoreType;
     }
-    
+
     UnitCellLatticePtr getLattice()
     {
         return lattice;
     }
-    
+
     void setProportionDistance(double newProp)
     {
         proportionDistance = newProp;
     }
-    
-	static double pseudoAngleScore(void *object);
-	static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
+
+        static double pseudoAngleScore(void *object);
+        static void indexThread(IndexManager *indexer, std::vector<MtzPtr> *mtzSubset, int offset);
     void index();
-	bool writtenPDB;
-	CSVPtr pseudoAnglePDB(bool writePost = false);
+        bool writtenPDB;
+        CSVPtr pseudoAnglePDB(bool writePost = false);
     void powderPattern(std::string csvName = "powder.csv", bool force = true);
-    
+
     void lockVectors()
     {
         _canLockVectors = true;
     }
-    
+
     void setAxisWeighting(PseudoScoreWeightingAxis weighting)
     {
         _axisWeighting = weighting;
     }
-    
+
     static void setCycleNum(int num)
     {
         _cycleNum = num;
     }
-    
+
     static int getCycleNum()
     {
         return _cycleNum;
     }
-    
+
     void resetMaxFrequency()
     {
         _maxFrequency = -1;
     }
-    
+
     void clearGoodVectors()
     {
         goodVectors.clear();
-		goodVectorPairs.clear();
+                goodVectorPairs.clear();
     }
-    
+
     void plotGoodVectors();
     static double pseudoScore(void *object);
     IndexManager(std::vector<ImagePtr>images);

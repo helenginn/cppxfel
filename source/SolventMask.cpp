@@ -19,6 +19,6 @@ SolventMask::SolventMask(double lowRes, double highRes)
 void SolventMask::addSolventMask(double lowRes, double highRes)
 {
     SolventMaskPtr newSolventMask = SolventMaskPtr(new SolventMask(lowRes, highRes));
-    
+
     solventMasks.push_back(newSolventMask);
 }

@@ -18,20 +18,20 @@ protected:
     std::ostringstream logged;
     void sendLog(LogLevel priority = LogLevelNormal, bool shouldExit = false);
     void sendLogAndExit();
-    
+
     LoggableObject()
     {
-    
+
     }
-    
+
     LoggableObject(const LoggableObject &other)
     {
-        
+
     }
-    
+
 public:
     static void staticLogAndExit(std::ostringstream &otherLog, std::string header = "ERROR");
-    
+
 };
 
 #endif /* defined(__cppxfel__LoggableObject__) */

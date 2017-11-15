@@ -26,7 +26,7 @@ private:
     void createSpotTable();
     void getWavelengthFromHdf5();
 protected:
-    
+
 public:
     Hdf5Image(std::string filename = "", double wavelength = 0,
               double distance = 0) : Image(filename, wavelength, distance)
@@ -40,10 +40,10 @@ public:
         {
             return;
         }
-    
+
         getWavelengthFromHdf5();
     };
-    
+
     void setMask()
     {
         _isMask = true;
@@ -63,13 +63,13 @@ public:
             Logger::log(logged);
         }
     }
-    
+
     Hdf5ManagerCheetahPtr getManager();
-    
+
     void writeSpotsList(std::string spotFile);
     void processSpotList();
     void loadCrystals();
-	virtual int getFrameNumber();
+        virtual int getFrameNumber();
 
     virtual ImageClass getClass()
     {
@@ -80,7 +80,7 @@ public:
     {
         return findAddress();
     }
-    
+
     virtual ~Hdf5Image() {};
 };
 

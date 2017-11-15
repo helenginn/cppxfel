@@ -43,11 +43,11 @@ for panel in panels:
             key_value = line.split("=")
             key = key_value[0].strip()
             value = key_value[1].strip()
-    
+
             id_property = key.split("/")
             id = id_property[0]
             property = id_property[1]
-    
+
             if len(value.split(" ")) > 1:
                 subProperties = value.split(" ")
                 for i in range(len(subProperties)):
@@ -56,40 +56,39 @@ for panel in panels:
                 value = subProperties
             else:
                 value = float(value)
-    
+
 #            print "Found value", value, "for panel", panel, ", property", property
             orderedPanels[-1][property] = value
 
 geomfile.close()
 
 for panel in orderedPanels:
-        origTopLeftX = panel['min_fs']
-        origTopLeftY = panel['min_ss']
-        origBottomRightX = panel['max_fs']
-        origBottomRightY = panel['max_ss']
-        relativeNewX = panel['corner_x']
-        relativeNewY = panel['corner_y']
-        axisXX = panel['fs'][0]
-        axisXY = panel['fs'][1]
-        axisYX = panel['ss'][0]
-        axisYY = panel['ss'][1]
-        
-        # generate panels.txt
+    origTopLeftX = panel['min_fs']
+    origTopLeftY = panel['min_ss']
+    origBottomRightX = panel['max_fs']
+    origBottomRightY = panel['max_ss']
+    relativeNewX = panel['corner_x']
+    relativeNewY = panel['corner_y']
+    axisXX = panel['fs'][0]
+    axisXY = panel['fs'][1]
+    axisYX = panel['ss'][0]
+    axisYY = panel['ss'][1]
 
-        imageWidth = origBottomRightX - origTopLeftX 
-        imageHeight = origBottomRightY - origTopLeftY
-        relativeNewOtherCornerX = relativeNewX + imageWidth * axisXX + imageHeight * axisYX
-        relativeNewOtherCornerY = relativeNewY + imageWidth * axisXY + imageHeight * axisYY
-        physicalMiddleX = (relativeNewX + relativeNewOtherCornerX) / 2.0
-        physicalMiddleY = (relativeNewY + relativeNewOtherCornerY) / 2.0
-        imageMiddleX = origTopLeftX + imageWidth / 2.0
-        imageMiddleY = origTopLeftY + imageHeight / 2.0
-        offsetX = imageMiddleX - physicalMiddleX
-        offsetY = imageMiddleY - physicalMiddleY
-        rotation = - math.atan2(axisXY, axisXX) / math.pi * 180.0
+    # generate panels.txt
+
+    imageWidth = origBottomRightX - origTopLeftX
+    imageHeight = origBottomRightY - origTopLeftY
+    relativeNewOtherCornerX = relativeNewX + imageWidth * axisXX + imageHeight * axisYX
+    relativeNewOtherCornerY = relativeNewY + imageWidth * axisXY + imageHeight * axisYY
+    physicalMiddleX = (relativeNewX + relativeNewOtherCornerX) / 2.0
+    physicalMiddleY = (relativeNewY + relativeNewOtherCornerY) / 2.0
+    imageMiddleX = origTopLeftX + imageWidth / 2.0
+    imageMiddleY = origTopLeftY + imageHeight / 2.0
+    offsetX = imageMiddleX - physicalMiddleX
+    offsetY = imageMiddleY - physicalMiddleY
+    rotation = - math.atan2(axisXY, axisXX) / math.pi * 180.0
 
 #        print "#", panel
-        print "PANEL %f %f %f %f %f %f 0 0 %f 1" % (min(relativeNewX, relativeNewOtherCornerX), min(relativeNewY, relativeNewOtherCornerY),
-                                                    max(relativeNewX, relativeNewOtherCornerX), max(relativeNewY, relativeNewOtherCornerY),    
-                                                    offsetX, offsetY, rotation)
-
+    print "PANEL %f %f %f %f %f %f 0 0 %f 1" % (min(relativeNewX, relativeNewOtherCornerX), min(relativeNewY, relativeNewOtherCornerY),
+                                                max(relativeNewX, relativeNewOtherCornerX), max(relativeNewY, relativeNewOtherCornerY),
+                                                offsetX, offsetY, rotation)

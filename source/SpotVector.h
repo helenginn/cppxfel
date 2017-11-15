@@ -16,8 +16,8 @@
 class SpotVector : public LoggableObject
 {
 private:
-	int _isIntraPanelVector;
-	SpotPtr firstSpot;
+        int _isIntraPanelVector;
+        SpotPtr firstSpot;
     SpotPtr secondSpot;
     bool update;
     double cachedDistance;
@@ -25,7 +25,7 @@ private:
     double minDistanceTolerance;
     double minAngleTolerance;
     double firstDistance;
-    
+
     std::vector<SpotVectorPtr> sameLengthStandardVectors;
     vec hkl;
     vec spotDiff;
@@ -33,21 +33,21 @@ private:
 
     void calculateUnitVector();
 public:
-    
+
     static bool isGreaterThan(SpotVectorPtr spotVec1, SpotVectorPtr spotVec2)
     {
         return (spotVec2->distance() > spotVec1->distance());
     }
-    
+
     SpotVector(SpotPtr first, SpotPtr second);
     SpotVector(vec transformedHKL, vec normalHKL);
-    
+
     bool hasCommonSpotWithVector(SpotVectorPtr spotVector2);
-	SpotVectorPtr completeTriangleWith(SpotVectorPtr spotVec2);
-	
+        SpotVectorPtr completeTriangleWith(SpotVectorPtr spotVec2);
+
     double distance();
     void calculateDistance();
-	void quickDistance();
+        void quickDistance();
     double getResolution();
     double getMinDistanceTolerance();
     double getMinAngleTolerance();
@@ -68,69 +68,69 @@ public:
     bool spansChildrenOfDetector(DetectorPtr parent);
     bool originalDistanceLessThan(double threshold);
     void drawOnImage(PNGFilePtr file);
-    
+
     double getOriginalDistance()
     {
         return firstDistance;
     }
-    
+
     std::vector<SpotVectorPtr> standardVectorsOfSameDistance()
     {
         return sameLengthStandardVectors;
     }
 
-	double getFirstDistance()
-	{
-		return firstDistance;
-	}
-    
+        double getFirstDistance()
+        {
+                return firstDistance;
+        }
+
     bool isOnlyFromDetector(DetectorPtr detector);
-    
+
     vec getHKL()
     {
         return hkl;
     }
-    
+
     void setUpdate()
     {
         update = true;
     }
-    
+
     vec getVector()
     {
         return spotDiff;
     }
-    
+
     vec getUnitVector()
     {
         return unitSpotDiff;
     }
-    
+
     SpotPtr getFirstSpot()
     {
         return firstSpot;
     }
-    
+
     SpotPtr getSecondSpot()
     {
         return secondSpot;
     }
-    
+
     double getH()
     {
         return hkl.h;
     }
-    
+
     double getK()
     {
         return hkl.k;
     }
-    
+
     double getL()
     {
         return hkl.l;
     }
-    
+
     void setSpotDiff(vec transformedHKL)
     {
         spotDiff = transformedHKL;

@@ -56,122 +56,122 @@ public:
         nrecords = 0;
         nfields = 0;
     };
-    
+
     void setTableTitle(std::string title)
     {
         tableTitle = title;
     }
-    
+
     const char *getTableTitle()
     {
         return tableTitle.c_str();
     }
-    
+
     void setTableName(std::string name)
     {
         tableName = name;
     }
-    
+
     const char *getTableName()
     {
         return tableName.c_str();
     }
-    
+
     void setNumberOfFields(int fieldNum)
     {
         nfields = fieldNum;
     }
-    
+
     int getNumberOfFields()
     {
         return nfields;
     }
-    
+
     void setNumberOfRecords(int recordNum)
     {
         nrecords = recordNum;
     }
-    
+
     int getNumberOfRecords()
     {
         return nrecords;
     }
-    
+
     void setRecordSize(int newSize)
     {
         type_size = newSize;
     }
-    
+
     int getRecordSize()
     {
         return (int)type_size;
     }
-    
+
     void setOffsets(size_t *offsets)
     {
         fieldOffsets = offsets;
     }
-    
+
     size_t *getOffsets()
     {
         return fieldOffsets;
     }
-    
+
     void setHeaders(const char **pointerToCharArrayArray)
     {
         fieldNames = pointerToCharArrayArray;
     }
-    
+
     const char **getHeaders()
     {
         return fieldNames;
     }
-    
+
     void setTypes(hid_t *hidTTypes)
     {
         fieldTypes = hidTTypes;
     }
-    
+
     hid_t *getTypes()
     {
         return fieldTypes;
     }
-    
+
     void setCompress(bool shouldCompress)
     {
         compress = shouldCompress;
     }
-    
+
     int getCompress()
     {
         return compress;
     }
-    
+
     int getChunkSize()
     {
         return chunk_size;
     }
-    
+
     void setData(void *buffer)
     {
         data = buffer;
     }
-    
+
     void *getData()
     {
         return data;
     }
-    
+
     int *getFillData()
     {
         return fill_data;
     }
-    
+
     void setFieldSizes(size_t *sizes)
     {
         fieldSizes = sizes;
     }
-    
+
     size_t *getFieldSizes()
     {
         return fieldSizes;

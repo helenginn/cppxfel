@@ -28,14 +28,14 @@ class RefinementStrategy : public LoggableObject
 {
 protected:
     Getter evaluationFunction;
-	Getter finishFunction;
+        Getter finishFunction;
     int maxCycles;
     void *evaluateObject;
     LogLevel priority;
     std::string jobName;
     int cycleNum;
-	int _changed;
-    
+        int _changed;
+
     std::vector<int> couplings;
     std::vector<void *> objects;
     std::vector<Getter> getters;
@@ -45,7 +45,7 @@ protected:
     std::vector<std::string> tags;
     std::vector<double> startingValues;
     double startingScore;
-    
+
     void reportProgress(double score);
     void finish();
 public:
@@ -56,29 +56,29 @@ public:
         priority = LogLevelDebug;
         cycleNum = 0;
         startingScore = 0;
-		_changed = -1;
-		finishFunction = NULL;
+                _changed = -1;
+                finishFunction = NULL;
     };
-    
+
     static RefinementStrategyPtr userChosenStrategy();
-    
+
     virtual void refine();
-	void resetToInitialParameters();
-    
+        void resetToInitialParameters();
+
     void addParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag = "");
     void addCoupledParameter(void *object, Getter getter, Setter setter, double stepSize, double stepConvergence, std::string tag = "");
-    
+
     void setEvaluationFunction(Getter function, void *evaluatedObject)
     {
         evaluationFunction = function;
         evaluateObject = evaluatedObject;
     }
 
-	void setFinishFunction(Getter finishFunc)
-	{
-		finishFunction = finishFunc;
-	}
-    
+        void setFinishFunction(Getter finishFunc)
+        {
+                finishFunction = finishFunc;
+        }
+
     void setVerbose(bool verbose)
     {
         if (verbose)
@@ -91,26 +91,26 @@ public:
         }
     }
 
-	bool didChange()
-	{
-		return (_changed == 1);
-	}
-    
+        bool didChange()
+        {
+                return (_changed == 1);
+        }
+
     void setCycles(int num)
     {
         maxCycles = num;
     }
-    
+
     void setJobName(std::string job)
     {
         jobName = job;
     }
-    
+
     void *getEvaluationObject()
     {
         return evaluateObject;
     }
-    
+
     virtual void clearParameters()
     {
         getters.clear();

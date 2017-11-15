@@ -41,23 +41,23 @@ typedef struct
 void Hdf5Crystal::writeReflectionData(std::string address)
 {
     Hdf5ManagerProcessingPtr processingManager = Hdf5ManagerProcessing::getProcessingManager();
-    
+
     if (!processingManager)
     {
         return;
     }
-    
+
     int count = 0;
     int millerCount = this->millerCount();
     Hdf5Miller *millerData = (Hdf5Miller *)malloc(sizeof(Hdf5Miller) * millerCount);
-    
+
     for (int i = 0; i < reflectionCount(); i++)
     {
         for (int j = 0; j < reflection(i)->millerCount(); j++)
         {
             MillerPtr miller = reflection(i)->miller(j);
             Hdf5Miller *oneMiller = &millerData[count];
-            
+
             oneMiller->h = miller->getH();
             oneMiller->k = miller->getK();
             oneMiller->l = miller->getL();
@@ -79,73 +79,73 @@ void Hdf5Crystal::writeReflectionData(std::string address)
             count++;
         }
     }
-    
+
     millerTable.setData(millerData);
     millerTable.setNumberOfRecords(millerCount);
-    
+
     bool success = millerTable.writeToManager(processingManager, address);
-    
-    
+
+
     logged << "Writing reflection data to HDF5 file was " << (success ? "successful." : "a failure.") << std::endl;
-    
+
     free(millerData);
-    
+
     sendLog(LogLevelDetailed);
 }
 
 void Hdf5Crystal::writeCrystalData(std::string address)
 {
     Hdf5ManagerProcessingPtr manager = Hdf5ManagerProcessing::getProcessingManager();
-    
+
     // space group
-    
+
     std::string spaceGroupAddress = Hdf5Manager::concatenatePaths(address, "spaceGroup");
     manager->writeSingleValueDataset(spaceGroupAddress, getSpaceGroupNum(), H5T_NATIVE_INT);
-    
+
     // rotation matrix
-    
+
     std::string unitCellMatrixAddress = Hdf5Manager::concatenatePaths(address, "unitcell_matrix");
     std::string rotationAddress = Hdf5Manager::concatenatePaths(address, "rotation_matrix");
-    
+
     this->getMatrix()->getUnitCell()->writeToHdf5(unitCellMatrixAddress);
     this->getMatrix()->getRotation()->writeToHdf5(rotationAddress);
-    
+
     // unit cell data
-    
-	std::vector<double> unitCell = getUnitCell();
+
+        std::vector<double> unitCell = getUnitCell();
 
     std::string unitCellParamsAddress = Hdf5Manager::concatenatePaths(address, "unitcell_params");
-    
+
     hsize_t dim = 6;
     manager->createDataset(unitCellParamsAddress, 1, &dim, H5T_NATIVE_DOUBLE);
     manager->writeDataset(unitCellParamsAddress, (void **)&unitCell[0], H5T_NATIVE_DOUBLE);
-    
+
     // general scaling/indexing ambiguity
-    
+
     std::string scaleAddress = Hdf5Manager::concatenatePaths(address, "scale");
     std::string ambiguityAddress = Hdf5Manager::concatenatePaths(address, "ambiguity");
-    
+
     manager->writeSingleValueDataset(scaleAddress, scale, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(ambiguityAddress, activeAmbiguity, H5T_NATIVE_INT32);
-   
+
     // partiality-specific parameters
-    
+
     std::string hRotAddress = Hdf5Manager::concatenatePaths(address, "hRot");
     std::string kRotAddress = Hdf5Manager::concatenatePaths(address, "kRot");
     std::string mosaicityAddress = Hdf5Manager::concatenatePaths(address, "mosaicity");
     std::string rlpSizeAddress = Hdf5Manager::concatenatePaths(address, "rlpSize");
-    
+
     manager->writeSingleValueDataset(hRotAddress, hRot, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(kRotAddress, kRot, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(mosaicityAddress, mosaicity, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(rlpSizeAddress, spotSize, H5T_NATIVE_DOUBLE);
-    
+
     // these will need turning into a Beam object in time.
-    
+
     std::string wavelengthAddress = Hdf5Manager::concatenatePaths(address, "wavelength");
     std::string bandwidthAddress = Hdf5Manager::concatenatePaths(address, "bandwidth");
     std::string exponentAddress = Hdf5Manager::concatenatePaths(address, "exponent");
-    
+
     manager->writeSingleValueDataset(wavelengthAddress, wavelength, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(bandwidthAddress, bandwidth, H5T_NATIVE_DOUBLE);
     manager->writeSingleValueDataset(exponentAddress, exponent, H5T_NATIVE_DOUBLE);
@@ -159,36 +159,36 @@ void Hdf5Crystal::writeToFile(std::string newFilename, bool announce)
     {
         return;
     }
-    
+
     if (getImagePtr()->getClass() != ImageClassHdf5)
     {
         return;
     }
-    
+
     ImagePtr superParent = getImagePtr();
-    
+
     Hdf5ManagerProcessingPtr manager = Hdf5ManagerProcessing::getProcessingManager();
-    
+
     if (manager)
     {
         Hdf5ImagePtr parent = boost::static_pointer_cast<Hdf5Image>(superParent);
         std::string address = parent->getAddress();
-        
+
         std::string imgFilename = getFilename();
 
         if (getFilename().substr(0, 3) != "img")
         {
             imgFilename = "img-" + getFilename();
         }
-            
+
         std::string crystalAddress = Hdf5Manager::concatenatePaths(address, imgFilename);
-        
+
         manager->createGroupsFromAddress(crystalAddress);
-        
+
         writeReflectionData(crystalAddress);
         writeCrystalData(crystalAddress);
     }
-    
+
     MtzManager::writeToFile(newFilename, announce);
 }
 
@@ -213,8 +213,8 @@ void Hdf5Crystal::createMillerTable()
     fieldOffsets[15] = HOFFSET(Hdf5Miller, shiftX);
     fieldOffsets[16] = HOFFSET(Hdf5Miller, shiftY);
     fieldOffsets[17] = HOFFSET(Hdf5Miller, rejectReason);
-    
-    
+
+
     hid_t *fieldTypes = (hid_t *)malloc(sizeof(hid_t) * HDF5MILLER_FIELD_COUNT);
     fieldTypes[0] = H5T_NATIVE_INT32;
     fieldTypes[1] = H5T_NATIVE_INT32;
@@ -234,7 +234,7 @@ void Hdf5Crystal::createMillerTable()
     fieldTypes[15] = H5T_NATIVE_FLOAT;
     fieldTypes[16] = H5T_NATIVE_FLOAT;
     fieldTypes[17] = H5T_NATIVE_INT32;
-    
+
     size_t *fieldSizes = (size_t *)malloc(sizeof(size_t) * HDF5MILLER_FIELD_COUNT);
     fieldSizes[0] = member_size(Hdf5Miller, h);
     fieldSizes[1] = member_size(Hdf5Miller, k);
@@ -254,9 +254,9 @@ void Hdf5Crystal::createMillerTable()
     fieldSizes[15] = member_size(Hdf5Miller, shiftX);
     fieldSizes[16] = member_size(Hdf5Miller, shiftY);
     fieldSizes[17] = member_size(Hdf5Miller, rejectReason);
-    
+
     char **fieldNames = (char **)malloc(sizeof(char **) * HDF5MILLER_FIELD_COUNT);
-    
+
     const char *toCopy[HDF5MILLER_FIELD_COUNT] =
     {
         "h",
@@ -278,13 +278,13 @@ void Hdf5Crystal::createMillerTable()
         "shiftY",
         "rejectReason",
     };
-    
+
     for (int i = 0; i < HDF5MILLER_FIELD_COUNT; i++)
     {
         fieldNames[i] = (char *)malloc(sizeof(char*) * strlen(toCopy[i]));
         strcpy(fieldNames[i], toCopy[i]);
     }
-    
+
     millerTable.setTableTitle("refls");
     millerTable.setTableName("refls");
     millerTable.setHeaders((const char**)fieldNames);
@@ -299,7 +299,7 @@ void Hdf5Crystal::createMillerTable()
 void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
 {
 //    MtzManager::loadReflections(model, special);
-    
+
     if (address.length() == 0)
     {
         std::cerr
@@ -307,21 +307,21 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         << std::endl;
         return;
     }
-    
+
     if (reflectionCount() > 0)
     {
         return;
     }
-    
+
     bool forceRestart = FileParser::getKey("FORCE_RESTART_POST_REFINEMENT", true);
-    
+
     // get space group
-    
+
     std::string scaleAddress = Hdf5Manager::concatenatePaths(address, "scale");
     std::string spaceGroupAddress = Hdf5Manager::concatenatePaths(address, "spaceGroup");
-    
+
     Hdf5ManagerProcessingPtr manager = Hdf5ManagerProcessing::getProcessingManager();
-    
+
     scale = 1;
     double newScale = 1;
     manager->readDatasetValue(scaleAddress, &newScale);
@@ -330,97 +330,97 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
     int spgnum = 0;
     manager->readDatasetValue(spaceGroupAddress, &spgnum);
     setSpaceGroupNum(spgnum);
-    
+
     if (getSpaceGroup() == NULL)
     {
         setRejected(true);
         return;
     }
-    
+
     Reflection::setSpaceGroup(spgnum);
-    
-	std::vector<double> unitCell;
-	unitCell.resize(6);
+
+        std::vector<double> unitCell;
+        unitCell.resize(6);
     std::string unitCellParamsAddress = Hdf5Manager::concatenatePaths(address, "unitcell_params");
-    
+
     bool success = manager->readDatasetValue(unitCellParamsAddress, &unitCell[0]);
 
-	setUnitCell(unitCell);
+        setUnitCell(unitCell);
 
     double unitCellMatrix[16];
     double rotationMatrix[16];
-    
+
     std::string unitCellMatrixAddress = Hdf5Manager::concatenatePaths(address, "unitcell_matrix");
     std::string unitCellRotationAddress = Hdf5Manager::concatenatePaths(address, "rotation_matrix");
-    
+
     manager->readDatasetValue(unitCellMatrixAddress, &unitCellMatrix);
     manager->readDatasetValue(unitCellRotationAddress, &rotationMatrix);
-    
+
     MatrixPtr unitMat = MatrixPtr(new Matrix());
     unitMat->setComponents(unitCellMatrix);
 
     MatrixPtr rotMat = MatrixPtr(new Matrix());
     rotMat->setComponents(rotationMatrix);
-    
+
     MatrixPtr newMat = MatrixPtr(new Matrix());
     newMat->setComplexMatrix(unitMat, rotMat);
-    
+
     setMatrix(newMat);
-    
+
     std::string ambiguityAddress = Hdf5Manager::concatenatePaths(address, "ambiguity");
     manager->readDatasetValue(ambiguityAddress, &activeAmbiguity);
-    
+
     if (!forceRestart)
     {
         std::string hRotAddress = Hdf5Manager::concatenatePaths(address, "hRot");
         manager->readDatasetValue(hRotAddress, &hRot);
-        
+
         std::string kRotAddress = Hdf5Manager::concatenatePaths(address, "kRot");
         manager->readDatasetValue(kRotAddress, &kRot);
-        
+
         std::string mosaicityAddress = Hdf5Manager::concatenatePaths(address, "mosaicity");
         manager->readDatasetValue(mosaicityAddress, &mosaicity);
-        
+
         std::string rlpSizeAddress = Hdf5Manager::concatenatePaths(address, "rlpSize");
         manager->readDatasetValue(rlpSizeAddress, &spotSize);
-        
+
         std::string wavelengthAddress = Hdf5Manager::concatenatePaths(address, "wavelength");
         manager->readDatasetValue(wavelengthAddress, &wavelength);
-        
+
         std::string bandwidthAddress = Hdf5Manager::concatenatePaths(address, "bandwidth");
         manager->readDatasetValue(bandwidthAddress, &bandwidth);
-        
+
         std::string exponentAddress = Hdf5Manager::concatenatePaths(address, "exponent");
         manager->readDatasetValue(exponentAddress, &exponent);
     }
-    
+
     std::string reflAddress = Hdf5Manager::concatenatePaths(address, "refls");
-    
+
     int size = millerTable.readSizeFromManager(manager, reflAddress);
     Hdf5Miller *millerData = (Hdf5Miller *)malloc(size);
-    
+
     success = millerTable.readFromManager(manager, reflAddress, (void *)millerData);
     int count = 0;
-    
+
     bool refined = false;
     std::string refinedAddress = Hdf5Manager::concatenatePaths(address, "refined");
     if (manager->datasetExists(refinedAddress))
     {
         manager->readDatasetValue(refinedAddress, &refined);
     }
-    
+
     if (!refined)
     {
         loadParametersMap();
     }
-    
+
     logged << "Reading reflections from HDF5 file was " << (success ? "successful." : "a failure.") << std::endl;
     sendLog();
-    
+
     for (int i = 0; i < size; i += sizeof(Hdf5Miller))
     {
         Hdf5Miller *data = &millerData[count];
-        
+
         MillerPtr miller = MillerPtr(new Miller(this, data->h, data->k, data->l));
         miller->setFree(data->free);
         miller->setRawIntensity(data->rawIntensity);
@@ -437,7 +437,7 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
         miller->setScale(1);
         miller->setBFactor(0);
         miller->setRejected(0);
-        
+
         if (!forceRestart)
         {
             miller->setSigma(data->sigma);
@@ -449,20 +449,20 @@ void Hdf5Crystal::loadReflections(PartialityModel model, bool special)
                 miller->setRejected(data->rejectReason, true);
             }
         }
-        
+
    //     std::cout << data->h << ", " << data->k << ", " << data->l << "\t" << data->partiality << std::endl;
-        
+
         count++;
         addMiller(miller);
     }
 
     recalculateWavelengths();
-    
+
     if (size > 0)
     {
         free(millerData);
     }
-    
+
     getWavelengthFromHDF5();
 
     logged << "Loaded " << reflectionCount() << " reflections (" << millerCount() << " unique)." << std::endl;

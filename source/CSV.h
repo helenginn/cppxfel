@@ -36,7 +36,7 @@ typedef enum
     PlotHorizontalTickMark = '-',
     PlotVerticalTickMark = '\'',
     PlotBlank = ' ',
-    
+
 } PlotChar;
 
 typedef enum
@@ -57,51 +57,51 @@ private:
     std::vector<double> histCategories;
     double minX, minY, maxX, maxY;
     bool didSetMinMaxXY;
-    
+
     std::string mapToAscii(Plot plot);
     void writeStringToPlot(std::string text, Plot *plot, int x, int y);
 public:
     CSV()
     {
-        
+
     }
 
     CSV(int count, ...)
     {
         didSetMinMaxXY = false;
-        
+
         va_list arguments;
         va_start(arguments, count);
-        
+
         for (int i = 0; i < count; i++)
         {
             std::string header = std::string(va_arg(arguments, char *));
             addHeader(header);
         }
-        
+
         va_end(arguments);
     }
-    
+
     void setupHistogram(double start, double end, double interval, std::string catHeader, int count, ...)
     {
         va_list arguments;
         va_start(arguments, count);
-        
+
         headers.push_back(catHeader);
-        
+
         for (int i = 0; i < count; i++)
         {
             std::string header = std::string(va_arg(arguments, char *));
             headers.push_back(header);
         }
-        
+
         va_end(arguments);
-        
+
         if (interval < 0)
         {
             std::vector<double> bins;
             StatisticsManager::generateResolutionBins(start, end, -interval, &bins);
-            
+
             for (int i = 0; i < bins.size(); i++)
             {
                 addPartialEntry(1, bins[i]);
@@ -119,16 +119,16 @@ public:
             }
         }
     }
-    
+
     void minMaxCol(int col, double *min, double *max, bool round = false);
     void addOneToFrequency(double category, std::string whichHeader, double weight = 1, std::string categoryHeader = "");
     void addOneToFrequency(double category, int column, double weight = 1, int categoryNum = 0);
     int findHeader(std::string whichHeader);
 
     ~CSV();
-    
+
     void plotPNG(std::map<std::string, std::string> properties);
-	void plotPDB(std::string filename, std::string header1, std::string header2, std::string header3);
+        void plotPDB(std::string filename, std::string header1, std::string header2, std::string header3);
 
     void addPartialEntry(int dummy, ...);
     void addEntry(int dummy, ...);
@@ -139,50 +139,50 @@ public:
     void histogram(std::map<double, int> histogram);
     std::string plotColumns(int col1, int col2);
     void resetColumn(std::string header, double value = 0);
-    
+
     void convolutedPeaks(std::string category, std::string origHeader, std::string destHeader,
                          double stdev, ConvolutionType convolutionType = ConvolutionTypeSuperGaussian);
-    
+
     void addConvolutedPeak(int column, double mean, double stdev, double weight,
                            int categoryNum = 0, ConvolutionType convolutionType = ConvolutionTypeSuperGaussian);
-    
+
     void setValueForEntry(int entry, std::string header, double value);
 
-	void reserveEntries(unsigned long num)
-	{
-		entries.reserve(num);
-	}
+        void reserveEntries(unsigned long num)
+        {
+                entries.reserve(num);
+        }
 
-	void addEntry(std::vector<double> entry)
+        void addEntry(std::vector<double> entry)
     {
         entries.push_back(entry);
     }
-    
+
     int entryCount()
     {
         return (int)entries.size();
     }
 
-	std::vector<double> entry(int i)
-	{
-		return entries[i];
-	}
+        std::vector<double> entry(int i)
+        {
+                return entries[i];
+        }
 
-	double valueForEntry(int headerNum, int entry)
-	{
-		return entries[entry][headerNum];
-	}
+        double valueForEntry(int headerNum, int entry)
+        {
+                return entries[entry][headerNum];
+        }
 
     int headerCount()
     {
         return (int)headers.size();
     }
-    
+
     void addHeader(std::string header)
     {
         headers.push_back(header);
     }
-    
+
     void setMinMaxXY(double _minX, double _minY, double _maxX, double _maxY)
     {
         minX = _minX;

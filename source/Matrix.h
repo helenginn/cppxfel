@@ -29,25 +29,25 @@ private:
         double operator* (Proxy x) { return a.components[idx] * x.a.components[idx]; }
         double operator*= (double x) { a.components[idx] *= x; return a.components[idx]; }
         double operator*= (Proxy x) { a.components[idx] *= x.a.components[idx]; return a.components[idx]; }
-        
+
     };
-    
+
     MatrixPtr unitCell;
     MatrixPtr rotation;
     double eulerA;
     double eulerB;
     double eulerC;
-    
+
     static MatrixPtr identityMatrix;
 public:
     double components[16];
-    
+
     // for SPEEDY CALCULATIONS when you need an identity pointer. Don't change it or you'll mess everyone else up.
     static MatrixPtr getIdentityPtr()
     {
         return identityMatrix;
     }
-    
+
     double trace();
     bool isIdentity();
     void multiply(double scalar);
@@ -62,7 +62,7 @@ public:
     MatrixPtr inverse3DMatrix();
     static MatrixPtr matFromCCP4(CSym::ccp4_symop *symop);
     MatrixPtr transpose();
-	static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, std::vector<double> cell);
+        static void symmetryOperatorsForSpaceGroup(std::vector<MatrixPtr> *matrices, CSym::CCP4SPG *spaceGroup, std::vector<double> cell);
 
     void rotate(double alpha, double beta, double gamma);
     void rotateRoundUnitVector(vec unitVector, double radians);
@@ -72,7 +72,7 @@ public:
     void scale(double scale);
     void scale(double a, double b, double c);
     void identity(void);
-	static MatrixPtr matrixFromUnitCell(std::vector<double> &unitCell);
+        static MatrixPtr matrixFromUnitCell(std::vector<double> &unitCell);
     void changeOrientationMatrixDimensions(std::vector<double> cell);
     void setComplexMatrix(MatrixPtr unitCell, MatrixPtr rotation);
     void maxMillers(int (&millers)[3], double maxResolution);
@@ -80,9 +80,9 @@ public:
     static MatrixPtr randomOrientationMatrix();
 ;
     void rotate2D(double angle);
-    
+
     double getEwaldSphereNoMatrix(vec index);
-    
+
     void eulerAngles(double *theta, double *phi, double *psi, bool force = false);
     double similarityToRotationMatrix(MatrixPtr mat2, double tolerance, bool force = false);
     void unitCellLengths(double *lengths);
@@ -96,30 +96,30 @@ public:
     {
         if (unitCell)
             return true;
-        
+
         return false;
     }
-    
+
     MatrixPtr getRotation()
     {
         return rotation;
     }
-    
+
     MatrixPtr getUnitCell()
     {
         return unitCell;
     }
 
-	void setUnitCell(MatrixPtr newMat)
-	{
-		unitCell = newMat;
-	}
-    
+        void setUnitCell(MatrixPtr newMat)
+        {
+                unitCell = newMat;
+        }
+
     void setComponents(double *newComponents)
     {
         memcpy(components, newComponents, sizeof(double) * 16);
     }
-    
+
     double determinant();
     Matrix operator*=(Matrix &b);
     Matrix operator*(Matrix &b);

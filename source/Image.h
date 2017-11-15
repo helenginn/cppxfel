@@ -42,7 +42,7 @@ private:
     bool fake;
     static ImagePtr _imageMask;
     static bool interpolate;
-    
+
     virtual void loadImage();
     vector<ImagePtr> maxes;
 
@@ -53,35 +53,35 @@ private:
     bool fitBackgroundAsPlane;
     std::string spotsFile;
     IndexingSolutionStatus extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures = NULL, int added = 0);
-    
-	/* Shoebox must be n by n where n is an odd number */
-	int shoebox[7][7];
 
-	double beamX;
-	double beamY;
-	double mmPerPixel;
+        /* Shoebox must be n by n where n is an odd number */
+        int shoebox[7][7];
+
+        double beamX;
+        double beamY;
+        double mmPerPixel;
     double detectorGain;
     double averageZ;
-	double distanceOffset;
+        double distanceOffset;
 
-	double detectorDistance; // mm
-	double wavelength;
+        double detectorDistance; // mm
+        double wavelength;
 
     int indexingFailureCount;
-    
+
     std::vector<IndexingSolutionPtr> goodSolutions;
     std::vector<IndexingSolutionPtr> badSolutions;
     std::vector<SpotVectorPtr> spotVectors;
     bool _hasSeeded;
-    
-	vector<vector<int> > masks;
-	vector<vector<int> > spotCovers;
 
-	Mask flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
+        vector<vector<int> > masks;
+        vector<vector<int> > spotCovers;
+
+        Mask flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
     double integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, float *error);
     double integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, float *error);
-	double integrateWithShoebox(double x, double y, ShoeboxPtr shoebox, float *error);
-	double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
+        double integrateWithShoebox(double x, double y, ShoeboxPtr shoebox, float *error);
+        double weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y);
     IndexingSolutionStatus testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
     IndexingSolutionPtr biggestFailedSolution;
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
@@ -94,13 +94,13 @@ protected:
     {
         highScore += score;
     }
-    
-    
+
+
     void checkAndSetupLookupTable();
     static std::mutex setupMutex;
     double standardDeviationOfPixels();
     std::vector<SpotPtr> spots;
-	virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, MtzPtr *anMtz);
+        virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr, bool modify, int *spotsRemoved, MtzPtr *anMtz);
     virtual IndexingSolutionStatus tryIndexingSolution(IndexingSolutionPtr solutionPtr);
     virtual bool checkIndexingSolutionDuplicates(MatrixPtr newSolution, bool excludeLast = false);
     int minimumSolutionNetworkCount;
@@ -108,7 +108,7 @@ protected:
     vector<signed char> overlapMask;
     static vector<signed char> generalMask;
     static vector<DetectorPtr> perPixelDetectors;
-    
+
     // this really ought to be a template
     vector<short> shortData;
     vector<int> data;
@@ -122,21 +122,21 @@ public:
     void incrementOverlapMask(int x, int y);
     virtual void processSpotList();
     virtual void writeSpotsList(std::string spotFile = "");
-	virtual int getFrameNumber() { return -1; };
+        virtual int getFrameNumber() { return -1; };
 
     signed char maskValueAt(int x, int y);
     unsigned char maximumOverlapMask(int x, int y, ShoeboxPtr shoebox);
-	Image(std::string filename = "", double wavelength = 0,
-			double distance = 0);
-	void focusOnSpot(int *x, int *y, int tolerance1, int tolerance2);
-	void focusOnAverageMax(double *x, double *y, int tolerance1, int tolerance2 = 1, bool even = false);
+        Image(std::string filename = "", double wavelength = 0,
+                        double distance = 0);
+        void focusOnSpot(int *x, int *y, int tolerance1, int tolerance2);
+        void focusOnAverageMax(double *x, double *y, int tolerance1, int tolerance2 = 1, bool even = false);
     void dropImage();
     void newImage();
-	virtual ~Image();
-	void setUpCrystal(MatrixPtr matrix);
-	void addMask(int startX, int startY, int endX, int endY);
-	static void applyMaskToImages(vector<ImagePtr> images, int startX,
-			int startY, int endX, int endY);
+        virtual ~Image();
+        void setUpCrystal(MatrixPtr matrix);
+        void addMask(int startX, int startY, int endX, int endY);
+        static void applyMaskToImages(vector<ImagePtr> images, int startX,
+                        int startY, int endX, int endY);
     std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
     void findSpots();
     double resolutionAtPixel(double x, double y);
@@ -151,7 +151,7 @@ public:
     void makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults = false);
     void excludeWeakestSpots(double fraction);
     void plotVectorsOnPNG(std::vector<SpotVectorPtr> vectors, std::string filename = "");
-	DetectorPtr getDetectorForPosition(int x, int y);
+        DetectorPtr getDetectorForPosition(int x, int y);
 
     static void setImageMask(ImagePtr mask)
     {
@@ -159,45 +159,45 @@ public:
         std::ostringstream logged;
         logged << "Loaded mask from HDF5" << std::endl;
         Logger::log(logged);
-		
+
     }
 
-	void augmentMidpoint(vec *arrangedPos);
-    
+        void augmentMidpoint(vec *arrangedPos);
+
     static ImagePtr getImageMask()
     {
         return _imageMask;
     }
-    
+
     int getHighScore()
     {
         return highScore;
     }
-    
+
     std::string getSpotsFile()
     {
         return spotsFile;
     }
-    
+
     void setSpotsFile(std::string newFile)
     {
         spotsFile = newFile;
     }
 
-	int valueAt(int x, int y);
+        int valueAt(int x, int y);
     double interpolateAt(double x, double y, double *total);
     int rawValueAt(int x, int y);
     void addValueAt(int x, int y, int addedValue);
-	bool accepted(int x, int y);
-	double intensityAt(double x, double y, ShoeboxPtr shoebox, float *error, int tolerance = 0);
+        bool accepted(int x, int y);
+        double intensityAt(double x, double y, ShoeboxPtr shoebox, float *error, int tolerance = 0);
 
-	void refineIndexing(MtzManager *reference);
-	void refineOrientations();
-	vector<MtzPtr> currentMtzs();
-	bool isLoaded();
-    
+        void refineIndexing(MtzManager *reference);
+        void refineOrientations();
+        vector<MtzPtr> currentMtzs();
+        bool isLoaded();
+
     void weedOutCloseSpots();
-    
+
     virtual void findIndexingSolutions();
     void compileDistancesFromSpots(double maxReciprocalDistance = 0, double tooCloseDistance = 0, bool filter = false);
     void filterSpotVectors();
@@ -206,7 +206,7 @@ public:
     bool acceptableSpotCount();
 
     void addSpotIfNotMasked(SpotPtr newSpot);
-    
+
     double getSpotVectorWeight()
     {
         return spotVectorWeight;
@@ -221,32 +221,32 @@ public:
     {
         return (int)spotVectors.size();
     }
-    
+
     SpotPtr spot(int i)
     {
         return spots[i];
     }
-    
+
     int spotCount()
     {
         return (int)spots.size();
     }
 
-	void removeSpot(int i)
-	{
-		spots.erase(spots.begin() + i);
-	}
+        void removeSpot(int i)
+        {
+                spots.erase(spots.begin() + i);
+        }
 
     SpotVectorPtr spotVector(int i)
     {
         return spotVectors[i];
     }
-    
+
     bool hasSeeded()
     {
         return _hasSeeded;
     }
-    
+
     void setSeeded(bool seed = true)
     {
         _hasSeeded = seed;
@@ -258,144 +258,144 @@ public:
         std::vector<MtzPtr>().swap(mtzs);
     }
 
-	void addMtzs(std::vector<MtzPtr> _mtzs)
-	{
-		mtzs.reserve(mtzs.size() + _mtzs.size());
-		mtzs.insert(mtzs.end(), _mtzs.begin(), _mtzs.end());
-	}
-    
-	int getXDim() const
-	{
-		return xDim;
-	}
+        void addMtzs(std::vector<MtzPtr> _mtzs)
+        {
+                mtzs.reserve(mtzs.size() + _mtzs.size());
+                mtzs.insert(mtzs.end(), _mtzs.begin(), _mtzs.end());
+        }
 
-	void setXDim(int dim)
-	{
-		xDim = dim;
-	}
+        int getXDim() const
+        {
+                return xDim;
+        }
 
-	int getYDim() const
-	{
-		return yDim;
-	}
+        void setXDim(int dim)
+        {
+                xDim = dim;
+        }
 
-	void setYDim(int dim)
-	{
-		yDim = dim;
-	}
+        int getYDim() const
+        {
+                return yDim;
+        }
 
-	double getWavelength() const
-	{
-		return wavelength;
-	}
+        void setYDim(int dim)
+        {
+                yDim = dim;
+        }
 
-	void setWavelength(double wavelength)
-	{
-		this->wavelength = wavelength;
-	}
+        double getWavelength() const
+        {
+                return wavelength;
+        }
 
-	double getBeamX() const
-	{
-		return beamX;
-	}
+        void setWavelength(double wavelength)
+        {
+                this->wavelength = wavelength;
+        }
 
-	void setBeamX(double beamX)
-	{
-		this->beamX = beamX;
-	}
+        double getBeamX() const
+        {
+                return beamX;
+        }
 
-	double getBeamY() const
-	{
-		return beamY;
-	}
+        void setBeamX(double beamX)
+        {
+                this->beamX = beamX;
+        }
 
-	void setBeamY(double beamY)
-	{
-		this->beamY = beamY;
-	}
+        double getBeamY() const
+        {
+                return beamY;
+        }
 
-	double getMmPerPixel() const
-	{
-		return mmPerPixel;
-	}
+        void setBeamY(double beamY)
+        {
+                this->beamY = beamY;
+        }
 
-	void setMmPerPixel(double mmPerPixel)
-	{
-		this->mmPerPixel = mmPerPixel;
-	}
+        double getMmPerPixel() const
+        {
+                return mmPerPixel;
+        }
 
-	static double getDistanceOffset(void *object)
-	{
-		return static_cast<Image *>(object)->distanceOffset;
-	}
+        void setMmPerPixel(double mmPerPixel)
+        {
+                this->mmPerPixel = mmPerPixel;
+        }
 
-	static void setDistanceOffset(void *object, double z)
-	{
-		static_cast<Image *>(object)->distanceOffset = z;
-	}
+        static double getDistanceOffset(void *object)
+        {
+                return static_cast<Image *>(object)->distanceOffset;
+        }
+
+        static void setDistanceOffset(void *object, double z)
+        {
+                static_cast<Image *>(object)->distanceOffset = z;
+        }
 
     void setImageData(vector<int> newData);
-    
+
     double getDetectorGain()
     {
         return detectorGain;
     }
-    
+
     void setDetectorGain(double newGain)
     {
         detectorGain = newGain;
     }
-    
+
     IndexingSolutionPtr getGoodOrBadSolution(int i, bool good = true)
     {
         if (good) return goodSolutions[i];
         else return badSolutions[i];
     }
-    
+
     int goodOrBadSolutionCount(bool good = true)
     {
         if (good) return (int)goodSolutions.size();
         else return (int)badSolutions.size();
     }
-    
+
     virtual ImageClass getClass()
     {
         return ImageClassCppxfel;
     }
-    
+
     void addMtz(MtzPtr newMtz)
     {
         mtzs.push_back(newMtz);
     }
-    
-    
+
+
     int mtzCount()
     {
         return (int)mtzs.size();
     }
-    
+
     MtzPtr mtz(int i)
     {
         return mtzs[i];
     }
-    
+
     short int *getShortDataPtr()
     {
         if (!shortData.size())
         {
             return NULL;
         }
-        
+
         return &shortData[0];
     }
-    
+
     int *getDataPtr()
     {
         if (!data.size())
         {
             return NULL;
         }
-        
+
         return &data[0];
     }
 };

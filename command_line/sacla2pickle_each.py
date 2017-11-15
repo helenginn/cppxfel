@@ -33,7 +33,7 @@ for tag in tags:
                  wavelength=1.77,
                  beam_center_x=0,
                  beam_center_y=0,
-                  # distance, pixel_size, wavelength, beam_center are not used by 
+                  # distance, pixel_size, wavelength, beam_center are not used by
                   # dials.find_spots unless you specify resolution cutoff
                  ccd_image_saturation=65535,
                  saturated_value=65535,
@@ -51,4 +51,3 @@ for tag in tags:
     pickle.dump(data, open(tag + ".pickle", "wb"), protocol=-1)
     pickle.dump(observed, open("_" + tag + "_strong.pickle", "wb"), protocol=-1)
     print " found %d spots" % len(observed)
-    

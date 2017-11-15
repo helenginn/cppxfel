@@ -19,19 +19,19 @@ private:
     // to be expressed as 1 / resolution.
     double lowResCutoff;
     double highResCutoff;
-    
+
     template <class ObjectPtr>
     bool thisSolventMasks(ObjectPtr objectPtr)
     {
         double objectResolution = objectPtr->resolution();
-        
+
         return (objectResolution > lowResCutoff && objectResolution < highResCutoff);
     }
-    
+
     static std::vector<SolventMaskPtr> solventMasks;
 public:
     SolventMask(double lowRes, double highRes);
-   
+
     // plan to take either Miller or Spot.
     template <class ObjectPtr>
     static bool isMasked(ObjectPtr objectPtr)
@@ -41,18 +41,18 @@ public:
             if (solventMasks[i]->thisSolventMasks(objectPtr))
                 return true;
         }
-        
+
         return false;
     }
-    
+
     static void addSolventMask(double lowRes, double highRes);
 
-    
+
     static int solventMaskCount()
     {
         return (int)solventMasks.size();
     }
-    
+
 };
 
 #endif /* defined(__cppxfel__SolventMask__) */
