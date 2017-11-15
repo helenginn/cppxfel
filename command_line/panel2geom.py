@@ -138,9 +138,9 @@ for tmpline in template_lines:
         print new_line
     elif (len(backslash_split) > 0 and len(backslash_split[0]) >= 4 and
           backslash_split[0][0] == "q" and backslash_split[0][2] == "a"):
-            current_panel = backslash_split[0]
-            panel_number += 1
-            new_line = find_new_value_as_line(tmpline, panel_number)
-            print new_line
+        current_panel = backslash_split[0]
+        panel_number += 1
+        new_line = find_new_value_as_line(tmpline, panel_number)
+        print new_line
     else:
         print tmpline

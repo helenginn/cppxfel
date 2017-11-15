@@ -63,32 +63,32 @@ for panel in panels:
 geomfile.close()
 
 for panel in orderedPanels:
-        origTopLeftX = panel['min_fs']
-        origTopLeftY = panel['min_ss']
-        origBottomRightX = panel['max_fs']
-        origBottomRightY = panel['max_ss']
-        relativeNewX = panel['corner_x']
-        relativeNewY = panel['corner_y']
-        axisXX = panel['fs'][0]
-        axisXY = panel['fs'][1]
-        axisYX = panel['ss'][0]
-        axisYY = panel['ss'][1]
+    origTopLeftX = panel['min_fs']
+    origTopLeftY = panel['min_ss']
+    origBottomRightX = panel['max_fs']
+    origBottomRightY = panel['max_ss']
+    relativeNewX = panel['corner_x']
+    relativeNewY = panel['corner_y']
+    axisXX = panel['fs'][0]
+    axisXY = panel['fs'][1]
+    axisYX = panel['ss'][0]
+    axisYY = panel['ss'][1]
 
-        # generate panels.txt
+    # generate panels.txt
 
-        imageWidth = origBottomRightX - origTopLeftX
-        imageHeight = origBottomRightY - origTopLeftY
-        relativeNewOtherCornerX = relativeNewX + imageWidth * axisXX + imageHeight * axisYX
-        relativeNewOtherCornerY = relativeNewY + imageWidth * axisXY + imageHeight * axisYY
-        physicalMiddleX = (relativeNewX + relativeNewOtherCornerX) / 2.0
-        physicalMiddleY = (relativeNewY + relativeNewOtherCornerY) / 2.0
-        imageMiddleX = origTopLeftX + imageWidth / 2.0
-        imageMiddleY = origTopLeftY + imageHeight / 2.0
-        offsetX = imageMiddleX - physicalMiddleX
-        offsetY = imageMiddleY - physicalMiddleY
-        rotation = - math.atan2(axisXY, axisXX) / math.pi * 180.0
+    imageWidth = origBottomRightX - origTopLeftX
+    imageHeight = origBottomRightY - origTopLeftY
+    relativeNewOtherCornerX = relativeNewX + imageWidth * axisXX + imageHeight * axisYX
+    relativeNewOtherCornerY = relativeNewY + imageWidth * axisXY + imageHeight * axisYY
+    physicalMiddleX = (relativeNewX + relativeNewOtherCornerX) / 2.0
+    physicalMiddleY = (relativeNewY + relativeNewOtherCornerY) / 2.0
+    imageMiddleX = origTopLeftX + imageWidth / 2.0
+    imageMiddleY = origTopLeftY + imageHeight / 2.0
+    offsetX = imageMiddleX - physicalMiddleX
+    offsetY = imageMiddleY - physicalMiddleY
+    rotation = - math.atan2(axisXY, axisXX) / math.pi * 180.0
 
 #        print "#", panel
-        print "PANEL %f %f %f %f %f %f 0 0 %f 1" % (min(relativeNewX, relativeNewOtherCornerX), min(relativeNewY, relativeNewOtherCornerY),
-                                                    max(relativeNewX, relativeNewOtherCornerX), max(relativeNewY, relativeNewOtherCornerY),
-                                                    offsetX, offsetY, rotation)
+    print "PANEL %f %f %f %f %f %f 0 0 %f 1" % (min(relativeNewX, relativeNewOtherCornerX), min(relativeNewY, relativeNewOtherCornerY),
+                                                max(relativeNewX, relativeNewOtherCornerX), max(relativeNewY, relativeNewOtherCornerY),
+                                                offsetX, offsetY, rotation)
