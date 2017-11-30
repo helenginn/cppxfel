@@ -14,7 +14,6 @@
 #include "NelderMead.h"
 #include "IndexManager.h"
 #include "misc.h"
-#include "UnitCellLattice.h"
 
 PseudoScoreType pseudoScoreTypeForGeometryType(GeometryScoreType type)
 {

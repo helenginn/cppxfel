@@ -2475,6 +2475,8 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
     bool addShoebox = FileParser::getKey("PNG_SHOEBOX", false);
     bool strongOnly = FileParser::getKey("PNG_STRONG_ONLY", false);
 
+	bool diagnostics = FileParser::getKey("PNG_DIAGNOSTICS", false);
+
     for (int i = 0; i < myMtz->reflectionCount(); i++)
     {
         for (int j = 0; j < myMtz->reflection(i)->millerCount(); j++)
@@ -2483,9 +2485,9 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
 
             Coord pngCoord;
 
-                        vec intersection = myMiller->getShiftedRay();
+			vec intersection = myMiller->getShiftedRay();
 
-                        pngCoord = std::make_pair(intersection.h, intersection.k);
+            pngCoord = std::make_pair(intersection.h, intersection.k);
 
             bool strong = myMiller->reachesThreshold();
                         double inversePartiality = myMiller->getPartiality();
@@ -2508,7 +2510,18 @@ void Image::drawMillersOnPNG(PNGFilePtr file, MtzPtr myMtz, char red, char green
             {
                 file->drawShoeboxAroundPixel(pngCoord.first, pngCoord.second, myMiller->getShoebox());
             }
-        }
+
+			if (diagnostics && strong)
+			{
+				Coord shift = myMiller->getShift();
+				Coord unShifted = pngCoord;
+				unShifted.first -= shift.first;
+				unShifted.second -= shift.second;
+
+				file->drawLine(pngCoord.first, pngCoord.second,
+							   unShifted.first, unShifted.second, 0, 0, 0, 0);
+			}
+		}
     }
 
     logged << "Written " << count << " reflections." << std::endl;

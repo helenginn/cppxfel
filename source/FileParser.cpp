@@ -834,7 +834,9 @@ void FileParser::generateHelpList()
 
     helpMap["PNG_TOTAL"] = "Specifies how many PNG files should be written to disk by cppxfel when WRITE_PNGS is called in the commands section.";
     helpMap["PNG_SHOEBOX"] = "If writing PNGs when WRITE_PNGS is called, whether to draw the integration shoeboxes (currently might be buggy for complex/non-symmetrical shoeboxes).";
-    helpMap["IMAGE_IGNORE_UNDER_VALUE"] = "If a value on an image goes below this value, it is masked out.";
+	helpMap["PNG_DIAGNOSTICS"] = "If ON, will show a line from the reflection position to the originally calculated coordinate before application of METROLOGY_SEARCH_SIZE. Default OFF.";
+	helpMap["PNG_HEIGHT"] = "Determines, in pixels, the height - and inexplicably, the width - of the PNG files written out by cppxfel.";
+	helpMap["IMAGE_IGNORE_UNDER_VALUE"] = "If a value on an image goes below this value, it is masked out.";
 
 
     helpMap["SWEEP_DETECTOR_DISTANCE"] = "If you wish to refine geometry, specifying two distances in mm for this parameter will perform a sweep of intervening detector distances before continuing with geometry refinement. At the moment it will refine against the pseudo-powder pattern. Not completely tested, default is not to be set.";
@@ -1068,6 +1070,7 @@ void FileParser::generateFunctionList()
     parserMap["PNG_STRONG_ONLY"] = simpleBool;
     parserMap["PNG_ALL_LATTICES"] = simpleBool;
     parserMap["PNG_HEIGHT"] = simpleInt;
+	parserMap["PNG_DIAGNOSTICS"] = simpleBool;
     parserMap["DRAW_GEOMETRY_PNGS"] = simpleBool;
     parserMap["SWEEP_DETECTOR_DISTANCE"] = doubleVector;
     parserMap["ENABLE_IMAGE_CSVS"] = simpleBool;
