@@ -191,7 +191,7 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
             MillerPtr miller = imageRefl->miller(j);
             double wavelength = miller->getWavelength();
 
-            if (fabs(wavelength - meanWavelength) > meanWavelength * 0.05)
+            if (meanWavelength > 0.7 && fabs(wavelength - meanWavelength) > meanWavelength * 0.05)
             {
                 continue;
             }
@@ -210,12 +210,22 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
 
     std::string extendedFilename = filename + "_" + f_to_str(minRes, 3) + "_to_" + f_to_str(maxRes, 3) + "_partiality";
 
+	double minWavelength = meanWavelength * 0.95;
+	double maxWavelength = meanWavelength * 1.05;
+
+	if (meanWavelength < 0.7)
+	{
+		// assume EM
+		minWavelength = meanWavelength - 0.1;
+		maxWavelength = meanWavelength + 0.1;
+	}
+
     std::map<std::string, std::string> plotMap;
     plotMap["filename"] = extendedFilename;
     plotMap["xHeader0"] = "wavelength";
     plotMap["yHeader0"] = "percentage";
-    plotMap["xMin0"] = f_to_str(meanWavelength * 0.95);
-    plotMap["xMax0"] = f_to_str(meanWavelength * 1.05);
+    plotMap["xMin0"] = f_to_str(minWavelength);
+    plotMap["xMax0"] = f_to_str(maxWavelength);
     plotMap["yMax0"] = "250";
     plotMap["yMin0"] = "0";
     plotMap["xTitle0"] = "Ewald sphere wavelength (Ang)";
@@ -223,8 +233,8 @@ void GraphDrawer::partialityPNGResolutionShell(std::string filename, double mean
 
     plotMap["xHeader1"] = "wavelength";
     plotMap["yHeader1"] = "partiality";
-        plotMap["xMin1"] = f_to_str(meanWavelength * 0.95);
-        plotMap["xMax1"] = f_to_str(meanWavelength * 1.05);
+	plotMap["xMin1"] = f_to_str(minWavelength);
+    plotMap["xMax1"] = f_to_str(maxWavelength);
     plotMap["yMax1"] = "2.5";
     plotMap["yMin1"] = "0";
     plotMap["style1"] = "line";
@@ -277,13 +287,23 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
     std::ofstream pdbLog;
     pdbLog.open("plot.pdb");
 
+	std::vector<MatrixPtr> mats;
+
+	for (int j = 0; j < lattice->symOperatorCount(); j++)
+	{
+		mats.push_back(lattice->symOperator(j));
+		MatrixPtr mat2 = lattice->symOperator(j)->copy();
+		mat2->multiply(-1);
+		mats.push_back(mat2);
+	}
+
     for (int i = 0; i < mtzs.size(); i++)
     {
         MatrixPtr matrix = mtzs[i]->getMatrix()->getRotation();
 
-        for (int j = 0; j < lattice->symOperatorCount(); j++)
+        for (int j = 0; j < mats.size(); j++)
         {
-            MatrixPtr op = lattice->symOperator(j);
+            MatrixPtr op = mats[j];
 
             MatrixPtr mat2 = matrix->copy();
             vec test = new_vector(1, 0, 0);
@@ -299,7 +319,6 @@ void GraphDrawer::plotOrientationStats(vector<MtzPtr> mtzs)
             pdbLog << std::setw(8) << std::setprecision(2) << test.k * 50;
             pdbLog << std::setw(8) << std::setprecision(2) << test.l * 50;
             pdbLog << "                       O" << std::endl;
-
         }
     }
 

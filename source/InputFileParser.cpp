@@ -302,11 +302,11 @@ void InputFileParser::parse(bool fromPython)
                 refiner->plotIntegrationWindows();
             }
 
-                        if (line == "DIFFERENCE_CORRELATION")
-                        {
-                                understood = true;
-                                refiner->differenceCorrelation();
-                        }
+			if (line == "DIFFERENCE_CORRELATION")
+			{
+					understood = true;
+					refiner->differenceCorrelation();
+			}
 
             if (line == "FAKE_SPOTS")
             {

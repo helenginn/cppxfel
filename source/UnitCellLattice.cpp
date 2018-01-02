@@ -323,6 +323,8 @@ void UnitCellLattice::setup()
 
     int count = 0;
 
+	CSVPtr csv = CSVPtr(new CSV(4, "distance", "h", "k", "l"));
+
     orderedDistances.push_back(0);
 
     for (int i = -maxMillerIndexTrialH; i <= maxMillerIndexTrialH; i++)
@@ -359,12 +361,15 @@ void UnitCellLattice::setup()
                 if (asym)
                 {
                     uniqueSymVectors.push_back(newStandardVector);
+					csv->addEntry(4, distance, (double)i, (double)j, (double)k);
                 }
 
                 count++;
             }
         }
     }
+
+	csv->writeToFile("vector_lookup_table.csv");
 
     std::sort(orderedDistances.begin(), orderedDistances.end(), std::less<double>());
 
