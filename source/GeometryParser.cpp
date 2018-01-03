@@ -14,6 +14,7 @@
 #include "Vector.h"
 #include <fstream>
 #include "Hdf5ManagerCheetah.h"
+#include "Masker.h"
 
 GeometryParser::GeometryParser(std::string aFilename, GeometryFormat aFormat)
 {
@@ -254,6 +255,21 @@ void GeometryParser::parseCppxfelLines(std::vector<std::string> lines)
                 detectorStack.pop_back();
             }
         }
+		else if (components[0] == "mask")
+		{
+			if (components.size() < 5)
+			{
+				continue;
+			}
+
+			int x0 = atoi(components[1].c_str());
+			int y0 = atoi(components[2].c_str());
+			int x1 = atoi(components[3].c_str());
+			int y1 = atoi(components[4].c_str());
+
+			Masker *mask = Masker::getMasker();
+			mask->addRectangle(x0, y0, x1, y1);
+		}
 
         if (components.size() < 3)
             continue;

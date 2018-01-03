@@ -27,6 +27,7 @@
 #include "SpotFinderQuick.h"
 #include "SpotFinderCorrelation.h"
 #include "Detector.h"
+#include "Masker.h"
 
 
 std::vector<DetectorPtr> Image::perPixelDetectors;
@@ -1051,6 +1052,12 @@ bool Image::accepted(int x, int y)
     {
         return false;
     }
+
+	Masker *mask = Masker::getMasker();
+	if (mask->isMasked(x, y))
+	{
+		return false;
+	}
 
     double value = rawValueAt(x, y);
 
