@@ -801,7 +801,7 @@ bool GeometryRefiner::refineBeamCentre(DetectorPtr detector)
 
 void GeometryRefiner::gridSearchDetectorDistance(DetectorPtr detector, double start, double end)
 {
-    double step = 0.2;
+	double step = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.02) * 10.;
     double middle = (end + start) / 2;
     Detector::setArrangedMidPointZ(&*detector, middle);
     double confidence = (end - start) / step / 2;
