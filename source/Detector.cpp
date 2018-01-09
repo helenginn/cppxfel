@@ -1146,36 +1146,38 @@ CSVPtr Detector::resolutionHistogram()
 
 void Detector::calculateMillerShifts(bool stdev)
 {
-        Miller::refreshMillerPositions(millers);
+	Miller::refreshMillerPositions(millers);
 
-        xShifts.clear();
-        yShifts.clear();
+	xShifts.clear();
+	yShifts.clear();
 
-        for (int i = 0; i < millerCount(); i++)
-        {
-                MillerPtr myMiller = miller(i);
+	for (int i = 0; i < millerCount(); i++)
+	{
+		MillerPtr myMiller = miller(i);
 
-                if (!myMiller || !myMiller->reachesThreshold())
-                        continue;
+		if (!myMiller || !myMiller->reachesThreshold())
+			continue;
 
-                float *shiftX = NULL;
-                float *shiftY = NULL;
+		float *shiftX = NULL;
+		float *shiftY = NULL;
 
-                if (stdev)
-                {
-                        // pixels
-                        shiftX = myMiller->getXShiftPointer();
-                        shiftY = myMiller->getYShiftPointer();
-                }
-                else if (!stdev)
-                {
-                        shiftX = myMiller->getRecipXShiftPtr();
-                        shiftY = myMiller->getRecipYShiftPtr();
-                }
+		if (stdev)
+		{
+			// pixels
+			shiftX = myMiller->getXShiftPointer();
+			shiftY = myMiller->getYShiftPointer();
+		}
+		else if (!stdev)
+		{
+			shiftX = myMiller->getRecipXShiftPtr();
+			shiftY = myMiller->getRecipYShiftPtr();
+		}
 
-                xShifts.push_back(shiftX);
-                yShifts.push_back(shiftY);
-        }
+		xShifts.push_back(shiftX);
+		yShifts.push_back(shiftY);
+
+		millerPtrs.push_back(myMiller);
+	}
 }
 
 double Detector::millerStdevScoreWrapper(void *object)
@@ -1190,18 +1192,18 @@ double Detector::millerScoreWrapper(void *object)
 
 double Detector::millerScore(bool ascii, bool stdev, int number)
 {
-        if (!millers.size())
-        {
-                return 0;
-        }
+	if (!millers.size())
+	{
+			return 0;
+	}
 
-        double geometryRlpSize = FileParser::getKey("INDEXING_RLP_SIZE", 0.0020);
+	double geometryRlpSize = FileParser::getKey("INDEXING_RLP_SIZE", 0.0020);
 
-        calculateMillerShifts(stdev);
+	calculateMillerShifts(stdev);
 
     std::vector<double> distances;
 
-    CSVPtr csv = CSVPtr(new CSV(2, "x", "y"));
+    CSVPtr csv = CSVPtr(new CSV(7, "x", "y", "h", "k", "l", "rx", "ry"));
 
     double totalScore = 0;
         double biggestContribution = 0;
@@ -1251,7 +1253,12 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
 
             if ((ascii || number >= 0) && i == 0)
             {
-                csv->addEntry(0, x1, y1);
+				MillerPtr miller = millerPtrs[j];
+				vec hkl = miller->getHKL();
+				double rx = miller->getCorrectedX();
+				double ry = miller->getCorrectedY();
+
+                csv->addEntry(0, x1, y1, hkl.h, hkl.k, hkl.l, rx, ry);
             }
 
             contribution += lookupCache(distSq);
@@ -1648,7 +1655,7 @@ double Detector::distanceFromSample()
 void Detector::nudgeTiltAndStep(double *nudgeTiltX, double *nudgeTiltY, double *nudgeStep, double *interNudge)
 {
     double expectedPixels = FileParser::getKey("EXPECTED_GEOMETRY_MOVEMENT", 0.02);
-        *nudgeStep = expectedPixels;
+	*nudgeStep = expectedPixels;
 
     vec midpoint = midPointOffsetFromParent();
     double distance = length_of_vector(midpoint);

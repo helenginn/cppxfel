@@ -184,6 +184,7 @@ private:
     /* These keep track of the pointers to the Miller index shifts for easy access */
     std::vector<float *> xShifts;
     std::vector<float *> yShifts;
+	std::vector<MillerPtr> millerPtrs;
 
         /* Quick jump to centre the peak of observations on the origin.
            Calculated every stdev miller score */
