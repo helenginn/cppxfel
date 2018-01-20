@@ -2031,24 +2031,6 @@ void MtzManager::refineOrientationMatrix(bool force)
 			lStrategy->addParameter(&*this->getImagePtr(), Image::getDistanceOffset, Image::setDistanceOffset, 1.0, 0.001, "distance_offset");
 		}
 
-		if (refineCell)
-		{
-			if (refineUnitCellA)
-			{
-				lStrategy->addParameter(this, getUnitCellAStatic, setUnitCellAStatic, stepSizeUnitCellA, 0.001, "unit_cell_a");
-			}
-
-			if (refineUnitCellB)
-			{
-				lStrategy->addParameter(this, getUnitCellBStatic, setUnitCellBStatic, stepSizeUnitCellB, 0.001, "unit_cell_b");
-			}
-
-			if (refineUnitCellC)
-			{
-				lStrategy->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, stepSizeUnitCellC, 0.001, "unit_cell_c");
-			}
-		}
-
 		lStrategy->refine();
 
 		if (refineOffset)
@@ -2070,6 +2052,26 @@ void MtzManager::refineOrientationMatrix(bool force)
 		hkStrategy->setJobName("Refining angles for " + getFilename());
 		hkStrategy->addParameter(this, getHRot, setHRot, initialStep, orientationTolerance, "hRot");
 		hkStrategy->addCoupledParameter(this, getKRot, setKRot, initialStep, orientationTolerance, "kRot");
+
+
+		if (refineCell)
+		{
+			if (refineUnitCellA)
+			{
+				hkStrategy->addParameter(this, getUnitCellAStatic, setUnitCellAStatic, stepSizeUnitCellA, 0.001, "unit_cell_a");
+			}
+
+			if (refineUnitCellB)
+			{
+				hkStrategy->addParameter(this, getUnitCellBStatic, setUnitCellBStatic, stepSizeUnitCellB, 0.001, "unit_cell_b");
+			}
+
+			if (refineUnitCellC)
+			{
+				hkStrategy->addParameter(this, getUnitCellCStatic, setUnitCellCStatic, stepSizeUnitCellC, 0.001, "unit_cell_c");
+			}
+		}
+
 		hkStrategy->refine();
 	}
 
