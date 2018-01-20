@@ -773,7 +773,8 @@ void FileParser::generateHelpList()
     helpMap["OVER_PRED_BANDWIDTH"] = "Integration requires an over-estimated bandwidth to ‘catch’ all the reflections and more. This represents the % bandwidth to either side of the mean wavelength which should be used. Default 0.02.";
     helpMap["OVER_PRED_RLP_SIZE"] = "Reciprocal lattice point radius in Å-1 at the Miller index position (0, 0, 0) (i.e. without consideration of mosaicity). Default 2 × 10-4 Å-1. If you aren't picking up all your spots at low resolution, please use this.";
     helpMap["REFINE_ORIENTATIONS"] = "If set to ON, using the INTEGRATE command will also refine orientation matrices according to the protocol in Ginn et al Nat Comms 2015. Default ON.";
-    helpMap["INDEXING_ORIENTATION_TOLERANCE"] = "Initial orientation matrix refinement will finish when the step search angle decreases below x degrees. Default 1 × 10-3º.";
+	helpMap["REFINE_DISTANCE_TO_EWALD"] = "If set to ON and REFINE_ORIENTATIONS also ON, Nat Comms-style IOMR will consider distance to Ewald sphere instead. Default OFF.";
+	helpMap["INDEXING_ORIENTATION_TOLERANCE"] = "Initial orientation matrix refinement will finish when the step search angle decreases below x degrees. Default 1 × 10-3º.";
     helpMap["INTENSITY_THRESHOLD"] = "Absolute (counts) or signal-to-noise (I/sigI) threshold at which a spot is considered to be a strong spot for initial orientation matrix refinement. Default 12 (assuming a detector gain of 1.0) and also dependent on ABSOLUTE_INTENSITY.";
     helpMap["METROLOGY_SEARCH_SIZE"] = "Metrology search size can be set to an integer number of pixels from which the predicted spot position may deviate in order to find the highest pixel value. Integration will be performed centred on this highest pixel value. Default 0 but needs changing.";
     helpMap["SHOEBOX_FOREGROUND_PADDING"] = "For a simple shoebox centred on a coordinate, this represents the extra number of pixels in both axes which will be integrated as part of the signal foreground. This overrides the background and neither flags. Default 1.";
@@ -975,6 +976,7 @@ void FileParser::generateFunctionList()
         parserMap["OVER_PRED_BANDWIDTH"] = simpleFloat;
         parserMap["OVER_PRED_RLP_SIZE"] = simpleFloat;
     parserMap["REFINE_ORIENTATIONS"] = simpleBool;
+	parserMap["REFINE_DISTANCE_TO_EWALD"] = simpleBool;
     parserMap["INDEXING_ORIENTATION_TOLERANCE"] = simpleFloat;
         parserMap["INTENSITY_THRESHOLD"] = simpleFloat;
     parserMap["METROLOGY_SEARCH_SIZE"] = simpleInt;

@@ -414,6 +414,7 @@ void new_main(int argc, char *argv[])
         reference->loadReflections();
 
         double bFactor = atof(argv[3]);
+		std::cout << "Calculated B factor: " << bFactor << std::endl;
 
         reference->applyBFactor(bFactor);
         reference->writeToFile("bfac-" + reference->getFilename(), true);
