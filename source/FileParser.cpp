@@ -448,6 +448,7 @@ void FileParser::generateCodeList()
         codeMap["average"] = 0;
         codeMap["reference"] = 1;
         codeMap["b_factor"] = 2;
+		codeMap["unity"] = 6;
         codeMaps["SCALING_STRATEGY"] = codeMap;
     }
     {

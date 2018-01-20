@@ -163,7 +163,8 @@ typedef enum
     ScalingTypeReferenceLeastSquares = 2,
     ScalingTypeMinimizeRMerge = 3,
     ScalingTypeBFactor = 4,
-    ScalingTypeResolutionShells = 5
+    ScalingTypeResolutionShells = 5,
+	ScalingTypeUnity = 6,
 } ScalingType;
 
 typedef enum

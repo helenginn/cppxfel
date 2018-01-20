@@ -426,6 +426,10 @@ void MtzMerger::scaleIndividual(MtzPtr mtz)
         double bFactor, scale;
         mtz->bFactorAndScale(&scale, &bFactor);
     }
+	else if (scalingType == ScalingTypeUnity)
+	{
+		scale = 1;
+	}
 
     mtz->applyScaleFactor(scale);
 }
