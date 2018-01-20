@@ -975,9 +975,8 @@ void MtzRefiner::merge(int cycle)
                 correlationAndInverse();
         }
 
-    bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
-        int scalingInt = FileParser::getKey("SCALING_STRATEGY",
-                                                                                (int) SCALING_STRATEGY);
+        bool anomalousMerge = FileParser::getKey("MERGE_ANOMALOUS", false);
+        int scalingInt = FileParser::getKey("SCALING_STRATEGY", (int) SCALING_STRATEGY);
         ScalingType scaling = (ScalingType) scalingInt;
         bool replaceReference = FileParser::getKey("REPLACE_REFERENCE", true);
 
