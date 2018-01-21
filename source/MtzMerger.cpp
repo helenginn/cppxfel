@@ -23,15 +23,19 @@
 
 void MtzMerger::splitAllMtzs(std::vector<MtzPtr> &firstHalfMtzs, std::vector<MtzPtr> &secondHalfMtzs)
 {
-	int all = (int)allMtzs.size();
-	int half = (int)allMtzs.size() / 2;
+	for (int i = 0; i < allMtzs.size(); i++)
+	{
+		bool even = (i % 2 == 0);
 
-	firstHalfMtzs.reserve(half);
-	secondHalfMtzs.reserve(all - half);
-
-	firstHalfMtzs.insert(firstHalfMtzs.begin(), allMtzs.begin(), allMtzs.begin() + half);
-	secondHalfMtzs.insert(secondHalfMtzs.begin(), allMtzs.begin() + half, allMtzs.end());
-
+		if (even)
+		{
+			firstHalfMtzs.push_back(allMtzs[i]);
+		}
+		else
+		{
+			secondHalfMtzs.push_back(allMtzs[i]);
+		}
+	}
 }
 
 std::string MtzMerger::makeFilename(std::string prefix)
