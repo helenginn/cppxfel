@@ -15,8 +15,9 @@
 #include <fstream>
 #include "FileParser.h"
 #include "CSV.h"
-#include "Shoebox.h"
+//#include "Shoebox.h"
 #include "Detector.h"
+#include "ProfileFit.h"
 
 vector<vector<double> > Spot::probe;
 
@@ -443,12 +444,24 @@ double Spot::integrate()
     int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
                                               SHOEBOX_BACKGROUND_PADDING);
     bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
+    
+    bool fitProfile = FileParser::getKey("PROFILE_FITTING", true); //
 
+    //ShoeboxPtr shoebox;
     ShoeboxPtr shoebox = ShoeboxPtr(new Shoebox(MillerPtr()));
-    shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
-
+    
+    //ShoeboxPtr shoebox = ShoeboxPtr(new calculateImageProfile());
+    //ProfilePtr currentProfile;
     float counting = 0;
     Coord rawXY = getRawXY();
+    
+    //shoebox -> calculateImageProfile();
+    std::cout << "STARTING WITH PROFILE FIT!!!" << std::endl;
+    //currentProfile->calculateImageProfile(getParentImage());
+    
+
+    std::cout << "TESTING PRINTING OUT SHOEBOX!!!" << std::endl;
+    //shoebox->printShoebox();
     intensity = getParentImage()->intensityAt(rawXY.first, rawXY.second, shoebox, &counting);
 
     if (intensity != intensity)
@@ -547,3 +560,4 @@ void Spot::addToMask(int *mask, int width, int height)
         }
     }
 }
+

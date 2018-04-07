@@ -243,6 +243,7 @@ bool Miller::isRejected()
 
 double Miller::getBFactorScale()
 {
+    bFactor  = 1;
 	if (bFactor == 0)
 	{
 		return 1;
@@ -253,8 +254,16 @@ double Miller::getBFactorScale()
 	double four_d_squared = 4 * pow(1 / resn, 2); // = 1 / (4d^2) = (sinTheta / lambda) ^ 2
 
 	double factor = exp(-2 * bFactor * 1 / four_d_squared);
-
-	bFactorScale = factor;
+	
+    
+    if (factor < -0.01)
+    {
+        factor = 0;
+        std::cout << "Normalising Bfactor to zero." << std::endl;
+        
+    }
+    
+    bFactorScale = factor;
 
 	return factor;
 }
@@ -262,6 +271,7 @@ double Miller::getBFactorScale()
 double Miller::scaleForScaleAndBFactor(double scaleFactor, double bFactor,
 									   double resn, double exponent_exponent)
 {
+    //Not used?
 	double four_d_squared = 4 * pow(resn, 2); // = 1 / (4d^2) = (sinTheta / lambda) ^ 2
 
 	double right_exp = exp(-2 * bFactor * four_d_squared);
@@ -301,6 +311,7 @@ double Miller::intensity(bool withCutoff)
 			modifier = 0;
 
 		return modifier * rawIntensity;
+
 	}
 	else
 	{
@@ -368,9 +379,13 @@ double Miller::getWeight(bool cutoff, WeightType weighting)
 	double partiality = this->getPartiality();
 	double scale = this->getScale();
 
-	weight = partiality / scale;
+    double weightT = partiality / scale;
+	weight *= partiality / scale;
 
 	weight *= getBFactorScale();
+    weightT *= getBFactorScale();
+    //std::cout << "Weight without sigma:" << "\t" << weightT << std::endl;
+    //std::cout << "Weight with sigma:" << "\t" << weight << std::endl;
 
 	return weight;
 }
@@ -917,29 +932,40 @@ void Miller::makeComplexShoebox(double wavelength, double bandwidth, double mosa
 
 void Miller::makeShoebox()
 {
+    bool fitProfile = FileParser::getKey("PROFILE_FITTING", true); //
+    std::cout << "Profile check." << fitProfile << std::endl;
 	if (!shoebox)
 	{
-		shoebox = ShoeboxPtr(new Shoebox(shared_from_this()));
-
-		int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
+        if (!fitProfile)
+            {
+                shoebox = ShoeboxPtr(new Shoebox(shared_from_this()));
+                std::cout << "Creating a simple shoebox." << std::endl;
+                int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
 												  SHOEBOX_FOREGROUND_PADDING);
-		int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_PADDING",
+                int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_PADDING",
 											   SHOEBOX_NEITHER_PADDING);
-		int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
+                int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
 												  SHOEBOX_BACKGROUND_PADDING);
-		bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
-
-		shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
+                bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
+                shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
+            }
+        else if (fitProfile)
+        {
+            std::cout << "Creating a profile fit!" << std::endl;
+            shoebox = getImage()->getProfileFit();
+        }
 	}
+
 }
+
 
 void Miller::integrateIntensity(bool quick)
 {
 	if (!getImage())
 		throw 1;
-
+    
 	makeShoebox();
-
+    
 	double x = correctedX;
 	double y = correctedY;
 
@@ -1153,3 +1179,4 @@ bool Miller::is(int _h, int _k, int _l)
 
 	return (test == me);
 }
+

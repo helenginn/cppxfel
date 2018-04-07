@@ -1203,7 +1203,7 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
 
     std::vector<double> distances;
 
-    CSVPtr csv = CSVPtr(new CSV(7, "x", "y", "h", "k", "l", "rx", "ry"));
+    CSVPtr csv = CSVPtr(new CSV(8, "x", "y", "h", "k", "l", "rx", "ry", "rawestIntensity"));
 
     double totalScore = 0;
         double biggestContribution = 0;
@@ -1257,8 +1257,9 @@ double Detector::millerScore(bool ascii, bool stdev, int number)
 				vec hkl = miller->getHKL();
 				double rx = miller->getCorrectedX();
 				double ry = miller->getCorrectedY();
+                double inten = miller->getRawestIntensity();
 
-                csv->addEntry(0, x1, y1, hkl.h, hkl.k, hkl.l, rx, ry);
+                csv->addEntry(0, x1, y1, hkl.h, hkl.k, hkl.l, rx, ry, inten);
             }
 
             contribution += lookupCache(distSq);
@@ -1852,3 +1853,4 @@ std::string Detector::writeCrystFELFile()
 
     return geometry.str();
 }
+

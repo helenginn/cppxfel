@@ -13,7 +13,7 @@
 class Reflection;
 
 #include "parameters.h"
-#include "headers/csymlib.h"
+#include "csymlib.h"
 
 class Miller;
 

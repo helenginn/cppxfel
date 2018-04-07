@@ -466,6 +466,10 @@ void FileParser::generateCodeList()
 		codeMap["correl"] = 1;
 		codeMap["reward"] = 2;
 		codeMap["r+int"] = 11;
+        codeMap["refree"] = 3;
+        codeMap["partfree"] = 4;
+        codeMap["partrefscale"] = 5;
+        codeMap["geometric"] = 6;
 		codeMaps["DEFAULT_TARGET_FUNCTION"] = codeMap;
 	}
 	{
@@ -595,6 +599,7 @@ void FileParser::generateCategories()
 	easyShoeboxes.push_back("SHOEBOX_FOREGROUND_PADDING");
 	easyShoeboxes.push_back("SHOEBOX_NEITHER_PADDING");
 	easyShoeboxes.push_back("METROLOGY_SEARCH_SIZE");
+    easyShoeboxes.push_back("PROFILE_FITTING");
 
 	std::vector<std::string> hardShoeboxes;
 	hardShoeboxes.push_back("SHOEBOX_MAKE_EVEN");
@@ -663,6 +668,7 @@ void FileParser::generateCategories()
 	postRefGeneral.push_back("DEFAULT_TARGET_FUNCTION");
 	postRefGeneral.push_back("BINARY_PARTIALITY");
 	postRefGeneral.push_back("INITIAL_MTZ");
+    //postRefGeneral.push_back("BFACTOR_SCALING");
 
 	postRefinement["On/off optimisation switches"] = postRefOptimisers;
 	postRefinement["Step sizes for parameters"] = postRefStepSizes;
@@ -957,6 +963,7 @@ void FileParser::generateFunctionList()
 	parserMap["CHERRY_PICK"] = simpleInt;
 	parserMap["IMAGE_SKIP"] = simpleInt;
 	parserMap["NEW_MATRIX_LIST"] = simpleString;
+    //parserMap["BFACTOR_SCALING"] = simplBool;
 
 	parserMap["RECALCULATE_WAVELENGTHS"] = simpleBool;
 	parserMap["MERGE_ANOMALOUS"] = simpleBool;
@@ -1014,6 +1021,7 @@ void FileParser::generateFunctionList()
 	parserMap["REFINE_IN_PLANE_OF_DETECTOR"] = simpleBool;
 	parserMap["FIT_BACKGROUND_AS_PLANE"] = simpleBool;
 	parserMap["ROUGH_CALCULATION"] = simpleBool;
+    parserMap["PROFILE_FITTING"] = simpleBool;
 
 	parserMap["INDEXING_RLP_SIZE"] = simpleFloat;
 	parserMap["MINIMUM_SPOTS_EXPLAINED"] = simpleInt;
@@ -1177,3 +1185,4 @@ FileParser::~FileParser()
 {
 	// TODO Auto-generated destructor stub
 }
+

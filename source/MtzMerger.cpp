@@ -1039,3 +1039,4 @@ void MtzMerger::mergeAnomalous()
 	writeAnomalousMtz(negativeMerge, positiveMerge, mergedMtz, makeFilename("anomMerge"));
 	createAnomalousDiffMtz(negativeMerge, positiveMerge);
 }
+

@@ -330,8 +330,10 @@ public:
 
 	void setBFactor(double factor)
 	{
-		if (factor == factor)
+		if ((factor == factor) && (factor > -0.1))
 			bFactor = factor;
+        else
+            bFactor = 0;
 
 		bFactorScale = 0;
 	}
@@ -451,3 +453,4 @@ protected:
 };
 
 #endif /* MILLER_H_ */
+

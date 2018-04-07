@@ -8,6 +8,7 @@
 #include "InputFileParser.h"
 #include "FileReader.h"
 #include "MtzRefiner.h"
+#include "ProfileFit.h"
 #include "Miller.h"
 #include <sstream>
 #include "Hdf5ManagerProcessing.h"
@@ -173,6 +174,13 @@ void InputFileParser::parse(bool fromPython)
                 understood = true;
                 refiner->reportMetrology();
             }
+                    
+            //if (line == "BFACTOR_SCALING")
+            //{
+                //understood = true;
+                //std::cout << "BFACTOR SCALING UNDERSTOOD!"<<std::endl;
+                //refiner->refineAllBFactors();
+            //}
 
             if (line == "REFINE_METROLOGY" || line == "REFINE_GEOMETRY")
             {
@@ -277,6 +285,13 @@ void InputFileParser::parse(bool fromPython)
                 understood = true;
                 refiner->powderPattern();
             }
+                    
+                    
+            if (line == "PROFILE_FIT")
+            {
+                understood = true;
+                refiner->profileFitter();
+            }
 
             if (line == "WRITE_PNGS")
             {
@@ -349,3 +364,4 @@ void InputFileParser::parse(bool fromPython)
                 refiner->refine();
         }
 }
+

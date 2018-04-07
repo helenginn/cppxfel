@@ -15,6 +15,7 @@
 #include "parameters.h"
 #include "Vector.h"
 #include "LoggableObject.h"
+#include "ProfileFit.h"
 
 class Spot : LoggableObject, public boost::enable_shared_from_this<Spot>
 {
@@ -23,6 +24,7 @@ private:
     
     ImageWeakPtr parentImage;
     DetectorWeakPtr lastDetector;
+    ProfileWeakPtr currentProfile;
     
     double angleDetectorPlane;
     bool setAngle;
@@ -35,7 +37,7 @@ private:
     double correctedX; double correctedY;
     double x; double y;
     double intensity;
-    //double resolution;
+    double resolution;
     bool rejected;
     int height;
     int length;
@@ -156,7 +158,7 @@ public:
     
     double getResolution()
     {
-        return resolution();
+        return resolution;
     }
     
     void setToBeamCentre()

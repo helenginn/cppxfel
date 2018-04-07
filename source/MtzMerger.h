@@ -83,6 +83,7 @@ protected:
 
 public:
     MtzMerger();
+    void smoothenScale();
     void merge();
     void mergeFull(bool anomalous = false);
     void mergeAnomalous();
@@ -152,3 +153,4 @@ public:
 };
 
 #endif /* defined(__cppxfel__MtzMerger__) */
+

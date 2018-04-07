@@ -587,3 +587,4 @@ void IndexManager::powderPattern(std::string csvName, bool force)
 
         lattice->powderPattern(false, "unitCellLatticePowder.csv");
 }
+

@@ -58,10 +58,6 @@ std::string MtzManager::describeScoreType()
             return std::string("refree");
         case ScoreTypePartFree:
             return std::string("partfree");
-        case ScoreTypePartRefScale:
-            return std::string("partrefscale");
-        case ScoreTypeGeometric:
-            return std::string("geometric");
 		default:
 			return std::string("unknown");
 	}
@@ -228,11 +224,11 @@ MtzManager::MtzManager()
     //logged << "HELLOS! Setting maximum resolution to resolution" << maxResolutionAll << std::endl;
     //sendLog();
 
-    maxResolutionAll = FileParser::getKey("MAX_REFINED_RESOLUTION", MAX_OPTIMISATION_RESOLUTION);
+    //maxResolutionAll = FileParser::getKey("MAX_REFINED_RESOLUTION",
                                               //MAX_OPTIMISATION_RESOLUTION);
 
-    logged << "HELLOS2! Setting maximum resolution to resolution" << maxResolutionAll << std::endl;
-    sendLog();
+    //logged << "HELLOS2! Setting maximum resolution to resolution" << maxResolutionAll << std::endl;
+    //sendLog();
     
 	minResolutionAll = FileParser::getKey("MIN_REFINED_RESOLUTION", 0.);
 	defaultScoreType = DEFAULT_SCORE_TYPE;
@@ -941,25 +937,6 @@ void MtzManager::bFactorAndScale(double *scale, double *bFactor, double exponent
 
 	double gradient = 0;
 	double intercept = 0;
-    
- 
-    if (getFilename() == "img-lyso_58_0.mtz" || getFilename() == "img-lyso_83_0.mtz" || getFilename() == "img-lyso_91_0.mtz" || getFilename() == "img-lyso_1_0.mtz")
-    {
-        {
-            CSVPtr csv = CSVPtr(new CSV(3, "x", "y", "weight"));
-            for (int i=0; i < pointsToFit.size(); i++)
-            {
-                double x = boost::get<0>(pointsToFit[i]);
-                double y = boost::get<1>(pointsToFit[i]);
-                double weight = boost::get<2>(pointsToFit[i]);
-                std::cout << x << "," << y << "," << weight << std::endl;
-                csv->addEntry(3, (double)x, (double)y, (double)weight);
-            }
-            csv->writeToFile("pointsToFit" + getFilename() +".csv");
-        }
-    }
- 
-
 
 	regression_line(pointsToFit, intercept, gradient);
 
@@ -1018,23 +995,20 @@ void MtzManager::scaleToMtz(MtzManager *otherManager, bool info, double lowRes, 
 			if ((int1 != int1) || (int2 != int2) || (weight != weight))
 				continue;
 
-			x_y += int1 * int2 * weight;
-			x_squared += int2 * int2 * weight;
+			x_squared += int1 * int2 * weight;
+			x_y += int2 * int2 * weight;
 
 			count++;
 		}
 	}
 
-	double grad = (x_squared / x_y);
+	double grad = (x_y / x_squared);
 
 	if (grad < 0)
 		grad = -1;
 
 	applyScaleFactor(grad);
 }
-
-
-
 
 
 void MtzManager::applyBFactor(double bFactor)
@@ -1218,13 +1192,11 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
 			int k = reflections[i]->miller(j)->getK();
 			int l = reflections[i]->miller(j)->getL();
 
-            std::cout << "Intensity of:" << intensity << "\t" << reflections[i]->miller(j)->getRawestIntensity() << "\t" << reflections[i]->miller(j)->intensity() << std::endl;
-            
 			fdata[0] = h;
 			fdata[1] = k;
 			fdata[2] = l;
-            fdata[3] = reflections[i]->miller(j)->getRawestIntensity(); //intensity/bfactor
-            fdata[4] = sigma;
+			fdata[3] = intensity / bFactor;
+			fdata[4] = sigma;
 			fdata[5] = partiality;
 			fdata[6] = reflections[i]->miller(j)->getWavelength();
 			fdata[7] = reflections[i]->miller(j)->getCorrectedX();
@@ -1451,7 +1423,7 @@ std::string MtzManager::parameterHeaders()
 
 	summary << "hRot,kRot,lRot,";
 
-	summary << "rlpSize,exp,cellA,cellB,cellC,scale,bfactor,avInt";
+	summary << "rlpSize,exp,cellA,cellB,cellC,scale,CutoffRes";
 
 	return summary.str();
 }
@@ -1477,12 +1449,10 @@ std::string MtzManager::writeParameterSummary()
 	<< unitCell[1] << ","
 	<< unitCell[2] << ","
 	<< getScale()<< ","
-    << getBFactor() << ","
-    << averageIntensity() ;
+    << maxResolutionAll;
+
 	return summary.str();
 }
-
-
 
 void MtzManager::millersToDetector()
 {
@@ -1518,10 +1488,8 @@ bool MtzManager::checkMaxResolution()
     bool findMaxResolution = false;
     double maxIntegratedResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION",0.0);
     double maxRefinedResolution = FileParser::getKey("MAX_REFINED_RESOLUTION",MAX_OPTIMISATION_RESOLUTION);
-    if (maxRefinedResolution < -0.01)
-    {
+    if ((maxRefinedResolution < -0.1 || maxIntegratedResolution) < -0.1)
         findMaxResolution = true;
-    }
     return findMaxResolution;
 }
 
@@ -1545,20 +1513,12 @@ void MtzManager::calculateNearbyMillers()
     logged << "checkRes: " << checkRes << std::endl;
     sendLog();
     
-    maxResolutionAll = FileParser::getKey("MAX_REFINED_RESOLUTION",MAX_OPTIMISATION_RESOLUTION);
-    
-    if (checkRes)
-    {
-        maxResolutionAll = getImagePtr()->getFoundMaxResolution();
-    }
-    
+    maxResolutionAll = getImagePtr()->getFoundMaxResolution();
     
     //bool checkpointer = !getImagePtr();
     
-    
     logged << "Firstly, setting maximum resolution to found resolution " << maxResolutionAll << std::endl;
-    std::cout << maxResolutionAll << std::endl;
-    logged << "HELLOS1! Setting maximum resolution to resolution " << maxResolutionAll << std::endl;
+    logged << "HELLOS! Setting maximum resolution to resolution " << maxResolutionAll << std::endl;
     sendLog();
     
 	nearbyMillers.clear();
@@ -1653,14 +1613,7 @@ void MtzManager::calculateNearbyMillers()
 void MtzManager::checkNearbyMillers()
 {
 	MatrixPtr matrix = getMatrix();
-    maxResolutionAll = FileParser::getKey("MAX_REFINED_RESOLUTION",MAX_OPTIMISATION_RESOLUTION);
-    
-    bool checkRes = checkMaxResolution();
-    if (checkRes)
-    {
-        maxResolutionAll = getImagePtr()->getFoundMaxResolution();
-    }
-
+    maxResolutionAll = getImagePtr()->getFoundMaxResolution();
 	std::vector<double> unitCell = getUnitCell();
 
 	if (!(unitCell.size() == 6))
@@ -1705,7 +1658,6 @@ void MtzManager::checkNearbyMillers()
 
 		if (d > maxD)
 		{
-            //Does this mean that the res is not cut?!
 			cutResolution++;
 			continue;
 		}
@@ -2328,7 +2280,7 @@ void MtzManager::applyScaleFactorsForBins(int binCount)
 {
 	double highRes = maxResolution();
 	double lowRes = 0;
-//Where is partiality applied?
+
 	vector<double> bins;
 	StatisticsManager::generateResolutionBins(lowRes, highRes, binCount, &bins);
 

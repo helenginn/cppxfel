@@ -48,6 +48,8 @@ void Shoebox::sideLengths(int *slowSide, int *fastSide)
     *fastSide = (int)shoebox[0].size();
 }
 
+
+
 void Shoebox::simpleShoebox(int foregroundLength, int neitherLength, int backgroundLength, bool shoeboxEven)
 {
     int centre = backgroundLength;
@@ -113,7 +115,6 @@ void Shoebox::printShoebox()
         {
             logged << shoebox[i][j] << "\t";
         }
-
         logged << std::endl;
     }
 
@@ -429,3 +430,4 @@ Shoebox::~Shoebox()
 {
 //    std::cout << "Deallocating shoebox" << std::endl;
 }
+

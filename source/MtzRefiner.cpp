@@ -19,6 +19,9 @@
 #include "IndexManager.h"
 #include "UnitCellLattice.h"
 #include "CSV.h"
+#include "ProfileFit.h"
+
+#include <string>
 
 #include "FileParser.h"
 #include "parameters.h"
@@ -45,8 +48,9 @@ MtzRefiner::MtzRefiner()
     hasRefined = false;
     isPython = false;
     readRefinedMtzs = FileParser::getKey("READ_REFINED_MTZS", false);
-
+    //scaleBFactors = FileParser::getKey("BFACTOR_SCALING", 0);
     indexManager = NULL;
+    profileFit = NULL;
 }
 
 // MARK: Refinement
@@ -193,6 +197,7 @@ std::vector<MtzPtr> MtzRefiner::getAllMtzs()
 void MtzRefiner::refine()
 {
     MtzPtr originalMerge;
+    
 
     bool initialExists = loadInitialMtz();
         loadImageFiles();
@@ -201,6 +206,9 @@ void MtzRefiner::refine()
     {
         initialMerge();
     }
+    MtzRefiner::refineAllBFactors(); //this was here before!
+    MtzRefiner::smoothenRefinedAllBFactors();
+    //MtzRefiner::refineAllBFactors();
 
     reference->writeToFile("originalMerge.mtz");
 
@@ -268,7 +276,8 @@ bool MtzRefiner::loadInitialMtz(bool force)
         reference->setFilename(referenceFile.c_str());
                 reference->loadReflections();
                 reference->setDefaultMatrix();
-                reference->setSigmaToUnity();
+                //CHANGE.
+                //reference->setSigmaToUnity();
 
         if (reference->reflectionCount() == 0)
         {
@@ -329,7 +338,8 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
     bool readFromHdf5 = hdf5Sources.size() > 0;
     vector<double> cellDims = FileParser::getKey("UNIT_CELL", vector<double>());
 
-    bool setSigmaToUnity = FileParser::getKey("SET_SIGMA_TO_UNITY", true);
+    //CHANGE
+    //bool setSigmaToUnity = FileParser::getKey("SET_SIGMA_TO_UNITY", true);
 
     bool ignoreMissing = FileParser::getKey("IGNORE_MISSING_IMAGES", false);
     bool lowMemoryMode = FileParser::getKey("LOW_MEMORY_MODE", false);
@@ -559,9 +569,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
                                                 std::string prefix = (me->readRefinedMtzs ? "ref-" : "");
                                                 newManager->setFilename((prefix + "img-" + imgNameOnly + "_" + i_to_str(currentCrystal) + ".mtz").c_str());
                                                 newManager->setMatrix(newMatrix);
-
-                                                if (setSigmaToUnity)
-                                                        newManager->setSigmaToUnity();
+                                                //CHANGE
+                                                //if (setSigmaToUnity)
+                                                        //newManager->setSigmaToUnity();
 
                                                 if (rlpSize > 0)
                                                 {
@@ -637,9 +647,9 @@ void MtzRefiner::readSingleImageV2(std::string *filename, vector<ImagePtr> *newI
             {
                 newManager->loadReflections();
             }
-
-            if (setSigmaToUnity)
-                newManager->setSigmaToUnity();
+            //CHANGE
+            //if (setSigmaToUnity)
+                //newManager->setSigmaToUnity();
 
             newManager->setTimeDelay(delay);
 
@@ -1425,6 +1435,9 @@ void MtzRefiner::index()
     integrationSummary();
 }
 
+
+
+
 void MtzRefiner::powderPattern()
 {
     loadImageFiles();
@@ -1625,6 +1638,39 @@ void MtzRefiner::reportMetrology()
 
     Detector::getMaster()->reportMillerScores();
 }
+//////
+void MtzRefiner::profileFitter()
+{
+    if (!profileFit)
+        profileFit = new ProfileFit();
+    std::cout << "Starting profile fit, I think!"<<std::endl;
+    loadImageFiles();
+    std::vector<MtzPtr> mtzs = getAllMtzs();
+    //int offset = FileParser::getKey("IMAGE_SKIP", 0);
+    //std::vector<MtzPtr> mtzManagers = getAllMtzs();
+    int img_num = (int)images.size();
+    
+    int maxThreads = FileParser::getMaxThreads();
+    boost::thread_group threads;
+    //i++ for sngle thread version.
+    for (int i = 0; i < img_num; i ++)
+    {
+        std::ostringstream logged;
+        ImagePtr image = images[i];
+        for (int j = 0; j < image->mtzCount(); j++)
+        {
+            //MtzPtr mtz = image->mtz(j);
+            //if (!mtz->isRejected())
+            //{
+                profileFit->calculateImageProfile(image);
+            //}
+        }
+        //hasFitted = true;
+        std::cout << "Profile task done, I think!"<<std::endl;
+    }
+
+    //profileFit->calculateallImageProfiles();
+}
 
 void MtzRefiner::fakeSpotsThread(std::vector<ImagePtr> *images, int offset)
 {
@@ -1763,3 +1809,287 @@ void MtzRefiner::imageToDetectorMap()
         Detector::getMaster()->zLimits(&min, &max);
     }
 }
+
+
+//inline long MtzRefiner::imageNumber(const std::string& inFile)
+//{
+    //return std::strtol(&inFile[inFile.find('_') + 1], NULL, 10);
+//}
+
+
+
+void MtzRefiner::refineAllBFactors()
+{
+    //loadImageFiles();
+    std::cout << "REFINING BFACTORS! " << std::endl;
+    //Which loops through all MTZ files and calls that function.
+    std::vector<MtzPtr> mtzManagers = getAllMtzs();
+    std::cout << "check1" << std::endl;
+        for (int i = 0; i < mtzManagers.size(); i++)
+        {
+            //scale and bfactor for every reflection.
+            std::string imageName = mtzManagers[i]->getFilename();
+            //long imageNum = MtzRefiner::imageNumber(imageName);
+            double scale =  mtzManagers[i]->getScale();
+            //Should I create a getter function for bfactor in MtzManager.h???
+            double bFactor = mtzManagers[i]->getBFactor();
+            double exponent = mtzManagers[i]->getExponent();
+            //std::cout << "Refining Bfactor for image" <<  << std::endl;
+            //std::cout << "Initial scale/bfactor:" << scale << "\t" << "Initial bfactor: " << bFactor << std::endl;
+            double initialScale = scale;
+            double initialBFact = bFactor;
+            
+            mtzManagers[i]->bFactorAndScale(&scale, &bFactor, exponent);
+
+            
+            std::cout << "Image,InitialScale/InitialbFactor/ReturningScale/ReturningbFactor: " << imageName << "," << initialScale << "," << initialBFact << "," << scale << "," << bFactor << std::endl;
+            
+            //CSVPtr csv = CSVPtr(new CSV(5, "Image", "Initial Scale", "Initial bFactor", "Returning scale", "Returning bfactor"));
+            //csv->addEntry(5, (long)imageNum, (double)initialScale, (double)initialBFact, (double)scale, (double)bFactor);
+            //csv->writeToFile("bFactors" + imageName + ".csv");
+            //csv.close();
+            //sendLog();
+        }
+    std::cout << "Finished refiner?!" << std::endl;
+}
+
+
+
+
+bool fileSort(MtzPtr a, MtzPtr b)
+{
+    std::string x = a->getFilename();
+    std::string y = b->getFilename();
+    if (x.length() < y.length())
+    {
+        return true;
+    }
+    else if (x.length() == y.length())
+    {
+        int str2x = std::stoi(x.substr(9,1));
+
+        int str2y = std::stoi(y.substr(9,1));
+        std::cout << "Similar lengths, comparing(" << str2x << "," << str2y << ")" << std::endl;
+        if (str2x < str2y)
+        {
+            return true;
+        }
+        else if (str2x == str2y)
+        {
+            int str3x = std::stoi(x.substr(9,2));
+            int str3y = std::stoi(y.substr(9,2));
+            if (str3x < str3y)
+            {
+                return true;
+            }
+            else if (str3x == str3y)
+            {
+                int str4x = std::stoi(x.substr(9,3));
+                int str4y = std::stoi(y.substr(9,3));
+                if (str4x < str4y)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+                
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+bool cmp(MtzPtr a, MtzPtr b)
+{
+    std::string x = a->getFilename();
+    std::string y = b->getFilename();
+    std::cout << "compare(" << x << "," << y << ")" << std::endl;
+    
+    return x > y;
+}
+
+
+
+void MtzRefiner::smoothenRefinedAllBFactors()
+{
+    //All Bfactors should be set now!
+    //std::cout << "Altering Bfactors1!" << std::endl;
+    
+    std::vector<MtzPtr> mtzManagers = getAllMtzs();
+    //std::sort(mtzManagers.begin(), mtzManagers.end(), cmp);
+    std::cout << "Sort1" << std::endl;
+    std::sort(mtzManagers.begin(), mtzManagers.end(), fileSort);
+    std::cout << "Sort2" << std::endl;
+    //std::sort(mtzManagers.begin(), mtzManagers.end(), cmp);
+    //std::cout << "Sort3" << std::endl;
+    for(int i = 0; i < mtzManagers.size(); i++)
+    {
+        std::cout << mtzManagers[i]->getFilename() << " " << std::endl;
+    }
+    //std::cout << "Altering Bfactors2!" << std::endl;
+    std::vector<float> averageBFactorList;
+    //std::cout << "Altering Bfactors3!" << std::endl;
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        //std::cout << "Altering Bfactors4!" << std::endl;
+        double avBFactor = 0;
+        double sumBFactor = 0;
+        double currentBFactor = 0;
+
+        int count = 0;
+        for (int j = i - 15; j < i + 15; j++)
+        {
+            if (j < 0)
+            {
+                std::cout << "j is lower than 0!" << std::endl;
+                continue;
+            }
+            else
+            {
+                count += 1;
+                if (j >= mtzManagers.size())
+                {
+                    currentBFactor = mtzManagers[i]->getBFactor();
+                    std::cout << "j is greater than mtzs!" << currentBFactor << std::endl;
+                    std::cout << "Setting current bfactor to altered: " << currentBFactor << std::endl;
+                }
+                else
+                {
+                    currentBFactor = mtzManagers[j]->getBFactor();
+                }
+                //if (currentBFactor <= -0.001)
+                //{
+                    //currentBFactor = 0;
+                //}
+                std::cout << "Setting current bfactor to: " << currentBFactor << std::endl;
+            }
+                sumBFactor += currentBFactor;
+                //mtzManagers[j]->getBFactor(); //AHHH.
+                
+        }
+        
+        std::cout << "Count:" << count << std::endl;
+        std::cout << "Sum of Bfactor:" << sumBFactor << std::endl;
+        avBFactor = (sumBFactor / count);
+        std::cout << "Average B factor of:" << avBFactor << std::endl;
+        averageBFactorList.push_back(avBFactor);
+        std::cout << "Appended to list." << averageBFactorList.size() << std::endl;
+    }
+    
+    std::cout << "Returning list of length " << averageBFactorList.size() << std::endl;
+    if (averageBFactorList.size() != mtzManagers.size())
+    {
+        std::cout << "ERROR. In Bfactor list length.";
+    }
+    
+    //Creates bfactor and bfactor scaling.
+
+    for(int i=0; i < mtzManagers.size(); i++)
+    {
+        // * gets the number out of the iterator
+        // Sets the number.
+        std::string imageName = mtzManagers[i]->getFilename();
+        //std::cout << "Applying B factor of :" << averageBFactorList[i] << std::endl;
+        mtzManagers[i]->applyBFactor(averageBFactorList[i]);
+        
+        double bFactor = mtzManagers[i]->getBFactor();
+        std::cout << "Printing Bfactors for: " << imageName << bFactor << std::endl;
+    }
+}
+
+/*
+
+void MtzRefiner::smoothenScale()
+{
+    std::vector<MtzPtr> mtzManagers = getAllMtzs();
+    //std::sort(mtzManagers.begin(), mtzManagers.end(), cmp);
+    std::cout << "Sort1" << std::endl;
+    std::sort(mtzManagers.begin(), mtzManagers.end(), fileSort);
+    std::cout << "Sort2" << std::endl;
+    //std::sort(mtzManagers.begin(), mtzManagers.end(), cmp);
+    //std::cout << "Sort3" << std::endl;
+    for(int i = 0; i < mtzManagers.size(); i++)
+    {
+        std::cout << mtzManagers[i]->getFilename() << " " << std::endl;
+    }
+    std::vector<float> averageScaleList;
+    for (int i = 0; i < mtzManagers.size(); i++)
+    {
+        double avSFactor = 0;
+        double sumSFactor = 0;
+        double currentSFactor = 0;
+        
+        int count = 0;
+        for (int j = i - 15; j < i + 15; j++)
+        {
+            if (j < 0)
+            {
+                std::cout << "j is lower than 0!" << std::endl;
+                continue;
+            }
+            else
+            {
+                count += 1;
+                if (j >= mtzManagers.size())
+                {
+                    currentBFactor = mtzManagers[i]->getScale();
+                    std::cout << "j is greater than mtzs!" << currentSFactor << std::endl;
+                    std::cout << "Setting current sfactor to altered: " << currentSFactor << std::endl;
+                }
+                else
+                {
+                    currentSFactor = mtzManagers[j]->getScale();
+                }
+
+                std::cout << "Setting current bfactor to: " << currentBFactor << std::endl;
+            }
+            sumSFactor += currentSFactor;
+            
+        }
+        
+        std::cout << "Count:" << count << std::endl;
+        std::cout << "Sum of Scalefactor:" << sumSFactor << std::endl;
+        avSFactor = (sumBFactor / count);
+        std::cout << "Average Scale factor of:" << avSFactor << std::endl;
+        //averageSFactorList.push_back(avSFactor);
+        std::cout << "Appended to list." << averageSFactorList.size() << std::endl;
+    }
+    
+    std::cout << "Returning list of length " << averageSFactorList.size() << std::endl;
+    if (averageSFactorList.size() != mtzManagers.size())
+    {
+        std::cout << "ERROR. In Sfactor list length.";
+    }
+    
+    
+    for(int i=0; i < mtzManagers.size(); i++)
+    {
+
+        std::string imageName = mtzManagers[i]->getFilename();
+        //std::cout << "Applying B factor of :" << averageBFactorList[i] << std::endl;
+        mtzManagers[i]->applyScaleFactor(averageSFactorList[i]);
+        
+        double scale = mtzManagers[i]->getScale();
+        std::cout << "Printing Bfactors for: " << imageName << scale << std::endl;
+    }
+}
+
+*/
+
+
+
+

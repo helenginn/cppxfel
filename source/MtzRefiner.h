@@ -16,6 +16,7 @@
 typedef std::map<int, std::vector<MtzPtr> > BinList;
 
 class IndexManager;
+class ProfileFit;
 
 class MtzRefiner : public LoggableObject
 {
@@ -31,6 +32,7 @@ private:
     bool readRefinedMtzs;
         std::vector<MtzPtr> getAllMtzs();
         IndexManager *indexManager;
+    ProfileFit *profileFit;
     static int cycleNum;
     bool hasRefined;
     int maxThreads;
@@ -47,6 +49,14 @@ public:
         MtzRefiner();
         virtual ~MtzRefiner();
 
+    
+    bool scaleBFactors;
+    void profileFitter();
+    void refineAllBFactors();
+    void smoothenRefinedAllBFactors();
+    
+    //bool fileSort(MtzPtr a, MtzPtr b);
+    //void smoothenScale();
     void index();
     void powderPattern();
         bool loadInitialMtz(bool force = false);
@@ -62,7 +72,7 @@ public:
         void refineMetrology(bool global);
     void reportMetrology();
         void flattenDetector();
-
+    inline long imageNumber(const std::string& inFile);
     void initialMerge();
     void orientationPlot();
     void applyUnrefinedPartiality();
@@ -110,7 +120,7 @@ public:
     void writeNewOrientations(bool includeRots = false, bool detailed = false);
     void integrateSpots();
     void linearScaling();
-
+    //void plotProfile();
     void plotIntensities();
     void plotIntegrationWindows();
 
@@ -120,3 +130,4 @@ public:
 };
 
 #endif /* MTZREFINER_H_ */
+

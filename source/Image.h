@@ -41,6 +41,7 @@ private:
     int highScore;
     bool fake;
     static ImagePtr _imageMask;
+    ImagePtr _imageBackground;
     static bool interpolate;
 
     virtual void loadImage();
@@ -55,7 +56,7 @@ private:
     IndexingSolutionStatus extendIndexingSolution(IndexingSolutionPtr solutionPtr, std::vector<SpotVectorPtr> existingVectors, int *failures = NULL, int added = 0);
 
         /* Shoebox must be n by n where n is an odd number */
-        int shoebox[7][7];
+        //int shoebox[7][7];
 
         double beamX;
         double beamY;
@@ -85,6 +86,8 @@ private:
     IndexingSolutionStatus testSeedSolution(IndexingSolutionPtr newSolution, std::vector<SpotVectorPtr> &prunedVectors, int *successes);
     IndexingSolutionPtr biggestFailedSolution;
     std::vector<SpotVectorPtr> biggestFailedSolutionVectors;
+    ShoeboxPtr shoebox;
+    
 protected:
     int xDim;
     int yDim;
@@ -118,6 +121,19 @@ protected:
     double spotVectorWeight;
 
 public:
+    void findResCutoffForSpots();
+    double resolution;
+    double foundMaxResolution;
+    
+    
+    ShoeboxPtr getProfileFit();
+    
+    
+    double getFoundMaxResolution()
+    {
+        return foundMaxResolution;
+    }
+    
     void incrementOverlapMask(int x, int y, ShoeboxPtr shoebox);
     void incrementOverlapMask(int x, int y);
     virtual void processSpotList();
@@ -140,7 +156,6 @@ public:
     std::vector<double> anglesBetweenVectorDistances(double distance1, double distance2, double tolerance);
     void findSpots();
     double resolutionAtPixel(double x, double y);
-
     void loadBadPixels();
     void fakeSpots();
     void integrateSpots();
@@ -182,6 +197,11 @@ public:
     void setSpotsFile(std::string newFile)
     {
         spotsFile = newFile;
+    }
+
+    double getResolution()
+    {
+        return resolution;
     }
 
         int valueAt(int x, int y);
@@ -401,3 +421,4 @@ public:
 };
 
 #endif /* IMAGE_H_ */
+

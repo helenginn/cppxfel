@@ -14,10 +14,12 @@
 #include <vector>
 #include <boost/weak_ptr.hpp>
 #include "LoggableObject.h"
+//#include "ProfileFit.h"
+
 
 typedef vector<vector<double> > Box;
 
-class Shoebox : LoggableObject
+class Shoebox : LoggableObject , public boost::enable_shared_from_this<Shoebox>
 {
 private:
     boost::weak_ptr<Miller> miller;
@@ -38,7 +40,6 @@ private:
 public:
     Shoebox(MillerPtr parent);
     ~Shoebox();
-
     void printShoebox();
     void simpleShoebox(int foregroundLength, int neitherLength, int backgroundLength, bool shoeboxEven);
     void complexShoebox(double wavelength, double bandwidth, double radius);
@@ -78,3 +79,4 @@ public:
 };
 
 #endif /* defined(__cppxfel__Shoebox__) */
+

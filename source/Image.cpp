@@ -14,7 +14,7 @@
 #include "Logger.h"
 #include "FileParser.h"
 #include "misc.h"
-#include "Shoebox.h"
+#include "ProfileFit.h"
 #include "Spot.h"
 #include "Vector.h"
 #include "IndexingSolution.h"
@@ -35,6 +35,7 @@ vector<signed char> Image::generalMask;
 ImagePtr Image::_imageMask;
 std::mutex Image::setupMutex;
 bool Image::interpolate = false;
+
 
 Image::Image(std::string filename, double wavelength,
 			 double distance)
@@ -102,19 +103,6 @@ Image::Image(std::string filename, double wavelength,
 
 	_hasSeeded = false;
 
-	int tempShoebox[7][7] =
-	{
-		{ 1, 1, 1, 1, 1, 1, 1 },
-		{ 1, 0, 0, 0, 0, 0, 1 },
-		{ 1, 0, 2, 2, 2, 0, 1 },
-		{ 1, 0, 2, 2, 2, 0, 1 },
-		{ 1, 0, 2, 2, 2, 0, 1 },
-		{ 1, 0, 0, 0, 0, 0, 1 },
-		{ 1, 1, 1, 1, 1, 1, 1 } };
-
-	for (int i = 0; i < 7; i++)
-		for (int j = 0; j < 7; j++)
-			shoebox[i][j] = tempShoebox[i][j];
 
 	this->setFilename(filename);
 	this->wavelength = wavelength;
@@ -996,6 +984,9 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
 		averageSigmaForBackground = totalSigmaForBackground / (double)backNum;
 		aveBackground = (double) background / (double) backNum;
 	}
+    
+    //std::cout << "Average background sigma: " << averageSigmaForBackground << std::endl;
+    //std::cout << "Average background: " << aveBackground << std::endl;
 
 	double backgroundInForeground = aveBackground * (double) foreNum;
 
@@ -1004,9 +995,30 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
 	*error = totalSigmaForForeground;
 
 	double intensity = (foreground - backgroundInForeground);
+    
+    logged << "Background check: " << getFilename() << "," << x  << "," << y << "," << averageSigmaForBackground << "," << aveBackground << "," << intensity << std::endl;
+    sendLog(LogLevelDebug);
 
 	return intensity;
 }
+
+
+ShoeboxPtr Image::getProfileFit()
+{
+    if (shoebox)
+    {
+        return shoebox;
+    }
+    
+    ImagePtr img = shared_from_this();
+    //shoeb = ShoeboxPtr(new Shoebox(MillerPtr()));
+    //boost::shared_ptr<Shoebox>
+    ProfilePtr shoeb(new ProfileFit());
+    ShoeboxPtr shoebox = boost::static_pointer_cast<Shoebox>(shoeb);
+    shoeb->calculateImageProfile(img);
+    return shoebox;
+}
+
 
 double Image::integrateWithShoebox(double x, double y, ShoeboxPtr shoebox, float *error)
 {
@@ -1536,116 +1548,180 @@ bool Image::acceptableSpotCount()
 
 }
 
+
+bool compareSpotResolutions(SpotPtr her, SpotPtr him)
+{
+    return (her->getResolution() < him->getResolution());
+}
+
+void Image::findResCutoffForSpots()
+{
+    //Searches for something which captures 90 % of spots.
+    //Sort all spots by resolution. Take the first 90 %.
+    //How many spots for 90 % coverage.
+    //std::vector<SpotPtr> probeSpots;
+    
+    int numberofAcceptableSpots = (spots.size() * 0.99);
+    //for (int i = 0; i < spotCount(); i++)
+    //{
+        //probeSpots.push_back(spot(i));
+    //}
+    std::sort(spots.begin(), spots.end(), compareSpotResolutions);
+    
+    logged << "Keeping spots: " << numberofAcceptableSpots << " out of total: " << spots.size() << std::endl;
+    sendLog();
+    
+    double upper = spots[numberofAcceptableSpots]->getResolution();
+    double lower = spots[0]->getResolution();
+
+    //Prints last resolution. Reciprocal space?!
+    
+    logged << "Lowest resolution in acceptable list: " << lower << std::endl;
+    sendLog();
+    logged << "Highest resolution in acceptable list: " << upper << std::endl;
+    sendLog();
+    
+    //double reciprocalResLimit = 1 / (upper - (( upper ) * 0.1));
+    double realSpaceResLimit = upper;
+    double realSpaceResLimit2 = ((upper)+(upper * 0.02));
+    double actualRealSpaceResLimit = (1 / realSpaceResLimit2);
+    logged << "Returning cut off resolution: " << actualRealSpaceResLimit << std::endl;
+    sendLog();
+    //2 leads to havock.
+    foundMaxResolution = actualRealSpaceResLimit;
+}
+
+
+
 void Image::compileDistancesFromSpots(double maxReciprocalDistance, double tooCloseDistance, bool filter)
 {
-	if (!loadedSpots)
-	{
-		processSpotList();
-	}
+    if (!loadedSpots)
+    {
+        processSpotList();
+    }
+    
+    bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
+    double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
+    double maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 0.0);
+    
+    if (rejectCloseSpots && tooCloseDistance == 0)
+    {
+        tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
+    }
+    
+    int maxSpots = FileParser::getKey("REJECT_OVER_SPOT_COUNT", 4000);
+    int minSpots = FileParser::getKey("REJECT_UNDER_SPOT_COUNT", 0);
+    
+    if (maxSpots > 0)
+    {
+        if (spotCount() > maxSpots)
+        {
+            logged << "(" << getFilename() << ") Aborting image due to too many spots." << std::endl;
+            sendLog();
+            spotVectors.clear();
+            std::vector<SpotVectorPtr>().swap(spotVectors);
+            return;
+        }
+    }
+    
+    if (spotCount() < minSpots)
+    {
+        logged << "(" << getFilename() << ") Aborting image due to too few spots." << std::endl;
+        sendLog();
+        
+        if (mtzCount() == 0)
+        {
+            sendLog();
+        }
+        spotVectors.clear();
+        std::vector<SpotVectorPtr>().swap(spotVectors);
+        return;
+    }
+    
+    
+    if (maxReciprocalDistance == 0)
+    {
+        maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
+    }
+    
 
-	bool rejectCloseSpots = FileParser::getKey("REJECT_CLOSE_SPOTS", false);
-	double minResolution = FileParser::getKey("INDEXING_MIN_RESOLUTION", 0.0);
-	double maxResolution = FileParser::getKey("MAX_INTEGRATED_RESOLUTION", 0.0);
+    //HMEDit
+    if (FileParser::getKey("MAX_REFINED_RESOLUTION", 1.4) < -0.1)
+    {
+        Image::findResCutoffForSpots();
+        logged << "(" << getFilename() << ") Imposing maximum resolution of " << foundMaxResolution << std::endl;
+        maxResolution = foundMaxResolution;
+        sendLog();
+    }
 
-	if (rejectCloseSpots && tooCloseDistance == 0)
-	{
-		tooCloseDistance = IndexingSolution::getMinDistance() * 0.7;
-	}
-
-	int maxSpots = FileParser::getKey("REJECT_OVER_SPOT_COUNT", 4000);
-	int minSpots = FileParser::getKey("REJECT_UNDER_SPOT_COUNT", 0);
-
-	if (maxSpots > 0)
-	{
-		if (spotCount() > maxSpots)
-		{
-			logged << "(" << getFilename() << ") Aborting image due to too many spots." << std::endl;
-			sendLog();
-			spotVectors.clear();
-			std::vector<SpotVectorPtr>().swap(spotVectors);
-			return;
-		}
-	}
-
-	if (spotCount() < minSpots)
-	{
-		logged << "(" << getFilename() << ") Aborting image due to too few spots." << std::endl;
-		sendLog();
-
-		if (mtzCount() == 0)
-		{
-			sendLog();
-		}
-		spotVectors.clear();
-		std::vector<SpotVectorPtr>().swap(spotVectors);
-		return;
-	}
-
-
-	if (maxReciprocalDistance == 0)
-	{
-		maxReciprocalDistance = FileParser::getKey("MAX_RECIPROCAL_DISTANCE", 0.15);
-	}
-
-	spotVectors.clear();
-	std::vector<SpotVectorPtr>().swap(spotVectors);
-
-	if (spots.size() == 0)
-		return;
-
-	for (int i = 0; i < spots.size() - 1; i++)
-	{
-		vec spotPos1 = spots[i]->estimatedVector();
-
-		if (minResolution != 0)
-		{
-			if (length_of_vector(spotPos1) < 1 / minResolution)
-				continue;
-		}
-
-		if (maxResolution > 0)
-		{
-			if (length_of_vector(spotPos1) > 1 / maxResolution)
-				continue;
-		}
-
-		for (int j = i + 1; j < spots.size(); j++)
-		{
-			vec spotPos2 = spots[j]->estimatedVector();
-
-			bool close = within_vicinity(spotPos1, spotPos2, maxReciprocalDistance);
-
-			if (close)
-			{
-				SpotVectorPtr newVec = SpotVectorPtr(new SpotVector(spots[i], spots[j]));
-
-				double distance = newVec->distance();
-
-				if (distance == 0)
-					continue;
-
-				if (distance > maxReciprocalDistance)
-					continue;
-
-				spotVectors.push_back(newVec);
-			}
-		}
-
-		sendLog(LogLevelDetailed);
-	}
-
-
-	if (filter)
-	{
-		filterSpotVectors();
-	}
-
-	std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
-
-
-	logged << "(" << getFilename() << ") " << spotCount() << " spots produced " << spotVectorCount() << " spot vectors." << std::endl;
-	sendLog();
+ 
+    
+    spotVectors.clear();
+    std::vector<SpotVectorPtr>().swap(spotVectors);
+    
+    if (spots.size() == 0)
+        return;
+    
+    for (int i = 0; i < spots.size() - 1; i++)
+    {
+        vec spotPos1 = spots[i]->estimatedVector();
+        
+        if (minResolution != 0)
+        {
+            if (length_of_vector(spotPos1) < 1 / minResolution)
+                continue;
+        }
+        
+        if (maxResolution > 0)
+        {
+            if (length_of_vector(spotPos1) > 1 / maxResolution)
+                continue;
+        }
+        
+        else if (maxResolution < -1)
+        {
+            if (length_of_vector(spotPos1) > 1 / maxResolution)
+                continue;
+        }
+        
+        for (int j = i + 1; j < spots.size(); j++)
+        {
+            vec spotPos2 = spots[j]->estimatedVector();
+            
+            bool close = within_vicinity(spotPos1, spotPos2, maxReciprocalDistance);
+            
+            if (close)
+            {
+                SpotVectorPtr newVec = SpotVectorPtr(new SpotVector(spots[i], spots[j]));
+                
+                double distance = newVec->distance();
+                
+                if (distance == 0)
+                    continue;
+                
+                if (distance > maxReciprocalDistance)
+                    continue;
+                
+                spotVectors.push_back(newVec);
+            }
+        }
+        
+        sendLog(LogLevelDetailed);
+    }
+    
+    
+    if (filter)
+    {
+        filterSpotVectors();
+    }
+    
+    std::sort(spotVectors.begin(), spotVectors.end(), SpotVector::isGreaterThan);
+    
+    
+    logged << "(" << getFilename() << ") " << spotCount() << " spots produced " << spotVectorCount() << " spot vectors." << std::endl;
+    sendLog();
 }
+
 
 bool solutionBetterThanSolution(IndexingSolutionPtr one, IndexingSolutionPtr two)
 {
@@ -2648,8 +2724,8 @@ void Image::writePNG(PNGFilePtr file, bool includeDiffraction)
 
 			png_byte red, green, blue;
 
-			PNGFile::HSB_to_RGB(proportion_distance, 1.0, brightness, &red, &green, &blue);
-
+			//PNGFile::HSB_to_RGB(proportion_distance, 1.0, brightness, &red, &green, &blue);
+            red = brightness * 255; green = brightness * 255; blue = brightness*255;
 			file->setPixelColourRelative(arranged.h, arranged.k, red, green, blue);
 		}
 	}
@@ -2731,3 +2807,4 @@ void Image::augmentMidpoint(vec *arrangedPos)
 {
 	arrangedPos->l += distanceOffset;
 }
+

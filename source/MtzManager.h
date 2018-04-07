@@ -25,6 +25,10 @@ typedef enum
         ScoreTypeReward = 2,
     ScoreTypeSymmetry = 8,
     ScoreTypeRSplitIntensity = 11,
+    ScoreTypeReferenceFree = 3,
+    ScoreTypePartFree = 4,
+    ScoreTypePartRefScale = 5,
+    ScoreTypeGeometric = 6,
 } ScoreType;
 
 typedef enum
@@ -126,8 +130,7 @@ protected:
         double toleranceExponent;
 
         ScoreType defaultScoreType;
-        double minResolutionAll;
-        double maxResolutionAll;
+
     float lastRSplit;
 
     static double superGaussianScale;
@@ -151,6 +154,9 @@ protected:
 
         bool fullyLoaded;
 public:
+    double minResolutionAll;
+    double maxResolutionAll;
+    bool checkMaxResolution();
 /* From IOMRefiner */
         void dropMillers();
         bool isGoodSolution();
@@ -255,6 +261,10 @@ public:
     double leastSquaresPartiality(double low = 0, double high = 0);
     double correlation(bool silent = true, double lowResolution = 0, double highResolution = -1);
         double rSplit(double low, double high);
+    double rSplitFRef(double low, double high);
+    double rSplitPRef(double low, double high);
+    double rSplitGeom(double low, double high);
+    double rSplitPartRefScale(double low, double high);
         double rewardAgreement(double low, double high);
         std::string describeScoreType();
     double refinePartialitiesOrientation(int ambiguity, bool reset = true);
@@ -348,6 +358,11 @@ public:
         {
                 this->spotSize = spotSize;
         }
+    
+        //void setBFactor(double bFactor)
+        //{
+                //this -> bFactor = bFactor;
+        //}
 
         double getWavelength()
         {
@@ -450,6 +465,11 @@ public:
         {
                 this->rejected = rejected;
         }
+    
+        double getBFactor()
+        {
+                return bFactor;
+        }
 
         double getScale() const
         {
@@ -460,6 +480,8 @@ public:
         {
                 this->scale = scale;
         }
+    
+
 
     void addParameters(RefinementStrategyPtr map);
     static double refineParameterScore(void *object);
@@ -660,3 +682,4 @@ public:
 };
 
 #endif
+

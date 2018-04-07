@@ -193,8 +193,10 @@ void MtzManager::refreshCurrentPartialities()
 {
     if (externalScale != -1)
         this->applyScaleFactor(externalScale, 0, 0, true);
+    
 
     applyBFactor(bFactor);
+    
     refreshPartialities(this->hRot,
                         this->kRot,
                         this->mosaicity,
@@ -562,6 +564,30 @@ double MtzManager::exclusionScoreWrapper(void *object, double lowRes,
                 double reward = mtz->rewardAgreement(lowRes, highRes);
                 return reward;
         }
+    
+ 
+        else if (scoreType == ScoreTypeReferenceFree)
+        {
+                double refree = mtz -> rSplitFRef(lowRes, highRes);
+                return refree;
+        }
+        else if (scoreType == ScoreTypePartFree)
+        {
+            double refpartfree = mtz -> rSplitPRef(lowRes, highRes);
+            return refpartfree;
+        }
+        else if (scoreType == ScoreTypePartRefScale)
+        {
+            double partrefscale = mtz -> rSplitPartRefScale(lowRes, highRes);
+            return partrefscale;
+        }
+    
+        else if (scoreType == ScoreTypeGeometric)
+        {
+            double geomscale = mtz -> rSplitGeom(lowRes, highRes);
+            return geomscale;
+        }
+    
         else
         {
                 return mtz->rSplit(lowRes, highRes);
@@ -700,16 +726,25 @@ double MtzManager::rSplit(double low, double high)
                                 int1 =  imageRef->miller(j)->intensity();
                                 int2 = referenceRef->meanIntensity();
                                 weight = imageRef->meanPartiality();
+                            //std::cout << "***DEBUGGING, not reverse***" << "Intensity of: " << int1 << "\n" "Raw intensity of: " << imageRef->miller(j)->getRawIntensity() << "Reference intensity of: " << int2 << refCorrelation << "\n" << "mean paritality or weight of: " << weight << "**********" << std::endl;
+                            //sendLog();
+
                         }
                         else
                         {
                                 int1 = imageRef->miller(j)->getRawIntensity();
                                 int2 = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
                                 weight = imageRef->meanPartiality();
+                            
+                            //std::cout << "***DEBUGGING, reverse***" << "Intensity of: " << int1 << "by contrast to intensity of: " << imageRef->miller(j)->intensity() << "\n" << "Reference intensity of: " << referenceRef->meanIntensity() << "partiality for int2 of: " << imageRef->miller(j)->getPartiality() << "\n" << "mean paritality or weight of: " << weight << "**********" << std::endl;
+                            //sendLog();
                         }
 
                         if (int1 == 0 || weight == 0 || weight != weight)
                         {
+                            //std::cout << "***DEBUGGING, neither reverse.***" << std::endl;
+                            
+                            //sendLog();
                                 continue;
 
                         }
@@ -723,8 +758,8 @@ double MtzManager::rSplit(double low, double high)
                         count++;
                         weights += weight;
 
-                        sum_numerator += fabs(int1 - int2) * weight;
-                        sum_denominator += (int1 + int2) * weight / 2;
+                        sum_numerator += fabs(int1 - int2) * weight ;
+                        sum_denominator += (int1 + int2) * weight/ 2;
                 }
 
 
@@ -921,3 +956,404 @@ void MtzManager::resetDefaultParameters()
         if (alwaysTrust)
                 trust = TrustLevelGood;
 }
+
+
+//Consider combining rSplit functions in an if statement.
+
+
+double MtzManager::rSplitFRef(double low, double high)
+{
+    bool reverse = FileParser::getKey("SMOOTH_FUNCTION", false);
+    
+    if (referenceManager == NULL)
+    {
+        return 0;
+    }
+    
+    this->scaleToMtz(referenceManager);
+    
+    double sum_numerator = 0;
+    double sum_denominator = 0;
+    int count = 0;
+    double weights = 0;
+    
+    vector<ReflectionPtr> referenceRefs;
+    vector<ReflectionPtr> imageRefs;
+    
+    this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true, true);
+    
+    for (int i = 0; i < referenceRefs.size(); i++)
+    {
+        ReflectionPtr referenceRef = referenceRefs[i];
+        ReflectionPtr imageRef = imageRefs[i];
+        
+        if (!reverse && imageRef->acceptedCount() == 0)
+            continue;
+        
+        if (referenceRef->millerCount() == 0)
+            continue;
+        
+        if (imageRef->miller(0)->isFree())
+            continue;
+        
+        if (!referenceRef->betweenResolutions(low, high))
+            continue;
+        
+        for (int j = 0; j < imageRef->millerCount(); j++)
+        {
+            if (!imageRef->miller(j)->accepted())
+            {
+                continue;
+            }
+            
+            double int1 = 0;
+            double int2 = 0;
+            double weight = 0;
+            
+            if (!reverse)
+            {
+                int1 =  imageRef->miller(j)->intensity();
+                int2 = referenceRef->meanIntensity();
+                weight = imageRef->meanPartiality();
+                
+                logged << "***DEBUGGING, not reverse***" << "Intensity of: " << int1 << "\n" << "Reference intensity of: " << int2
+                << refCorrelation << "\n" << "mean paritality or weight of: " << weight << "**********" << std::endl;
+                sendLog();
+            }
+            else
+            {
+                int1 = imageRef->miller(j)->getRawIntensity();
+                int2 = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
+                weight = imageRef->meanPartiality();
+                
+                logged << "***DEBUGGING, reverse***" << "Intensity of: " << int1 << "by contrast to intensity of: " << imageRef->miller(j)->intensity() << "\n" << "Reference intensity of: " << referenceRef->meanIntensity() << "partiality for int2 of: " << imageRef->miller(j)->getPartiality() << "\n" << "mean paritality or weight of: " << weight << "**********" << std::endl;
+                sendLog();
+            }
+            
+            if (int1 == 0 || weight == 0 || weight != weight)
+            {
+                continue;
+            }
+            
+            if (int1 != int1 || int2 != int2)
+                continue;
+            
+            if (int1 + int2 < 0)
+                continue;
+            
+            count++;
+            weights += weight;
+            
+            sum_numerator += int1 * weight;
+            sum_denominator += (int1) * weight;
+        }
+        
+        
+    }
+    
+    double r_split = sum_numerator / (sum_denominator * sqrt(2));
+    lastRSplit = r_split;
+    
+    return r_split;
+    
+}
+
+
+
+
+
+double MtzManager::rSplitPRef(double low, double high)
+{
+    bool reverse = FileParser::getKey("SMOOTH_FUNCTION", false);
+    
+    if (referenceManager == NULL)
+    {
+        return 0;
+    }
+    
+    this->scaleToMtz(referenceManager);
+    
+    double sum_numerator = 0;
+    double sum_denominator = 0;
+    int count = 0;
+    double weights = 0;
+    
+    vector<ReflectionPtr> referenceRefs;
+    vector<ReflectionPtr> imageRefs;
+    
+    this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true, true);
+    
+    for (int i = 0; i < referenceRefs.size(); i++)
+    {
+        ReflectionPtr referenceRef = referenceRefs[i];
+        ReflectionPtr imageRef = imageRefs[i];
+        
+        if (!reverse && imageRef->acceptedCount() == 0)
+            continue;
+        
+        if (referenceRef->millerCount() == 0)
+            continue;
+        
+        if (imageRef->miller(0)->isFree())
+            continue;
+        
+        if (!referenceRef->betweenResolutions(low, high))
+            continue;
+        
+        for (int j = 0; j < imageRef->millerCount(); j++)
+        {
+            if (!imageRef->miller(j)->accepted())
+            {
+                continue;
+            }
+            
+            double int1 = 0;
+            double int2 = 0;
+            double weight = 0;
+            
+            if (!reverse)
+            {
+                int1 =  imageRef->miller(j)->intensity();
+                int2 = referenceRef->meanIntensity();
+                weight = imageRef->meanPartiality();
+            }
+            else
+            {
+                int1 = imageRef->miller(j)->getRawIntensity();
+                int2 = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
+                weight = imageRef->meanPartiality();
+            }
+            
+            if (int1 == 0 || weight == 0 || weight != weight)
+            {
+                continue;
+                
+            }
+            
+            if (int1 != int1 || int2 != int2)
+                continue;
+            
+            if (int1 + int2 < 0)
+                continue;
+            
+            count++;
+            weights += weight;
+            
+            //sum_numerator += fabs(int1 - int2) * weight;
+            //sum_denominator += (int1) * weight;
+            sum_numerator += fabs((int1* (1/weight)) - int2) ;
+            sum_denominator += ((int1 * (1/weight)) + int2) / 2;
+        }
+        
+        
+    }
+    
+    double r_split = sum_numerator / (sum_denominator * sqrt(2));
+    lastRSplit = r_split;
+    
+    return r_split;
+    
+}
+
+
+double MtzManager::rSplitPartRefScale(double low, double high)
+{
+    bool reverse = FileParser::getKey("SMOOTH_FUNCTION", false);
+    
+    if (referenceManager == NULL)
+    {
+        return 0;
+    }
+    
+    this->scaleToMtz(referenceManager);
+    
+    double sum_numerator = 0;
+    double sum_denominator = 0;
+    int count = 0;
+    double weights = 0;
+    
+    double scales = 0;
+    
+    vector<ReflectionPtr> referenceRefs;
+    vector<ReflectionPtr> imageRefs;
+    
+    this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true, true);
+    
+    for (int i = 0; i < referenceRefs.size(); i++)
+    {
+        ReflectionPtr referenceRef = referenceRefs[i];
+        ReflectionPtr imageRef = imageRefs[i];
+        
+        if (!reverse && imageRef->acceptedCount() == 0)
+            continue;
+        
+        if (referenceRef->millerCount() == 0)
+            continue;
+        
+        if (imageRef->miller(0)->isFree())
+            continue;
+        
+        if (!referenceRef->betweenResolutions(low, high))
+            continue;
+        
+        for (int j = 0; j < imageRef->millerCount(); j++)
+        {
+            if (!imageRef->miller(j)->accepted())
+            {
+                continue;
+            }
+            
+            double int1 = 0;
+            double int2 = 0;
+            double weight = 0;
+            
+            if (!reverse)
+            {
+                int1 =  imageRef->miller(j)->intensity();
+                int2 = referenceRef->meanIntensity();
+                weight = imageRef->meanPartiality();
+            }
+            else
+            {
+                int1 = imageRef->miller(j)->getRawIntensity();
+                int2 = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
+                weight = imageRef->meanPartiality();
+            }
+            
+            if (int1 == 0 || weight == 0 || weight != weight)
+            {
+                continue;
+                
+            }
+            
+            if (int1 != int1 || int2 != int2)
+                continue;
+            
+            if (int1 + int2 < 0)
+                continue;
+            
+            count++;
+            weights += weight;
+
+            sum_numerator += fabs(int1 * (1 / weight) - int2);
+            sum_denominator += (int1 * (1 / weight) );
+
+            
+        }
+        
+        
+    }
+    
+    
+    double r_split = sum_numerator / (sum_denominator * sqrt(2));
+    lastRSplit = r_split;
+    
+    return r_split;
+    
+}
+
+
+double MtzManager::rSplitGeom(double low, double high)
+{
+    bool reverse = FileParser::getKey("SMOOTH_FUNCTION", false);
+    
+    if (referenceManager == NULL)
+    {
+        return 0;
+    }
+    
+    this->scaleToMtz(referenceManager);
+    
+    double sum_numerator = 0;
+    double sum_denominator = 0;
+    int count = 0;
+    double weights = 0;
+    
+    double scales = 0;
+    
+    vector<ReflectionPtr> referenceRefs;
+    vector<ReflectionPtr> imageRefs;
+    
+    this->findCommonReflections(referenceManager, imageRefs, referenceRefs, NULL, true, true);
+    
+    for (int i = 0; i < referenceRefs.size(); i++)
+    {
+        ReflectionPtr referenceRef = referenceRefs[i];
+        ReflectionPtr imageRef = imageRefs[i];
+        
+        if (!reverse && imageRef->acceptedCount() == 0)
+            continue;
+        
+        if (referenceRef->millerCount() == 0)
+            continue;
+        
+        if (imageRef->miller(0)->isFree())
+            continue;
+        
+        if (!referenceRef->betweenResolutions(low, high))
+            continue;
+        
+        for (int j = 0; j < imageRef->millerCount(); j++)
+        {
+            if (!imageRef->miller(j)->accepted())
+            {
+                continue;
+            }
+            
+            double int1 = 0;
+            double int2 = 0;
+            double weight = 0;
+            double scale = 0;
+            
+            if (!reverse)
+            {
+                int1 =  imageRef->miller(j)->intensity();
+                int2 = referenceRef->meanIntensity();
+                weight = imageRef->meanPartiality();
+                scales = getScale();
+                //bfact = imageRef->bFactor;
+            }
+            else
+            {
+                int1 = imageRef->miller(j)->getRawIntensity();
+                int2 = referenceRef->meanIntensity() * imageRef->miller(j)->getPartiality();
+                weight = imageRef->meanPartiality();
+            }
+            
+            if (int1 == 0 || weight == 0 || weight != weight)
+            {
+                continue;
+                
+            }
+            
+            if (int1 != int1 || int2 != int2)
+                continue;
+            
+            if (int1 + int2 < 0)
+                continue;
+            
+            count++;
+            weights += weight;
+            
+            //sum_numerator += fabs((int1  - int2) * weight);
+            //sum_denominator += sqrt(int1 * int2);
+            double line = int1 - (int2 * weight);
+            sum_numerator += std::pow(line,2);
+            sum_denominator += std::pow(int1,2);
+            
+            
+        }
+        
+        
+    }
+    
+    
+    double r_split = sqrt(sum_numerator / (sum_denominator));
+    lastRSplit = r_split;
+    
+    return r_split;
+    
+}
+
+
+

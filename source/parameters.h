@@ -13,6 +13,8 @@
 #define OFFSET 300
 #define DISTANCE_BUFFER 0.025
 
+#define PROFILE_FITTING false
+
 #define PARAM_HROT 0
 #define PARAM_KROT 1
 #define PARAM_MOS 2
@@ -174,15 +176,17 @@ typedef enum
     GeometryFormatPanelList = 2,
 } GeometryFormat;
 
+
 class Detector;
 class SolventMask;
 class Logger;
 class Image;
 class IndexManager;
 class Hdf5Image;
-class Shoebox;
 class Matrix;
 class MtzManager;
+
+class ProfileFit;
 class Spot;
 class SpotVector;
 class IndexingSolution;
@@ -205,8 +209,10 @@ class SpotFinderQuick;
 class SpotFinder;
 class Reflection;
 class NelderMead;
+class Shoebox;
 
 typedef boost::shared_ptr<SpectrumBeam> SpectrumBeamPtr;
+typedef boost::shared_ptr<ProfileFit> ProfilePtr;
 typedef boost::shared_ptr<RefinementStepSearch> RefinementStepSearchPtr;
 typedef boost::shared_ptr<RefinementGridSearch> RefinementGridSearchPtr;
 typedef boost::shared_ptr<RefinementStrategy> RefinementStrategyPtr;
@@ -315,3 +321,4 @@ typedef enum
 } PartialityModel;
 
 #endif /* PARAMETERS_H_ */
+
