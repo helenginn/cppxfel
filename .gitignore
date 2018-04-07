@@ -1,2 +1,4 @@
 xcode/
 *.o
+*~
+cppxfel
