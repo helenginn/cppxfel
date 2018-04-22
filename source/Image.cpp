@@ -579,7 +579,7 @@ Mask Image::flagAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
 	if (value == -1)
 		flag = MaskBackground;
 
-	if (value > 0 && value <= 1)
+	if (value > 0 ) //&& value <= 1
 		flag = MaskForeground;
 
 	return flag;
@@ -592,7 +592,7 @@ double Image::weightAtShoeboxIndex(ShoeboxPtr shoebox, int x, int y)
 	if (value == 0)
 		return 0;
 
-	return 1;
+	return value; //Changed.
 }
 
 void Image::makeMaximumFromImages(std::vector<ImagePtr> images, bool listResults)
@@ -852,22 +852,28 @@ double Image::integrateFitBackgroundPlane(int x, int y, ShoeboxPtr shoebox, floa
 			if (flag == MaskNeither)
 				continue;
 
-			else if (flag == MaskForeground)
+			else if (flag > 0)
 			{
 				double weight = weightAtShoeboxIndex(shoebox, i, j);
 				double total = valueAt(panelPixelX, panelPixelY);
 
-				logged << "F:" << total << ", ";
-
+				//logged << "F:" << total << ", ";
+                
+                std::cout << "BEFORE SHOEBOX: " << total << ", " << std::endl; //Not picked up.
+                
 				foreground += total * weight;
 				num++;
 
 				double backTotal = (p * panelPixelX + q * panelPixelY + r);
-				logged << "B:" << backTotal << ", ";
+                
+                double tmp = total * weight;
+                
+                std::cout << "AFTER SHOEBOX: " << tmp << ", " << std::endl;
+                
+                //logged << "B:" << backTotal << ", ";
 
 				backgroundInSignal += backTotal * weight;
 			}
-
 
 		}
 	}
@@ -898,7 +904,8 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
 	shoebox->sideLengths(&slowSide, &fastSide);
 
 	double foreground = 0;
-	int foreNum = 0;
+	int wNum = 0;
+    int countNum = 0;
 
 	double background = 0;
 	int backNum = 0;
@@ -958,8 +965,9 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
 			if (flag == MaskForeground)
 			{
 				double weight = weightAtShoeboxIndex(shoebox, i, j);
-				weight *= pixelSize;
-				foreNum += weight;
+				weight *= pixelSize; //Interpolation if mss = 0. Otherwise mss is 1.
+                countNum += pixelSize;
+				wNum += weight;
 				foreground += value * weight;
 
 				if (value > pixelCountCutoff && pixelCountCutoff > 0)
@@ -988,7 +996,7 @@ double Image::integrateSimpleSummation(double x, double y, ShoeboxPtr shoebox, f
     //std::cout << "Average background sigma: " << averageSigmaForBackground << std::endl;
     //std::cout << "Average background: " << aveBackground << std::endl;
 
-	double backgroundInForeground = aveBackground * (double) foreNum;
+	double backgroundInForeground = aveBackground * (double) countNum; //Summation of all bg pixels. Number of pixels in foreground region.
 
 	double totalSigmaForForeground = sqrt(fabs(foreground));
 	// double backgroundSigmaInForeground = averageSigmaForBackground * (double)foreNum;
@@ -1014,8 +1022,9 @@ ShoeboxPtr Image::getProfileFit()
     //shoeb = ShoeboxPtr(new Shoebox(MillerPtr()));
     //boost::shared_ptr<Shoebox>
     ProfilePtr shoeb(new ProfileFit());
-    ShoeboxPtr shoebox = boost::static_pointer_cast<Shoebox>(shoeb);
-    shoeb->calculateImageProfile(img);
+    shoebox = boost::static_pointer_cast<Shoebox>(shoeb);
+    shoeb->calculateImageProfile(img); //
+    
     return shoebox;
 }
 
@@ -1047,7 +1056,7 @@ double Image::intensityAt(double x, double y, ShoeboxPtr shoebox, float *error, 
 		}
 
 	double integral = integrateWithShoebox(x1, y1, shoebox, error);
-
+    std::cout << "Integral value from intensity at:" << integral << std::endl;
 	return integral;
 }
 

@@ -1218,7 +1218,6 @@ void MtzManager::writeToFile(std::string newFilename, bool announce, bool plusAm
 			int k = reflections[i]->miller(j)->getK();
 			int l = reflections[i]->miller(j)->getL();
 
-            std::cout << "Intensity of:" << intensity << "\t" << reflections[i]->miller(j)->getRawestIntensity() << "\t" << reflections[i]->miller(j)->intensity() << std::endl;
             
 			fdata[0] = h;
 			fdata[1] = k;

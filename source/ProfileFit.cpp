@@ -55,7 +55,7 @@ double ProfileFit::estimateFWHM(double stdevI)
 }
 
 
-void ProfileFit::addShoeboxes(ShoeboxPtr shoeMaster, ShoeboxPtr shoeTmp)
+void ProfileFit::addShoeboxes(ShoeboxPtr shoeTmp)
 {
     int slowSide1 = 0;
     int slowSide2 = 0;
@@ -76,12 +76,11 @@ void ProfileFit::addShoeboxes(ShoeboxPtr shoeMaster, ShoeboxPtr shoeTmp)
             double val = (*shoeTmp)[i][j];
             if (val > 1)
             {
-                std::cout << "Shoebox temporary value: " << val << std::endl;
-                (*shoeMaster)[i][j] += val;
+                (*this)[i][j] += val;
             }
             else
             {
-                (*shoeMaster)[i][j] = (*shoeMaster)[i][j];
+                (*this)[i][j] = (*this)[i][j];
             }
             
         }
@@ -93,25 +92,25 @@ void ProfileFit::addShoeboxes(ShoeboxPtr shoeMaster, ShoeboxPtr shoeTmp)
     //}
 }
 
-void ProfileFit::subtractfromShoebox(ShoeboxPtr shoeMaster, double toSubtract)
+void ProfileFit::subtractfromShoebox(double toSubtract)
 {
     //int slowSide = 0;
     //int fastSide = 0;
     int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
                                               SHOEBOX_BACKGROUND_PADDING);
     int limitB = (backgroundLength * 2);
-    //shoeMaster->sideLengths(&slowSide, &fastSide);
+    //this->sideLengths(&slowSide, &fastSide);
     std::cout << "Attempting subtract value from shoebox!" << std::endl;
     for (int i = 0; i < limitB; i++)
     {
         for (int j = 0; j < limitB; j++)
         {
-            if ((*shoeMaster)[i][j] > 1)
+            if ((*this)[i][j] > 1)
             {
                 std::cout << "Attempting to subtract:" << toSubtract << std::endl;
-                (*shoeMaster)[i][j] -= toSubtract ;
+                (*this)[i][j] -= toSubtract ;
             }
-        }
+	}        
     }
 }
 
@@ -168,7 +167,7 @@ ShoeboxPtr ProfileFit::intensitySearchGrid(int xCoord, int yCoord, ImagePtr im, 
     float counting = 0;
     int count = 0;
     
-    CSVPtr csv = CSVPtr(new CSV(3,"x", "y", "Intensity"));
+    CSVPtr csvspot = CSVPtr(new CSV(3,"x", "y", "Intensity"));
     for (int i = 0; i < slowSide; i++)
     {
         int panelPosX = (i - x) + startX ;
@@ -180,8 +179,7 @@ ShoeboxPtr ProfileFit::intensitySearchGrid(int xCoord, int yCoord, ImagePtr im, 
             {
                 (*intensityBox)[i][j] = intensity;
                 count += 1;
-                std::cout<<"Intensity of " << "\t" << intensity << "\t" << "at:" << panelPosX << "," << panelPosY << std::endl;
-                csv->addEntry(3, (int)panelPosX, (int)panelPosY, (double)intensity);
+                csvspot->addEntry(3, (double)i, (double)j, (double)intensity);
             }
             else if ((*intensityBox)[i][j] == -1)
             {
@@ -197,7 +195,7 @@ ShoeboxPtr ProfileFit::intensitySearchGrid(int xCoord, int yCoord, ImagePtr im, 
     std::cout<<"Searched grid. Writing to file:" << "\t" << fName << std::endl;
     std::string rootFilename = getBaseFilename(fName);
     
-    csv->writeToFile("profs_" + rootFilename + "_s" + i_to_str(spotNum) + ".csv");
+    csvspot->writeToFile("profs_" + rootFilename + "_s" + i_to_str(spotNum) + ".csv");
     return intensityBox;
 }
 
@@ -232,7 +230,6 @@ void ProfileFit::calculateImageProfile(ImagePtr img)
     std::vector<double> imageSpotStdevs;
     std::vector<double> imageSpotMeans;
     std::vector<double> imageSpotFWHMs;
-    std::cout << "TESTING TESTING!" << std::endl;
     std::vector<int> imageSpotNums;
     std::vector<double> imageSpotIntensities;
     std::vector<int> imageSpotXs;
@@ -249,8 +246,7 @@ void ProfileFit::calculateImageProfile(ImagePtr img)
     bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
     int limitB = (backgroundLength * 2);
     
-    ShoeboxPtr masterBox = ShoeboxPtr(new Shoebox(MillerPtr()));
-    masterBox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
+    simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
     
     CSVPtr csv = CSVPtr(new CSV(7,"SpotNum", "x", "y", "Intensity", "MeanIntensity","Stdeviation","FWHM"));
     std::string fName = img->getFilename();
@@ -282,7 +278,7 @@ void ProfileFit::calculateImageProfile(ImagePtr img)
             intensityBox = intensitySearchGrid(xCoord, yCoord, img, fName, j, &backGround);
             std::cout << "IntensityBox now completed." << std::endl;
             
-            addShoeboxes(masterBox, intensityBox);
+            addShoeboxes(intensityBox);
             
             std::cout << "Finished search grid!" << std::endl;
             double imageSpotStdev = 0;
@@ -316,17 +312,16 @@ void ProfileFit::calculateImageProfile(ImagePtr img)
     
     CSVPtr csv2 = CSVPtr(new CSV(3,"RelativeX","RelativeY","SummedIntensity"));
     
-    std::cout << "TESTING!" << std::endl;
-    subtractfromShoebox(masterBox, totalAverageBg);
+    subtractfromShoebox(totalAverageBg);
     
-    masterBox -> printShoebox();
+   printShoebox();
     
     for (int i = 0; i < limitB; i++)
     {
         for (int j = 0; j < limitB; j++)
         {
-            double val = (*masterBox)[i][j];
-            csv2->addEntry(3, (int)i, (int)j, (double)val);
+            double val = (*this)[i][j];
+            csv2->addEntry(3, (double)i, (double)j, (double)val);
         }
     }
     
@@ -334,9 +329,6 @@ void ProfileFit::calculateImageProfile(ImagePtr img)
     std::cout << "Calculated average background of:" << "\t" << totalAverageBg << std::endl;
     
     std::cout << "Printing intensities for file" << fName << std::endl;
-    
-    //return masterBox;
-    
 }
 
 

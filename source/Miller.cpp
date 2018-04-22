@@ -936,24 +936,24 @@ void Miller::makeShoebox()
     std::cout << "Profile check." << fitProfile << std::endl;
 	if (!shoebox)
 	{
-        if (!fitProfile)
-            {
-                shoebox = ShoeboxPtr(new Shoebox(shared_from_this()));
-                std::cout << "Creating a simple shoebox." << std::endl;
-                int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
-												  SHOEBOX_FOREGROUND_PADDING);
-                int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_PADDING",
-											   SHOEBOX_NEITHER_PADDING);
-                int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
-												  SHOEBOX_BACKGROUND_PADDING);
-                bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
-                shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
-            }
-        else if (fitProfile)
-        {
+        //if (!fitProfile)
+            //{
+               // shoebox = ShoeboxPtr(new Shoebox(shared_from_this()));
+                //std::cout << "Creating a simple shoebox." << std::endl;
+                //int foregroundLength = FileParser::getKey("SHOEBOX_FOREGROUND_PADDING",
+												  //SHOEBOX_FOREGROUND_PADDING);
+               // int neitherLength = FileParser::getKey("SHOEBOX_NEITHER_PADDING",
+											   //SHOEBOX_NEITHER_PADDING);
+               // int backgroundLength = FileParser::getKey("SHOEBOX_BACKGROUND_PADDING",
+												  //SHOEBOX_BACKGROUND_PADDING);
+               // bool shoeboxEven = FileParser::getKey("SHOEBOX_MAKE_EVEN", false);
+                //shoebox->simpleShoebox(foregroundLength, neitherLength, backgroundLength, shoeboxEven);
+            //}
+        //else if (fitProfile)
+        //{
             std::cout << "Creating a profile fit!" << std::endl;
             shoebox = getImage()->getProfileFit();
-        }
+        //}
 	}
 
 }

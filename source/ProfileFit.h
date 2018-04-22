@@ -31,8 +31,8 @@ public:
    // ~ProfileFit();
     //Profile fits for image???
     void calculateImageProfile(ImagePtr image);
-    void addShoeboxes(ShoeboxPtr shoeMaster, ShoeboxPtr shoeTmp);
-    void subtractfromShoebox(ShoeboxPtr shoeMaster, double toSubtract);
+    void addShoeboxes(ShoeboxPtr shoeTmp);
+    void subtractfromShoebox(double toSubtract);
     ProfileFit() : Shoebox(MillerPtr()){};
     void correctSpotCentring(double *xCoord, double *yCoord, ImagePtr img);
     ShoeboxPtr intensitySearchGrid(int startX, int startY, ImagePtr im, std::string fName, int spotNum, double *bg);
