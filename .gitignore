@@ -2,3 +2,4 @@ xcode/
 *.o
 *~
 cppxfel
+Makefile
